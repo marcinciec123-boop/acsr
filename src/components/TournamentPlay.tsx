@@ -966,6 +966,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 resolved={knockout.resolved[i]}
                 matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
+                onOpenDetail={() => setActiveMatchDetail({ source: "knockout", index: i })}
               />
             ))}
           </div>
