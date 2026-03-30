@@ -28,7 +28,7 @@ const HistoryTab = () => {
 
   // Manual transfers
   const [customTransfers, setCustomTransfers] = useState<Transfer[]>([]);
-  const [freeAgents, setFreeAgents] = useState<{ player: string; previousTeam: string }[]>([]);
+  const [freeAgents, setFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
 
   // Transfer dialog
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -40,6 +40,9 @@ const HistoryTab = () => {
   const [showFADialog, setShowFADialog] = useState(false);
   const [faPlayer, setFaPlayer] = useState("");
   const [faPrevTeam, setFaPrevTeam] = useState("");
+  const [faFirstName, setFaFirstName] = useState("");
+  const [faLastName, setFaLastName] = useState("");
+  const [faNationality, setFaNationality] = useState("");
 
   const allTransfers = [...staticTransfers, ...customTransfers];
 
@@ -87,13 +90,21 @@ const HistoryTab = () => {
 
   const handleAddFreeAgent = () => {
     if (!faPlayer.trim()) return;
-    setFreeAgents(prev => [...prev, { player: faPlayer.trim(), previousTeam: faPrevTeam || "Nieznana" }]);
-    // Also add as a transfer (leave)
+    setFreeAgents(prev => [...prev, {
+      player: faPlayer.trim(),
+      previousTeam: faPrevTeam || "Nieznana",
+      firstName: faFirstName.trim(),
+      lastName: faLastName.trim(),
+      nationality: faNationality,
+    }]);
     if (faPrevTeam) {
       setCustomTransfers(prev => [...prev, { player: faPlayer.trim(), oldTeam: faPrevTeam, newTeam: "-" }]);
     }
     setFaPlayer("");
     setFaPrevTeam("");
+    setFaFirstName("");
+    setFaLastName("");
+    setFaNationality("");
     setShowFADialog(false);
   };
 
@@ -202,6 +213,20 @@ const HistoryTab = () => {
                       <option value="">Brak / nieznana</option>
                       {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Imię</label>
+                      <Input placeholder="Imię..." value={faFirstName} onChange={e => setFaFirstName(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Nazwisko</label>
+                      <Input placeholder="Nazwisko..." value={faLastName} onChange={e => setFaLastName(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-mono text-muted-foreground mb-1 block">Narodowość (kod ISO, np. PL, DE, US)</label>
+                    <Input placeholder="PL" value={faNationality} onChange={e => setFaNationality(e.target.value.toUpperCase())} maxLength={2} />
                   </div>
                   <Button onClick={handleAddFreeAgent} className="w-full">
                     <UserPlus className="w-4 h-4 mr-2" /> Dodaj wolnego agenta
@@ -346,7 +371,7 @@ const HistoryTab = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {freeAgents.map((fa, i) => {
-                  const country = playerNationalities[fa.player];
+                  const country = fa.nationality || playerNationalities[fa.player];
                   return (
                     <motion.div
                       key={`${fa.player}-${i}`}
@@ -363,6 +388,9 @@ const HistoryTab = () => {
                           {country && <span className="text-xs">{countryFlag(country)}</span>}
                           {fa.player}
                         </p>
+                        {(fa.firstName || fa.lastName) && (
+                          <p className="text-xs text-muted-foreground">{fa.firstName} {fa.lastName}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Poprzednio: <span className="text-foreground">{fa.previousTeam}</span>
                         </p>

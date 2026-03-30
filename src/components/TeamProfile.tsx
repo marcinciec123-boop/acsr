@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, ArrowRightLeft } from "lucide-react";
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
+import { transfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +12,9 @@ interface TeamProfileProps {
   teamName: string;
   onBack: () => void;
   seasonStanding?: SeasonTeamStanding;
+  onSelectPlayer?: (playerName: string) => void;
 }
 
-// Generate a consistent color based on player name for avatar
 const getAvatarColor = (name: string): string => {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -31,8 +33,17 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => {
+const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamProfileProps) => {
   const team = teamDatabase.find((t) => t.name === teamName);
+  const globalRank = team ? teamDatabase.indexOf(team) + 1 : 0;
+  const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
+  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-silver" : "text-muted-foreground";
+
+  // Transfers related to this team
+  const teamTransfers = useMemo(() => {
+    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
+  }, [teamName]);
+
   if (!team) {
     return (
       <section className="py-12">
@@ -45,10 +56,6 @@ const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => 
       </section>
     );
   }
-
-  const globalRank = teamDatabase.indexOf(team) + 1;
-  const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
-  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-silver" : "text-muted-foreground";
 
   const placementLabel = (p: number) => {
     if (p === 1) return "🥇";
@@ -143,10 +150,14 @@ const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2 + i * 0.05 }}
-                  className="bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors group"
+                  onClick={() => onSelectPlayer?.(player)}
+                  className={cn(
+                    "bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors group",
+                    onSelectPlayer && "cursor-pointer"
+                  )}
                 >
                   <div className={cn(
-                    "w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-lg font-heading font-bold text-white bg-gradient-to-br shadow-lg",
+                    "w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-white bg-gradient-to-br shadow-lg",
                     avatarGradient
                   )}>
                     <User className="w-6 h-6" />
@@ -166,6 +177,55 @@ const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => 
             })}
           </div>
         </motion.div>
+
+        {/* Transfer History */}
+        {teamTransfers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-card border border-border rounded-lg p-6 mb-6"
+          >
+            <h2 className="text-lg font-heading font-bold text-foreground mb-4 flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-primary" /> Ruchy kadrowe
+            </h2>
+            <div className="space-y-2">
+              {teamTransfers.map((t, i) => {
+                const isJoin = t.newTeam === teamName;
+                return (
+                  <div key={`${t.player}-${i}`} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg border border-border/50">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                      isJoin ? "bg-win/20 text-win" : "bg-loss/20 text-loss"
+                    )}>
+                      {isJoin ? "+" : "−"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading font-bold text-foreground text-sm">
+                        {playerNationalities[t.player] && (
+                          <span className="mr-1">{countryFlag(playerNationalities[t.player])}</span>
+                        )}
+                        {t.player}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {isJoin
+                          ? t.oldTeam === "-" ? "Free Agent → Dołączył" : `z ${t.oldTeam}`
+                          : t.newTeam === "-" ? "Odszedł → Free Agent" : `do ${t.newTeam}`
+                        }
+                      </p>
+                    </div>
+                    <span className={cn(
+                      "text-xs font-mono font-bold px-2 py-0.5 rounded",
+                      isJoin ? "bg-win/10 text-win" : "bg-loss/10 text-loss"
+                    )}>
+                      {isJoin ? "IN" : "OUT"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* Season History */}
         {seasonStanding && seasonStanding.pointHistory.length > 0 && (

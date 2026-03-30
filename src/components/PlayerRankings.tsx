@@ -27,9 +27,10 @@ const allPlayerCountries = [...new Set(Object.values(playerNationalities))].sort
 
 interface PlayerRankingsProps {
   onSelectTeam?: (teamName: string) => void;
+  onSelectPlayer?: (playerName: string) => void;
 }
 
-const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
+const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
   const [nationalityFilter, setNationalityFilter] = useState<string>("all");
@@ -118,7 +119,7 @@ const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
                   {playerResults.map((r) => (
                     <button
                       key={`${r.team}-${r.player}`}
-                      onClick={() => onSelectTeam?.(r.team)}
+                     onClick={() => onSelectPlayer?.(r.player)}
                       className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-muted/30 transition-colors text-left"
                     >
                       <User className="w-4 h-4 text-primary shrink-0" />
