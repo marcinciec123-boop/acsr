@@ -701,24 +701,18 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
             {swiss.currentMatches[0]?.bo > 1 ? ` (BO${swiss.currentMatches[0].bo})` : " (BO1)"}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {swiss.currentMatches.map((m, i) => {
-              // Auto-generate stats for newly resolved matches
-              if (swiss.resolved[i] && m.winner && !getStatsForMatch(m)) {
-                generateStatsForMatch(m);
-              }
-              return (
-                <EditableMatch
-                  key={`${m.team1}-${m.team2}-${i}`}
-                  match={m}
-                  index={i}
-                  onUpdate={swiss.updateMatch}
-                  onSimulate={swiss.simulateOne}
-                  resolved={swiss.resolved[i]}
-                  matchStats={getStatsForMatch(m)}
-                  onUpdateStats={handleUpdateStats}
-                />
-              );
-            })}
+            {swiss.currentMatches.map((m, i) => (
+              <EditableMatch
+                key={`${m.team1}-${m.team2}-${i}`}
+                match={m}
+                index={i}
+                onUpdate={swiss.updateMatch}
+                onSimulate={swiss.simulateOne}
+                resolved={swiss.resolved[i]}
+                matchStats={getStatsForMatch(m) || (swiss.resolved[i] && m.winner ? (() => { const s = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo); return s; })() : null)}
+                onUpdateStats={handleUpdateStats}
+              />
+            ))}
           </div>
         </div>
       )}
