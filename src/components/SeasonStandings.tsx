@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
 import { Trophy, Medal, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SeasonTeamStanding } from "@/data/tournaments";
+import { type SeasonTeamStanding, teamDatabase } from "@/data/tournaments";
+import { countryFlag } from "@/lib/flags";
 import { useState } from "react";
 
 interface SeasonStandingsProps {
   standings: SeasonTeamStanding[];
+  onSelectTeam?: (teamName: string) => void;
 }
+
 
 const placementLabel = (p: number) => {
   if (p === 1) return "🥇";
@@ -15,8 +18,13 @@ const placementLabel = (p: number) => {
   return `#${p}`;
 };
 
-const SeasonStandings = ({ standings }: SeasonStandingsProps) => {
+const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  const getTeamFlag = (name: string) => {
+    const t = teamDatabase.find(td => td.name === name);
+    return t ? countryFlag(t.country) : "🏳️";
+  };
 
   if (standings.length === 0) {
     return (
@@ -73,7 +81,7 @@ const SeasonStandings = ({ standings }: SeasonStandingsProps) => {
                   <div className={cn("w-full rounded-t-lg border-t-2 border-x-2 flex flex-col items-center justify-end p-4", heights[i], colors[i])}>
                     <Medal className={cn("w-6 h-6 mb-2", textColors[i])} />
                     <p className={cn("font-heading font-bold text-lg", textColors[i])}>#{rank}</p>
-                    <p className="font-heading font-bold text-foreground text-sm truncate w-full text-center">{team.team}</p>
+                    <p className="font-heading font-bold text-foreground text-sm truncate w-full text-center">{getTeamFlag(team.team)} {team.team}</p>
                     <p className="font-mono text-primary font-bold">{team.totalPoints.toLocaleString()} pkt</p>
                     <p className="text-xs text-muted-foreground">{team.wins}W / {team.tournaments}T</p>
                   </div>
@@ -119,7 +127,13 @@ const SeasonStandings = ({ standings }: SeasonStandingsProps) => {
                     {i + 1}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-foreground">{team.team}</span>
+                    <span className="text-lg">{getTeamFlag(team.team)}</span>
+                    <span
+                      className="font-heading font-bold text-foreground hover:text-primary cursor-pointer transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(team.team); }}
+                    >
+                      {team.team}
+                    </span>
                     {isExpanded ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
                   </div>
                   <span className="font-mono font-bold text-primary text-right">{team.totalPoints.toLocaleString()}</span>
