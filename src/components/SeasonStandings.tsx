@@ -127,7 +127,13 @@ const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
                     {i + 1}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-foreground">{team.team}</span>
+                    <span className="text-lg">{getTeamFlag(team.team)}</span>
+                    <span
+                      className="font-heading font-bold text-foreground hover:text-primary cursor-pointer transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(team.team); }}
+                    >
+                      {team.team}
+                    </span>
                     {isExpanded ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
                   </div>
                   <span className="font-mono font-bold text-primary text-right">{team.totalPoints.toLocaleString()}</span>
