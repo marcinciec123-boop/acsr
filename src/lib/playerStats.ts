@@ -62,7 +62,7 @@ export function calculateRating(stats: PlayerMatchStats): number {
   return Math.round(rating * 100) / 100;
 }
 
-const MAP_POOL = ["Mirage", "Inferno", "Nuke", "Overpass", "Ancient", "Anubis", "Vertigo"];
+const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
 
 function pickMaps(count: number): string[] {
   const shuffled = [...MAP_POOL].sort(() => Math.random() - 0.5);

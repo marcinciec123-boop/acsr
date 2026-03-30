@@ -70,14 +70,16 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
             <p className={cn("text-xl font-heading font-bold", resolved && match.winner === match.team1 && "text-win")}>{match.team1}</p>
           </div>
           {editing ? (
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-2">
               {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input value={s1} onChange={e => setS1(e.target.value)} className="w-14 h-10 text-center font-mono text-lg p-0 bg-background" type="number" min="0" />
                 <span className="text-muted-foreground text-xl font-mono">:</span>
                 <Input value={s2} onChange={e => setS2(e.target.value)} className="w-14 h-10 text-center font-mono text-lg p-0 bg-background" type="number" min="0" />
-                <button onClick={confirmScore} className="ml-2 p-2 rounded-md hover:bg-primary/20 text-primary"><Check className="w-5 h-5" /></button>
               </div>
+              <button onClick={confirmScore} className="flex items-center gap-2 px-5 py-2 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity text-sm">
+                <Check className="w-4 h-4" /> Zapisz wynik
+              </button>
             </div>
           ) : (
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">

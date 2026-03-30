@@ -137,7 +137,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
           </div>
 
           {editing ? (
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-2">
               {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input
@@ -155,10 +155,10 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
                   type="number"
                   min="0"
                 />
-                <button onClick={confirmScore} className="ml-2 p-2 rounded-md hover:bg-primary/20 text-primary">
-                  <Check className="w-5 h-5" />
-                </button>
               </div>
+              <button onClick={confirmScore} className="flex items-center gap-2 px-5 py-2 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity text-sm">
+                <Check className="w-4 h-4" /> Zapisz wynik
+              </button>
             </div>
           ) : (
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
