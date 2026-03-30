@@ -21,7 +21,11 @@ const tierLabel = (rank: number) => {
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
-const PlayerRankings = () => {
+interface PlayerRankingsProps {
+  onSelectTeam?: (teamName: string) => void;
+}
+
+const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
 
