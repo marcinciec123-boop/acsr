@@ -66,37 +66,11 @@ const Index = () => {
     return true;
   };
 
-  const simulateNext = () => {
+  const playNext = () => {
     const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     const next = sorted.find((t) => t.status === "upcoming");
     if (!next) return;
-
-    // Auto-resolve qualification if needed
-    let updatedTournament = { ...next };
-    if (needsQualification(updatedTournament)) {
-      const invited = getInvitedTeamsByRanking(updatedTournament, dynamicRanking);
-      const pool = getQualifierPool(updatedTournament, dynamicRanking, invited);
-      // Auto-qualify top teams from pool
-      const qualifiedTeams = pool.slice(0, updatedTournament.qualification.qualifierSlots);
-      updatedTournament = {
-        ...updatedTournament,
-        qualifierCompleted: true,
-        qualifiedTeams,
-        invitedTeams: invited,
-        participants: [...invited, ...qualifiedTeams].slice(0, updatedTournament.teams),
-      };
-    } else if (updatedTournament.qualification.qualifierType === "none") {
-      updatedTournament = {
-        ...updatedTournament,
-        participants: dynamicRanking.slice(0, updatedTournament.teams).map(t => t.name),
-      };
-    }
-
-    const result = simulateTournament(updatedTournament);
-    setSimResults((prev) => ({ ...prev, [next.id]: result }));
-    setTournaments((prev) =>
-      prev.map((t) => (t.id === next.id ? { ...updatedTournament, status: "completed" as const } : t))
-    );
+    handlePlayTournament(next.id);
   };
 
   const simulateAll = () => {
@@ -248,7 +222,7 @@ const Index = () => {
           <TournamentList
             tournaments={tournaments}
             simResults={simResults}
-            onSimulateNext={simulateNext}
+            onSimulateNext={playNext}
             onSimulateAll={simulateAll}
             onReset={resetSeason}
             onPlayTournament={handlePlayTournament}
