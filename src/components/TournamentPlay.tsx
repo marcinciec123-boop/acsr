@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
+import MapVeto from "@/components/MapVeto";
 
 interface TournamentPlayProps {
   tournament: Tournament;
