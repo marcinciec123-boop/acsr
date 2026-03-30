@@ -97,9 +97,13 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
     if (isBo1) {
       const high = Math.max(score1, score2);
       const low = Math.min(score1, score2);
-      // Regular: winner=13, loser<13. Overtime: both>=12, winner>loser
       if (high < 13) return;
-      if (low >= 13 && high - low < 1) return; // OT needs lead
+      // Valid winner scores: 13, 16, 19, 22... (13 + 3*n)
+      if ((high - 13) % 3 !== 0) return;
+      // Loser score range: for winner=13 → 0-12, for winner=16 → 12-15, etc.
+      const minLoser = high === 13 ? 0 : high - 4;
+      const maxLoser = high - 1;
+      if (low < minLoser || low > maxLoser) return;
     }
     const winner = score1 > score2 ? match.team1 : match.team2;
     const mapScore1 = isBo1 ? 1 : score1;

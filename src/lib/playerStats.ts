@@ -245,11 +245,11 @@ export function generateMatchStats(
     let winnerRounds: number;
     let loserRounds: number;
     if (isOT) {
-      // Overtime: 12-12 then MR4 OT rounds (first to 4 lead)
-      const otWins = Math.ceil(Math.random() * 4); // 1-4 extra wins
-      const otLosses = Math.floor(Math.random() * otWins); // fewer than winner
-      winnerRounds = 12 + otWins;
-      loserRounds = 12 + otLosses;
+      // Overtime: 12-12 then MR4 OT (each OT = 4 rounds, win by taking 4)
+      // Possible: single OT → 16:12-15, double OT → 19:15-18, etc.
+      const otCount = Math.random() < 0.7 ? 1 : 2; // mostly single OT
+      winnerRounds = 13 + 3 * otCount; // 16 or 19
+      loserRounds = winnerRounds - 1 - Math.floor(Math.random() * 4); // winner-4 to winner-1
     } else {
       winnerRounds = 13;
       loserRounds = Math.round(5 + Math.random() * 7); // 5-12
