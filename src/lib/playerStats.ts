@@ -205,14 +205,9 @@ export function generateMatchStats(
   const mapNames = pickMaps(mapsPlayed);
 
   if (bo <= 1 || mapsPlayed <= 1) {
-    // Single map - generate rounds based on score (in Bo1, score is map score like 16-12)
-    const t1Rounds = Math.max(score1, Math.round(10 + Math.random() * 6));
-    const t2Rounds = Math.max(score2, Math.round(10 + Math.random() * 6));
-    // Ensure winner has more rounds
-    const winnerRounds = Math.max(t1Rounds, t2Rounds, 13);
-    const loserRounds = Math.min(t1Rounds, t2Rounds);
-    const finalT1 = score1 > score2 ? winnerRounds : loserRounds;
-    const finalT2 = score1 > score2 ? loserRounds : winnerRounds;
+    // Single map - use scores directly as round scores
+    const finalT1 = score1;
+    const finalT2 = score2;
 
     const map = generateMapStats(team1Roster, team2Roster, team1, team2, finalT1, finalT2, 1, mapNames[0] || "Mirage");
 
@@ -245,9 +240,20 @@ export function generateMatchStats(
       t1Wins = Math.random() < (t1NeedsMore / remainingMaps);
     }
 
-    // Generate round score for this map
-    const winnerRounds = 13;
-    const loserRounds = Math.round(5 + Math.random() * 8); // 5-13
+    // Generate round score for this map (with possible overtime)
+    const isOT = Math.random() < 0.2; // 20% chance of overtime
+    let winnerRounds: number;
+    let loserRounds: number;
+    if (isOT) {
+      // Overtime: 12-12 then MR4 OT rounds (first to 4 lead)
+      const otWins = Math.ceil(Math.random() * 4); // 1-4 extra wins
+      const otLosses = Math.floor(Math.random() * otWins); // fewer than winner
+      winnerRounds = 12 + otWins;
+      loserRounds = 12 + otLosses;
+    } else {
+      winnerRounds = 13;
+      loserRounds = Math.round(5 + Math.random() * 7); // 5-12
+    }
     const t1Rounds = t1Wins ? winnerRounds : loserRounds;
     const t2Rounds = t1Wins ? loserRounds : winnerRounds;
 
