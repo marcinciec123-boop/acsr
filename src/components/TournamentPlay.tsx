@@ -88,6 +88,8 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
   const [editing, setEditing] = useState(false);
   const [s1, setS1] = useState(match.score1.toString());
   const [s2, setS2] = useState(match.score2.toString());
+  const [vetoCompleted, setVetoCompleted] = useState(resolved);
+  const [pickedMaps, setPickedMaps] = useState<string[]>([]);
 
   const isBo1 = (match.bo || 1) === 1;
 
