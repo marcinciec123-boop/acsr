@@ -45,7 +45,10 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
       const high = Math.max(score1, score2);
       const low = Math.min(score1, score2);
       if (high < 13) return;
-      if (low >= 13 && high - low < 1) return;
+      if ((high - 13) % 3 !== 0) return;
+      const minLoser = high === 13 ? 0 : high - 4;
+      const maxLoser = high - 1;
+      if (low < minLoser || low > maxLoser) return;
     }
     const winner = score1 > score2 ? match.team1 : match.team2;
     const mapScore1 = isBo1 ? 1 : score1;
