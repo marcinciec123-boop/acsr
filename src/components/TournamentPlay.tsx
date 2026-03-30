@@ -900,6 +900,9 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
           </div>
         </motion.div>
 
+        {/* Roster preview */}
+        <TournamentRoster tournament={tournament} participants={teams} />
+
         {/* Phase content */}
         {(currentPhase === "swiss" || currentPhase === "major-s1" || currentPhase === "major-s2") && renderSwissPhase()}
         {currentPhase === "groups" && renderGroupsPhase()}
