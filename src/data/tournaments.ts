@@ -40,6 +40,7 @@ export interface Tournament {
   qualifierParticipants?: string[];  // teams that entered qualifier
   qualifiedTeams?: string[];  // teams that won through qualifier
   invitedTeams?: string[];  // teams invited via ranking
+  manualInvites?: string[];  // teams manually invited by user
 }
 
 export interface CalendarEvent {
