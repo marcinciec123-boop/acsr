@@ -94,19 +94,21 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
     const score1 = parseInt(s1) || 0;
     const score2 = parseInt(s2) || 0;
     if (score1 === score2 || score1 < 0 || score2 < 0) return;
+    if (isBo1) {
+      const high = Math.max(score1, score2);
+      const low = Math.min(score1, score2);
+      // Regular: winner=13, loser<13. Overtime: both>=12, winner>loser
+      if (high < 13) return;
+      if (low >= 13 && high - low < 1) return; // OT needs lead
+    }
     const winner = score1 > score2 ? match.team1 : match.team2;
-    // For Bo1, scores are rounds — store map score as 1:0 but keep round scores for stats
     const mapScore1 = isBo1 ? 1 : score1;
     const mapScore2 = isBo1 ? 0 : score2;
     const updatedMatch = { ...match, score1: winner === match.team1 ? mapScore1 : mapScore2, score2: winner === match.team1 ? mapScore2 : mapScore1, winner };
     onUpdate(updatedMatch);
     setEditing(false);
     if (onUpdateStats) {
-      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? 1 : score1, isBo1 ? 0 : score2, match.bo);
-      if (isBo1 && stats.maps && stats.maps.length > 0) {
-        stats.maps[0].team1RoundsWon = winner === match.team1 ? score1 : score2;
-        stats.maps[0].team2RoundsWon = winner === match.team1 ? score2 : score1;
-      }
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? score1 : score1, isBo1 ? score2 : score2, match.bo);
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };
