@@ -1,0 +1,191 @@
+import { useState } from "react";
+import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X } from "lucide-react";
+import { type PlayerMatchStats, type MatchStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+
+interface MatchStatsPanelProps {
+  stats: MatchStats | null;
+  team1: string;
+  team2: string;
+  onUpdateStats?: (stats: MatchStats) => void;
+}
+
+const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => (
+  <Input
+    type="number"
+    min="0"
+    value={value}
+    onChange={e => onChange(parseInt(e.target.value) || 0)}
+    className={cn("w-12 h-6 text-center font-mono text-xs p-0 bg-background", className)}
+  />
+);
+
+const PlayerStatsRow = ({ player, editing, onUpdate }: {
+  player: PlayerMatchStats;
+  editing: boolean;
+  onUpdate?: (updated: PlayerMatchStats) => void;
+}) => {
+  const kd = player.deaths > 0 ? (player.kills / player.deaths).toFixed(2) : player.kills.toFixed(2);
+
+  if (editing && onUpdate) {
+    return (
+      <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 items-center text-xs border-t border-border/30">
+        <div className="font-medium text-foreground truncate">{player.playerName}</div>
+        <StatInput value={player.kills} onChange={v => onUpdate({ ...player, kills: v })} />
+        <StatInput value={player.assists} onChange={v => onUpdate({ ...player, assists: v })} />
+        <StatInput value={player.deaths} onChange={v => onUpdate({ ...player, deaths: v })} />
+        <StatInput value={player.adr} onChange={v => onUpdate({ ...player, adr: v })} />
+        <StatInput value={player.kast} onChange={v => onUpdate({ ...player, kast: Math.min(100, v) })} />
+        <StatInput value={player.ud} onChange={v => onUpdate({ ...player, ud: v })} />
+        <StatInput value={player.ef} onChange={v => onUpdate({ ...player, ef: v })} />
+        <div className={cn("font-mono font-bold text-center", getRatingColor(calculateRating(player)))}>
+          {calculateRating(player).toFixed(2)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1.5 items-center text-xs border-t border-border/30 hover:bg-secondary/30 transition-colors">
+      <div className="font-medium text-foreground truncate">{player.playerName}</div>
+      <div className={cn("font-mono text-center", getKDColor(player.kills, player.deaths))}>{player.kills}</div>
+      <div className="font-mono text-center text-muted-foreground">{player.assists}</div>
+      <div className="font-mono text-center text-muted-foreground">{player.deaths}</div>
+      <div className="font-mono text-center text-foreground">{player.adr}</div>
+      <div className="font-mono text-center text-foreground">{player.kast}%</div>
+      <div className="font-mono text-center text-muted-foreground">{player.ud}</div>
+      <div className="font-mono text-center text-muted-foreground">{player.ef}</div>
+      <div className={cn("font-mono font-bold text-center", getRatingColor(player.rating || 0))}>
+        {(player.rating || 0).toFixed(2)}
+      </div>
+    </div>
+  );
+};
+
+const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer }: {
+  players: PlayerMatchStats[];
+  teamName: string;
+  editing: boolean;
+  onUpdatePlayer?: (index: number, player: PlayerMatchStats) => void;
+}) => {
+  const sorted = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  const avgRating = players.length > 0
+    ? players.reduce((sum, p) => sum + (p.rating || calculateRating(p)), 0) / players.length
+    : 0;
+
+  return (
+    <div className="bg-background rounded-md border border-border/50 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-secondary/50">
+        <span className="font-heading font-bold text-sm text-foreground">{teamName}</span>
+        <span className={cn("font-mono text-xs font-bold", getRatingColor(avgRating))}>
+          Avg: {avgRating.toFixed(2)}
+        </span>
+      </div>
+      {/* Header */}
+      <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 text-[10px] font-mono text-muted-foreground uppercase">
+        <div>Gracz</div>
+        <div className="text-center">K</div>
+        <div className="text-center">A</div>
+        <div className="text-center">D</div>
+        <div className="text-center">ADR</div>
+        <div className="text-center">KAST</div>
+        <div className="text-center">UD</div>
+        <div className="text-center">EF</div>
+        <div className="text-center">Rating</div>
+      </div>
+      {sorted.map((p, i) => (
+        <PlayerStatsRow
+          key={p.playerName}
+          player={p}
+          editing={editing}
+          onUpdate={onUpdatePlayer ? (updated) => {
+            const origIdx = players.findIndex(op => op.playerName === p.playerName);
+            if (origIdx >= 0) onUpdatePlayer(origIdx, updated);
+          } : undefined}
+        />
+      ))}
+    </div>
+  );
+};
+
+const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanelProps) => {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [localStats, setLocalStats] = useState<MatchStats | null>(stats);
+
+  if (!localStats) return null;
+
+  const handleUpdateTeam1Player = (index: number, player: PlayerMatchStats) => {
+    const updated = { ...localStats, team1Stats: localStats.team1Stats.map((p, i) => i === index ? { ...player, rating: calculateRating(player) } : p) };
+    setLocalStats(updated);
+  };
+
+  const handleUpdateTeam2Player = (index: number, player: PlayerMatchStats) => {
+    const updated = { ...localStats, team2Stats: localStats.team2Stats.map((p, i) => i === index ? { ...player, rating: calculateRating(player) } : p) };
+    setLocalStats(updated);
+  };
+
+  const handleSave = () => {
+    if (onUpdateStats && localStats) {
+      onUpdateStats(localStats);
+    }
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setLocalStats(stats);
+    setEditing(false);
+  };
+
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors px-2 py-1 w-full justify-center"
+      >
+        <BarChart3 className="w-3 h-3" />
+        Statystyki
+        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+
+      {expanded && (
+        <div className="p-2 space-y-2 bg-secondary/20 rounded-b-md border-t border-border/30">
+          <div className="flex justify-end gap-1">
+            {!editing ? (
+              <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-0.5 border border-accent/30 rounded"
+              >
+                <Edit3 className="w-2.5 h-2.5" /> Edytuj
+              </button>
+            ) : (
+              <>
+                <button onClick={handleSave} className="flex items-center gap-1 text-[10px] font-mono text-win hover:text-win/80 px-2 py-0.5 border border-win/30 rounded">
+                  <Check className="w-2.5 h-2.5" /> Zapisz
+                </button>
+                <button onClick={handleCancel} className="flex items-center gap-1 text-[10px] font-mono text-destructive hover:text-destructive/80 px-2 py-0.5 border border-destructive/30 rounded">
+                  <X className="w-2.5 h-2.5" /> Anuluj
+                </button>
+              </>
+            )}
+          </div>
+          <TeamStatsTable
+            players={localStats.team1Stats}
+            teamName={team1}
+            editing={editing}
+            onUpdatePlayer={handleUpdateTeam1Player}
+          />
+          <TeamStatsTable
+            players={localStats.team2Stats}
+            teamName={team2}
+            editing={editing}
+            onUpdatePlayer={handleUpdateTeam2Player}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MatchStatsPanel;
