@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save } from "lucide-react";
+import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save, ExternalLink, Keyboard } from "lucide-react";
 import { type Tournament, type TournamentSimulation, type MatchResult, type SwissResult, type SwissStanding, type SwissRound, type GroupResult, type GroupStanding, type KnockoutResult, type KnockoutRound, type MajorStage, simulateMatch, derivePlacements, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -74,9 +74,15 @@ const getTeamRoster = (teamName: string): string[] => {
   return team?.roster || [teamName + "_p1", teamName + "_p2", teamName + "_p3", teamName + "_p4", teamName + "_p5"];
 };
 
-const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats }: EditableMatchProps & {
+// ===== Match Detail Panel (full screen overlay) =====
+const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, onUpdateStats, onClose }: {
+  match: MatchResult;
+  onUpdate: (match: MatchResult) => void;
+  onSimulate: () => void;
+  resolved: boolean;
   matchStats?: MatchStats | null;
   onUpdateStats?: (matchId: string, stats: MatchStats) => void;
+  onClose: () => void;
 }) => {
   const [editing, setEditing] = useState(false);
   const [s1, setS1] = useState(match.score1.toString());
@@ -88,15 +94,138 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
     if (score1 === score2 || score1 < 0 || score2 < 0) return;
     const winner = score1 > score2 ? match.team1 : match.team2;
     const updatedMatch = { ...match, score1, score2, winner };
-    onUpdate(index, updatedMatch);
+    onUpdate(updatedMatch);
     setEditing(false);
-    // Auto-generate stats when manually entering score
     if (onUpdateStats) {
       const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };
 
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card border border-border rounded-lg overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-secondary/50 border-b border-border/50">
+        <button onClick={onClose} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+          <ArrowLeft className="w-4 h-4" />
+          Powrót
+        </button>
+        <span className="text-xs font-mono text-muted-foreground">BO{match.bo}</span>
+      </div>
+
+      {/* Match score display */}
+      <div className="p-6">
+        <div className="flex items-center justify-center gap-6">
+          <div className={cn(
+            "text-right flex-1",
+            resolved && match.winner === match.team1 ? "text-foreground" : "text-muted-foreground"
+          )}>
+            <p className={cn("text-xl font-heading font-bold", resolved && match.winner === match.team1 && "text-win")}>{match.team1}</p>
+          </div>
+
+          {editing ? (
+            <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
+              <Input
+                value={s1}
+                onChange={(e) => setS1(e.target.value)}
+                className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
+                type="number"
+                min="0"
+              />
+              <span className="text-muted-foreground text-xl font-mono">:</span>
+              <Input
+                value={s2}
+                onChange={(e) => setS2(e.target.value)}
+                className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
+                type="number"
+                min="0"
+              />
+              <button onClick={confirmScore} className="ml-2 p-2 rounded-md hover:bg-primary/20 text-primary">
+                <Check className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
+              {resolved ? (
+                <div className="flex items-center gap-3">
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  <span className="text-muted-foreground text-xl">:</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                </div>
+              ) : (
+                <span className="text-xl font-mono text-muted-foreground">vs</span>
+              )}
+            </div>
+          )}
+
+          <div className={cn(
+            "text-left flex-1",
+            resolved && match.winner === match.team2 ? "text-foreground" : "text-muted-foreground"
+          )}>
+            <p className={cn("text-xl font-heading font-bold", resolved && match.winner === match.team2 && "text-win")}>{match.team2}</p>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        {!resolved && !editing && (
+          <div className="flex justify-center gap-3 mt-6">
+            <button
+              onClick={onSimulate}
+              className="flex items-center gap-2 px-6 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity"
+            >
+              <Play className="w-4 h-4" />
+              Symuluj mecz
+            </button>
+            <button
+              onClick={() => { setEditing(true); setS1("0"); setS2("0"); }}
+              className="flex items-center gap-2 px-6 py-3 border border-accent/30 text-accent rounded-md font-heading font-semibold hover:bg-accent/10 transition-colors"
+            >
+              <Edit3 className="w-4 h-4" />
+              Wpisz wynik
+            </button>
+          </div>
+        )}
+
+        {/* Winner badge */}
+        {resolved && match.winner && (
+          <div className="text-center mt-4">
+            <span className="text-xs font-mono text-win bg-win/10 px-3 py-1 rounded-full border border-win/20">
+              Zwycięzca: {match.winner}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Stats section */}
+      {resolved && (
+        <div className="border-t border-border/50">
+          <MatchStatsPanel
+            stats={matchStats || null}
+            team1={match.team1}
+            team2={match.team2}
+            bo={match.bo}
+            onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
+            onCreateStats={onUpdateStats ? () => {
+              const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1, match.score2, match.bo);
+              onUpdateStats!(`${match.team1}-vs-${match.team2}`, stats);
+            } : undefined}
+          />
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ===== Compact Match Card (in list) =====
+const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats, onOpenDetail }: EditableMatchProps & {
+  matchStats?: MatchStats | null;
+  onUpdateStats?: (matchId: string, stats: MatchStats) => void;
+  onOpenDetail?: () => void;
+}) => {
   if (match.team2 === "BYE") {
     return (
       <div className="flex items-center bg-card border border-border/50 rounded-md overflow-hidden text-sm opacity-50">
@@ -106,10 +235,6 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       </div>
     );
   }
-
-  const handleSimulate = () => {
-    onSimulate(index);
-  };
 
   return (
     <div className={cn(
@@ -124,40 +249,17 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
           {match.team1}
         </div>
 
-        {editing ? (
-          <div className="flex items-center gap-1 px-2 py-1 bg-secondary">
-            <Input
-              value={s1}
-              onChange={(e) => setS1(e.target.value)}
-              className="w-10 h-7 text-center font-mono text-xs p-0 bg-background"
-              type="number"
-              min="0"
-            />
-            <span className="text-muted-foreground text-xs">:</span>
-            <Input
-              value={s2}
-              onChange={(e) => setS2(e.target.value)}
-              className="w-10 h-7 text-center font-mono text-xs p-0 bg-background"
-              type="number"
-              min="0"
-            />
-            <button onClick={confirmScore} className="ml-1 p-1 rounded hover:bg-primary/20 text-primary">
-              <Check className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-            {resolved ? (
-              <>
-                <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
-                <span className="text-muted-foreground mx-1">:</span>
-                <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">vs</span>
-            )}
-          </div>
-        )}
+        <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
+          {resolved ? (
+            <>
+              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
+              <span className="text-muted-foreground mx-1">:</span>
+              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">vs</span>
+          )}
+        </div>
 
         <div className={cn(
           "flex-1 px-3 py-2 truncate font-medium",
@@ -167,44 +269,14 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
         </div>
       </div>
 
-      {!resolved && !editing && (
-        <div className="flex border-t border-border/50">
-          <button
-            onClick={handleSimulate}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors"
-          >
-            <Play className="w-3 h-3" />
-            Symuluj
-          </button>
-          <div className="w-px bg-border/50" />
-          <button
-            onClick={() => {
-              setEditing(true);
-              setS1("0");
-              setS2("0");
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-mono text-accent hover:bg-accent/10 transition-colors"
-          >
-            <Edit3 className="w-3 h-3" />
-            Wpisz wynik
-          </button>
-        </div>
-      )}
-
-      {/* Stats panel for resolved matches */}
-      {resolved && (
-        <MatchStatsPanel
-          stats={matchStats || null}
-          team1={match.team1}
-          team2={match.team2}
-          bo={match.bo}
-          onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
-          onCreateStats={onUpdateStats ? () => {
-            const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1, match.score2, match.bo);
-            onUpdateStats!(`${match.team1}-vs-${match.team2}`, stats);
-          } : undefined}
-        />
-      )}
+      {/* "Go to match" button */}
+      <button
+        onClick={onOpenDetail}
+        className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors border-t border-border/50"
+      >
+        <ExternalLink className="w-3 h-3" />
+        Przejdź do meczu
+      </button>
     </div>
   );
 };
@@ -569,13 +641,8 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
   };
 
-  const generateStatsForMatch = useCallback((m: MatchResult) => {
-    const id = `${m.team1}-vs-${m.team2}`;
-    if (!allMatchStats[id] && m.winner) {
-      const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo);
-      setAllMatchStats(prev => ({ ...prev, [id]: stats }));
-    }
-  }, [allMatchStats]);
+  // Active match detail state: { source: "swiss"|"knockout", index: number }
+  const [activeMatchDetail, setActiveMatchDetail] = useState<{ source: string; index: number } | null>(null);
 
   // Wrap swiss simulate to generate stats
   const wrappedSwissSimulateOne = useCallback((idx: number) => {
@@ -805,6 +872,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 resolved={swiss.resolved[i]}
                 matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
+                onOpenDetail={() => setActiveMatchDetail({ source: "swiss", index: i })}
               />
             ))}
           </div>
@@ -898,6 +966,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 resolved={knockout.resolved[i]}
                 matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
+                onOpenDetail={() => setActiveMatchDetail({ source: "knockout", index: i })}
               />
             ))}
           </div>
@@ -1000,10 +1069,37 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         {/* Roster preview */}
         <TournamentRoster tournament={tournament} participants={teams} />
 
-        {/* Phase content */}
-        {(currentPhase === "swiss" || currentPhase === "major-s1" || currentPhase === "major-s2") && renderSwissPhase()}
-        {currentPhase === "groups" && renderGroupsPhase()}
-        {(currentPhase === "knockout" || currentPhase === "major-playoffs") && renderKnockoutPhase()}
+        {/* Match Detail Panel */}
+        {activeMatchDetail && (() => {
+          const src = activeMatchDetail.source;
+          const idx = activeMatchDetail.index;
+          const matches = src === "swiss" ? swiss.currentMatches : knockout.currentMatches;
+          const resolvedArr = src === "swiss" ? swiss.resolved : knockout.resolved;
+          const updateFn = src === "swiss" ? swiss.updateMatch : knockout.updateMatch;
+          const simFn = src === "swiss" ? swiss.simulateOne : knockout.simulateOne;
+          const m = matches[idx];
+          if (!m) { setActiveMatchDetail(null); return null; }
+          return (
+            <MatchDetailPanel
+              match={m}
+              onUpdate={(updated) => updateFn(idx, updated)}
+              onSimulate={() => simFn(idx)}
+              resolved={resolvedArr[idx]}
+              matchStats={getStatsForMatch(m)}
+              onUpdateStats={handleUpdateStats}
+              onClose={() => setActiveMatchDetail(null)}
+            />
+          );
+        })()}
+
+        {/* Phase content (hidden when match detail is open) */}
+        {!activeMatchDetail && (
+          <>
+            {(currentPhase === "swiss" || currentPhase === "major-s1" || currentPhase === "major-s2") && renderSwissPhase()}
+            {currentPhase === "groups" && renderGroupsPhase()}
+            {(currentPhase === "knockout" || currentPhase === "major-playoffs") && renderKnockoutPhase()}
+          </>
+        )}
       </div>
     </section>
   );
