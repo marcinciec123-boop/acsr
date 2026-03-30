@@ -28,7 +28,7 @@ const HistoryTab = () => {
 
   // Manual transfers
   const [customTransfers, setCustomTransfers] = useState<Transfer[]>([]);
-  const [freeAgents, setFreeAgents] = useState<{ player: string; previousTeam: string }[]>([]);
+  const [freeAgents, setFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
 
   // Transfer dialog
   const [showTransferDialog, setShowTransferDialog] = useState(false);
