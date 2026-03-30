@@ -201,7 +201,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
       </div>
 
       {/* Stats section */}
-      {resolved && (
+      {(resolved || editing) && (
         <div className="border-t border-border/50">
           <MatchStatsPanel
             stats={matchStats || null}
@@ -210,7 +210,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
             bo={match.bo}
             onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
             onCreateStats={onUpdateStats ? () => {
-              const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1, match.score2, match.bo);
+              const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1 ?? 0, match.score2 ?? 0, match.bo);
               onUpdateStats!(`${match.team1}-vs-${match.team2}`, stats);
             } : undefined}
           />
