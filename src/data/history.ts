@@ -321,3 +321,8 @@ export const disbands: Disband[] = [
   { team: "Planetamax", date: "2025-09-30", reason: "No perspectives" },
   { team: "Phantom Gaming", date: "2025-10-19", reason: "Bankruptcy" },
 ];
+
+// Mutable array for custom transfers added at runtime
+export const customTransfersGlobal: Transfer[] = [];
+
+export const getAllTransfers = (): Transfer[] => [...transfers, ...customTransfersGlobal];
