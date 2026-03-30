@@ -1,3 +1,8 @@
+// ===== Simulation Engine =====
+// Supports: Swiss, Groups+Knockout, Knockout, Major (3 Swiss stages + Playoffs)
+
+export type TournamentFormat = "swiss+knockout" | "groups+knockout" | "knockout" | "major";
+
 export interface Tournament {
   id: string;
   name: string;
@@ -11,6 +16,8 @@ export interface Tournament {
   tier: "S" | "A" | "B" | "C";
   participants: string[];
   description: string;
+  format: TournamentFormat;
+  formatDetails: string;
 }
 
 export interface Player {
@@ -35,71 +42,397 @@ export interface CalendarEvent {
   description: string;
 }
 
-export interface BracketMatch {
-  id: string;
-  round: number;
+// ===== Match & Stage Types =====
+
+export interface MatchResult {
   team1: string;
   team2: string;
-  score1: number | null;
-  score2: number | null;
-  winner: string | null;
-  matchNumber: number;
+  score1: number;
+  score2: number;
+  winner: string;
+  bo: number;
 }
 
-// Team pools by tier
+export interface SwissRound {
+  roundNumber: number;
+  matches: MatchResult[];
+}
+
+export interface SwissStanding {
+  team: string;
+  wins: number;
+  losses: number;
+  qualified: boolean;
+  eliminated: boolean;
+}
+
+export interface SwissResult {
+  rounds: SwissRound[];
+  standings: SwissStanding[];
+  qualified: string[];
+  eliminated: string[];
+}
+
+export interface GroupResult {
+  groupName: string;
+  teams: string[];
+  matches: MatchResult[];
+  standings: GroupStanding[];
+  qualified: string[];
+}
+
+export interface GroupStanding {
+  team: string;
+  wins: number;
+  losses: number;
+  roundDiff: number;
+}
+
+export interface KnockoutRound {
+  name: string;
+  matches: MatchResult[];
+}
+
+export interface KnockoutResult {
+  rounds: KnockoutRound[];
+  winner: string;
+}
+
+export interface MajorStage {
+  name: string;
+  type: "swiss" | "knockout";
+  swiss?: SwissResult;
+  knockout?: KnockoutResult;
+  participants: string[];
+}
+
+export interface TournamentSimulation {
+  tournamentId: string;
+  format: TournamentFormat;
+  swiss?: SwissResult;
+  groups?: GroupResult[];
+  knockout?: KnockoutResult;
+  majorStages?: MajorStage[];
+  winner: string;
+}
+
+// ===== Simulation Logic =====
+
+function simulateMatch(team1: string, team2: string, bo: number): MatchResult {
+  // Simple random with slight home advantage for first-listed team
+  const winsNeeded = Math.ceil(bo / 2);
+  let s1 = 0, s2 = 0;
+  while (s1 < winsNeeded && s2 < winsNeeded) {
+    if (Math.random() < 0.52) s1++;
+    else s2++;
+  }
+  return {
+    team1, team2,
+    score1: s1, score2: s2,
+    winner: s1 > s2 ? team1 : team2,
+    bo,
+  };
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Swiss system: teams play until they reach 3 wins (qualified) or 3 losses (eliminated)
+export function simulateSwiss(teams: string[], winsToQualify = 3, lossesToEliminate = 3): SwissResult {
+  const standings: SwissStanding[] = teams.map((t) => ({
+    team: t, wins: 0, losses: 0, qualified: false, eliminated: false,
+  }));
+  const rounds: SwissRound[] = [];
+
+  for (let roundNum = 1; roundNum <= winsToQualify + lossesToEliminate - 1; roundNum++) {
+    const active = standings.filter((s) => !s.qualified && !s.eliminated);
+    if (active.length < 2) break;
+
+    // Group by W-L record and pair within groups
+    const byRecord: Record<string, SwissStanding[]> = {};
+    active.forEach((s) => {
+      const key = `${s.wins}-${s.losses}`;
+      if (!byRecord[key]) byRecord[key] = [];
+      byRecord[key].push(s);
+    });
+
+    const matches: MatchResult[] = [];
+    const paired = new Set<string>();
+
+    // Sort records by wins desc
+    const records = Object.keys(byRecord).sort((a, b) => {
+      const [aw] = a.split("-").map(Number);
+      const [bw] = b.split("-").map(Number);
+      return bw - aw;
+    });
+
+    let unpaired: SwissStanding[] = [];
+
+    for (const record of records) {
+      const pool = shuffle([...unpaired, ...byRecord[record]]);
+      unpaired = [];
+
+      for (let i = 0; i < pool.length - 1; i += 2) {
+        if (paired.has(pool[i].team) || paired.has(pool[i + 1].team)) {
+          if (!paired.has(pool[i].team)) unpaired.push(pool[i]);
+          if (!paired.has(pool[i + 1].team)) unpaired.push(pool[i + 1]);
+          continue;
+        }
+
+        // BO1 for early rounds, BO3 for elimination/qualification matches
+        const isDecider = pool[i].wins === winsToQualify - 1 || pool[i].losses === lossesToEliminate - 1;
+        const bo = isDecider ? 3 : 1;
+        const result = simulateMatch(pool[i].team, pool[i + 1].team, bo);
+        matches.push(result);
+        paired.add(pool[i].team);
+        paired.add(pool[i + 1].team);
+
+        const winnerStanding = standings.find((s) => s.team === result.winner)!;
+        const loserTeam = result.winner === result.team1 ? result.team2 : result.team1;
+        const loserStanding = standings.find((s) => s.team === loserTeam)!;
+
+        winnerStanding.wins++;
+        loserStanding.losses++;
+
+        if (winnerStanding.wins >= winsToQualify) winnerStanding.qualified = true;
+        if (loserStanding.losses >= lossesToEliminate) loserStanding.eliminated = true;
+      }
+
+      if (pool.length % 2 === 1 && !paired.has(pool[pool.length - 1].team)) {
+        unpaired.push(pool[pool.length - 1]);
+      }
+    }
+
+    if (matches.length > 0) {
+      rounds.push({ roundNumber: roundNum, matches });
+    }
+
+    // Check if done
+    const remaining = standings.filter((s) => !s.qualified && !s.eliminated);
+    if (remaining.length < 2) break;
+  }
+
+  return {
+    rounds,
+    standings: standings.sort((a, b) => b.wins - a.wins || a.losses - b.losses),
+    qualified: standings.filter((s) => s.qualified).map((s) => s.team),
+    eliminated: standings.filter((s) => s.eliminated).map((s) => s.team),
+  };
+}
+
+// Group stage
+export function simulateGroups(teams: string[], groupCount: number, advancePerGroup: number): GroupResult[] {
+  const shuffled = shuffle(teams);
+  const perGroup = Math.ceil(shuffled.length / groupCount);
+  const groups: GroupResult[] = [];
+
+  for (let g = 0; g < groupCount; g++) {
+    const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup);
+    const groupName = String.fromCharCode(65 + g); // A, B, C...
+    const matches: MatchResult[] = [];
+
+    // Round-robin BO1
+    for (let i = 0; i < groupTeams.length; i++) {
+      for (let j = i + 1; j < groupTeams.length; j++) {
+        matches.push(simulateMatch(groupTeams[i], groupTeams[j], 1));
+      }
+    }
+
+    // Calculate standings
+    const standingsMap: Record<string, GroupStanding> = {};
+    groupTeams.forEach((t) => {
+      standingsMap[t] = { team: t, wins: 0, losses: 0, roundDiff: 0 };
+    });
+
+    matches.forEach((m) => {
+      standingsMap[m.winner].wins++;
+      const loser = m.winner === m.team1 ? m.team2 : m.team1;
+      standingsMap[loser].losses++;
+      standingsMap[m.team1].roundDiff += m.score1 - m.score2;
+      standingsMap[m.team2].roundDiff += m.score2 - m.score1;
+    });
+
+    const sorted = Object.values(standingsMap).sort((a, b) => b.wins - a.wins || b.roundDiff - a.roundDiff);
+    const qualified = sorted.slice(0, advancePerGroup).map((s) => s.team);
+
+    groups.push({ groupName, teams: groupTeams, matches, standings: sorted, qualified });
+  }
+
+  return groups;
+}
+
+// Single-elimination knockout
+export function simulateKnockout(teams: string[], startBo = 3): KnockoutResult {
+  const rounds: KnockoutRound[] = [];
+  let currentTeams = [...teams];
+
+  // Pad to power of 2
+  let size = 2;
+  while (size < currentTeams.length) size *= 2;
+  while (currentTeams.length < size) currentTeams.push("BYE");
+
+  const totalRounds = Math.log2(size);
+  const roundNameMap: Record<number, string> = {};
+
+  for (let r = 1; r <= totalRounds; r++) {
+    const remaining = size / Math.pow(2, r - 1);
+    if (remaining === 2) roundNameMap[r] = "Grand Final";
+    else if (remaining === 4) roundNameMap[r] = "Półfinały";
+    else if (remaining === 8) roundNameMap[r] = "Ćwierćfinały";
+    else if (remaining === 16) roundNameMap[r] = "1/8 Finału";
+    else roundNameMap[r] = `Runda ${r}`;
+  }
+
+  for (let r = 1; r <= totalRounds; r++) {
+    const matches: MatchResult[] = [];
+    const bo = r === totalRounds ? 5 : r >= totalRounds - 1 ? 3 : startBo;
+
+    for (let i = 0; i < currentTeams.length; i += 2) {
+      const t1 = currentTeams[i];
+      const t2 = currentTeams[i + 1] || "BYE";
+
+      if (t2 === "BYE") {
+        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo });
+      } else {
+        matches.push(simulateMatch(t1, t2, bo));
+      }
+    }
+
+    rounds.push({ name: roundNameMap[r] || `Runda ${r}`, matches });
+    currentTeams = matches.map((m) => m.winner);
+  }
+
+  return { rounds, winner: currentTeams[0] };
+}
+
+// Full tournament simulation
+export function simulateTournament(tournament: Tournament): TournamentSimulation {
+  const teams = tournament.participants.slice(0, tournament.teams);
+
+  if (tournament.format === "knockout") {
+    const knockout = simulateKnockout(teams);
+    return { tournamentId: tournament.id, format: "knockout", knockout, winner: knockout.winner };
+  }
+
+  if (tournament.format === "swiss+knockout") {
+    const swiss = simulateSwiss(teams, 3, 3);
+    const knockout = simulateKnockout(swiss.qualified.slice(0, 8));
+    return { tournamentId: tournament.id, format: "swiss+knockout", swiss, knockout, winner: knockout.winner };
+  }
+
+  if (tournament.format === "groups+knockout") {
+    const groupCount = teams.length <= 8 ? 2 : teams.length <= 16 ? 4 : 4;
+    const advancePerGroup = 2;
+    const groups = simulateGroups(teams, groupCount, advancePerGroup);
+    const advancedTeams = groups.flatMap((g) => g.qualified);
+    const knockout = simulateKnockout(advancedTeams);
+    return { tournamentId: tournament.id, format: "groups+knockout", groups, knockout, winner: knockout.winner };
+  }
+
+  if (tournament.format === "major") {
+    // Major: Stage 1 (Challengers Swiss 16→8), Stage 2 (Legends Swiss 16→8), Stage 3 (Champions Swiss 16→8), Playoffs (8-team knockout)
+    const allTeams = shuffle(teams);
+
+    // Stage 1: Challengers - bottom 16 teams
+    const challengerTeams = allTeams.slice(8, 24).length >= 16 ? allTeams.slice(8, 24) : allTeams.slice(Math.max(0, allTeams.length - 16));
+    const stage1Swiss = simulateSwiss(challengerTeams.slice(0, 16), 3, 3);
+
+    // Stage 2: Legends - top 8 + 8 qualified from Challengers
+    const legendTeams = [...allTeams.slice(0, 8), ...stage1Swiss.qualified.slice(0, 8)];
+    const stage2Swiss = simulateSwiss(legendTeams, 3, 3);
+
+    // Stage 3: Champions - 8 advancing from Legends
+    // In real Majors it's just playoffs at this point, but we can do a final Swiss if there are enough teams
+    // Actually, the standard Major format is: Challengers Swiss → Legends Swiss → Champions (Playoffs knockout)
+    const playoffTeams = stage2Swiss.qualified.slice(0, 8);
+    const playoffs = simulateKnockout(playoffTeams, 3);
+
+    const majorStages: MajorStage[] = [
+      {
+        name: "Stage 1: Challengers",
+        type: "swiss",
+        swiss: stage1Swiss,
+        participants: challengerTeams.slice(0, 16),
+      },
+      {
+        name: "Stage 2: Legends",
+        type: "swiss",
+        swiss: stage2Swiss,
+        participants: legendTeams,
+      },
+      {
+        name: "Stage 3: Champions (Playoffs)",
+        type: "knockout",
+        knockout: playoffs,
+        participants: playoffTeams,
+      },
+    ];
+
+    return { tournamentId: tournament.id, format: "major", majorStages, winner: playoffs.winner };
+  }
+
+  // Fallback
+  const knockout = simulateKnockout(teams);
+  return { tournamentId: tournament.id, format: "knockout", knockout, winner: knockout.winner };
+}
+
+// ===== Team Pools =====
 const tierSTeams = ["Vitality", "G2", "NAVI", "FaZe", "Spirit", "MOUZ", "Cloud9", "Astralis", "Heroic", "Liquid", "Complexity", "ENCE"];
 const tierATeams = ["BIG", "Eternal Fire", "FURIA", "paiN", "Apeks", "GamerLegion", "Monte", "SAW", "9INE", "OG", "Into The Breach", "Imperial"];
 const tierBTeams = ["Rare Atom", "Lynn Vision", "TheMongolz", "Grayhound", "Rooster", "TYLOO", "FlyQuest", "Nouns", "BOSS", "KOI", "Falcons", "Permitta"];
 const tierCTeams = ["Sampi", "Passion UA", "ECSTATIC", "Zero Tenacity", "Sprout", "ex-Enterprise", "ALTERNATE aTTaX", "Endpoint", "Nexus", "forZe", "Insilio", "Aurora"];
 
-function pickTeams(pool: string[], count: number): string[] {
-  const shuffled = [...pool].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-}
-
-// Full 2026 season starting January 1st — sequential order
-export const tournaments: Tournament[] = [
+// ===== Tournament Data =====
+export const initialTournaments: Tournament[] = [
   // JANUARY
-  { id: "1", name: "BLAST Premier Spring Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-01-05", endDate: "2026-01-18", status: "completed", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [...tierSTeams], description: "Season opener with 12 top teams battling in groups." },
-  { id: "2", name: "IEM Cologne Qualifier", organizer: "ESL", prizePool: "$50,000", startDate: "2026-01-10", endDate: "2026-01-14", status: "completed", teams: 16, location: "Online", tier: "B", participants: [...tierBTeams.slice(0, 8), ...tierCTeams.slice(0, 8)], description: "Open qualifier for IEM Cologne spots." },
-  { id: "3", name: "CCT Season 4 Europe", organizer: "CCT", prizePool: "$75,000", startDate: "2026-01-15", endDate: "2026-01-22", status: "completed", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(0, 8), description: "Regional European circuit for rising teams." },
-  { id: "4", name: "ESL Challenger League S1", organizer: "ESL", prizePool: "$100,000", startDate: "2026-01-20", endDate: "2026-02-01", status: "completed", teams: 16, location: "Online", tier: "B", participants: [...tierBTeams], description: "Challenger league with promotion to Pro League." },
+  { id: "1", name: "BLAST Premier Spring Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-01-05", endDate: "2026-01-18", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [...tierSTeams], description: "Season opener — 12 top teams in groups.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs (top 2 z grupy)" },
+  { id: "2", name: "IEM Cologne Qualifier", organizer: "ESL", prizePool: "$50,000", startDate: "2026-01-10", endDate: "2026-01-14", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: [...tierBTeams.slice(0, 8), ...tierCTeams.slice(0, 8)], description: "Open qualifier for IEM Cologne.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "3", name: "CCT Season 4 Europe", organizer: "CCT", prizePool: "$75,000", startDate: "2026-01-15", endDate: "2026-01-22", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(0, 8), description: "Regional EU circuit for rising teams.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "4", name: "ESL Challenger League S1", organizer: "ESL", prizePool: "$100,000", startDate: "2026-01-20", endDate: "2026-02-01", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: [...tierBTeams], description: "Challenger league — promotion to Pro League.", format: "swiss+knockout", formatDetails: "Swiss BO1/BO3 → top 8 playoffs" },
 
   // FEBRUARY
-  { id: "5", name: "IEM Katowice 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-02-03", endDate: "2026-02-16", status: "completed", teams: 24, location: "Katowice, Poland", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 12)], description: "Legendary venue, 24 teams, $1M on the line." },
-  { id: "6", name: "FACEIT League Season 1", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-02-10", endDate: "2026-02-22", status: "completed", teams: 16, location: "Online", tier: "A", participants: [...tierATeams.slice(0, 8), ...tierBTeams.slice(0, 8)], description: "Online league with LAN finals spot." },
-  { id: "7", name: "YaLLa Compass Dubai", organizer: "YaLLa", prizePool: "$40,000", startDate: "2026-02-14", endDate: "2026-02-18", status: "completed", teams: 8, location: "Dubai, UAE", tier: "C", participants: tierCTeams.slice(2, 10), description: "Middle East showcase tournament." },
-  { id: "8", name: "Thunderpick World Championship Qualifier", organizer: "Thunderpick", prizePool: "$30,000", startDate: "2026-02-20", endDate: "2026-02-24", status: "completed", teams: 12, location: "Online", tier: "B", participants: tierBTeams, description: "Last chance qualifier for the World Championship." },
+  { id: "5", name: "IEM Katowice 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-02-03", endDate: "2026-02-16", status: "upcoming", teams: 16, location: "Katowice, Poland", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 4)], description: "Legendary venue, $1M on the line.", format: "swiss+knockout", formatDetails: "Swiss (16 drużyn) → top 8 playoffs BO3/BO5" },
+  { id: "6", name: "FACEIT League Season 1", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-02-10", endDate: "2026-02-22", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tierATeams.slice(0, 8), ...tierBTeams.slice(0, 8)], description: "Online league with LAN finals spot.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs (top 2)" },
+  { id: "7", name: "YaLLa Compass Dubai", organizer: "YaLLa", prizePool: "$40,000", startDate: "2026-02-14", endDate: "2026-02-18", status: "upcoming", teams: 8, location: "Dubai, UAE", tier: "C", participants: tierCTeams.slice(2, 10), description: "Middle East showcase.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "8", name: "Thunderpick WC Qualifier", organizer: "Thunderpick", prizePool: "$30,000", startDate: "2026-02-20", endDate: "2026-02-24", status: "upcoming", teams: 8, location: "Online", tier: "B", participants: tierBTeams.slice(0, 8), description: "Last chance qualifier.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // MARCH
-  { id: "9", name: "ESL Pro League Season 23", organizer: "ESL", prizePool: "$850,000", startDate: "2026-03-02", endDate: "2026-03-22", status: "completed", teams: 32, location: "Malta", tier: "S", participants: [...tierSTeams, ...tierATeams, ...tierBTeams.slice(0, 8)], description: "Massive 32-team league with $850K prize pool." },
-  { id: "10", name: "CCT Season 4 Finals", organizer: "CCT", prizePool: "$150,000", startDate: "2026-03-08", endDate: "2026-03-14", status: "completed", teams: 8, location: "Online", tier: "B", participants: tierBTeams.slice(0, 8), description: "CCT circuit finals." },
-  { id: "11", name: "Elisa Masters Espoo", organizer: "Elisa", prizePool: "$200,000", startDate: "2026-03-15", endDate: "2026-03-20", status: "completed", teams: 8, location: "Espoo, Finland", tier: "A", participants: tierATeams.slice(0, 8), description: "Nordic tournament with top-tier production." },
-  { id: "12", name: "ESEA Advanced Season 48", organizer: "ESEA", prizePool: "$25,000", startDate: "2026-03-18", endDate: "2026-03-28", status: "completed", teams: 16, location: "Online", tier: "C", participants: tierCTeams, description: "ESEA league for amateur/semi-pro teams." },
+  { id: "9", name: "ESL Pro League Season 23", organizer: "ESL", prizePool: "$850,000", startDate: "2026-03-02", endDate: "2026-03-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [...tierSTeams, ...tierATeams], description: "24 teams, $850K prize pool.", format: "groups+knockout", formatDetails: "4 grupy po 6 (BO1 round-robin) → top 2 playoffs BO3/BO5" },
+  { id: "10", name: "CCT Season 4 Finals", organizer: "CCT", prizePool: "$150,000", startDate: "2026-03-08", endDate: "2026-03-14", status: "upcoming", teams: 8, location: "Online", tier: "B", participants: tierBTeams.slice(0, 8), description: "CCT circuit finals.", format: "knockout", formatDetails: "Single elimination BO3, finał BO5" },
+  { id: "11", name: "Elisa Masters Espoo", organizer: "Elisa", prizePool: "$200,000", startDate: "2026-03-15", endDate: "2026-03-20", status: "upcoming", teams: 8, location: "Espoo, Finland", tier: "A", participants: tierATeams.slice(0, 8), description: "Nordic tournament.", format: "groups+knockout", formatDetails: "2 grupy po 4 → playoffs" },
+  { id: "12", name: "ESEA Advanced S48", organizer: "ESEA", prizePool: "$25,000", startDate: "2026-03-18", endDate: "2026-03-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(0, 8), description: "ESEA for semi-pro teams.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // APRIL
-  { id: "13", name: "BLAST Premier Spring Finals", organizer: "BLAST", prizePool: "$425,000", startDate: "2026-04-01", endDate: "2026-04-06", status: "live", teams: 8, location: "Copenhagen, Denmark", tier: "S", participants: tierSTeams.slice(0, 8), description: "Top 8 from Spring Groups clash for the title." },
-  { id: "14", name: "BetBoom Dacha Belgrade", organizer: "BetBoom", prizePool: "$200,000", startDate: "2026-04-08", endDate: "2026-04-14", status: "upcoming", teams: 12, location: "Belgrade, Serbia", tier: "A", participants: tierATeams, description: "CIS-flavored tournament in Belgrade." },
-  { id: "15", name: "GamerLegion Invitational", organizer: "GamerLegion", prizePool: "$50,000", startDate: "2026-04-10", endDate: "2026-04-15", status: "upcoming", teams: 8, location: "Berlin, Germany", tier: "B", participants: tierBTeams.slice(0, 8), description: "Invitational with rising European teams." },
-  { id: "16", name: "LOOT.BET Season 8", organizer: "LOOT.BET", prizePool: "$15,000", startDate: "2026-04-12", endDate: "2026-04-18", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(0, 8), description: "Online league for lower-ranked teams." },
-  { id: "17", name: "IEM Dallas 2026", organizer: "ESL", prizePool: "$500,000", startDate: "2026-04-20", endDate: "2026-04-28", status: "upcoming", teams: 16, location: "Dallas, USA", tier: "S", participants: [...tierSTeams.slice(0, 12), ...tierATeams.slice(0, 4)], description: "North American stop on the IEM circuit." },
+  { id: "13", name: "BLAST Premier Spring Finals", organizer: "BLAST", prizePool: "$425,000", startDate: "2026-04-01", endDate: "2026-04-06", status: "upcoming", teams: 8, location: "Copenhagen, Denmark", tier: "S", participants: tierSTeams.slice(0, 8), description: "Top 8 clash for the title.", format: "knockout", formatDetails: "Single elimination BO3, Grand Final BO5" },
+  { id: "14", name: "BetBoom Dacha Belgrade", organizer: "BetBoom", prizePool: "$200,000", startDate: "2026-04-08", endDate: "2026-04-14", status: "upcoming", teams: 12, location: "Belgrade, Serbia", tier: "A", participants: tierATeams, description: "CIS-flavored tournament.", format: "groups+knockout", formatDetails: "3 grupy po 4 → top 2 playoffs" },
+  { id: "15", name: "GamerLegion Invitational", organizer: "GamerLegion", prizePool: "$50,000", startDate: "2026-04-10", endDate: "2026-04-15", status: "upcoming", teams: 8, location: "Berlin, Germany", tier: "B", participants: tierBTeams.slice(0, 8), description: "Rising European teams.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "16", name: "LOOT.BET Season 8", organizer: "LOOT.BET", prizePool: "$15,000", startDate: "2026-04-12", endDate: "2026-04-18", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(0, 8), description: "Online league for lower-ranked teams.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "17", name: "IEM Dallas 2026", organizer: "ESL", prizePool: "$500,000", startDate: "2026-04-20", endDate: "2026-04-28", status: "upcoming", teams: 16, location: "Dallas, USA", tier: "S", participants: [...tierSTeams.slice(0, 12), ...tierATeams.slice(0, 4)], description: "North American IEM stop.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs BO3/BO5" },
 
-  // MAY
-  { id: "18", name: "PGL Major Antwerp - Open Qualifier", organizer: "PGL", prizePool: "$0", startDate: "2026-05-01", endDate: "2026-05-05", status: "upcoming", teams: 16, location: "Online", tier: "C", participants: [...tierCTeams, ...tierBTeams.slice(8, 12)], description: "Last chance to qualify for the Major." },
-  { id: "19", name: "PGL Major Antwerp - RMR", organizer: "PGL", prizePool: "$100,000", startDate: "2026-05-08", endDate: "2026-05-14", status: "upcoming", teams: 16, location: "Antwerp, Belgium", tier: "A", participants: [...tierATeams, ...tierBTeams.slice(0, 4)], description: "Regional Major Ranking tournament." },
-  { id: "20", name: "PGL Major Antwerp", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-05-18", endDate: "2026-06-01", status: "upcoming", teams: 24, location: "Antwerp, Belgium", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 12)], description: "The pinnacle of CS:GO. $1.25M Major." },
-  { id: "21", name: "Thunderpick World Championship", organizer: "Thunderpick", prizePool: "$1,000,000", startDate: "2026-05-25", endDate: "2026-06-05", status: "upcoming", teams: 16, location: "Istanbul, Turkey", tier: "S", participants: [...tierSTeams.slice(0, 10), ...tierATeams.slice(0, 6)], description: "$1M championship in Istanbul." },
+  // MAY — MAJOR
+  { id: "18", name: "PGL Major Antwerp", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-05-05", endDate: "2026-05-25", status: "upcoming", teams: 24, location: "Antwerp, Belgium", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 12)], description: "THE MAJOR — $1.25M. Challengers → Legends → Champions.", format: "major", formatDetails: "Stage 1: Challengers (Swiss 16→8) • Stage 2: Legends (Swiss 16→8) • Stage 3: Champions Playoffs (8-team knockout BO3/BO5)" },
+  { id: "19", name: "Thunderpick World Championship", organizer: "Thunderpick", prizePool: "$1,000,000", startDate: "2026-05-28", endDate: "2026-06-08", status: "upcoming", teams: 16, location: "Istanbul, Turkey", tier: "S", participants: [...tierSTeams.slice(0, 10), ...tierATeams.slice(0, 6)], description: "$1M championship.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
 
   // JUNE
-  { id: "22", name: "BLAST Premier Spring Showdown", organizer: "BLAST", prizePool: "$162,500", startDate: "2026-06-08", endDate: "2026-06-14", status: "upcoming", teams: 8, location: "Online", tier: "A", participants: tierATeams.slice(0, 8), description: "BLAST showdown for remaining Spring spots." },
-  { id: "23", name: "FACEIT League Season 2", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-06-15", endDate: "2026-06-28", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tierATeams.slice(0, 8), ...tierBTeams.slice(0, 8)], description: "Second season of the FACEIT League." },
-  { id: "24", name: "WePlay Academy League S7", organizer: "WePlay", prizePool: "$30,000", startDate: "2026-06-10", endDate: "2026-06-20", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(4, 12), description: "Academy-level competition for developing rosters." },
-  { id: "25", name: "ESL Challenger League S2", organizer: "ESL", prizePool: "$100,000", startDate: "2026-06-20", endDate: "2026-07-05", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: tierBTeams, description: "Second season of the Challenger League." },
+  { id: "20", name: "BLAST Premier Spring Showdown", organizer: "BLAST", prizePool: "$162,500", startDate: "2026-06-08", endDate: "2026-06-14", status: "upcoming", teams: 8, location: "Online", tier: "A", participants: tierATeams.slice(0, 8), description: "BLAST showdown.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "21", name: "FACEIT League Season 2", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-06-15", endDate: "2026-06-28", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tierATeams.slice(0, 8), ...tierBTeams.slice(0, 8)], description: "Second FACEIT League season.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs" },
+  { id: "22", name: "WePlay Academy League S7", organizer: "WePlay", prizePool: "$30,000", startDate: "2026-06-10", endDate: "2026-06-20", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tierCTeams.slice(4, 12), description: "Academy-level competition.", format: "knockout", formatDetails: "Single elimination BO3" },
+  { id: "23", name: "ESL Challenger League S2", organizer: "ESL", prizePool: "$100,000", startDate: "2026-06-20", endDate: "2026-07-05", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: tierBTeams, description: "Challenger League season 2.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
 
   // JULY+
-  { id: "26", name: "IEM Cologne 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-07-06", endDate: "2026-07-20", status: "upcoming", teams: 24, location: "Cologne, Germany", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 12)], description: "Cathedral of Counter-Strike. $1M." },
-  { id: "27", name: "BLAST Premier Fall Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-08-01", endDate: "2026-08-14", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: tierSTeams, description: "Fall season begins with group stage." },
-  { id: "28", name: "ESL Pro League Season 24", organizer: "ESL", prizePool: "$850,000", startDate: "2026-09-01", endDate: "2026-09-22", status: "upcoming", teams: 32, location: "Malta", tier: "S", participants: [...tierSTeams, ...tierATeams, ...tierBTeams.slice(0, 8)], description: "Season 24 of the flagship ESL league." },
+  { id: "24", name: "IEM Cologne 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-07-06", endDate: "2026-07-20", status: "upcoming", teams: 16, location: "Cologne, Germany", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 4)], description: "Cathedral of CS — $1M.", format: "swiss+knockout", formatDetails: "Swiss (16) → top 8 playoffs BO3/BO5" },
+  { id: "25", name: "BLAST Premier Fall Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-08-01", endDate: "2026-08-14", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: tierSTeams, description: "Fall season begins.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs" },
+  { id: "26", name: "ESL Pro League Season 24", organizer: "ESL", prizePool: "$850,000", startDate: "2026-09-01", endDate: "2026-09-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [...tierSTeams, ...tierATeams], description: "Season 24.", format: "groups+knockout", formatDetails: "4 grupy po 6 → top 2 playoffs" },
+
+  // Second Major
+  { id: "27", name: "BLAST Premier World Final", organizer: "BLAST", prizePool: "$1,000,000", startDate: "2026-10-15", endDate: "2026-10-27", status: "upcoming", teams: 8, location: "Abu Dhabi, UAE", tier: "S", participants: tierSTeams.slice(0, 8), description: "BLAST World Final — best of the best.", format: "knockout", formatDetails: "Single elimination BO3, Grand Final BO5" },
+  { id: "28", name: "PGL Major Copenhagen", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-11-03", endDate: "2026-11-24", status: "upcoming", teams: 24, location: "Copenhagen, Denmark", tier: "S", participants: [...tierSTeams, ...tierATeams.slice(0, 12)], description: "Fall Major — $1.25M.", format: "major", formatDetails: "Challengers Swiss → Legends Swiss → Champions Playoffs" },
 ];
 
 export const players: Player[] = [
@@ -121,87 +454,13 @@ export const players: Player[] = [
 ];
 
 export const calendarEvents: CalendarEvent[] = [
-  { id: "1", title: "BLAST Premier Spring Groups", date: "2026-01-05", type: "tournament-start", description: "Season opener — 12 teams in Copenhagen" },
-  { id: "2", title: "IEM Cologne Qualifier", date: "2026-01-10", type: "qualifier", description: "Online qualifier for IEM Cologne" },
-  { id: "3", title: "IEM Katowice 2026", date: "2026-02-03", type: "tournament-start", description: "24 teams, $1M prize pool" },
-  { id: "4", title: "ESL Pro League S23", date: "2026-03-02", type: "tournament-start", description: "32 teams in Malta" },
-  { id: "5", title: "BLAST Premier Spring Finals", date: "2026-04-01", type: "tournament-start", description: "Top 8 in Copenhagen" },
-  { id: "6", title: "Vitality vs G2 - Semi Final", date: "2026-04-04", type: "match", description: "BO3 — BLAST Premier" },
-  { id: "7", title: "BLAST Premier Grand Final", date: "2026-04-06", type: "match", description: "BO5 — Grand Final" },
-  { id: "8", title: "IEM Dallas 2026", date: "2026-04-20", type: "tournament-start", description: "16 teams in Dallas" },
-  { id: "9", title: "PGL Major Open Qualifier", date: "2026-05-01", type: "qualifier", description: "Last chance to qualify" },
-  { id: "10", title: "PGL Major RMR", date: "2026-05-08", type: "tournament-start", description: "Regional Major Ranking" },
-  { id: "11", title: "PGL Major Antwerp", date: "2026-05-18", type: "tournament-start", description: "The Major — $1.25M" },
-  { id: "12", title: "PGL Major Grand Final", date: "2026-06-01", type: "match", description: "Grand Final — BO5" },
-  { id: "13", title: "IEM Cologne 2026", date: "2026-07-06", type: "tournament-start", description: "Cathedral of CS — $1M" },
-  { id: "14", title: "BLAST Premier Fall Groups", date: "2026-08-01", type: "tournament-start", description: "Fall season begins" },
+  { id: "1", title: "BLAST Premier Spring Groups", date: "2026-01-05", type: "tournament-start", description: "Season opener" },
+  { id: "2", title: "IEM Katowice 2026", date: "2026-02-03", type: "tournament-start", description: "$1M prize pool" },
+  { id: "3", title: "ESL Pro League S23", date: "2026-03-02", type: "tournament-start", description: "24 teams in Malta" },
+  { id: "4", title: "BLAST Premier Spring Finals", date: "2026-04-01", type: "tournament-start", description: "Top 8 in Copenhagen" },
+  { id: "5", title: "IEM Dallas 2026", date: "2026-04-20", type: "tournament-start", description: "16 teams in Dallas" },
+  { id: "6", title: "PGL Major Antwerp", date: "2026-05-05", type: "tournament-start", description: "THE MAJOR — $1.25M" },
+  { id: "7", title: "IEM Cologne 2026", date: "2026-07-06", type: "tournament-start", description: "Cathedral of CS" },
+  { id: "8", title: "BLAST Premier Fall Groups", date: "2026-08-01", type: "tournament-start", description: "Fall season begins" },
+  { id: "9", title: "PGL Major Copenhagen", date: "2026-11-03", type: "tournament-start", description: "Fall Major — $1.25M" },
 ];
-
-// Generate bracket for a tournament
-export function generateBracket(tournament: Tournament): BracketMatch[] {
-  const teams = tournament.participants.slice(0, tournament.teams);
-  const isCompleted = tournament.status === "completed";
-  const isLive = tournament.status === "live";
-
-  // Use power-of-2 bracket
-  let bracketSize = 4;
-  if (teams.length > 4) bracketSize = 8;
-  if (teams.length > 8) bracketSize = 16;
-  if (teams.length > 16) bracketSize = 32;
-
-  const bracketTeams = teams.slice(0, bracketSize);
-  const matches: BracketMatch[] = [];
-  let matchNum = 1;
-  const totalRounds = Math.log2(bracketSize);
-
-  // Round 1
-  for (let i = 0; i < bracketTeams.length; i += 2) {
-    const t1 = bracketTeams[i];
-    const t2 = bracketTeams[i + 1] || "BYE";
-
-    let score1: number | null = null;
-    let score2: number | null = null;
-    let winner: string | null = null;
-
-    if (isCompleted || (isLive && matchNum <= bracketSize / 2 - 1)) {
-      score1 = Math.floor(Math.random() * 3);
-      score2 = score1 === 2 ? Math.floor(Math.random() * 2) : 2;
-      if (t2 === "BYE") { score1 = 2; score2 = 0; }
-      winner = score1 > score2 ? t1 : t2;
-    }
-
-    matches.push({ id: `m${matchNum}`, round: 1, team1: t1, team2: t2, score1, score2, winner, matchNumber: matchNum });
-    matchNum++;
-  }
-
-  // Subsequent rounds
-  for (let round = 2; round <= totalRounds; round++) {
-    const prevRoundMatches = matches.filter((m) => m.round === round - 1);
-    for (let i = 0; i < prevRoundMatches.length; i += 2) {
-      const prev1 = prevRoundMatches[i];
-      const prev2 = prevRoundMatches[i + 1];
-
-      const t1 = prev1?.winner || "TBD";
-      const t2 = prev2?.winner || "TBD";
-
-      let score1: number | null = null;
-      let score2: number | null = null;
-      let winner: string | null = null;
-
-      const playedMatchesInRound = round === totalRounds ? (isCompleted ? 1 : 0) : (isCompleted ? 999 : (isLive ? 1 : 0));
-
-      if (t1 !== "TBD" && t2 !== "TBD" && (matchNum - bracketSize / 2) <= playedMatchesInRound) {
-        if (isCompleted || isLive) {
-          score1 = Math.floor(Math.random() * 3);
-          score2 = score1 === 2 ? Math.floor(Math.random() * 2) : 2;
-          winner = score1 > score2 ? t1 : t2;
-        }
-      }
-
-      matches.push({ id: `m${matchNum}`, round, team1: t1, team2: t2, score1, score2, winner, matchNumber: matchNum });
-      matchNum++;
-    }
-  }
-
-  return matches;
-}

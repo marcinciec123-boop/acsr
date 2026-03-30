@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Zap, Trophy, Users, Calendar } from "lucide-react";
-import { tournaments, players, calendarEvents } from "@/data/tournaments";
+import { initialTournaments as tournaments, players, calendarEvents } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 
 interface OverviewProps {
@@ -8,10 +8,9 @@ interface OverviewProps {
 }
 
 const OverviewSection = ({ onNavigate }: OverviewProps) => {
-  const liveTournaments = tournaments.filter((t) => t.status === "live");
-  const upcomingTournaments = tournaments.filter((t) => t.status === "upcoming").slice(0, 3);
+  const upcomingTournaments = tournaments.filter((t) => t.status === "upcoming").slice(0, 5);
   const topPlayers = [...players].sort((a, b) => b.rating - a.rating).slice(0, 5);
-  const upcomingEvents = calendarEvents.filter((e) => new Date(e.date) >= new Date("2026-03-30")).slice(0, 4);
+  const upcomingEvents = calendarEvents.slice(0, 4);
 
   return (
     <section className="py-12">
@@ -19,10 +18,10 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
         {/* Stats Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Live Events", value: liveTournaments.length, icon: Zap, color: "text-destructive" },
-            { label: "Upcoming", value: upcomingTournaments.length, icon: Calendar, color: "text-primary" },
-            { label: "Total Prize Pool", value: "$4.1M+", icon: Trophy, color: "text-accent" },
-            { label: "Top Players Tracked", value: players.length, icon: Users, color: "text-win" },
+            { label: "Turnieje w sezonie", value: tournaments.length, icon: Trophy, color: "text-accent" },
+            { label: "Nadchodzące", value: upcomingTournaments.length, icon: Calendar, color: "text-primary" },
+            { label: "Łączna pula nagród", value: "$8M+", icon: Zap, color: "text-accent" },
+            { label: "Gracze w rankingu", value: players.length, icon: Users, color: "text-win" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -38,50 +37,40 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
           ))}
         </div>
 
-        {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Live & Upcoming Tournaments */}
+          {/* Upcoming */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
-                <Zap className="w-5 h-5 text-destructive" />
-                Live & Upcoming
+                <Zap className="w-5 h-5 text-primary" />
+                Nadchodzące turnieje
               </h3>
               <button onClick={() => onNavigate("tournaments")} className="text-primary text-sm font-medium hover:underline">
-                View All →
+                Symuluj sezon →
               </button>
             </div>
-
             <div className="space-y-3">
-              {[...liveTournaments, ...upcomingTournaments].map((t, i) => (
+              {upcomingTournaments.map((t, i) => (
                 <motion.div
                   key={t.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={cn(
-                    "flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-primary/30 transition-colors",
-                    t.status === "live" && "border-destructive/30"
-                  )}
+                  className="flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-primary/30 transition-colors"
                 >
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={cn(
-                        "text-xs font-mono px-2 py-0.5 rounded border",
-                        t.status === "live"
-                          ? "bg-destructive/20 text-destructive border-destructive/40"
-                          : "bg-primary/10 text-primary border-primary/30"
-                      )}>
-                        {t.status.toUpperCase()}
+                      <span className={cn("text-xs font-mono px-2 py-0.5 rounded border bg-primary/10 text-primary border-primary/30")}>
+                        {t.tier}
                       </span>
-                      <span className="font-heading font-bold text-accent text-sm">{t.tier}</span>
+                      <span className="text-xs font-mono text-muted-foreground">{t.format === "major" ? "⭐ MAJOR" : t.format.toUpperCase()}</span>
                     </div>
                     <h4 className="font-heading font-bold text-foreground">{t.name}</h4>
                     <p className="text-muted-foreground text-sm">{t.location}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-mono text-primary font-bold text-sm">{t.prizePool}</p>
-                    <p className="text-muted-foreground text-xs">{t.teams} teams</p>
+                    <p className="text-muted-foreground text-xs">{t.teams} drużyn</p>
                   </div>
                 </motion.div>
               ))}
@@ -93,13 +82,12 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-accent" />
-                Top Players
+                Top Gracze
               </h3>
               <button onClick={() => onNavigate("rankings")} className="text-primary text-sm font-medium hover:underline">
-                Full Rankings →
+                Pełny ranking →
               </button>
             </div>
-
             <div className="space-y-2">
               {topPlayers.map((player, i) => (
                 <motion.div
@@ -123,10 +111,7 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
                     <p className="font-heading font-bold text-foreground">{player.name}</p>
                     <p className="text-xs text-muted-foreground">{player.team}</p>
                   </div>
-                  <span className={cn(
-                    "font-mono font-bold",
-                    player.rating >= 1.25 ? "text-primary" : "text-win"
-                  )}>
+                  <span className={cn("font-mono font-bold", player.rating >= 1.25 ? "text-primary" : "text-win")}>
                     {player.rating.toFixed(2)}
                   </span>
                 </motion.div>
@@ -138,19 +123,18 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
-                  Upcoming Events
+                  Nadchodzące wydarzenia
                 </h3>
                 <button onClick={() => onNavigate("calendar")} className="text-primary text-sm font-medium hover:underline">
-                  Calendar →
+                  Kalendarz →
                 </button>
               </div>
-
               <div className="space-y-2">
-                {upcomingEvents.map((event, i) => (
+                {upcomingEvents.map((event) => (
                   <div key={event.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
                     <div className="text-center min-w-[48px]">
                       <p className="font-mono text-xs text-muted-foreground">
-                        {new Date(event.date + "T12:00:00").toLocaleDateString("en-US", { month: "short" })}
+                        {new Date(event.date + "T12:00:00").toLocaleDateString("pl-PL", { month: "short" })}
                       </p>
                       <p className="font-heading text-xl font-bold text-primary">
                         {new Date(event.date + "T12:00:00").getDate()}
