@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown, Plus, X, Search, UserPlus, ExternalLink } from "lucide-react";
-import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch, teamDatabase } from "@/data/tournaments";
+import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown, Plus, X, Search, UserPlus, ExternalLink, Globe, MapPin } from "lucide-react";
+import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch, teamDatabase, type TeamData, getRegionalSlotDistribution, getRegionalQualifierPool, regionNames } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
@@ -14,6 +14,7 @@ interface QualifierPlayProps {
   qualifierSlots: number;
   onComplete: (qualifiedTeams: string[], manualInvites?: string[]) => void;
   onBack: () => void;
+  dynamicRanking?: TeamData[];
 }
 
 const getTeamRoster = (teamName: string): string[] => {
@@ -180,8 +181,241 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
   );
 };
 
+// ===== Regional bracket state =====
+interface RegionalBracketState {
+  region: string;
+  pool: string[];
+  slots: number;
+  completedRounds: KnockoutRound[];
+  currentMatches: MatchResult[];
+  resolved: boolean[];
+  qualifiedTeams: string[];
+  finished: boolean;
+  roundName: string;
+  activeMatchDetail: number | null;
+}
+
+// ===== Regional Bracket Component =====
+const RegionalBracket = ({
+  state,
+  onStateChange,
+  allMatchStats,
+  onUpdateStats,
+}: {
+  state: RegionalBracketState;
+  onStateChange: (newState: RegionalBracketState) => void;
+  allMatchStats: Record<string, MatchStats>;
+  onUpdateStats: (matchId: string, stats: MatchStats) => void;
+}) => {
+  const { region, slots, completedRounds, currentMatches, resolved, qualifiedTeams, finished, roundName, activeMatchDetail } = state;
+
+  const getStatsForMatch = (m: MatchResult): MatchStats | null => {
+    return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
+  };
+
+  const updateMatch = (idx: number, match: MatchResult) => {
+    const newMatches = [...currentMatches];
+    newMatches[idx] = match;
+    const newResolved = [...resolved];
+    newResolved[idx] = true;
+    onStateChange({ ...state, currentMatches: newMatches, resolved: newResolved });
+  };
+
+  const simulateOne = (idx: number) => {
+    const m = currentMatches[idx];
+    const result = simulateMatch(m.team1, m.team2, m.bo);
+    const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
+    onUpdateStats(`${m.team1}-vs-${m.team2}`, stats);
+    updateMatch(idx, result);
+  };
+
+  const simulateAllCurrent = () => {
+    const next = [...currentMatches];
+    const res = [...resolved];
+    next.forEach((m, i) => {
+      if (!res[i] && m.team2 !== "BYE") {
+        const result = simulateMatch(m.team1, m.team2, m.bo);
+        next[i] = result;
+        res[i] = true;
+        const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
+        onUpdateStats(`${m.team1}-vs-${m.team2}`, stats);
+      }
+    });
+    onStateChange({ ...state, currentMatches: next, resolved: res });
+  };
+
+  const padSize = (() => {
+    let s = 2;
+    while (s < state.pool.length) s *= 2;
+    return s;
+  })();
+
+  const getRoundName = (idx: number) => {
+    const remaining = padSize / Math.pow(2, idx);
+    if (remaining === 2) return "Finał";
+    if (remaining === 4) return "Półfinały";
+    if (remaining === 8) return "Ćwierćfinały";
+    return `Runda ${idx + 1}`;
+  };
+
+  const advanceRound = () => {
+    const roundIdx = completedRounds.length;
+    const newCompleted = [...completedRounds, { name: roundName, matches: currentMatches }];
+    const winners = currentMatches.map(m => m.winner);
+
+    const totalRounds = Math.log2(padSize);
+    if (winners.length <= slots || roundIdx + 1 >= totalRounds) {
+      onStateChange({
+        ...state,
+        completedRounds: newCompleted,
+        currentMatches: [],
+        qualifiedTeams: winners.slice(0, slots),
+        finished: true,
+        activeMatchDetail: null,
+      });
+      return;
+    }
+
+    const nextRoundIdx = roundIdx + 1;
+    const matches: MatchResult[] = [];
+    for (let i = 0; i < winners.length; i += 2) {
+      const t1 = winners[i];
+      const t2 = winners[i + 1] || "BYE";
+      if (t2 === "BYE") {
+        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
+      } else {
+        matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo: 3 });
+      }
+    }
+    onStateChange({
+      ...state,
+      completedRounds: newCompleted,
+      currentMatches: matches,
+      resolved: matches.map(m => m.team2 === "BYE"),
+      roundName: getRoundName(nextRoundIdx),
+      activeMatchDetail: null,
+    });
+  };
+
+  const allResolved = resolved.length > 0 && resolved.every(Boolean);
+
+  if (finished) {
+    return (
+      <div className="bg-card border border-win/20 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Trophy className="w-4 h-4 text-accent" />
+          <h4 className="font-heading font-bold text-foreground text-sm">
+            {regionNames[region] || region} — Zakwalifikowani ({qualifiedTeams.length}/{slots})
+          </h4>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {qualifiedTeams.map((t, i) => (
+            <span key={t} className="px-2 py-1 bg-win/10 text-win border border-win/20 rounded text-xs font-mono">
+              #{i + 1} {t}
+            </span>
+          ))}
+        </div>
+        {completedRounds.length > 0 && (
+          <div className="mt-3 border-t border-border/50 pt-3">
+            {completedRounds.map((round, ri) => (
+              <div key={ri} className="mb-2">
+                <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                  {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                    <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                      <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                      <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                      <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card border border-primary/20 rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Globe className="w-4 h-4 text-primary" />
+        <h4 className="font-heading font-bold text-foreground text-sm">
+          {regionNames[region] || region} — {slots} {slots === 1 ? "slot" : "sloty"}
+        </h4>
+      </div>
+      <p className="text-[10px] font-mono text-muted-foreground mb-3">{state.pool.length} drużyn w puli</p>
+
+      {activeMatchDetail !== null && currentMatches[activeMatchDetail] && (
+        <QualMatchDetail
+          match={currentMatches[activeMatchDetail]}
+          onUpdate={(updated) => updateMatch(activeMatchDetail, updated)}
+          onSimulate={() => simulateOne(activeMatchDetail)}
+          resolved={resolved[activeMatchDetail]}
+          matchStats={getStatsForMatch(currentMatches[activeMatchDetail])}
+          onUpdateStats={onUpdateStats}
+          onClose={() => onStateChange({ ...state, activeMatchDetail: null })}
+        />
+      )}
+
+      {activeMatchDetail === null && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="text-xs font-mono text-primary">{roundName}</h5>
+            <div className="flex gap-2">
+              <button onClick={simulateAllCurrent} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
+                <SkipForward className="w-3 h-3" /> Symuluj
+              </button>
+              {allResolved && (
+                <button onClick={advanceRound} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono gradient-primary text-primary-foreground rounded hover:opacity-90">
+                  Dalej →
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {currentMatches.map((m, i) => (
+              <EditableMatch
+                key={`${m.team1}-${m.team2}-${i}`}
+                match={m}
+                index={i}
+                onUpdate={(_, match) => updateMatch(i, match)}
+                onSimulate={() => simulateOne(i)}
+                resolved={resolved[i]}
+                matchStats={getStatsForMatch(m)}
+                onUpdateStats={onUpdateStats}
+                onOpenDetail={() => onStateChange({ ...state, activeMatchDetail: i })}
+              />
+            ))}
+          </div>
+
+          {completedRounds.length > 0 && (
+            <div className="mt-3 border-t border-border/50 pt-3">
+              {completedRounds.map((round, ri) => (
+                <div key={ri} className="mb-2">
+                  <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                    {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                      <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                        <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                        <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                        <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // Setup phase component for manual team selection
-const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onStart, onSimulateAll, onBack }: {
+const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onStart, onSimulateAll, onBack, isRegional, regionalSlots }: {
   tournament: Tournament;
   invitedTeams: string[];
   qualifierPool: string[];
@@ -189,6 +423,8 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
   onStart: (customPool: string[], manualInvites: string[]) => void;
   onSimulateAll: (customPool: string[], manualInvites: string[]) => void;
   onBack: () => void;
+  isRegional: boolean;
+  regionalSlots?: Record<string, number>;
 }) => {
   const manualInviteSlots = tournament.qualification.manualInviteSlots || 0;
   const [manualInvites, setManualInvites] = useState<string[]>([]);
@@ -229,7 +465,7 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
     setCustomPool(prev => prev.filter(t => t !== team));
   };
 
-  const qualType = tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
+  const qualType = isRegional ? "Regionalne" : tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
 
   return (
     <div className="space-y-6">
@@ -248,6 +484,32 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           </h2>
         </div>
       </div>
+
+      {/* Regional slot distribution */}
+      {isRegional && regionalSlots && (
+        <div className="bg-card border border-primary/20 rounded-lg p-4">
+          <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
+            <Globe className="w-4 h-4 text-primary" />
+            Podział slotów regionalnych
+          </h3>
+          <p className="text-muted-foreground text-xs mb-3">Sloty przydzielone na podstawie siły regionów w rankingu</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {Object.entries(regionalSlots).sort(([, a], [, b]) => b - a).map(([region, slots]) => (
+              <div key={region} className="bg-secondary/50 border border-border rounded-md p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <MapPin className="w-3 h-3 text-primary" />
+                  <span className="text-xs font-heading font-bold text-foreground">{regionNames[region] || region}</span>
+                </div>
+                <span className="text-2xl font-mono font-bold text-primary">{slots}</span>
+                <span className="text-xs text-muted-foreground ml-1">{slots === 1 ? "slot" : "slotów"}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground font-mono text-center">
+            Łącznie: {Object.values(regionalSlots).reduce((a, b) => a + b, 0)} slotów kwalifikacyjnych
+          </div>
+        </div>
+      )}
 
       {/* Ranking-invited teams */}
       <div className="bg-card border border-win/20 rounded-lg p-4">
@@ -315,53 +577,55 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
         </div>
       )}
 
-      {/* Qualifier pool */}
-      <div className="bg-card border border-primary/20 rounded-lg p-4">
-        <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-primary" />
-          Pula kwalifikacyjna ({customPool.length} drużyn → {qualifierSlots} miejsc)
-        </h3>
-        <p className="text-muted-foreground text-xs mb-3">Edytuj pulę drużyn walczących w kwalifikacjach</p>
+      {/* Qualifier pool - only show for non-regional */}
+      {!isRegional && (
+        <div className="bg-card border border-primary/20 rounded-lg p-4">
+          <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-primary" />
+            Pula kwalifikacyjna ({customPool.length} drużyn → {qualifierSlots} miejsc)
+          </h3>
+          <p className="text-muted-foreground text-xs mb-3">Edytuj pulę drużyn walczących w kwalifikacjach</p>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {customPool.map((t, i) => (
-            <span key={t} className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-mono flex items-center gap-1">
-              <span className="text-muted-foreground text-[10px]">#{i + 1}</span>
-              {t}
-              <button onClick={() => removeFromPool(t)} className="hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
-            </span>
-          ))}
-        </div>
-
-        <button
-          onClick={() => setShowPoolPicker(!showPoolPicker)}
-          className="px-3 py-1.5 border border-dashed border-primary/30 text-primary rounded text-xs font-mono flex items-center gap-1 hover:bg-primary/10 transition-colors"
-        >
-          <Plus className="w-3 h-3" /> Dodaj drużynę do puli
-        </button>
-
-        {showPoolPicker && (
-          <div className="border border-border rounded-md p-3 bg-background mt-2">
-            <div className="relative mb-2">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                value={poolSearch}
-                onChange={e => setPoolSearch(e.target.value)}
-                placeholder="Szukaj drużyny..."
-                className="pl-8 h-8 text-xs"
-              />
-            </div>
-            <div className="max-h-40 overflow-y-auto space-y-1">
-              {availableForPool.slice(0, 20).map(t => (
-                <button key={t} onClick={() => addToPool(t)} className="w-full text-left px-2 py-1.5 text-xs font-mono hover:bg-primary/10 rounded transition-colors text-foreground">
-                  {t}
-                </button>
-              ))}
-              {availableForPool.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak wyników</p>}
-            </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {customPool.map((t, i) => (
+              <span key={t} className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-mono flex items-center gap-1">
+                <span className="text-muted-foreground text-[10px]">#{i + 1}</span>
+                {t}
+                <button onClick={() => removeFromPool(t)} className="hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
           </div>
-        )}
-      </div>
+
+          <button
+            onClick={() => setShowPoolPicker(!showPoolPicker)}
+            className="px-3 py-1.5 border border-dashed border-primary/30 text-primary rounded text-xs font-mono flex items-center gap-1 hover:bg-primary/10 transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Dodaj drużynę do puli
+          </button>
+
+          {showPoolPicker && (
+            <div className="border border-border rounded-md p-3 bg-background mt-2">
+              <div className="relative mb-2">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  value={poolSearch}
+                  onChange={e => setPoolSearch(e.target.value)}
+                  placeholder="Szukaj drużyny..."
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {availableForPool.slice(0, 20).map(t => (
+                  <button key={t} onClick={() => addToPool(t)} className="w-full text-left px-2 py-1.5 text-xs font-mono hover:bg-primary/10 rounded transition-colors text-foreground">
+                    {t}
+                  </button>
+                ))}
+                {availableForPool.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak wyników</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary & actions */}
       <div className="bg-card border border-border rounded-lg p-4">
@@ -373,14 +637,12 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           <button
             onClick={() => onStart(customPool, manualInvites)}
             className="flex items-center gap-2 px-6 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity"
-            disabled={customPool.length < qualifierSlots * 2}
           >
             <Play className="w-4 h-4" /> Rozegraj kwalifikacje
           </button>
           <button
             onClick={() => onSimulateAll(customPool, manualInvites)}
             className="flex items-center gap-2 px-6 py-3 border border-primary/30 text-primary rounded-md font-heading font-semibold hover:bg-primary/10 transition-colors"
-            disabled={customPool.length < qualifierSlots * 2}
           >
             <SkipForward className="w-4 h-4" /> Symuluj kwalifikacje
           </button>
@@ -390,52 +652,192 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
   );
 };
 
-const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onComplete, onBack }: QualifierPlayProps) => {
+function initRegionalBracket(region: string, pool: string[], slots: number): RegionalBracketState {
+  const bracketTeams = pool.slice(0, Math.max(slots * 4, 8));
+  let size = 2;
+  while (size < bracketTeams.length) size *= 2;
+  const padded = [...bracketTeams];
+  while (padded.length < size) padded.push("BYE");
+
+  const matches: MatchResult[] = [];
+  for (let i = 0; i < padded.length; i += 2) {
+    const t1 = padded[i];
+    const t2 = padded[i + 1];
+    if (t2 === "BYE") {
+      matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
+    } else {
+      matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo: 3 });
+    }
+  }
+
+  const getRoundName = (idx: number) => {
+    const remaining = size / Math.pow(2, idx);
+    if (remaining === 2) return "Finał";
+    if (remaining === 4) return "Półfinały";
+    if (remaining === 8) return "Ćwierćfinały";
+    return `Runda ${idx + 1}`;
+  };
+
+  return {
+    region,
+    pool: bracketTeams,
+    slots,
+    completedRounds: [],
+    currentMatches: matches,
+    resolved: matches.map(m => m.team2 === "BYE"),
+    qualifiedTeams: [],
+    finished: false,
+    roundName: getRoundName(0),
+    activeMatchDetail: null,
+  };
+}
+
+function simulateRegionalBracketFull(region: string, pool: string[], slots: number): { state: RegionalBracketState; stats: Record<string, MatchStats> } {
+  const bracketTeams = pool.slice(0, Math.max(slots * 4, 8));
+  let size = 2;
+  while (size < bracketTeams.length) size *= 2;
+  let current = [...bracketTeams];
+  while (current.length < size) current.push("BYE");
+
+  const allRounds: KnockoutRound[] = [];
+  const stats: Record<string, MatchStats> = {};
+
+  while (current.length > slots) {
+    const matches: MatchResult[] = [];
+    for (let i = 0; i < current.length; i += 2) {
+      const t1 = current[i];
+      const t2 = current[i + 1] || "BYE";
+      if (t2 === "BYE") {
+        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
+      } else {
+        const result = simulateMatch(t1, t2, 3);
+        matches.push(result);
+        stats[`${t1}-vs-${t2}`] = generateMatchStats(t1, t2, getTeamRoster(t1), getTeamRoster(t2), result.score1, result.score2, 3);
+      }
+    }
+    allRounds.push({ name: `Runda ${allRounds.length + 1}`, matches });
+    current = matches.map(m => m.winner);
+  }
+
+  return {
+    state: {
+      region,
+      pool: bracketTeams,
+      slots,
+      completedRounds: allRounds,
+      currentMatches: [],
+      resolved: [],
+      qualifiedTeams: current.slice(0, slots),
+      finished: true,
+      roundName: "",
+      activeMatchDetail: null,
+    },
+    stats,
+  };
+}
+
+const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onComplete, onBack, dynamicRanking }: QualifierPlayProps) => {
+  const isRegional = tournament.qualification.qualifierType === "regional" && !!tournament.qualification.qualifierRegions?.length && !!dynamicRanking;
+  const regions = tournament.qualification.qualifierRegions || [];
+
+  const regionalSlots = useMemo(() => {
+    if (!isRegional || !dynamicRanking) return {};
+    return getRegionalSlotDistribution(qualifierSlots, regions, dynamicRanking);
+  }, [isRegional, dynamicRanking, qualifierSlots, regions]);
+
   const [phase, setPhase] = useState<"setup" | "play" | "finished">("setup");
-  const [activePool, setActivePool] = useState<string[]>(qualifierPool);
   const [activeManualInvites, setActiveManualInvites] = useState<string[]>([]);
   const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>({});
 
-  const teamsForBracket = activePool.slice(0, Math.max(qualifierSlots * 4, 8));
+  // For non-regional (legacy) qualifiers
+  const [activePool, setActivePool] = useState<string[]>(qualifierPool);
+  const [legacyCompletedRounds, setLegacyCompletedRounds] = useState<KnockoutRound[]>([]);
+  const [legacyCurrentMatches, setLegacyCurrentMatches] = useState<MatchResult[]>([]);
+  const [legacyResolved, setLegacyResolved] = useState<boolean[]>([]);
+  const [legacyQualifiedTeams, setLegacyQualifiedTeams] = useState<string[]>([]);
+  const [legacyRoundName, setLegacyRoundName] = useState("");
+  const [legacyActiveMatchDetail, setLegacyActiveMatchDetail] = useState<number | null>(null);
 
-  // Pad to power of 2
-  let size = 2;
-  while (size < teamsForBracket.length) size *= 2;
-  const padded = [...teamsForBracket];
-  while (padded.length < size) padded.push("BYE");
-  const totalRounds = Math.log2(size);
-
-  const [completedRounds, setCompletedRounds] = useState<KnockoutRound[]>([]);
-  const [currentMatches, setCurrentMatches] = useState<MatchResult[]>([]);
-  const [resolved, setResolved] = useState<boolean[]>([]);
-  const [qualifiedTeams, setQualifiedTeams] = useState<string[]>([]);
-  const [roundName, setRoundName] = useState("");
-  const [activeMatchDetail, setActiveMatchDetail] = useState<number | null>(null);
+  // For regional qualifiers
+  const [regionalBrackets, setRegionalBrackets] = useState<Record<string, RegionalBracketState>>({});
 
   const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
     setAllMatchStats(prev => ({ ...prev, [matchId]: stats }));
   }, []);
 
-  const getStatsForMatch = (m: MatchResult): MatchStats | null => {
-    return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
+  // ===== REGIONAL FLOW =====
+  const handleSetupStartRegional = (_customPool: string[], manualInvites: string[]) => {
+    setActiveManualInvites(manualInvites);
+    // Initialize brackets per region
+    const brackets: Record<string, RegionalBracketState> = {};
+    regions.forEach(region => {
+      const pool = dynamicRanking
+        ? getRegionalQualifierPool(tournament, dynamicRanking, [...invitedTeams, ...manualInvites], region)
+        : [];
+      const slots = regionalSlots[region] || 0;
+      if (slots > 0 && pool.length > 0) {
+        brackets[region] = initRegionalBracket(region, pool, slots);
+      }
+    });
+    setRegionalBrackets(brackets);
+    setPhase("play");
   };
 
-  const getRoundName = (idx: number) => {
-    const remaining = size / Math.pow(2, idx);
+  const handleSetupSimulateAllRegional = (_customPool: string[], manualInvites: string[]) => {
+    setActiveManualInvites(manualInvites);
+    const brackets: Record<string, RegionalBracketState> = {};
+    const newStats: Record<string, MatchStats> = {};
+
+    regions.forEach(region => {
+      const pool = dynamicRanking
+        ? getRegionalQualifierPool(tournament, dynamicRanking, [...invitedTeams, ...manualInvites], region)
+        : [];
+      const slots = regionalSlots[region] || 0;
+      if (slots > 0 && pool.length > 0) {
+        const result = simulateRegionalBracketFull(region, pool, slots);
+        brackets[region] = result.state;
+        Object.assign(newStats, result.stats);
+      }
+    });
+
+    setRegionalBrackets(brackets);
+    setAllMatchStats(prev => ({ ...prev, ...newStats }));
+    setPhase("finished");
+  };
+
+  const allRegionsFinished = useMemo(() => {
+    if (!isRegional) return false;
+    const bracketEntries = Object.values(regionalBrackets);
+    return bracketEntries.length > 0 && bracketEntries.every(b => b.finished);
+  }, [isRegional, regionalBrackets]);
+
+  // Auto-transition to finished when all regional brackets done
+  const totalRegionalQualified = useMemo(() => {
+    return Object.values(regionalBrackets).flatMap(b => b.qualifiedTeams);
+  }, [regionalBrackets]);
+
+  // ===== NON-REGIONAL (LEGACY) FLOW =====
+  const teamsForBracket = activePool.slice(0, Math.max(qualifierSlots * 4, 8));
+  let legacySize = 2;
+  while (legacySize < teamsForBracket.length) legacySize *= 2;
+  const legacyTotalRounds = Math.log2(legacySize);
+
+  const getLegacyRoundName = (idx: number) => {
+    const remaining = legacySize / Math.pow(2, idx);
     if (remaining === 2) return "Finał kwalifikacji";
     if (remaining === 4) return "Półfinały kwalifikacji";
     if (remaining === 8) return "Ćwierćfinały kwalifikacji";
     return `Runda ${idx + 1} kwalifikacji`;
   };
 
-  const startBracket = useCallback((pool: string[]) => {
+  const startLegacyBracket = useCallback((pool: string[]) => {
     const bracket = pool.slice(0, Math.max(qualifierSlots * 4, 8));
     let s = 2;
     while (s < bracket.length) s *= 2;
     const p = [...bracket];
     while (p.length < s) p.push("BYE");
 
-    setRoundName(getRoundName(0));
+    setLegacyRoundName(getLegacyRoundName(0));
     const matches: MatchResult[] = [];
     for (let i = 0; i < p.length; i += 2) {
       const t1 = p[i];
@@ -446,20 +848,27 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo: 3 });
       }
     }
-    setCurrentMatches(matches);
-    setResolved(matches.map(m => m.team2 === "BYE"));
+    setLegacyCurrentMatches(matches);
+    setLegacyResolved(matches.map(m => m.team2 === "BYE"));
   }, [qualifierSlots]);
 
   const handleSetupStart = (customPool: string[], manualInvites: string[]) => {
+    if (isRegional) {
+      handleSetupStartRegional(customPool, manualInvites);
+      return;
+    }
     setActivePool(customPool);
     setActiveManualInvites(manualInvites);
     setPhase("play");
-    startBracket(customPool);
+    startLegacyBracket(customPool);
   };
 
   const handleSetupSimulateAll = (customPool: string[], manualInvites: string[]) => {
+    if (isRegional) {
+      handleSetupSimulateAllRegional(customPool, manualInvites);
+      return;
+    }
     setActiveManualInvites(manualInvites);
-
     let teams = customPool.slice(0, Math.max(qualifierSlots * 4, 8));
     let s = 2;
     while (s < teams.length) s *= 2;
@@ -477,7 +886,6 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
         } else {
           const result = simulateMatch(t1, t2, 3);
           matches.push(result);
-          // Generate stats for simulated matches
           const stats = generateMatchStats(t1, t2, getTeamRoster(t1), getTeamRoster(t2), result.score1, result.score2, 3);
           setAllMatchStats(prev => ({ ...prev, [`${t1}-vs-${t2}`]: stats }));
         }
@@ -486,29 +894,28 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
       current = matches.map(m => m.winner);
     }
 
-    setCompletedRounds(allRounds);
-    setQualifiedTeams(current.slice(0, qualifierSlots));
-    setCurrentMatches([]);
+    setLegacyCompletedRounds(allRounds);
+    setLegacyQualifiedTeams(current.slice(0, qualifierSlots));
+    setLegacyCurrentMatches([]);
     setPhase("finished");
   };
 
-  const updateMatch = useCallback((idx: number, match: MatchResult) => {
-    setCurrentMatches(prev => { const n = [...prev]; n[idx] = match; return n; });
-    setResolved(prev => { const n = [...prev]; n[idx] = true; return n; });
+  const legacyUpdateMatch = useCallback((idx: number, match: MatchResult) => {
+    setLegacyCurrentMatches(prev => { const n = [...prev]; n[idx] = match; return n; });
+    setLegacyResolved(prev => { const n = [...prev]; n[idx] = true; return n; });
   }, []);
 
-  const simulateOne = useCallback((idx: number) => {
-    const m = currentMatches[idx];
+  const legacySimulateOne = useCallback((idx: number) => {
+    const m = legacyCurrentMatches[idx];
     const result = simulateMatch(m.team1, m.team2, m.bo);
-    updateMatch(idx, result);
-    // Auto-generate stats
+    legacyUpdateMatch(idx, result);
     const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
     setAllMatchStats(prev => ({ ...prev, [`${m.team1}-vs-${m.team2}`]: stats }));
-  }, [currentMatches, updateMatch]);
+  }, [legacyCurrentMatches, legacyUpdateMatch]);
 
-  const simulateAllCurrent = useCallback(() => {
-    const next = [...currentMatches];
-    const res = [...resolved];
+  const legacySimulateAllCurrent = useCallback(() => {
+    const next = [...legacyCurrentMatches];
+    const res = [...legacyResolved];
     const newStats: Record<string, MatchStats> = {};
     next.forEach((m, i) => {
       if (!res[i] && m.team2 !== "BYE") {
@@ -518,26 +925,26 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
         newStats[`${m.team1}-vs-${m.team2}`] = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
       }
     });
-    setCurrentMatches(next);
-    setResolved(res);
+    setLegacyCurrentMatches(next);
+    setLegacyResolved(res);
     setAllMatchStats(prev => ({ ...prev, ...newStats }));
-  }, [currentMatches, resolved]);
+  }, [legacyCurrentMatches, legacyResolved]);
 
-  const advanceRound = useCallback(() => {
-    const roundIdx = completedRounds.length;
-    const newCompleted = [...completedRounds, { name: roundName, matches: currentMatches }];
-    setCompletedRounds(newCompleted);
-    const winners = currentMatches.map(m => m.winner);
+  const legacyAdvanceRound = useCallback(() => {
+    const roundIdx = legacyCompletedRounds.length;
+    const newCompleted = [...legacyCompletedRounds, { name: legacyRoundName, matches: legacyCurrentMatches }];
+    setLegacyCompletedRounds(newCompleted);
+    const winners = legacyCurrentMatches.map(m => m.winner);
 
-    if (winners.length <= qualifierSlots || roundIdx + 1 >= totalRounds) {
-      setQualifiedTeams(winners.slice(0, qualifierSlots));
-      setCurrentMatches([]);
+    if (winners.length <= qualifierSlots || roundIdx + 1 >= legacyTotalRounds) {
+      setLegacyQualifiedTeams(winners.slice(0, qualifierSlots));
+      setLegacyCurrentMatches([]);
       setPhase("finished");
       return;
     }
 
     const nextRoundIdx = roundIdx + 1;
-    setRoundName(getRoundName(nextRoundIdx));
+    setLegacyRoundName(getLegacyRoundName(nextRoundIdx));
     const matches: MatchResult[] = [];
     for (let i = 0; i < winners.length; i += 2) {
       const t1 = winners[i];
@@ -548,12 +955,19 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo: 3 });
       }
     }
-    setCurrentMatches(matches);
-    setResolved(matches.map(m => m.team2 === "BYE"));
-  }, [completedRounds, currentMatches, roundName, totalRounds, qualifierSlots]);
+    setLegacyCurrentMatches(matches);
+    setLegacyResolved(matches.map(m => m.team2 === "BYE"));
+  }, [legacyCompletedRounds, legacyCurrentMatches, legacyRoundName, legacyTotalRounds, qualifierSlots]);
 
-  const allResolved = resolved.length > 0 && resolved.every(Boolean);
-  const qualType = tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
+  const legacyAllResolved = legacyResolved.length > 0 && legacyResolved.every(Boolean);
+  const qualType = isRegional ? "Regionalne" : tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
+
+  const getStatsForMatch = (m: MatchResult): MatchStats | null => {
+    return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
+  };
+
+  // Final qualified teams
+  const finalQualified = isRegional ? totalRegionalQualified : legacyQualifiedTeams;
 
   return (
     <section className="py-12">
@@ -568,6 +982,8 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
             onStart={handleSetupStart}
             onSimulateAll={handleSetupSimulateAll}
             onBack={onBack}
+            isRegional={isRegional}
+            regionalSlots={regionalSlots}
           />
         )}
 
@@ -587,7 +1003,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                   {tournament.name} — Kwalifikacje
                 </h2>
                 <p className="text-muted-foreground text-sm mt-1">
-                  {qualifierSlots} miejsc do zdobycia • {teamsForBracket.length} drużyn w kwalifikacjach
+                  {qualifierSlots} miejsc do zdobycia {isRegional ? `• ${regions.length} regionów` : `• ${teamsForBracket.length} drużyn`}
                 </p>
               </div>
             </div>
@@ -607,122 +1023,201 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
               </div>
             )}
 
-            <div className="bg-card border border-border rounded-lg p-4">
-            {activeMatchDetail !== null && currentMatches[activeMatchDetail] && (
-              <QualMatchDetail
-                match={currentMatches[activeMatchDetail]}
-                onUpdate={(updated) => updateMatch(activeMatchDetail, updated)}
-                onSimulate={() => simulateOne(activeMatchDetail)}
-                resolved={resolved[activeMatchDetail]}
-                matchStats={getStatsForMatch(currentMatches[activeMatchDetail])}
-                onUpdateStats={handleUpdateStats}
-                onClose={() => setActiveMatchDetail(null)}
-              />
-            )}
-
-            {activeMatchDetail === null && (
-              <>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading font-bold text-foreground">{roundName}</h3>
-                <div className="flex gap-2">
-                  <button onClick={simulateAllCurrent} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
-                    <SkipForward className="w-3 h-3" /> Symuluj rundę
-                  </button>
-                  {allResolved && (
-                    <button onClick={advanceRound} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono gradient-primary text-primary-foreground rounded hover:opacity-90 transition-opacity">
-                      Dalej →
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {currentMatches.map((m, i) => (
-                  <EditableMatch
-                    key={`${m.team1}-${m.team2}-${i}`}
-                    match={m}
-                    index={i}
-                    onUpdate={updateMatch}
-                    onSimulate={simulateOne}
-                    resolved={resolved[i]}
-                    matchStats={getStatsForMatch(m)}
+            {/* REGIONAL BRACKETS */}
+            {isRegional ? (
+              <div className="space-y-4">
+                {Object.entries(regionalBrackets).sort(([, a], [, b]) => b.slots - a.slots).map(([region, bracketState]) => (
+                  <RegionalBracket
+                    key={region}
+                    state={bracketState}
+                    onStateChange={(newState) => setRegionalBrackets(prev => ({ ...prev, [region]: newState }))}
+                    allMatchStats={allMatchStats}
                     onUpdateStats={handleUpdateStats}
-                    onOpenDetail={() => setActiveMatchDetail(i)}
                   />
                 ))}
-              </div>
 
-              {/* Completed rounds */}
-              {completedRounds.length > 0 && (
-                <div className="mt-6 border-t border-border pt-4">
-                  <h4 className="text-sm font-mono text-muted-foreground mb-3">Zakończone rundy</h4>
-                  {completedRounds.map((round, ri) => (
-                    <div key={ri} className="mb-3">
-                      <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                        {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
-                          <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
-                            <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                            <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
-                            <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                {allRegionsFinished && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => setPhase("finished")}
+                      className="flex items-center gap-2 px-8 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-bold hover:opacity-90 transition-opacity"
+                    >
+                      <Trophy className="w-5 h-5" />
+                      Podsumowanie kwalifikacji →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* NON-REGIONAL BRACKET */
+              <div className="bg-card border border-border rounded-lg p-4">
+                {legacyActiveMatchDetail !== null && legacyCurrentMatches[legacyActiveMatchDetail] && (
+                  <QualMatchDetail
+                    match={legacyCurrentMatches[legacyActiveMatchDetail]}
+                    onUpdate={(updated) => legacyUpdateMatch(legacyActiveMatchDetail, updated)}
+                    onSimulate={() => legacySimulateOne(legacyActiveMatchDetail)}
+                    resolved={legacyResolved[legacyActiveMatchDetail]}
+                    matchStats={getStatsForMatch(legacyCurrentMatches[legacyActiveMatchDetail])}
+                    onUpdateStats={handleUpdateStats}
+                    onClose={() => setLegacyActiveMatchDetail(null)}
+                  />
+                )}
+
+                {legacyActiveMatchDetail === null && (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-heading font-bold text-foreground">{legacyRoundName}</h3>
+                      <div className="flex gap-2">
+                        <button onClick={legacySimulateAllCurrent} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
+                          <SkipForward className="w-3 h-3" /> Symuluj rundę
+                        </button>
+                        {legacyAllResolved && (
+                          <button onClick={legacyAdvanceRound} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono gradient-primary text-primary-foreground rounded hover:opacity-90 transition-opacity">
+                            Dalej →
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {legacyCurrentMatches.map((m, i) => (
+                        <EditableMatch
+                          key={`${m.team1}-${m.team2}-${i}`}
+                          match={m}
+                          index={i}
+                          onUpdate={legacyUpdateMatch}
+                          onSimulate={legacySimulateOne}
+                          resolved={legacyResolved[i]}
+                          matchStats={getStatsForMatch(m)}
+                          onUpdateStats={handleUpdateStats}
+                          onOpenDetail={() => setLegacyActiveMatchDetail(i)}
+                        />
+                      ))}
+                    </div>
+
+                    {legacyCompletedRounds.length > 0 && (
+                      <div className="mt-6 border-t border-border pt-4">
+                        <h4 className="text-sm font-mono text-muted-foreground mb-3">Zakończone rundy</h4>
+                        {legacyCompletedRounds.map((round, ri) => (
+                          <div key={ri} className="mb-3">
+                            <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                              {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                                <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                                  <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                                  <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                                  <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              </>
+                    )}
+                  </>
+                )}
+              </div>
             )}
-            </div>
           </>
         )}
+
+        {/* FINISHED PHASE */}
         {phase === "finished" && (
           <div className="bg-card border border-border rounded-lg p-6">
             <div className="text-center mb-6">
               <Trophy className="w-10 h-10 text-accent mx-auto mb-3" />
               <h3 className="font-heading text-xl font-bold text-foreground">Kwalifikacje zakończone!</h3>
-              <p className="text-muted-foreground text-sm mt-1">{qualifiedTeams.length} drużyn zakwalifikowało się do {tournament.name}</p>
+              <p className="text-muted-foreground text-sm mt-1">{finalQualified.length} drużyn zakwalifikowało się do {tournament.name}</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
-              {qualifiedTeams.map((t, i) => (
-                <motion.div
-                  key={t}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="bg-win/10 border border-win/20 rounded-md p-3 text-center"
-                >
-                  <span className="text-xs font-mono text-win/60">#{i + 1}</span>
-                  <p className="font-heading font-bold text-foreground text-sm">{t}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Show completed rounds */}
-            {completedRounds.length > 0 && (
-              <div className="border-t border-border pt-4 mb-6">
-                <h4 className="text-sm font-mono text-muted-foreground mb-3">Przebieg kwalifikacji</h4>
-                {completedRounds.map((round, ri) => (
-                  <div key={ri} className="mb-3">
-                    <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                      {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
-                        <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
-                          <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                          <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
-                          <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
-                        </div>
+            {/* Regional breakdown */}
+            {isRegional && (
+              <div className="space-y-3 mb-6">
+                {Object.entries(regionalBrackets).sort(([, a], [, b]) => b.slots - a.slots).map(([region, bracketState]) => (
+                  <div key={region} className="bg-secondary/30 border border-border/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-3.5 h-3.5 text-primary" />
+                      <h4 className="font-heading font-bold text-foreground text-sm">{regionNames[region] || region}</h4>
+                      <span className="text-[10px] font-mono text-muted-foreground">({bracketState.qualifiedTeams.length} drużyn)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bracketState.qualifiedTeams.map((t, i) => (
+                        <motion.span
+                          key={t}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="px-2 py-1 bg-win/10 text-win border border-win/20 rounded text-xs font-mono"
+                        >
+                          {t}
+                        </motion.span>
                       ))}
                     </div>
+                    {bracketState.completedRounds.length > 0 && (
+                      <div className="mt-2 border-t border-border/30 pt-2">
+                        {bracketState.completedRounds.map((round, ri) => (
+                          <div key={ri} className="mb-1">
+                            <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                              {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                                <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-0.5">
+                                  <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                                  <span className="mx-1 font-mono text-muted-foreground text-[10px]">{m.score1}:{m.score2}</span>
+                                  <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
+            {/* Non-regional results */}
+            {!isRegional && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+                  {finalQualified.map((t, i) => (
+                    <motion.div
+                      key={t}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-win/10 border border-win/20 rounded-md p-3 text-center"
+                    >
+                      <span className="text-xs font-mono text-win/60">#{i + 1}</span>
+                      <p className="font-heading font-bold text-foreground text-sm">{t}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {legacyCompletedRounds.length > 0 && (
+                  <div className="border-t border-border pt-4 mb-6">
+                    <h4 className="text-sm font-mono text-muted-foreground mb-3">Przebieg kwalifikacji</h4>
+                    {legacyCompletedRounds.map((round, ri) => (
+                      <div key={ri} className="mb-3">
+                        <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                          {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                            <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                              <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                              <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                              <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
             <div className="flex justify-center">
               <button
-                onClick={() => onComplete(qualifiedTeams, activeManualInvites)}
+                onClick={() => onComplete(finalQualified, activeManualInvites)}
                 className="flex items-center gap-2 px-8 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-bold hover:opacity-90 transition-opacity"
               >
                 <Trophy className="w-5 h-5" />

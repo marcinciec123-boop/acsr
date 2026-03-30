@@ -24,6 +24,8 @@ import {
   getDynamicRanking,
   getInvitedTeamsByRanking,
   getQualifierPool,
+  getRegionalSlotDistribution,
+  getRegionalQualifierPool,
 } from "@/data/tournaments";
 
 const Index = () => {
@@ -214,6 +216,7 @@ const Index = () => {
             qualifierSlots={qualifyingTournament.qualification.qualifierSlots}
             onComplete={handleQualifierComplete}
             onBack={() => setQualifyingTournamentId(null)}
+            dynamicRanking={dynamicRanking}
           />
         ) : playingTournamentWithParticipants ? (
           <TournamentPlay
