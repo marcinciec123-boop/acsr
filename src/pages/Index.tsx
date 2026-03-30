@@ -6,6 +6,7 @@ import TournamentList from "@/components/TournamentList";
 import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
+import TeamProfile from "@/components/TeamProfile";
 import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament, calculateSeasonStandings } from "@/data/tournaments";
 
 const Index = () => {
@@ -14,6 +15,7 @@ const Index = () => {
     initialTournaments.map((t) => ({ ...t }))
   );
   const [simResults, setSimResults] = useState<Record<string, TournamentSimulation>>({});
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
@@ -47,14 +49,24 @@ const Index = () => {
     setSimResults({});
   };
 
+  const handleSelectTeam = (teamName: string) => {
+    setSelectedTeam(teamName);
+    setActiveTab("rankings");
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setSelectedTeam(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
 
       {activeTab === "overview" && (
         <>
-          <HeroSection onNavigate={setActiveTab} />
-          <OverviewSection onNavigate={setActiveTab} />
+          <HeroSection onNavigate={handleTabChange} />
+          <OverviewSection onNavigate={handleTabChange} />
         </>
       )}
 
@@ -68,8 +80,20 @@ const Index = () => {
         />
       )}
       {activeTab === "calendar" && <EventCalendar />}
-      {activeTab === "rankings" && <PlayerRankings />}
-      {activeTab === "standings" && <SeasonStandings standings={seasonStandings} />}
+      {activeTab === "rankings" && (
+        selectedTeam ? (
+          <TeamProfile
+            teamName={selectedTeam}
+            onBack={() => setSelectedTeam(null)}
+            seasonStanding={seasonStandings.find(s => s.team === selectedTeam)}
+          />
+        ) : (
+          <PlayerRankings onSelectTeam={handleSelectTeam} />
+        )
+      )}
+      {activeTab === "standings" && (
+        <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
+      )}
 
       <footer className="border-t border-border py-8 mt-12">
         <div className="container mx-auto px-4 text-center">
