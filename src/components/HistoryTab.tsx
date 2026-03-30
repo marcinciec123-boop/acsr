@@ -98,6 +98,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
       }
     }
     
+    customTransfersGlobal.push(newTransfer);
     setCustomTransfers(prev => [...prev, newTransfer]);
     setTransferPlayer("");
     setTransferFrom("-");
