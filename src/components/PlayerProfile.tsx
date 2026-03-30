@@ -116,7 +116,7 @@ const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings }: Pl
         {/* Info cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Narodowość", value: `${countryFlag(country)} ${country}`, icon: MapPin },
+            { label: "Rola", value: playerRoles[playerName] ? `${roleIcons[playerRoles[playerName]]} ${playerRoles[playerName]}` : "—", icon: User },
             { label: "Drużyna", value: currentTeam?.name || "Free Agent", icon: Shield },
             { label: "Ranking drużyny", value: teamRank ? `#${teamRank}` : "—", icon: Trophy },
             { label: "Transfery", value: playerTransfers.length.toString(), icon: ArrowRightLeft },
