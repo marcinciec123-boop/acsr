@@ -7,6 +7,7 @@ import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
 import TeamProfile from "@/components/TeamProfile";
+import SettingsTab from "@/components/SettingsTab";
 import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament, calculateSeasonStandings } from "@/data/tournaments";
 
 const Index = () => {
