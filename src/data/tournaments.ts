@@ -618,6 +618,7 @@ export function getDynamicRanking(
   const pointsMap: Record<string, number> = {};
   baseTeams.forEach(t => { pointsMap[t.name] = t.points; });
   
+  // Add placement points
   for (const t of tournaments) {
     const sim = simResults[t.id];
     if (!sim) continue;
@@ -625,6 +626,33 @@ export function getDynamicRanking(
       if (!pointsMap[p.team]) pointsMap[p.team] = 0;
       pointsMap[p.team] += p.points;
     });
+  }
+
+  // Add ELO match points
+  for (const t of tournaments) {
+    const sim = simResults[t.id];
+    if (!sim) continue;
+    const tournament = tournaments.find(tr => tr.id === t.id);
+    if (!tournament) continue;
+
+    const { collectAllMatches, calculateTournamentElo } = require("@/lib/eloSystem");
+    const allMatches = collectAllMatches(sim);
+    
+    // Create a temporary ranking for ELO calculation
+    const tempRanking = [...baseTeams]
+      .map(team => ({ ...team, points: pointsMap[team.name] || team.points }))
+      .sort((a, b) => b.points - a.points);
+    
+    const getRank = (teamName: string) => {
+      const idx = tempRanking.findIndex(t => t.name === teamName);
+      return idx >= 0 ? idx + 1 : 50;
+    };
+
+    const eloChanges = calculateTournamentElo(allMatches, getRank, tournament.tier);
+    for (const [team, change] of Object.entries(eloChanges)) {
+      if (!pointsMap[team]) pointsMap[team] = 0;
+      pointsMap[team] += change as number;
+    }
   }
   
   return [...baseTeams]
