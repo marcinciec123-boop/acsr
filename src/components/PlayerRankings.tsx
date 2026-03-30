@@ -27,9 +27,10 @@ const allPlayerCountries = [...new Set(Object.values(playerNationalities))].sort
 
 interface PlayerRankingsProps {
   onSelectTeam?: (teamName: string) => void;
+  onSelectPlayer?: (playerName: string) => void;
 }
 
-const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
+const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
   const [nationalityFilter, setNationalityFilter] = useState<string>("all");
