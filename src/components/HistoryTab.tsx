@@ -214,6 +214,20 @@ const HistoryTab = () => {
                       {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Imię</label>
+                      <Input placeholder="Imię..." value={faFirstName} onChange={e => setFaFirstName(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Nazwisko</label>
+                      <Input placeholder="Nazwisko..." value={faLastName} onChange={e => setFaLastName(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-mono text-muted-foreground mb-1 block">Narodowość (kod ISO, np. PL, DE, US)</label>
+                    <Input placeholder="PL" value={faNationality} onChange={e => setFaNationality(e.target.value.toUpperCase())} maxLength={2} />
+                  </div>
                   <Button onClick={handleAddFreeAgent} className="w-full">
                     <UserPlus className="w-4 h-4 mr-2" /> Dodaj wolnego agenta
                   </Button>
