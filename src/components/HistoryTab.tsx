@@ -90,13 +90,21 @@ const HistoryTab = () => {
 
   const handleAddFreeAgent = () => {
     if (!faPlayer.trim()) return;
-    setFreeAgents(prev => [...prev, { player: faPlayer.trim(), previousTeam: faPrevTeam || "Nieznana" }]);
-    // Also add as a transfer (leave)
+    setFreeAgents(prev => [...prev, {
+      player: faPlayer.trim(),
+      previousTeam: faPrevTeam || "Nieznana",
+      firstName: faFirstName.trim(),
+      lastName: faLastName.trim(),
+      nationality: faNationality,
+    }]);
     if (faPrevTeam) {
       setCustomTransfers(prev => [...prev, { player: faPlayer.trim(), oldTeam: faPrevTeam, newTeam: "-" }]);
     }
     setFaPlayer("");
     setFaPrevTeam("");
+    setFaFirstName("");
+    setFaLastName("");
+    setFaNationality("");
     setShowFADialog(false);
   };
 
