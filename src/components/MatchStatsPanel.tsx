@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map, PlusCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map, PlusCircle, Keyboard } from "lucide-react";
 import { type PlayerMatchStats, type MatchStats, type MapStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { teamDatabase } from "@/data/tournaments";
 
 interface MatchStatsPanelProps {
   stats: MatchStats | null;
@@ -12,6 +13,15 @@ interface MatchStatsPanelProps {
   onUpdateStats?: (stats: MatchStats) => void;
   onCreateStats?: () => void;
 }
+
+const getTeamRosterForStats = (teamName: string): string[] => {
+  const team = teamDatabase.find(t => t.name === teamName);
+  return team?.roster?.slice(0, 5) || [teamName + "_p1", teamName + "_p2", teamName + "_p3", teamName + "_p4", teamName + "_p5"];
+};
+
+const createBlankPlayerStats = (playerName: string, team: string, rounds: number): PlayerMatchStats => ({
+  playerName, team, kills: 0, assists: 0, deaths: 0, adr: 0, kast: 0, ud: 0, ef: 0, rounds, rating: 0,
+});
 
 const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => (
   <Input
@@ -125,19 +135,42 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
 
   const hasMaps = localStats?.maps && localStats.maps.length > 1;
 
-  // No stats yet — offer to generate or create
+  const createBlankStats = () => {
+    const rounds = 24;
+    const roster1 = getTeamRosterForStats(team1);
+    const roster2 = getTeamRosterForStats(team2);
+    const blank: MatchStats = {
+      matchId: `${team1}-vs-${team2}`,
+      team1Stats: roster1.map(p => createBlankPlayerStats(p, team1, rounds)),
+      team2Stats: roster2.map(p => createBlankPlayerStats(p, team2, rounds)),
+      bo: bo || 1,
+    };
+    setLocalStats(blank);
+    setEditing(true);
+    setExpanded(true);
+  };
+
+  // No stats yet — offer to generate or create manually
   if (!localStats) {
     return (
-      <div className="mt-1">
-        <button
-          onClick={() => {
-            if (onCreateStats) onCreateStats();
-          }}
-          className="flex items-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1 w-full justify-center border-t border-border/30"
-        >
-          <PlusCircle className="w-3 h-3" />
-          Generuj statystyki {bo && bo > 1 ? `(BO${bo})` : ""}
-        </button>
+      <div className="mt-1 border-t border-border/30">
+        <div className="flex">
+          <button
+            onClick={() => { if (onCreateStats) onCreateStats(); }}
+            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1.5 hover:bg-accent/5"
+          >
+            <PlusCircle className="w-3 h-3" />
+            Generuj statystyki
+          </button>
+          <div className="w-px bg-border/30" />
+          <button
+            onClick={createBlankStats}
+            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1.5 hover:bg-primary/5"
+          >
+            <Keyboard className="w-3 h-3" />
+            Wpisz ręcznie
+          </button>
+        </div>
       </div>
     );
   }
