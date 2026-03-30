@@ -11,7 +11,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   Aleksib: { firstName: "Aleksi", lastName: "Virolainen" },
   Alkaren: { firstName: "Älımjan", lastName: "Bıtımbai" },
   ArgenT: { firstName: "Aisya", lastName: "Sabrina" },
-  ArtFr0st: { firstName: "Artem", lastName: "Kharitonov" },
+  ArtFr0sT: { firstName: "Artem", lastName: "Kharitonov" },
   Benzn: { firstName: "Alfred", lastName: "Wahlström" },
   Bizzy: { firstName: "Samuel", lastName: "O'Sas" },
   Bjarni: { firstName: "Bjarni", lastName: "Guðmundsson" },
