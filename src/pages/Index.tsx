@@ -4,6 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import OverviewSection from "@/components/OverviewSection";
 import TournamentList from "@/components/TournamentList";
 import TournamentPlay from "@/components/TournamentPlay";
+import QualifierPlay from "@/components/QualifierPlay";
 import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
@@ -11,7 +12,17 @@ import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
 import HistoryTab from "@/components/HistoryTab";
-import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament, calculateSeasonStandings } from "@/data/tournaments";
+import {
+  initialTournaments,
+  type Tournament,
+  type TournamentSimulation,
+  simulateTournament,
+  calculateSeasonStandings,
+  teamDatabase,
+  getDynamicRanking,
+  getInvitedTeamsByRanking,
+  getQualifierPool,
+} from "@/data/tournaments";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -22,32 +33,100 @@ const Index = () => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
+  const [qualifyingTournamentId, setQualifyingTournamentId] = useState<string | null>(null);
   const [rosterVersion, setRosterVersion] = useState(0);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
+
+  // Dynamic ranking based on completed tournament results
+  const dynamicRanking = getDynamicRanking(teamDatabase, simResults, tournaments);
+
+  // Get participants for a tournament based on ranking + qualifier results
+  const getParticipants = (tournament: Tournament): string[] => {
+    if (tournament.participants.length > 0) return tournament.participants;
+
+    const config = tournament.qualification;
+    const invited = getInvitedTeamsByRanking(tournament, dynamicRanking);
+    const qualified = tournament.qualifiedTeams || [];
+
+    if (config.qualifierType === "none") {
+      // B-tier: all from ranking
+      return dynamicRanking.slice(0, tournament.teams).map(t => t.name);
+    }
+
+    return [...invited, ...qualified].slice(0, tournament.teams);
+  };
+
+  // Check if tournament needs qualification
+  const needsQualification = (tournament: Tournament): boolean => {
+    if (tournament.status === "completed") return false;
+    if (tournament.qualifierCompleted) return false;
+    if (tournament.qualification.qualifierType === "none") return false;
+    if (tournament.qualification.qualifierSlots <= 0) return false;
+    return true;
+  };
 
   const simulateNext = () => {
     const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     const next = sorted.find((t) => t.status === "upcoming");
     if (!next) return;
-    const result = simulateTournament(next);
+
+    // Auto-resolve qualification if needed
+    let updatedTournament = { ...next };
+    if (needsQualification(updatedTournament)) {
+      const invited = getInvitedTeamsByRanking(updatedTournament, dynamicRanking);
+      const pool = getQualifierPool(updatedTournament, dynamicRanking, invited);
+      // Auto-qualify top teams from pool
+      const qualifiedTeams = pool.slice(0, updatedTournament.qualification.qualifierSlots);
+      updatedTournament = {
+        ...updatedTournament,
+        qualifierCompleted: true,
+        qualifiedTeams,
+        invitedTeams: invited,
+        participants: [...invited, ...qualifiedTeams].slice(0, updatedTournament.teams),
+      };
+    } else if (updatedTournament.qualification.qualifierType === "none") {
+      updatedTournament = {
+        ...updatedTournament,
+        participants: dynamicRanking.slice(0, updatedTournament.teams).map(t => t.name),
+      };
+    }
+
+    const result = simulateTournament(updatedTournament);
     setSimResults((prev) => ({ ...prev, [next.id]: result }));
     setTournaments((prev) =>
-      prev.map((t) => (t.id === next.id ? { ...t, status: "completed" as const } : t))
+      prev.map((t) => (t.id === next.id ? { ...updatedTournament, status: "completed" as const } : t))
     );
   };
 
   const simulateAll = () => {
-    const newTournaments = [...tournaments];
+    const newTournaments = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     const newResults = { ...simResults };
-    newTournaments.forEach((t) => {
+
+    newTournaments.forEach((t, idx) => {
       if (t.status === "upcoming") {
+        const currentRanking = getDynamicRanking(teamDatabase, newResults, newTournaments);
+
+        // Resolve qualification
+        if (t.qualification.qualifierType !== "none" && !t.qualifierCompleted) {
+          const invited = getInvitedTeamsByRanking(t, currentRanking);
+          const pool = getQualifierPool(t, currentRanking, invited);
+          const qualifiedTeams = pool.slice(0, t.qualification.qualifierSlots);
+          t.qualifierCompleted = true;
+          t.qualifiedTeams = qualifiedTeams;
+          t.invitedTeams = invited;
+          t.participants = [...invited, ...qualifiedTeams].slice(0, t.teams);
+        } else if (t.qualification.qualifierType === "none") {
+          t.participants = currentRanking.slice(0, t.teams).map(td => td.name);
+        }
+
         const result = simulateTournament(t);
         newResults[t.id] = result;
         t.status = "completed";
       }
     });
-    setTournaments(newTournaments);
+
+    setTournaments([...newTournaments]);
     setSimResults(newResults);
   };
 
@@ -55,6 +134,7 @@ const Index = () => {
     setTournaments(initialTournaments.map((t) => ({ ...t })));
     setSimResults({});
     setPlayingTournamentId(null);
+    setQualifyingTournamentId(null);
   };
 
   const loadState = (t: Tournament[], s: Record<string, TournamentSimulation>) => {
@@ -78,9 +158,42 @@ const Index = () => {
     setSelectedTeam(null);
     setSelectedPlayer(null);
     setPlayingTournamentId(null);
+    setQualifyingTournamentId(null);
   };
 
   const handlePlayTournament = (id: string) => {
+    const tournament = tournaments.find(t => t.id === id);
+    if (!tournament) return;
+
+    // If needs qualification, start qualifier first
+    if (needsQualification(tournament)) {
+      setQualifyingTournamentId(id);
+    } else {
+      // Fill participants from ranking for B-tier
+      if (tournament.qualification.qualifierType === "none" && tournament.participants.length === 0) {
+        setTournaments(prev => prev.map(t =>
+          t.id === id ? { ...t, participants: dynamicRanking.slice(0, t.teams).map(td => td.name) } : t
+        ));
+      }
+      setPlayingTournamentId(id);
+    }
+  };
+
+  const handleQualifierComplete = (qualifiedTeams: string[]) => {
+    const id = qualifyingTournamentId!;
+    const tournament = tournaments.find(t => t.id === id)!;
+    const invited = getInvitedTeamsByRanking(tournament, dynamicRanking);
+
+    setTournaments(prev => prev.map(t =>
+      t.id === id ? {
+        ...t,
+        qualifierCompleted: true,
+        qualifiedTeams,
+        invitedTeams: invited,
+        participants: [...invited, ...qualifiedTeams].slice(0, t.teams),
+      } : t
+    ));
+    setQualifyingTournamentId(null);
     setPlayingTournamentId(id);
   };
 
@@ -94,6 +207,13 @@ const Index = () => {
   };
 
   const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
+  const qualifyingTournament = qualifyingTournamentId ? tournaments.find(t => t.id === qualifyingTournamentId) : null;
+
+  // Ensure playing tournament has participants
+  const playingTournamentWithParticipants = playingTournament ? {
+    ...playingTournament,
+    participants: getParticipants(playingTournament),
+  } : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,9 +227,18 @@ const Index = () => {
       )}
 
       {activeTab === "tournaments" && (
-        playingTournament ? (
+        qualifyingTournament ? (
+          <QualifierPlay
+            tournament={qualifyingTournament}
+            invitedTeams={getInvitedTeamsByRanking(qualifyingTournament, dynamicRanking)}
+            qualifierPool={getQualifierPool(qualifyingTournament, dynamicRanking, getInvitedTeamsByRanking(qualifyingTournament, dynamicRanking))}
+            qualifierSlots={qualifyingTournament.qualification.qualifierSlots}
+            onComplete={handleQualifierComplete}
+            onBack={() => setQualifyingTournamentId(null)}
+          />
+        ) : playingTournamentWithParticipants ? (
           <TournamentPlay
-            tournament={playingTournament}
+            tournament={playingTournamentWithParticipants}
             onComplete={handlePlayComplete}
             onBack={() => setPlayingTournamentId(null)}
           />
@@ -121,6 +250,7 @@ const Index = () => {
             onSimulateAll={simulateAll}
             onReset={resetSeason}
             onPlayTournament={handlePlayTournament}
+            dynamicRanking={dynamicRanking}
           />
         )
       )}
