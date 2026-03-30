@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, SkipForward } from "lucide-react";
-import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament } from "@/data/tournaments";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward } from "lucide-react";
+import { type Tournament, type TournamentSimulation } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
 
@@ -93,49 +93,21 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
 type TierFilter = "all" | "S" | "A" | "B" | "C";
 type StatusFilter = "all" | "live" | "upcoming" | "completed";
 
-const TournamentList = () => {
-  const [tournaments, setTournaments] = useState<Tournament[]>(() =>
-    initialTournaments.map((t) => ({ ...t }))
-  );
-  const [simResults, setSimResults] = useState<Record<string, TournamentSimulation>>({});
+interface TournamentListProps {
+  tournaments: Tournament[];
+  simResults: Record<string, TournamentSimulation>;
+  onSimulateNext: () => void;
+  onSimulateAll: () => void;
+  onReset: () => void;
+}
+
+const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset }: TournamentListProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-
-  // Find next upcoming tournament
   const nextUpcoming = sorted.find((t) => t.status === "upcoming");
-
-  const simulateNext = () => {
-    if (!nextUpcoming) return;
-    const result = simulateTournament(nextUpcoming);
-    setSimResults((prev) => ({ ...prev, [nextUpcoming.id]: result }));
-    setTournaments((prev) =>
-      prev.map((t) => (t.id === nextUpcoming.id ? { ...t, status: "completed" as const } : t))
-    );
-  };
-
-  const simulateAll = () => {
-    const newTournaments = [...tournaments];
-    const newResults = { ...simResults };
-    newTournaments.forEach((t) => {
-      if (t.status === "upcoming") {
-        const result = simulateTournament(t);
-        newResults[t.id] = result;
-        t.status = "completed";
-      }
-    });
-    setTournaments(newTournaments);
-    setSimResults(newResults);
-  };
-
-  const resetSeason = () => {
-    setTournaments(initialTournaments.map((t) => ({ ...t })));
-    setSimResults({});
-    setSelectedId(null);
-  };
-
   const completedCount = tournaments.filter((t) => t.status === "completed").length;
   const totalCount = tournaments.length;
 
@@ -152,7 +124,6 @@ const TournamentList = () => {
     return acc;
   }, {});
 
-  // Selected tournament detail view
   const selectedTournament = selectedId ? tournaments.find((t) => t.id === selectedId) : null;
   if (selectedTournament && simResults[selectedTournament.id]) {
     return (
@@ -167,7 +138,6 @@ const TournamentList = () => {
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Trophy className="w-6 h-6 text-primary" />
@@ -189,7 +159,7 @@ const TournamentList = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={simulateNext}
+                onClick={onSimulateNext}
                 disabled={!nextUpcoming}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm transition-all",
@@ -202,7 +172,7 @@ const TournamentList = () => {
                 Zagraj następny
               </button>
               <button
-                onClick={simulateAll}
+                onClick={onSimulateAll}
                 disabled={!nextUpcoming}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm border transition-colors",
@@ -215,7 +185,7 @@ const TournamentList = () => {
                 Zagraj wszystkie
               </button>
               <button
-                onClick={resetSeason}
+                onClick={onReset}
                 className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -224,7 +194,6 @@ const TournamentList = () => {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
             <motion.div
               className="h-full gradient-primary rounded-full"
