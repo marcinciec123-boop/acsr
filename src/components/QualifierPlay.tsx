@@ -653,9 +653,8 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                   ))}
                 </div>
               )}
-            </div>
-          </>
-        )}
+              </>
+            )}
 
         {/* FINISHED PHASE */}
         {phase === "finished" && (
