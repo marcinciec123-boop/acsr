@@ -765,40 +765,112 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     onComplete(sim);
   };
 
-  // Groups: auto-simulate groups, then go to knockout
-  const generateGroups = () => {
+  // GSL Groups: Interactive double-elimination per group
+  const [gslGroups, setGslGroups] = useState<{
+    groupName: string;
+    teams: string[];
+    matches: MatchResult[]; // 0: opening1, 1: opening2, 2: winners, 3: losers, 4: decider
+    phase: number; // 0=opening, 1=winners+losers, 2=decider, 3=done
+    qualified: string[];
+    eliminated: string[];
+  }[]>([]);
+  const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
+
+  const generateGslGroups = () => {
     const shuffled = [...teams].sort(() => Math.random() - 0.5);
     const groupCount = teams.length <= 8 ? 2 : 4;
     const perGroup = Math.ceil(shuffled.length / groupCount);
-    const groups: GroupResult[] = [];
+    const groups = [];
 
     for (let g = 0; g < groupCount; g++) {
-      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup);
+      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4);
       const groupName = String.fromCharCode(65 + g);
-      const matches: MatchResult[] = [];
-      for (let i = 0; i < groupTeams.length; i++) {
-        for (let j = i + 1; j < groupTeams.length; j++) {
-          matches.push(simulateMatch(groupTeams[i], groupTeams[j], 1));
-        }
-      }
-      const standingsMap: Record<string, GroupStanding> = {};
-      groupTeams.forEach(t => { standingsMap[t] = { team: t, wins: 0, losses: 0, roundDiff: 0 }; });
-      matches.forEach(m => {
-        standingsMap[m.winner].wins++;
-        const loser = m.winner === m.team1 ? m.team2 : m.team1;
-        standingsMap[loser].losses++;
-        standingsMap[m.team1].roundDiff += m.score1 - m.score2;
-        standingsMap[m.team2].roundDiff += m.score2 - m.score1;
-      });
-      const sorted = Object.values(standingsMap).sort((a, b) => b.wins - a.wins || b.roundDiff - a.roundDiff);
-      const qualified = sorted.slice(0, 2).map(s => s.team);
-      groups.push({ groupName, teams: groupTeams, matches, standings: sorted, qualified });
+      // Create opening matches
+      const matches: MatchResult[] = [
+        { team1: groupTeams[0], team2: groupTeams[1], score1: 0, score2: 0, winner: "", bo: 1 }, // opening 1
+        { team1: groupTeams[2], team2: groupTeams[3] || "BYE", score1: 0, score2: 0, winner: groupTeams[3] ? "" : groupTeams[2], bo: 1 }, // opening 2
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // winners match
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 }, // losers match (elimination)
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // decider
+      ];
+      groups.push({ groupName, teams: groupTeams, matches, phase: 0, qualified: [], eliminated: [] });
     }
 
-    setGroupsResult(groups);
+    setGslGroups(groups);
     setGroupsGenerated(true);
-    const advanced = groups.flatMap(g => g.qualified);
-    setKnockoutTeams(advanced);
+  };
+
+  const resolveGslMatch = (groupIdx: number, matchIdx: number, result: MatchResult) => {
+    const groups = [...gslGroups];
+    const group = { ...groups[groupIdx] };
+    const matches = [...group.matches];
+    matches[matchIdx] = result;
+
+    // Progress GSL bracket
+    if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
+      // Opening done → set up winners & losers matches
+      matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
+      const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
+      const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
+      matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
+      group.phase = 1;
+    }
+
+    if (matchIdx === 2 && matches[2].winner) {
+      // Winners match done → winner qualifies
+      group.qualified = [...group.qualified, matches[2].winner];
+      const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+      // Check if losers match is done to set up decider
+      if (matches[3].winner) {
+        const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+        group.eliminated = [...group.eliminated, losersLoser];
+        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+        group.phase = 2;
+      }
+    }
+
+    if (matchIdx === 3 && matches[3].winner) {
+      // Losers match done → loser eliminated
+      const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+      group.eliminated = [...group.eliminated, losersLoser];
+      // Check if winners match is done to set up decider
+      if (matches[2].winner) {
+        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+        group.phase = 2;
+      }
+    }
+
+    if (matchIdx === 4 && matches[4].winner) {
+      // Decider done → winner qualifies, loser eliminated
+      group.qualified = [...group.qualified, matches[4].winner];
+      const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
+      group.eliminated = [...group.eliminated, deciderLoser];
+      group.phase = 3;
+    }
+
+    group.matches = matches;
+    groups[groupIdx] = group;
+    setGslGroups(groups);
+
+    // Check if all groups are done
+    if (groups.every(g => g.phase === 3)) {
+      const advanced = groups.flatMap(g => g.qualified);
+      setKnockoutTeams(advanced);
+      const groupResults: GroupResult[] = groups.map(g => ({
+        groupName: g.groupName,
+        teams: g.teams,
+        matches: g.matches,
+        standings: g.teams.map(t => ({
+          team: t,
+          wins: g.matches.filter(m => m.winner === t).length,
+          losses: g.matches.filter(m => m.winner && m.winner !== t && (m.team1 === t || m.team2 === t)).length,
+          roundDiff: 0,
+        })).sort((a, b) => b.wins - a.wins),
+        qualified: g.qualified,
+      }));
+      setGroupsResult(groupResults);
+    }
   };
 
   const handleBack = () => {
