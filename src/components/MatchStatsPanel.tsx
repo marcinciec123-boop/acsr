@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X } from "lucide-react";
-import { type PlayerMatchStats, type MatchStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
+import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map } from "lucide-react";
+import { type PlayerMatchStats, type MatchStats, type MapStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
@@ -26,8 +26,6 @@ const PlayerStatsRow = ({ player, editing, onUpdate }: {
   editing: boolean;
   onUpdate?: (updated: PlayerMatchStats) => void;
 }) => {
-  const kd = player.deaths > 0 ? (player.kills / player.deaths).toFixed(2) : player.kills.toFixed(2);
-
   if (editing && onUpdate) {
     return (
       <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 items-center text-xs border-t border-border/30">
@@ -63,11 +61,12 @@ const PlayerStatsRow = ({ player, editing, onUpdate }: {
   );
 };
 
-const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer }: {
+const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer, roundsInfo }: {
   players: PlayerMatchStats[];
   teamName: string;
   editing: boolean;
   onUpdatePlayer?: (index: number, player: PlayerMatchStats) => void;
+  roundsInfo?: string;
 }) => {
   const sorted = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
   const avgRating = players.length > 0
@@ -77,12 +76,14 @@ const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer }: {
   return (
     <div className="bg-background rounded-md border border-border/50 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 bg-secondary/50">
-        <span className="font-heading font-bold text-sm text-foreground">{teamName}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-heading font-bold text-sm text-foreground">{teamName}</span>
+          {roundsInfo && <span className="text-[10px] font-mono text-muted-foreground">{roundsInfo}</span>}
+        </div>
         <span className={cn("font-mono text-xs font-bold", getRatingColor(avgRating))}>
           Avg: {avgRating.toFixed(2)}
         </span>
       </div>
-      {/* Header */}
       <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 text-[10px] font-mono text-muted-foreground uppercase">
         <div>Gracz</div>
         <div className="text-center">K</div>
@@ -94,7 +95,7 @@ const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer }: {
         <div className="text-center">EF</div>
         <div className="text-center">Rating</div>
       </div>
-      {sorted.map((p, i) => (
+      {sorted.map((p) => (
         <PlayerStatsRow
           key={p.playerName}
           player={p}
@@ -113,8 +114,11 @@ const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanel
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [localStats, setLocalStats] = useState<MatchStats | null>(stats);
+  const [selectedMap, setSelectedMap] = useState<number | "total">("total"); // "total" or map index
 
   if (!localStats) return null;
+
+  const hasMaps = localStats.maps && localStats.maps.length > 1;
 
   const handleUpdateTeam1Player = (index: number, player: PlayerMatchStats) => {
     const updated = { ...localStats, team1Stats: localStats.team1Stats.map((p, i) => i === index ? { ...player, rating: calculateRating(player) } : p) };
@@ -138,6 +142,22 @@ const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanel
     setEditing(false);
   };
 
+  // Get currently displayed stats
+  const getDisplayStats = () => {
+    if (selectedMap === "total" || !hasMaps) {
+      return { t1: localStats.team1Stats, t2: localStats.team2Stats, roundsInfo1: undefined, roundsInfo2: undefined };
+    }
+    const map = localStats.maps![selectedMap as number];
+    return {
+      t1: map.team1Stats,
+      t2: map.team2Stats,
+      roundsInfo1: `${map.team1RoundsWon} rund`,
+      roundsInfo2: `${map.team2RoundsWon} rund`,
+    };
+  };
+
+  const display = getDisplayStats();
+
   return (
     <div className="mt-1">
       <button
@@ -145,12 +165,45 @@ const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanel
         className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors px-2 py-1 w-full justify-center"
       >
         <BarChart3 className="w-3 h-3" />
-        Statystyki
+        Statystyki {hasMaps ? `(${localStats.maps!.length} mapy)` : ""}
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
 
       {expanded && (
         <div className="p-2 space-y-2 bg-secondary/20 rounded-b-md border-t border-border/30">
+          {/* Map tabs for Bo3/Bo5 */}
+          {hasMaps && (
+            <div className="flex gap-1 flex-wrap">
+              <button
+                onClick={() => setSelectedMap("total")}
+                className={cn(
+                  "px-2.5 py-1 rounded text-[10px] font-mono transition-colors border",
+                  selectedMap === "total"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary/50 text-muted-foreground border-border/50 hover:text-foreground"
+                )}
+              >
+                Σ Suma
+              </button>
+              {localStats.maps!.map((map, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedMap(i)}
+                  className={cn(
+                    "px-2.5 py-1 rounded text-[10px] font-mono transition-colors border flex items-center gap-1",
+                    selectedMap === i
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary/50 text-muted-foreground border-border/50 hover:text-foreground"
+                  )}
+                >
+                  <Map className="w-2.5 h-2.5" />
+                  {map.mapName}
+                  <span className="opacity-70">({map.team1RoundsWon}:{map.team2RoundsWon})</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex justify-end gap-1">
             {!editing ? (
               <button
@@ -171,16 +224,18 @@ const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanel
             )}
           </div>
           <TeamStatsTable
-            players={localStats.team1Stats}
+            players={display.t1}
             teamName={team1}
-            editing={editing}
-            onUpdatePlayer={handleUpdateTeam1Player}
+            editing={editing && selectedMap === "total"}
+            onUpdatePlayer={selectedMap === "total" ? handleUpdateTeam1Player : undefined}
+            roundsInfo={display.roundsInfo1}
           />
           <TeamStatsTable
-            players={localStats.team2Stats}
+            players={display.t2}
             teamName={team2}
-            editing={editing}
-            onUpdatePlayer={handleUpdateTeam2Player}
+            editing={editing && selectedMap === "total"}
+            onUpdatePlayer={selectedMap === "total" ? handleUpdateTeam2Player : undefined}
+            roundsInfo={display.roundsInfo2}
           />
         </div>
       )}

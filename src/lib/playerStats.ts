@@ -14,37 +14,44 @@ export interface PlayerMatchStats {
   rating?: number;    // Calculated rating
 }
 
-export interface MatchStats {
-  matchId: string;    // "team1-vs-team2" or similar
+export interface MapStats {
+  mapNumber: number;
+  mapName: string;
   team1Stats: PlayerMatchStats[];
   team2Stats: PlayerMatchStats[];
+  team1RoundsWon: number;
+  team2RoundsWon: number;
+  totalRounds: number;
+}
+
+export interface MatchStats {
+  matchId: string;
+  team1Stats: PlayerMatchStats[];   // Aggregate stats
+  team2Stats: PlayerMatchStats[];   // Aggregate stats
+  maps?: MapStats[];                // Per-map stats for Bo3/Bo5
+  bo: number;
 }
 
 // HLTV 3.0-inspired rating calculation
-// Uses: KPR, DPR, Impact (multi-kill potential), KAST%, ADR, Utility contribution
 export function calculateRating(stats: PlayerMatchStats): number {
   if (stats.rounds <= 0) return 0;
 
   const kpr = stats.kills / stats.rounds;
   const dpr = stats.deaths / stats.rounds;
   const apr = stats.assists / stats.rounds;
-  const kastNorm = stats.kast / 100; // normalize to 0-1
-  const adrNorm = stats.adr / 100;   // normalize ~80 ADR = 0.8
+  const kastNorm = stats.kast / 100;
+  const adrNorm = stats.adr / 100;
 
-  // Impact approximation (based on kills and assists)
   const impact = 2.13 * kpr + 0.42 * apr - 0.41;
 
-  // Core HLTV 2.0-style components
-  const killRating = kpr / 0.679;          // normalized to avg
+  const killRating = kpr / 0.679;
   const survivalRating = 1 - (dpr / 0.679);
   const impactRating = Math.max(0, impact);
-  const kastRating = kastNorm / 0.689;      // normalized to avg KAST ~68.9%
-  const adrRating = adrNorm / 0.789;        // normalized to avg ADR ~78.9
+  const kastRating = kastNorm / 0.689;
+  const adrRating = adrNorm / 0.789;
 
-  // Utility bonus (subtle contribution from UD and EF)
   const utilityBonus = (stats.ud / 150) * 0.05 + (stats.ef / 3) * 0.03;
 
-  // Weighted combination (HLTV 3.0 inspired weights)
   const rating = 0.2688 * killRating
     + 0.2073 * survivalRating
     + 0.2372 * impactRating
@@ -55,44 +62,136 @@ export function calculateRating(stats: PlayerMatchStats): number {
   return Math.round(rating * 100) / 100;
 }
 
-// Generate realistic random stats for a player in a match
-export function generateRandomStats(
-  playerName: string,
-  team: string,
-  rounds: number,
-  isWinner: boolean,
-  teamRankFactor: number = 0.5 // 0 = best team, 1 = worst
-): PlayerMatchStats {
-  // Higher ranked teams tend to have better stats
-  const skillBase = 1 - teamRankFactor * 0.3;
-  const winBonus = isWinner ? 1.1 : 0.9;
+const MAP_POOL = ["Mirage", "Inferno", "Nuke", "Overpass", "Ancient", "Anubis", "Vertigo"];
 
-  const kills = Math.max(0, Math.round((rounds * (0.6 + Math.random() * 0.4) * skillBase * winBonus)));
-  const deaths = Math.max(1, Math.round((rounds * (0.5 + Math.random() * 0.4) / skillBase / winBonus)));
-  const assists = Math.max(0, Math.round((rounds * (0.1 + Math.random() * 0.2))));
-  const adr = Math.max(20, Math.round((55 + Math.random() * 50) * skillBase * winBonus));
-  const kast = Math.min(100, Math.max(30, Math.round((60 + Math.random() * 25) * skillBase)));
-  const ud = Math.max(0, Math.round(Math.random() * 80 + 10));
-  const ef = Math.max(0, Math.round(Math.random() * 4));
-
-  const stats: PlayerMatchStats = {
-    playerName,
-    team,
-    kills,
-    assists,
-    deaths,
-    adr,
-    kast,
-    ud,
-    ef,
-    rounds,
-  };
-
-  stats.rating = calculateRating(stats);
-  return stats;
+function pickMaps(count: number): string[] {
+  const shuffled = [...MAP_POOL].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
 }
 
-// Generate full match stats for two teams
+// Generate realistic stats for one map where team kills = opponent deaths
+function generateMapStats(
+  team1Roster: string[],
+  team2Roster: string[],
+  team1Name: string,
+  team2Name: string,
+  team1RoundsWon: number,
+  team2RoundsWon: number,
+  mapNumber: number,
+  mapName: string
+): MapStats {
+  const totalRounds = team1RoundsWon + team2RoundsWon;
+  const players1 = team1Roster.slice(0, 5);
+  const players2 = team2Roster.slice(0, 5);
+
+  // Team2 total deaths = team1 total kills = team1RoundsWon * avg_kills_per_round_won + some eco kills
+  // In CS, each round won typically yields ~2-4 kills on the winning side
+  // Total kills for team1 across the match ≈ sum of deaths of team2
+  const team1TotalKills = distributeKillsForTeam(team1RoundsWon, team2RoundsWon, totalRounds, true);
+  const team2TotalKills = distributeKillsForTeam(team2RoundsWon, team1RoundsWon, totalRounds, false);
+
+  // team1 kills = team2 deaths, team2 kills = team1 deaths
+  const team1PlayerKills = distributeAmongPlayers(team1TotalKills, 5);
+  const team2PlayerKills = distributeAmongPlayers(team2TotalKills, 5);
+
+  // Deaths: team1 total deaths = team2 total kills, team2 total deaths = team1 total kills
+  const team1PlayerDeaths = distributeAmongPlayers(team2TotalKills, 5, totalRounds);
+  const team2PlayerDeaths = distributeAmongPlayers(team1TotalKills, 5, totalRounds);
+
+  const team1Stats: PlayerMatchStats[] = players1.map((name, i) => {
+    const kills = team1PlayerKills[i];
+    const deaths = team1PlayerDeaths[i];
+    const assists = Math.max(0, Math.round(totalRounds * (0.08 + Math.random() * 0.15)));
+    const adr = Math.max(30, Math.round((kills / totalRounds) * (85 + Math.random() * 30)));
+    const kast = Math.min(100, Math.max(35, Math.round(55 + Math.random() * 30 + (kills > deaths ? 8 : -5))));
+    const ud = Math.max(0, Math.round(Math.random() * 80 + 5));
+    const ef = Math.max(0, Math.round(Math.random() * 4));
+    const stats: PlayerMatchStats = { playerName: name, team: team1Name, kills, assists, deaths, adr, kast, ud, ef, rounds: totalRounds };
+    stats.rating = calculateRating(stats);
+    return stats;
+  });
+
+  const team2Stats: PlayerMatchStats[] = players2.map((name, i) => {
+    const kills = team2PlayerKills[i];
+    const deaths = team2PlayerDeaths[i];
+    const assists = Math.max(0, Math.round(totalRounds * (0.08 + Math.random() * 0.15)));
+    const adr = Math.max(30, Math.round((kills / totalRounds) * (85 + Math.random() * 30)));
+    const kast = Math.min(100, Math.max(35, Math.round(55 + Math.random() * 30 + (kills > deaths ? 8 : -5))));
+    const ud = Math.max(0, Math.round(Math.random() * 80 + 5));
+    const ef = Math.max(0, Math.round(Math.random() * 4));
+    const stats: PlayerMatchStats = { playerName: name, team: team2Name, kills, assists, deaths, adr, kast, ud, ef, rounds: totalRounds };
+    stats.rating = calculateRating(stats);
+    return stats;
+  });
+
+  return {
+    mapNumber,
+    mapName,
+    team1Stats,
+    team2Stats,
+    team1RoundsWon,
+    team2RoundsWon,
+    totalRounds,
+  };
+}
+
+function distributeKillsForTeam(ownRoundsWon: number, oppRoundsWon: number, totalRounds: number, isStronger: boolean): number {
+  // In rounds you win, you get ~3-5 kills (you killed enough to win the round)
+  // In rounds you lose, you get ~1-3 kills (partial kills before dying)
+  const killsFromWonRounds = ownRoundsWon * (3 + Math.random() * 2);
+  const killsFromLostRounds = oppRoundsWon * (1 + Math.random() * 2);
+  return Math.round(killsFromWonRounds + killsFromLostRounds);
+}
+
+function distributeAmongPlayers(total: number, count: number, maxPerPlayer?: number): number[] {
+  // Random distribution that sums to total
+  const weights = Array.from({ length: count }, () => 0.5 + Math.random());
+  const sum = weights.reduce((a, b) => a + b, 0);
+  let distributed = weights.map(w => Math.round((w / sum) * total));
+
+  // Fix rounding error
+  const diff = total - distributed.reduce((a, b) => a + b, 0);
+  distributed[0] += diff;
+
+  // Ensure no player exceeds max (totalRounds)
+  if (maxPerPlayer) {
+    distributed = distributed.map(d => Math.min(d, maxPerPlayer));
+  }
+
+  // Ensure non-negative
+  distributed = distributed.map(d => Math.max(0, d));
+
+  return distributed;
+}
+
+// Aggregate per-map stats into total stats
+function aggregatePlayerStats(mapStatsList: PlayerMatchStats[]): PlayerMatchStats {
+  const totalRounds = mapStatsList.reduce((s, m) => s + m.rounds, 0);
+  const totalKills = mapStatsList.reduce((s, m) => s + m.kills, 0);
+  const totalDeaths = mapStatsList.reduce((s, m) => s + m.deaths, 0);
+  const totalAssists = mapStatsList.reduce((s, m) => s + m.assists, 0);
+  const avgAdr = totalRounds > 0 ? Math.round(mapStatsList.reduce((s, m) => s + m.adr * m.rounds, 0) / totalRounds) : 0;
+  const avgKast = totalRounds > 0 ? Math.round(mapStatsList.reduce((s, m) => s + m.kast * m.rounds, 0) / totalRounds) : 0;
+  const totalUd = mapStatsList.reduce((s, m) => s + m.ud, 0);
+  const totalEf = mapStatsList.reduce((s, m) => s + m.ef, 0);
+
+  const agg: PlayerMatchStats = {
+    playerName: mapStatsList[0].playerName,
+    team: mapStatsList[0].team,
+    kills: totalKills,
+    assists: totalAssists,
+    deaths: totalDeaths,
+    adr: avgAdr,
+    kast: avgKast,
+    ud: totalUd,
+    ef: totalEf,
+    rounds: totalRounds,
+  };
+  agg.rating = calculateRating(agg);
+  return agg;
+}
+
+// Generate full match stats
 export function generateMatchStats(
   team1: string,
   team2: string,
@@ -102,21 +201,87 @@ export function generateMatchStats(
   score2: number,
   bo: number
 ): MatchStats {
-  const totalRounds = Math.max(16, (score1 + score2) * Math.round(16 + Math.random() * 8));
-  const roundsPlayed = Math.min(totalRounds, Math.max(16, Math.round(22 + Math.random() * 8)));
-  const isTeam1Winner = score1 > score2;
+  const mapsPlayed = score1 + score2;
+  const mapNames = pickMaps(mapsPlayed);
 
-  const team1Stats = team1Roster.slice(0, 5).map(p =>
-    generateRandomStats(p, team1, roundsPlayed, isTeam1Winner, 0.3 + Math.random() * 0.4)
-  );
-  const team2Stats = team2Roster.slice(0, 5).map(p =>
-    generateRandomStats(p, team2, roundsPlayed, !isTeam1Winner, 0.3 + Math.random() * 0.4)
-  );
+  if (bo <= 1 || mapsPlayed <= 1) {
+    // Single map - generate rounds based on score (in Bo1, score is map score like 16-12)
+    const t1Rounds = Math.max(score1, Math.round(10 + Math.random() * 6));
+    const t2Rounds = Math.max(score2, Math.round(10 + Math.random() * 6));
+    // Ensure winner has more rounds
+    const winnerRounds = Math.max(t1Rounds, t2Rounds, 13);
+    const loserRounds = Math.min(t1Rounds, t2Rounds);
+    const finalT1 = score1 > score2 ? winnerRounds : loserRounds;
+    const finalT2 = score1 > score2 ? loserRounds : winnerRounds;
+
+    const map = generateMapStats(team1Roster, team2Roster, team1, team2, finalT1, finalT2, 1, mapNames[0] || "Mirage");
+
+    return {
+      matchId: `${team1}-vs-${team2}`,
+      team1Stats: map.team1Stats,
+      team2Stats: map.team2Stats,
+      bo,
+    };
+  }
+
+  // Bo3/Bo5: generate per-map stats
+  const maps: MapStats[] = [];
+  let t1MapsWon = 0;
+  let t2MapsWon = 0;
+
+  for (let i = 0; i < mapsPlayed; i++) {
+    // Determine which team wins this map
+    let t1Wins: boolean;
+    const remainingMaps = mapsPlayed - i;
+    const t1NeedsMore = score1 - t1MapsWon;
+    const t2NeedsMore = score2 - t2MapsWon;
+
+    if (t1NeedsMore === remainingMaps) {
+      t1Wins = true; // Team1 must win all remaining
+    } else if (t2NeedsMore === remainingMaps) {
+      t1Wins = false;
+    } else {
+      // Distribute wins somewhat randomly but matching final score
+      t1Wins = Math.random() < (t1NeedsMore / remainingMaps);
+    }
+
+    // Generate round score for this map
+    const winnerRounds = 13;
+    const loserRounds = Math.round(5 + Math.random() * 8); // 5-13
+    const t1Rounds = t1Wins ? winnerRounds : loserRounds;
+    const t2Rounds = t1Wins ? loserRounds : winnerRounds;
+
+    if (t1Wins) t1MapsWon++;
+    else t2MapsWon++;
+
+    const map = generateMapStats(
+      team1Roster, team2Roster, team1, team2,
+      t1Rounds, t2Rounds,
+      i + 1, mapNames[i] || MAP_POOL[i % MAP_POOL.length]
+    );
+    maps.push(map);
+  }
+
+  // Aggregate stats across all maps
+  const roster1 = team1Roster.slice(0, 5);
+  const roster2 = team2Roster.slice(0, 5);
+
+  const team1Agg = roster1.map(name => {
+    const perMap = maps.map(m => m.team1Stats.find(p => p.playerName === name)!).filter(Boolean);
+    return aggregatePlayerStats(perMap);
+  });
+
+  const team2Agg = roster2.map(name => {
+    const perMap = maps.map(m => m.team2Stats.find(p => p.playerName === name)!).filter(Boolean);
+    return aggregatePlayerStats(perMap);
+  });
 
   return {
     matchId: `${team1}-vs-${team2}`,
-    team1Stats,
-    team2Stats,
+    team1Stats: team1Agg,
+    team2Stats: team2Agg,
+    maps,
+    bo,
   };
 }
 
