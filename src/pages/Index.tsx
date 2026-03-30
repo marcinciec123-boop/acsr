@@ -100,6 +100,14 @@ const Index = () => {
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
       )}
+      {activeTab === "settings" && (
+        <SettingsTab
+          tournaments={tournaments}
+          simResults={simResults}
+          onReset={resetSeason}
+          onLoadState={loadState}
+        />
+      )}
 
       <footer className="border-t border-border py-8 mt-12">
         <div className="container mx-auto px-4 text-center">
