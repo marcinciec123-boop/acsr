@@ -126,7 +126,7 @@ const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
                           key={player}
                           className="px-3 py-1.5 bg-card border border-border rounded text-sm font-heading font-bold text-foreground"
                         >
-                          {player}
+                          {countryFlag(team.country)} {player}
                         </span>
                       ))}
                     </div>
