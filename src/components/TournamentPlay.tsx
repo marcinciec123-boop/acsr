@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check } from "lucide-react";
+import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save } from "lucide-react";
 import { type Tournament, type TournamentSimulation, type MatchResult, type SwissResult, type SwissStanding, type SwissRound, type GroupResult, type GroupStanding, type KnockoutResult, type KnockoutRound, type MajorStage, simulateMatch, derivePlacements, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,52 @@ interface TournamentPlayProps {
   tournament: Tournament;
   onComplete: (sim: TournamentSimulation) => void;
   onBack: () => void;
+}
+
+// ===== Persistence =====
+interface TournamentProgress {
+  tournamentId: string;
+  currentPhase: string;
+  allMatchStats: Record<string, MatchStats>;
+  swissState?: {
+    standings: SwissStanding[];
+    rounds: SwissRound[];
+    currentMatches: MatchResult[];
+    resolved: boolean[];
+    finished: boolean;
+    started: boolean;
+  };
+  knockoutState?: {
+    completedRounds: KnockoutRound[];
+    currentMatches: MatchResult[];
+    resolved: boolean[];
+    finished: boolean;
+    started: boolean;
+    winner: string;
+    roundName: string;
+  };
+  knockoutTeams: string[];
+  swissResult: SwissResult | null;
+  groupsResult: GroupResult[] | null;
+  majorStages: MajorStage[];
+  groupsGenerated: boolean;
+}
+
+function saveProgress(tournamentId: string, progress: TournamentProgress) {
+  try {
+    localStorage.setItem(`tournament_progress_${tournamentId}`, JSON.stringify(progress));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+function loadProgress(tournamentId: string): TournamentProgress | null {
+  try {
+    const data = localStorage.getItem(`tournament_progress_${tournamentId}`);
+    return data ? JSON.parse(data) : null;
+  } catch { return null; }
+}
+
+function clearProgress(tournamentId: string) {
+  localStorage.removeItem(`tournament_progress_${tournamentId}`);
 }
 
 // ===== Editable Match Row =====
@@ -146,12 +192,17 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       )}
 
       {/* Stats panel for resolved matches */}
-      {resolved && matchStats && (
+      {resolved && (
         <MatchStatsPanel
-          stats={matchStats}
+          stats={matchStats || null}
           team1={match.team1}
           team2={match.team2}
+          bo={match.bo}
           onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
+          onCreateStats={onUpdateStats ? () => {
+            const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1, match.score2, match.bo);
+            onUpdateStats!(`${match.team1}-vs-${match.team2}`, stats);
+          } : undefined}
         />
       )}
     </div>
@@ -159,15 +210,15 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
 };
 
 // ===== Swiss Play =====
-function useSwissPlay(teams: string[]) {
+function useSwissPlay(teams: string[], initial?: TournamentProgress["swissState"]) {
   const [standings, setStandings] = useState<SwissStanding[]>(
-    teams.map(t => ({ team: t, wins: 0, losses: 0, qualified: false, eliminated: false }))
+    initial?.standings || teams.map(t => ({ team: t, wins: 0, losses: 0, qualified: false, eliminated: false }))
   );
-  const [rounds, setRounds] = useState<SwissRound[]>([]);
-  const [currentMatches, setCurrentMatches] = useState<MatchResult[]>([]);
-  const [resolved, setResolved] = useState<boolean[]>([]);
-  const [finished, setFinished] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [rounds, setRounds] = useState<SwissRound[]>(initial?.rounds || []);
+  const [currentMatches, setCurrentMatches] = useState<MatchResult[]>(initial?.currentMatches || []);
+  const [resolved, setResolved] = useState<boolean[]>(initial?.resolved || []);
+  const [finished, setFinished] = useState(initial?.finished || false);
+  const [started, setStarted] = useState(initial?.started || false);
 
   const winsToQ = 3;
   const lossesToE = 3;
@@ -227,8 +278,10 @@ function useSwissPlay(teams: string[]) {
 
   const start = useCallback(() => {
     setStarted(true);
-    generateRound(standings);
-  }, [standings, generateRound]);
+    if (!initial?.started) {
+      generateRound(standings);
+    }
+  }, [standings, generateRound, initial]);
 
   const updateMatch = useCallback((idx: number, match: MatchResult) => {
     setCurrentMatches(prev => {
@@ -299,18 +352,22 @@ function useSwissPlay(teams: string[]) {
     eliminated: standings.filter(s => s.eliminated).map(s => s.team),
   } : null;
 
-  return { standings, rounds, currentMatches, resolved, finished, started, start, updateMatch, simulateOne, simulateAllCurrent, advanceRound, allResolved, result };
+  const getState = useCallback(() => ({
+    standings, rounds, currentMatches, resolved, finished, started,
+  }), [standings, rounds, currentMatches, resolved, finished, started]);
+
+  return { standings, rounds, currentMatches, resolved, finished, started, start, updateMatch, simulateOne, simulateAllCurrent, advanceRound, allResolved, result, getState };
 }
 
 // ===== Knockout Play =====
-function useKnockoutPlay(initialTeams: string[], startBo = 3) {
-  const [completedRounds, setCompletedRounds] = useState<KnockoutRound[]>([]);
-  const [currentMatches, setCurrentMatches] = useState<MatchResult[]>([]);
-  const [resolved, setResolved] = useState<boolean[]>([]);
-  const [finished, setFinished] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [winner, setWinner] = useState<string>("");
-  const [roundName, setRoundName] = useState("");
+function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: TournamentProgress["knockoutState"]) {
+  const [completedRounds, setCompletedRounds] = useState<KnockoutRound[]>(initial?.completedRounds || []);
+  const [currentMatches, setCurrentMatches] = useState<MatchResult[]>(initial?.currentMatches || []);
+  const [resolved, setResolved] = useState<boolean[]>(initial?.resolved || []);
+  const [finished, setFinished] = useState(initial?.finished || false);
+  const [started, setStarted] = useState(initial?.started || false);
+  const [winner, setWinner] = useState<string>(initial?.winner || "");
+  const [roundName, setRoundName] = useState(initial?.roundName || "");
 
   // Pad to power of 2
   let size = 2;
@@ -329,6 +386,10 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3) {
   };
 
   const start = useCallback(() => {
+    if (initial?.started) {
+      setStarted(true);
+      return;
+    }
     setStarted(true);
     const name = getRoundName(0);
     setRoundName(name);
@@ -345,7 +406,7 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3) {
     }
     setCurrentMatches(matches);
     setResolved(matches.map(m => m.team2 === "BYE"));
-  }, [paddedTeams, totalRounds, startBo]);
+  }, [paddedTeams, totalRounds, startBo, initial]);
 
   const updateMatch = useCallback((idx: number, match: MatchResult) => {
     setCurrentMatches(prev => { const n = [...prev]; n[idx] = match; return n; });
@@ -418,7 +479,11 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3) {
     winner,
   } : null;
 
-  return { completedRounds, currentMatches, resolved, finished, started, start, updateMatch, simulateOne, simulateAllCurrent, advanceRound, allResolved, result, roundName, winner };
+  const getState = useCallback(() => ({
+    completedRounds, currentMatches, resolved, finished, started, winner, roundName,
+  }), [completedRounds, currentMatches, resolved, finished, started, winner, roundName]);
+
+  return { completedRounds, currentMatches, resolved, finished, started, start, updateMatch, simulateOne, simulateAllCurrent, advanceRound, allResolved, result, roundName, winner, getState };
 }
 
 // ===== Main TournamentPlay Component =====
@@ -426,20 +491,28 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3) {
 const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
   const format = tournament.format;
-  const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>({});
+
+  // Load saved progress
+  const savedProgress = useRef(loadProgress(tournament.id));
+
+  const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>(
+    savedProgress.current?.allMatchStats || {}
+  );
 
   // State for multi-phase tournaments
-  const [phase, setPhase] = useState<"swiss" | "groups" | "knockout" | "major-s1" | "major-s2" | "major-playoffs">("swiss");
-  const [swissResult, setSwissResult] = useState<SwissResult | null>(null);
-  const [groupsResult, setGroupsResult] = useState<GroupResult[] | null>(null);
-  const [majorStages, setMajorStages] = useState<MajorStage[]>([]);
+  const [swissResult, setSwissResult] = useState<SwissResult | null>(savedProgress.current?.swissResult || null);
+  const [groupsResult, setGroupsResult] = useState<GroupResult[] | null>(savedProgress.current?.groupsResult || null);
+  const [majorStages, setMajorStages] = useState<MajorStage[]>(savedProgress.current?.majorStages || []);
+  const [groupsGenerated, setGroupsGenerated] = useState(savedProgress.current?.groupsGenerated || false);
 
   // Determine initial phase
-  const initialPhase = format === "knockout" ? "knockout"
+  const initialPhase = savedProgress.current?.currentPhase || (
+    format === "knockout" ? "knockout"
     : format === "swiss+knockout" || format === "league" ? "swiss"
     : format === "groups+knockout" ? "groups"
     : format === "major" ? "major-s1"
-    : "knockout";
+    : "knockout"
+  );
 
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
 
@@ -450,14 +523,35 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     ? [...teams.slice(0, 8), ...(swissResult?.qualified.slice(0, 8) || [])]
     : teams;
 
-  const swiss = useSwissPlay(swissTeams);
+  const swissInitial = savedProgress.current?.currentPhase === currentPhase ? savedProgress.current?.swissState : undefined;
+  const swiss = useSwissPlay(swissTeams, swissInitial);
 
   // Knockout hook
-  const [knockoutTeams, setKnockoutTeams] = useState<string[]>([]);
-  const knockout = useKnockoutPlay(knockoutTeams.length > 0 ? knockoutTeams : ["TBD", "TBD"], 3);
+  const [knockoutTeams, setKnockoutTeams] = useState<string[]>(savedProgress.current?.knockoutTeams || []);
+  const knockoutInitial = savedProgress.current?.currentPhase === currentPhase ? savedProgress.current?.knockoutState : undefined;
+  const knockout = useKnockoutPlay(knockoutTeams.length > 0 ? knockoutTeams : ["TBD", "TBD"], 3, knockoutInitial);
 
-  // Groups state (simplified - use auto-sim for groups, then manual knockout)
-  const [groupsGenerated, setGroupsGenerated] = useState(false);
+  // Auto-save progress on state changes
+  useEffect(() => {
+    const progress: TournamentProgress = {
+      tournamentId: tournament.id,
+      currentPhase,
+      allMatchStats,
+      swissState: swiss.getState(),
+      knockoutState: knockout.getState(),
+      knockoutTeams,
+      swissResult,
+      groupsResult,
+      majorStages,
+      groupsGenerated,
+    };
+    saveProgress(tournament.id, progress);
+  }, [
+    currentPhase, allMatchStats, knockoutTeams, swissResult, groupsResult, majorStages, groupsGenerated,
+    swiss.standings, swiss.rounds, swiss.currentMatches, swiss.resolved, swiss.finished, swiss.started,
+    knockout.completedRounds, knockout.currentMatches, knockout.resolved, knockout.finished, knockout.started, knockout.winner, knockout.roundName,
+    tournament.id,
+  ]);
 
   // Stats helpers
   const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
@@ -480,7 +574,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const wrappedSwissSimulateOne = useCallback((idx: number) => {
     swiss.simulateOne(idx);
     setTimeout(() => {
-      // After simulation, check resolved matches and generate stats
       swiss.currentMatches.forEach((m) => {
         if (m.winner && !allMatchStats[`${m.team1}-vs-${m.team2}`]) {
           const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo);
@@ -489,18 +582,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
       });
     }, 0);
   }, [swiss, allMatchStats]);
-
-  const wrappedSwissSimulateAll = useCallback(() => {
-    swiss.simulateAllCurrent();
-  }, [swiss.simulateAllCurrent]);
-
-  const wrappedKnockoutSimulateOne = useCallback((idx: number) => {
-    knockout.simulateOne(idx);
-  }, [knockout.simulateOne]);
-
-  const wrappedKnockoutSimulateAll = useCallback(() => {
-    knockout.simulateAllCurrent();
-  }, [knockout.simulateAllCurrent]);
 
   const handleSwissComplete = () => {
     if (!swiss.result) return;
@@ -558,6 +639,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     }
 
     sim.placements = derivePlacements(sim, tournament);
+    clearProgress(tournament.id);
     onComplete(sim);
   };
 
@@ -595,6 +677,11 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     setGroupsGenerated(true);
     const advanced = groups.flatMap(g => g.qualified);
     setKnockoutTeams(advanced);
+  };
+
+  const handleBack = () => {
+    // Progress is auto-saved via useEffect
+    onBack();
   };
 
   const tierColor = tournament.tier === "S" ? "text-accent" : tournament.tier === "A" ? "text-primary" : "text-silver";
@@ -709,7 +796,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 onUpdate={swiss.updateMatch}
                 onSimulate={swiss.simulateOne}
                 resolved={swiss.resolved[i]}
-                matchStats={getStatsForMatch(m) || (swiss.resolved[i] && m.winner ? (() => { const s = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo); return s; })() : null)}
+                matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
               />
             ))}
@@ -802,7 +889,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 onUpdate={knockout.updateMatch}
                 onSimulate={knockout.simulateOne}
                 resolved={knockout.resolved[i]}
-                matchStats={getStatsForMatch(m) || (knockout.resolved[i] && m.winner ? (() => { const s = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo); return s; })() : null)}
+                matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
               />
             ))}
@@ -869,10 +956,16 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   return (
     <section className="py-8">
       <div className="container mx-auto px-4">
-        <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 text-sm">
-          <ArrowLeft className="w-4 h-4" />
-          Powrót do listy turniejów
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={handleBack} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Powrót do listy turniejów
+          </button>
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+            <Save className="w-3 h-3" />
+            Postęp zapisywany automatycznie
+          </div>
+        </div>
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
