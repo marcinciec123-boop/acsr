@@ -61,7 +61,7 @@ export const playerNationalities: Record<string, string> = {
   Techno4k: "MN",
   bLitz: "MN",
   // Vision Gaming
-  nats: "NO",
+  nats: "SE",
   dennis: "SE",
   draken: "SE",
   KeZi: "SE",
@@ -76,7 +76,7 @@ export const playerNationalities: Record<string, string> = {
   MuTiRiS: "PT",
   loWel: "ES",
   dav1g: "ES",
-  cadmo: "FR",
+  cadmo: "ES",
   iNSTiNCT: "PT",
   // NRG eSports
   CeRq: "BG",
@@ -98,8 +98,8 @@ export const playerNationalities: Record<string, string> = {
   Tr1xie: "NL",
   // Grayhound
   malta: "AU",
-  Fairlii: "AU",
-  angeL: "AU",
+  Fairlii: "US",
+  angeL: "DE",
   INS: "AU",
   satoshi: "AU",
   // Team Spirit
@@ -112,14 +112,14 @@ export const playerNationalities: Record<string, string> = {
   xcurrate: "ID",
   jBk: "ID",
   henox: "KR",
-  derkos: "SG",
+  derkos: "CN",
   XigN: "KR",
   // Complexity
   elemeNt: "CL",
   sjuush: "DK",
-  aproTo: "AU",
+  aproTo: "US",
   oBo: "US",
-  NikkeZ: "IN",
+  NikkeZ: "AU",
   // MOUZ
   kRYSTAL: "DE",
   syrsoN: "DE",
@@ -165,7 +165,7 @@ export const playerNationalities: Record<string, string> = {
   // Astana Dragons
   KrizzeN: "KZ",
   qikert: "KZ",
-  griff: "KZ",
+  griff: "UZ",
   frontales: "KZ",
   neaLaN: "KZ",
   // ENCE
@@ -185,31 +185,31 @@ export const playerNationalities: Record<string, string> = {
   jks: "AU",
   AZR: "AU",
   USTILO: "AU",
-  Nifty: "AU",
+  Nifty: "US",
   // Amkal
   hypr: "RU",
-  v1tal: "RU",
+  v1tal: "CZ",
   keshandr: "RU",
-  gr1ks: "RU",
+  gr1ks: "BY",
   kyousuke: "RU",
   // Pollen Tantrum
-  xertz: "NZ",
-  RaZ: "NZ",
-  aslan: "NZ",
+  xertz: "AU",
+  RaZ: "AM",
+  aslan: "MK",
   sterling: "NZ",
-  nebet: "NZ",
+  nebet: "LB",
   // Parivision
-  sdy: "RU",
+  sdy: "UA",
   "KaiR0N-": "RU",
   Neityu: "FR",
   torzsi: "HU",
   Magnojez: "RU",
   // x6tence galaxy
   coRoZz: "NO",
-  spyder: "NO",
-  shimari: "SE",
+  spyder: "GB",
+  shimari: "DK",
   Polen: "SE",
-  LoReN: "NO",
+  LoReN: "SE",
   // NiP
   hampus: "SE",
   Lekr0: "SE",
@@ -220,7 +220,7 @@ export const playerNationalities: Record<string, string> = {
   saveey: "SI",
   jR: "UA",
   NEOFRAG: "CZ",
-  jank0: "CZ",
+  jank0: "SI",
   stressarN: "MK",
   // IHC eSports
   kabal: "MN",
@@ -231,18 +231,18 @@ export const playerNationalities: Record<string, string> = {
   // Splyce
   zOOt: "US",
   deficit: "DE",
-  Kila: "NO",
+  Kila: "DE",
   primaL: "US",
-  RFX: "CA",
+  RFX: "US",
   // 3Dmax
   VirreN: "BE",
   Ex3rcice: "FR",
   ryL: "BE",
   TrusT: "BE",
-  Graviti: "RS",
+  Graviti: "FR",
   // Entropiq
   MariX: "LU",
-  syco: "GB",
+  syco: "US",
   h0bbit: "KZ",
   Krimbo: "DE",
   MaXi: "DE",
@@ -271,7 +271,7 @@ export const playerNationalities: Record<string, string> = {
   insani: "BR",
   kye: "BR",
   // Ancient
-  shroud: "CA",
+  shroud: "US",
   aykeN: "DE",
   DeadFox: "HU",
   jasonR: "US",
@@ -281,7 +281,7 @@ export const playerNationalities: Record<string, string> = {
   MagnumZ: "MN",
   lucid: "MN",
   cool4st: "MN",
-  laxiee: "UA",
+  laxiee: "MN",
   // KRU eSports
   Noktse: "AR",
   yeL: "BR",
@@ -291,7 +291,7 @@ export const playerNationalities: Record<string, string> = {
   // Game Agents
   kolor: "HU",
   ngiN: "TR",
-  eLiVe: "SE",
+  eLiVe: "SK",
   Zero: "SK",
   paz: "TR",
   // Rogue
@@ -301,17 +301,17 @@ export const playerNationalities: Record<string, string> = {
   quaKe: "NO",
   xprt: "DK",
   // ATK
-  mendo: "ZA",
-  vice: "ZA",
-  yukar: "ZA",
-  Pot1on: "ZA",
-  pOp: "ZA",
+  mendo: "LR",
+  vice: "NG",
+  yukar: "LY",
+  Pot1on: "LY",
+  pOp: "LR",
   // Apeks
   jkaem: "NO",
   hallzerk: "NO",
   isak: "SE",
   crusaDe: "NO",
-  Xander: "NO",
+  Xander: "DK",
   // Renegades
   vexite: "AU",
   cam1x: "AU",
@@ -319,10 +319,10 @@ export const playerNationalities: Record<string, string> = {
   nettik: "AU",
   oSee: "US",
   // Evil Geniuses
-  skyhe: "FR",
+  skyhe: "DE",
   zanz: "US",
-  st1ch: "DE",
-  JDC: "ES",
+  st1ch: "US",
+  JDC: "DE",
   zyoN: "DE",
   // Dream Eaters
   addicT: "NL",
@@ -368,7 +368,7 @@ export const playerNationalities: Record<string, string> = {
   stanislaw: "CA",
   // Heroic
   Alkaren: "KZ",
-  tn1R: "RU",
+  tn1R: "BY",
   stavn: "DK",
   aizy: "DK",
   LNZ: "SE",
@@ -385,13 +385,13 @@ export const playerNationalities: Record<string, string> = {
   sinopsyy: "XK",
   rigoN: "XK",
   // Quantum Bellator
-  x1ron: "EG",
-  kasya: "EG",
+  x1ron: "IR",
+  kasya: "SD",
   saRRafi: "EG",
-  raizo: "EG",
+  raizo: "DZ",
   pa1nkiller: "EG",
   // BIG
-  "gob b": "TR",
+  "gob b": "DE",
   keev: "DE",
   xfl0ud: "TR",
   hippo: "KZ",
@@ -405,13 +405,13 @@ export const playerNationalities: Record<string, string> = {
   // fnatic
   Brollan: "SE",
   Xizt: "SE",
-  kyuubii: "TR",
+  kyuubii: "DE",
   modurist: "SE",
   sheddaN: "SE",
   // 9z Team
-  dgt: "AR",
-  max: "AR",
-  dav1deuS: "AR",
+  dgt: "UY",
+  max: "UY",
+  dav1deuS: "CL",
   buda: "AR",
   try: "AR",
   // Team Immunity
@@ -473,7 +473,7 @@ export const playerNationalities: Record<string, string> = {
   maka: "FR",
   mKadin: "FR",
   antika: "ES",
-  Creo: "AR",
+  Creo: "ES",
   // Nexus
   arc: "RO",
   regali: "RO",
@@ -488,10 +488,10 @@ export const playerNationalities: Record<string, string> = {
   Melavi: "PL",
   // Nemiga
   Jyo: "EE",
-  Frynaut: "US",
-  botez: "RO",
+  Frynaut: "GB",
+  botez: "FR",
   boX: "BY",
-  evire: "UA",
+  evire: "BY",
   // OpTic Gaming
   JUGi: "DK",
   gade: "DK",
@@ -514,14 +514,14 @@ export const playerNationalities: Record<string, string> = {
   spektra: "GB",
   jeLLo: "ES",
   sl3nd: "HU",
-  KanOx: "GB",
+  KanOx: "ES",
   CRUC1AL: "NL",
   // Parallax
-  Hatz: "NZ",
+  Hatz: "AU",
   Lonsdale: "NZ",
-  yellow: "NZ",
+  yellow: "AU",
   sico: "NZ",
-  kyoto: "NZ",
+  kyoto: "AU",
   // Astra Vendetta
   kaarT: "FJ",
   filian: "FJ",
@@ -571,11 +571,11 @@ export const playerNationalities: Record<string, string> = {
   enzero: "KG",
   yaqK: "KG",
   // Rare Atom
-  nJta: "CN",
-  baLi: "IN",
-  enlai: "CN",
+  nJta: "ID",
+  baLi: "ID",
+  enlai: "ID",
   kaito: "ID",
-  abiLo: "CN",
+  abiLo: "SG",
   // ZIGMA
   RoLEX: "TH",
   NIFFY: "TH",
