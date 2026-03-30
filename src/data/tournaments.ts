@@ -655,6 +655,18 @@ export function getQualifierPool(
     pool = pool.filter(t => regions.has(t.region));
   }
   
+  // Lower tiers → skip top-ranked teams so qualifiers feature weaker teams
+  const tierSkip: Record<string, number> = {
+    'S': 0,        // Tier S qualifiers: best available non-invited teams
+    'A': 4,        // Tier A: skip top 4 non-invited
+    'B': 0,        // Tier B: ranking-only, no qualifiers
+    'C': 12,       // Tier C: skip top 12, open for lower-ranked teams
+  };
+  const skip = tierSkip[tournament.tier] || 0;
+  if (skip > 0) {
+    pool = pool.slice(skip);
+  }
+  
   // Return more teams than needed for qualifier bracket
   const qualifierSize = Math.max(config.qualifierSlots * 4, 16);
   return pool.slice(0, qualifierSize).map(t => t.name);
