@@ -40,6 +40,9 @@ const HistoryTab = () => {
   const [showFADialog, setShowFADialog] = useState(false);
   const [faPlayer, setFaPlayer] = useState("");
   const [faPrevTeam, setFaPrevTeam] = useState("");
+  const [faFirstName, setFaFirstName] = useState("");
+  const [faLastName, setFaLastName] = useState("");
+  const [faNationality, setFaNationality] = useState("");
 
   const allTransfers = [...staticTransfers, ...customTransfers];
 
