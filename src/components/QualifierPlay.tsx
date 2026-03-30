@@ -590,6 +590,20 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
             )}
 
             <div className="bg-card border border-border rounded-lg p-4">
+            {activeMatchDetail !== null && currentMatches[activeMatchDetail] && (
+              <QualMatchDetail
+                match={currentMatches[activeMatchDetail]}
+                onUpdate={(updated) => updateMatch(activeMatchDetail, updated)}
+                onSimulate={() => simulateOne(activeMatchDetail)}
+                resolved={resolved[activeMatchDetail]}
+                matchStats={getStatsForMatch(currentMatches[activeMatchDetail])}
+                onUpdateStats={handleUpdateStats}
+                onClose={() => setActiveMatchDetail(null)}
+              />
+            )}
+
+            {activeMatchDetail === null && (
+              <>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading font-bold text-foreground">{roundName}</h3>
                 <div className="flex gap-2">
@@ -614,6 +628,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                     resolved={resolved[i]}
                     matchStats={getStatsForMatch(m)}
                     onUpdateStats={handleUpdateStats}
+                    onOpenDetail={() => setActiveMatchDetail(i)}
                   />
                 ))}
               </div>
