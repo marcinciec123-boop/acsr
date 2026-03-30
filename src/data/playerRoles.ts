@@ -719,5 +719,5 @@ export const roleIcons: Record<PlayerRole, string> = {
   "Lurker": "👁️",
   "AWPer": "🎯",
   "Anchor": "🛡️",
-  "IGL": "💀",
+  "IGL": "🧠",
 };
