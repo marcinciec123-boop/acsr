@@ -641,13 +641,8 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
   };
 
-  const generateStatsForMatch = useCallback((m: MatchResult) => {
-    const id = `${m.team1}-vs-${m.team2}`;
-    if (!allMatchStats[id] && m.winner) {
-      const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo);
-      setAllMatchStats(prev => ({ ...prev, [id]: stats }));
-    }
-  }, [allMatchStats]);
+  // Active match detail state: { source: "swiss"|"knockout", index: number }
+  const [activeMatchDetail, setActiveMatchDetail] = useState<{ source: string; index: number } | null>(null);
 
   // Wrap swiss simulate to generate stats
   const wrappedSwissSimulateOne = useCallback((idx: number) => {
