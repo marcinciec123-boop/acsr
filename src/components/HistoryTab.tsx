@@ -98,6 +98,28 @@ const HistoryTab = () => {
                   ))}
                 </select>
               </div>
+              <select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value as TransferType)}
+                className="px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono appearance-none cursor-pointer"
+              >
+                <option value="all">Typ: Wszystkie</option>
+                <option value="join">Dołączenia</option>
+                <option value="leave">Odejścia</option>
+                <option value="move">Transfery</option>
+              </select>
+              <button
+                onClick={() => setReversed(r => !r)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-mono transition-colors",
+                  reversed
+                    ? "bg-primary/20 text-primary border-primary/40"
+                    : "text-muted-foreground border-border hover:text-foreground"
+                )}
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {reversed ? "Najstarsze ↑" : "Najnowsze ↑"}
+              </button>
             </div>
 
             <div className="bg-card border border-border rounded-lg overflow-hidden">
