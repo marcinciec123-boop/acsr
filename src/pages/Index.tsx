@@ -3,6 +3,7 @@ import NavBar, { type Tab } from "@/components/NavBar";
 import HeroSection from "@/components/HeroSection";
 import OverviewSection from "@/components/OverviewSection";
 import TournamentList from "@/components/TournamentList";
+import TournamentPlay from "@/components/TournamentPlay";
 import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
@@ -17,6 +18,7 @@ const Index = () => {
   );
   const [simResults, setSimResults] = useState<Record<string, TournamentSimulation>>({});
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
@@ -48,6 +50,7 @@ const Index = () => {
   const resetSeason = () => {
     setTournaments(initialTournaments.map((t) => ({ ...t })));
     setSimResults({});
+    setPlayingTournamentId(null);
   };
 
   const loadState = (t: Tournament[], s: Record<string, TournamentSimulation>) => {
@@ -63,7 +66,23 @@ const Index = () => {
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     setSelectedTeam(null);
+    setPlayingTournamentId(null);
   };
+
+  const handlePlayTournament = (id: string) => {
+    setPlayingTournamentId(id);
+  };
+
+  const handlePlayComplete = (sim: TournamentSimulation) => {
+    const id = playingTournamentId!;
+    setSimResults((prev) => ({ ...prev, [id]: sim }));
+    setTournaments((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status: "completed" as const } : t))
+    );
+    setPlayingTournamentId(null);
+  };
+
+  const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,13 +96,22 @@ const Index = () => {
       )}
 
       {activeTab === "tournaments" && (
-        <TournamentList
-          tournaments={tournaments}
-          simResults={simResults}
-          onSimulateNext={simulateNext}
-          onSimulateAll={simulateAll}
-          onReset={resetSeason}
-        />
+        playingTournament ? (
+          <TournamentPlay
+            tournament={playingTournament}
+            onComplete={handlePlayComplete}
+            onBack={() => setPlayingTournamentId(null)}
+          />
+        ) : (
+          <TournamentList
+            tournaments={tournaments}
+            simResults={simResults}
+            onSimulateNext={simulateNext}
+            onSimulateAll={simulateAll}
+            onReset={resetSeason}
+            onPlayTournament={handlePlayTournament}
+          />
+        )
       )}
       {activeTab === "calendar" && <EventCalendar />}
       {activeTab === "rankings" && (

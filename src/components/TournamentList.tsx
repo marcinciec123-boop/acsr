@@ -242,19 +242,21 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
               {month}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {monthTournaments.map((t, i) => (
-                <TournamentCard
-                  key={t.id}
-                  tournament={t}
-                  index={i}
-                  hasResult={!!simResults[t.id]}
-                  onClick={() => {
-                    if (simResults[t.id]) {
-                      setSelectedId(t.id);
-                    }
-                  }}
-                />
-              ))}
+                {monthTournaments.map((t, i) => (
+                  <TournamentCard
+                    key={t.id}
+                    tournament={t}
+                    index={i}
+                    hasResult={!!simResults[t.id]}
+                    onClick={() => {
+                      if (simResults[t.id]) {
+                        setSelectedId(t.id);
+                      } else if (t.status === "upcoming") {
+                        onPlayTournament(t.id);
+                      }
+                    }}
+                  />
+                ))}
             </div>
           </div>
         ))}
