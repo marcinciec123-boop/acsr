@@ -426,6 +426,7 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3) {
 const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
   const format = tournament.format;
+  const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>({});
 
   // State for multi-phase tournaments
   const [phase, setPhase] = useState<"swiss" | "groups" | "knockout" | "major-s1" | "major-s2" | "major-playoffs">("swiss");
