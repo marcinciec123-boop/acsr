@@ -97,9 +97,16 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
     if (isBo1) {
       const high = Math.max(score1, score2);
       const low = Math.min(score1, score2);
-      // Regular: winner=13, loser<13. Overtime: both>=12, winner>loser
       if (high < 13) return;
-      if (low >= 13 && high - low < 1) return; // OT needs lead
+      if (low < 12 && high !== 13) return; // Regular: must be exactly 13
+      if (low === 12) {
+        // OT: from 12:12, played in MR4 blocks → valid winners: 16,19,22...
+        if ((high - 12) % 3 !== 1 || high < 16) return;
+      }
+      if (low >= 13) {
+        // Deep OT: both ≥13 means we're in OT territory, check MR4 pattern
+        if ((high - low) !== 1 || (high - 12) % 3 !== 1) return;
+      }
     }
     const winner = score1 > score2 ? match.team1 : match.team2;
     const mapScore1 = isBo1 ? 1 : score1;
