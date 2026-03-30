@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward } from "lucide-react";
-import { type Tournament, type TournamentSimulation } from "@/data/tournaments";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown } from "lucide-react";
+import { type Tournament, type TournamentSimulation, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
 
@@ -27,6 +27,9 @@ const formatLabels: Record<string, string> = {
 
 const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament: Tournament; index: number; onClick: () => void; hasResult: boolean }) => {
   const status = statusConfig[tournament.status];
+  const config = tournament.qualification;
+  const needsQual = config.qualifierType !== "none" && config.qualifierSlots > 0 && !tournament.qualifierCompleted && tournament.status !== "completed";
+  const qualDone = tournament.qualifierCompleted;
 
   return (
     <motion.button
@@ -48,7 +51,7 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
 
       <div className="flex items-start justify-between mb-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn("font-heading font-bold text-lg", tierColors[tournament.tier])}>
               {tournament.tier}
             </span>
@@ -58,6 +61,25 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
             <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
               {formatLabels[tournament.format]}
             </span>
+            {/* Qualification badges */}
+            {needsQual && (
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                {config.qualifierType === "regional" ? "Kwal. Reg." : "Open Qual."}
+              </span>
+            )}
+            {qualDone && (
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-win/30 bg-win/10 text-win flex items-center gap-1">
+                <Crown className="w-3 h-3" />
+                Skład ustalony
+              </span>
+            )}
+            {config.qualifierType === "none" && tournament.status === "upcoming" && (
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-accent/30 bg-accent/10 text-accent flex items-center gap-1">
+                <Crown className="w-3 h-3" />
+                Z rankingu
+              </span>
+            )}
           </div>
           <h3 className="font-heading text-xl font-bold text-foreground group-hover:text-primary transition-colors">
             {tournament.name}
@@ -75,6 +97,9 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users className="w-3.5 h-3.5" />
           <span>{tournament.teams} Teams</span>
+          {config.qualifierType !== "none" && (
+            <span className="text-xs text-primary">({config.inviteSlots}+{config.qualifierSlots})</span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MapPin className="w-3.5 h-3.5" />
@@ -100,9 +125,10 @@ interface TournamentListProps {
   onSimulateAll: () => void;
   onReset: () => void;
   onPlayTournament: (id: string) => void;
+  dynamicRanking: TeamData[];
 }
 
-const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset, onPlayTournament }: TournamentListProps) => {
+const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset, onPlayTournament, dynamicRanking }: TournamentListProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
