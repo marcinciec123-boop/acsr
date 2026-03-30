@@ -526,8 +526,15 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const swissInitial = savedProgress.current?.currentPhase === currentPhase ? savedProgress.current?.swissState : undefined;
   const swiss = useSwissPlay(swissTeams, swissInitial);
 
-  // Knockout hook
-  const [knockoutTeams, setKnockoutTeams] = useState<string[]>(savedProgress.current?.knockoutTeams || []);
+  // Knockout hook — initialize from participants for pure knockout format
+  const [knockoutTeams, setKnockoutTeams] = useState<string[]>(() => {
+    if (savedProgress.current?.knockoutTeams && savedProgress.current.knockoutTeams.length > 0) {
+      return savedProgress.current.knockoutTeams;
+    }
+    // For knockout-only format, use all participants directly
+    if (format === "knockout") return teams;
+    return [];
+  });
   const knockoutInitial = savedProgress.current?.currentPhase === currentPhase ? savedProgress.current?.knockoutState : undefined;
   const knockout = useKnockoutPlay(knockoutTeams.length > 0 ? knockoutTeams : ["TBD", "TBD"], 3, knockoutInitial);
 
