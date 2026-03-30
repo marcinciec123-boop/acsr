@@ -253,6 +253,14 @@ const Index = () => {
           <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} />
         )
       )}
+      {activeTab === "player-ratings" && (
+        <PlayerRatingRankings
+          simResults={simResults}
+          tournaments={tournaments}
+          allMatchStats={globalMatchStats}
+          onSelectPlayer={handleSelectPlayer}
+        />
+      )}
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
       )}
