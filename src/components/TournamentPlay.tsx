@@ -191,8 +191,35 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
           </div>
         </div>
 
+        {/* Map Veto */}
+        {!resolved && !editing && !vetoCompleted && (
+          <div className="mt-4">
+            <MapVeto
+              team1={match.team1}
+              team2={match.team2}
+              bo={match.bo}
+              onComplete={(maps) => {
+                setPickedMaps(maps);
+                setVetoCompleted(true);
+              }}
+              onSkip={() => setVetoCompleted(true)}
+            />
+          </div>
+        )}
+
+        {/* Picked maps display */}
+        {pickedMaps.length > 0 && !resolved && (
+          <div className="flex justify-center gap-2 mt-3">
+            {pickedMaps.map((m, i) => (
+              <span key={i} className="text-[10px] font-mono text-win bg-win/5 px-2 py-1 rounded border border-win/20">
+                Mapa {i + 1}: {m}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Action buttons */}
-        {!resolved && !editing && (
+        {!resolved && !editing && vetoCompleted && (
           <div className="flex justify-center gap-3 mt-6">
             <button
               onClick={onSimulate}
