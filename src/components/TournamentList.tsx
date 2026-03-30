@@ -99,6 +99,7 @@ interface TournamentListProps {
   onSimulateNext: () => void;
   onSimulateAll: () => void;
   onReset: () => void;
+  onPlayTournament: (id: string) => void;
 }
 
 const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset }: TournamentListProps) => {
