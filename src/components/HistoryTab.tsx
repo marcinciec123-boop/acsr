@@ -117,7 +117,9 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
       if (prevTeam) {
         prevTeam.roster = prevTeam.roster.filter(p => p !== player);
       }
-      setCustomTransfers(prev => [...prev, { player, oldTeam: faPrevTeam, newTeam: "-" }]);
+      const faTransfer: Transfer = { player, oldTeam: faPrevTeam, newTeam: "-" };
+      customTransfersGlobal.push(faTransfer);
+      setCustomTransfers(prev => [...prev, faTransfer]);
     }
     
     // Update nationality if provided
