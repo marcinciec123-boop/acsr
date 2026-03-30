@@ -73,7 +73,7 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
           </div>
           {editing ? (
             <div className="flex flex-col items-center gap-2">
-              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy</span>}
+              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input value={s1} onChange={e => setS1(e.target.value)} className="w-14 h-10 text-center font-mono text-lg p-0 bg-background" type="number" min="0" />
                 <span className="text-muted-foreground text-xl font-mono">:</span>
