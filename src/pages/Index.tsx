@@ -7,11 +7,13 @@ import TournamentPlay from "@/components/TournamentPlay";
 import QualifierPlay from "@/components/QualifierPlay";
 import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
+import PlayerRatingRankings from "@/components/PlayerRatingRankings";
 import SeasonStandings from "@/components/SeasonStandings";
 import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
 import HistoryTab from "@/components/HistoryTab";
+import { type MatchStats } from "@/lib/playerStats";
 import {
   initialTournaments,
   type Tournament,
@@ -35,6 +37,7 @@ const Index = () => {
   const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
   const [qualifyingTournamentId, setQualifyingTournamentId] = useState<string | null>(null);
   const [rosterVersion, setRosterVersion] = useState(0);
+  const [globalMatchStats, setGlobalMatchStats] = useState<Record<string, MatchStats>>({});
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
@@ -249,6 +252,14 @@ const Index = () => {
         ) : (
           <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} />
         )
+      )}
+      {activeTab === "player-ratings" && (
+        <PlayerRatingRankings
+          simResults={simResults}
+          tournaments={tournaments}
+          allMatchStats={globalMatchStats}
+          onSelectPlayer={handleSelectPlayer}
+        />
       )}
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />

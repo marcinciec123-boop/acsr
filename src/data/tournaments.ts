@@ -618,18 +618,65 @@ export function getDynamicRanking(
   const pointsMap: Record<string, number> = {};
   baseTeams.forEach(t => { pointsMap[t.name] = t.points; });
   
+  // Add placement points + ELO match points
   for (const t of tournaments) {
     const sim = simResults[t.id];
     if (!sim) continue;
+    const tournament = tournaments.find(tr => tr.id === t.id);
+    if (!tournament) continue;
+
+    // Placement points
     sim.placements.forEach(p => {
       if (!pointsMap[p.team]) pointsMap[p.team] = 0;
       pointsMap[p.team] += p.points;
     });
+
+    // ELO match points
+    const allMatches = collectAllSimMatches(sim);
+    const tempRanking = [...baseTeams]
+      .map(team => ({ ...team, points: pointsMap[team.name] || team.points }))
+      .sort((a, b) => b.points - a.points);
+    
+    const kFactor = tournament.tier === "S" ? 40 : tournament.tier === "A" ? 30 : tournament.tier === "B" ? 20 : 12;
+    
+    for (const match of allMatches) {
+      if (match.winner === "" || match.team2 === "BYE") continue;
+      const rank1 = tempRanking.findIndex(t => t.name === match.team1) + 1 || 50;
+      const rank2 = tempRanking.findIndex(t => t.name === match.team2) + 1 || 50;
+      const loser = match.winner === match.team1 ? match.team2 : match.team1;
+      const winnerRank = match.winner === match.team1 ? rank1 : rank2;
+      const loserRank = match.winner === match.team1 ? rank2 : rank1;
+      
+      const s1 = 100 - Math.min(winnerRank, 100);
+      const s2 = 100 - Math.min(loserRank, 100);
+      const expected = 1 / (1 + Math.pow(10, -(s1 - s2) / 40));
+      const winPts = Math.round(kFactor * (1 - expected));
+      const losePts = Math.round(kFactor * (0 - (1 - expected)));
+      
+      if (!pointsMap[match.winner]) pointsMap[match.winner] = 0;
+      if (!pointsMap[loser]) pointsMap[loser] = 0;
+      pointsMap[match.winner] += winPts;
+      pointsMap[loser] += losePts;
+    }
   }
   
   return [...baseTeams]
-    .map(t => ({ ...t, points: pointsMap[t.name] || t.points }))
+    .map(t => ({ ...t, points: Math.max(0, pointsMap[t.name] || t.points) }))
     .sort((a, b) => b.points - a.points);
+}
+
+function collectAllSimMatches(sim: TournamentSimulation): { team1: string; team2: string; winner: string }[] {
+  const all: { team1: string; team2: string; winner: string }[] = [];
+  if (sim.swiss) sim.swiss.rounds.forEach(r => all.push(...r.matches));
+  if (sim.groups) sim.groups.forEach(g => all.push(...g.matches));
+  if (sim.knockout) sim.knockout.rounds.forEach(r => all.push(...r.matches));
+  if (sim.majorStages) {
+    sim.majorStages.forEach(stage => {
+      if (stage.swiss) stage.swiss.rounds.forEach(r => all.push(...r.matches));
+      if (stage.knockout) stage.knockout.rounds.forEach(r => all.push(...r.matches));
+    });
+  }
+  return all.filter(m => m.team2 !== "BYE" && m.winner !== "");
 }
 
 export function getInvitedTeamsByRanking(

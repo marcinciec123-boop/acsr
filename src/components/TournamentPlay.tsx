@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
+import MapVeto from "@/components/MapVeto";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -87,6 +88,8 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
   const [editing, setEditing] = useState(false);
   const [s1, setS1] = useState(match.score1.toString());
   const [s2, setS2] = useState(match.score2.toString());
+  const [vetoCompleted, setVetoCompleted] = useState(resolved);
+  const [pickedMaps, setPickedMaps] = useState<string[]>([]);
 
   const isBo1 = (match.bo || 1) === 1;
 
@@ -188,8 +191,35 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
           </div>
         </div>
 
+        {/* Map Veto */}
+        {!resolved && !editing && !vetoCompleted && (
+          <div className="mt-4">
+            <MapVeto
+              team1={match.team1}
+              team2={match.team2}
+              bo={match.bo}
+              onComplete={(maps) => {
+                setPickedMaps(maps);
+                setVetoCompleted(true);
+              }}
+              onSkip={() => setVetoCompleted(true)}
+            />
+          </div>
+        )}
+
+        {/* Picked maps display */}
+        {pickedMaps.length > 0 && !resolved && (
+          <div className="flex justify-center gap-2 mt-3">
+            {pickedMaps.map((m, i) => (
+              <span key={i} className="text-[10px] font-mono text-win bg-win/5 px-2 py-1 rounded border border-win/20">
+                Mapa {i + 1}: {m}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Action buttons */}
-        {!resolved && !editing && (
+        {!resolved && !editing && vetoCompleted && (
           <div className="flex justify-center gap-3 mt-6">
             <button
               onClick={onSimulate}
@@ -735,40 +765,112 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     onComplete(sim);
   };
 
-  // Groups: auto-simulate groups, then go to knockout
-  const generateGroups = () => {
+  // GSL Groups: Interactive double-elimination per group
+  const [gslGroups, setGslGroups] = useState<{
+    groupName: string;
+    teams: string[];
+    matches: MatchResult[]; // 0: opening1, 1: opening2, 2: winners, 3: losers, 4: decider
+    phase: number; // 0=opening, 1=winners+losers, 2=decider, 3=done
+    qualified: string[];
+    eliminated: string[];
+  }[]>([]);
+  const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
+
+  const generateGslGroups = () => {
     const shuffled = [...teams].sort(() => Math.random() - 0.5);
     const groupCount = teams.length <= 8 ? 2 : 4;
     const perGroup = Math.ceil(shuffled.length / groupCount);
-    const groups: GroupResult[] = [];
+    const groups = [];
 
     for (let g = 0; g < groupCount; g++) {
-      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup);
+      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4);
       const groupName = String.fromCharCode(65 + g);
-      const matches: MatchResult[] = [];
-      for (let i = 0; i < groupTeams.length; i++) {
-        for (let j = i + 1; j < groupTeams.length; j++) {
-          matches.push(simulateMatch(groupTeams[i], groupTeams[j], 1));
-        }
-      }
-      const standingsMap: Record<string, GroupStanding> = {};
-      groupTeams.forEach(t => { standingsMap[t] = { team: t, wins: 0, losses: 0, roundDiff: 0 }; });
-      matches.forEach(m => {
-        standingsMap[m.winner].wins++;
-        const loser = m.winner === m.team1 ? m.team2 : m.team1;
-        standingsMap[loser].losses++;
-        standingsMap[m.team1].roundDiff += m.score1 - m.score2;
-        standingsMap[m.team2].roundDiff += m.score2 - m.score1;
-      });
-      const sorted = Object.values(standingsMap).sort((a, b) => b.wins - a.wins || b.roundDiff - a.roundDiff);
-      const qualified = sorted.slice(0, 2).map(s => s.team);
-      groups.push({ groupName, teams: groupTeams, matches, standings: sorted, qualified });
+      // Create opening matches
+      const matches: MatchResult[] = [
+        { team1: groupTeams[0], team2: groupTeams[1], score1: 0, score2: 0, winner: "", bo: 1 }, // opening 1
+        { team1: groupTeams[2], team2: groupTeams[3] || "BYE", score1: 0, score2: 0, winner: groupTeams[3] ? "" : groupTeams[2], bo: 1 }, // opening 2
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // winners match
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 }, // losers match (elimination)
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // decider
+      ];
+      groups.push({ groupName, teams: groupTeams, matches, phase: 0, qualified: [], eliminated: [] });
     }
 
-    setGroupsResult(groups);
+    setGslGroups(groups);
     setGroupsGenerated(true);
-    const advanced = groups.flatMap(g => g.qualified);
-    setKnockoutTeams(advanced);
+  };
+
+  const resolveGslMatch = (groupIdx: number, matchIdx: number, result: MatchResult) => {
+    const groups = [...gslGroups];
+    const group = { ...groups[groupIdx] };
+    const matches = [...group.matches];
+    matches[matchIdx] = result;
+
+    // Progress GSL bracket
+    if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
+      // Opening done → set up winners & losers matches
+      matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
+      const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
+      const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
+      matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
+      group.phase = 1;
+    }
+
+    if (matchIdx === 2 && matches[2].winner) {
+      // Winners match done → winner qualifies
+      group.qualified = [...group.qualified, matches[2].winner];
+      const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+      // Check if losers match is done to set up decider
+      if (matches[3].winner) {
+        const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+        group.eliminated = [...group.eliminated, losersLoser];
+        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+        group.phase = 2;
+      }
+    }
+
+    if (matchIdx === 3 && matches[3].winner) {
+      // Losers match done → loser eliminated
+      const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+      group.eliminated = [...group.eliminated, losersLoser];
+      // Check if winners match is done to set up decider
+      if (matches[2].winner) {
+        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+        group.phase = 2;
+      }
+    }
+
+    if (matchIdx === 4 && matches[4].winner) {
+      // Decider done → winner qualifies, loser eliminated
+      group.qualified = [...group.qualified, matches[4].winner];
+      const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
+      group.eliminated = [...group.eliminated, deciderLoser];
+      group.phase = 3;
+    }
+
+    group.matches = matches;
+    groups[groupIdx] = group;
+    setGslGroups(groups);
+
+    // Check if all groups are done
+    if (groups.every(g => g.phase === 3)) {
+      const advanced = groups.flatMap(g => g.qualified);
+      setKnockoutTeams(advanced);
+      const groupResults: GroupResult[] = groups.map(g => ({
+        groupName: g.groupName,
+        teams: g.teams,
+        matches: g.matches,
+        standings: g.teams.map(t => ({
+          team: t,
+          wins: g.matches.filter(m => m.winner === t).length,
+          losses: g.matches.filter(m => m.winner && m.winner !== t && (m.team1 === t || m.team2 === t)).length,
+          roundDiff: 0,
+        })).sort((a, b) => b.wins - a.wins),
+        qualified: g.qualified,
+      }));
+      setGroupsResult(groupResults);
+    }
   };
 
   const handleBack = () => {
@@ -993,59 +1095,122 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     </div>
   );
 
-  // Render Groups Phase
-  const renderGroupsPhase = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa</h3>
-        {!groupsGenerated && (
-          <button onClick={generateGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
-            <Play className="w-4 h-4" />
-            Losuj i rozegraj grupy
-          </button>
-        )}
-        {groupsGenerated && (
-          <button onClick={() => setCurrentPhase("knockout")} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
-            <Zap className="w-4 h-4" />
-            Przejdź do Playoffs →
-          </button>
+  // Render GSL Groups Phase
+  const renderGroupsPhase = () => {
+    const allGroupsDone = gslGroups.length > 0 && gslGroups.every(g => g.phase === 3);
+
+    // GSL match detail overlay
+    if (activeGroupMatch) {
+      const { groupIdx, matchIdx } = activeGroupMatch;
+      const group = gslGroups[groupIdx];
+      const match = group?.matches[matchIdx];
+      if (match && match.team1 !== "TBD" && match.team2 !== "TBD") {
+        return (
+          <MatchDetailPanel
+            match={match}
+            onUpdate={(updated) => {
+              resolveGslMatch(groupIdx, matchIdx, updated);
+              setActiveGroupMatch(null);
+            }}
+            onSimulate={() => {
+              const result = simulateMatch(match.team1, match.team2, match.bo);
+              resolveGslMatch(groupIdx, matchIdx, result);
+              setActiveGroupMatch(null);
+            }}
+            resolved={!!match.winner}
+            matchStats={getStatsForMatch(match)}
+            onUpdateStats={handleUpdateStats}
+            onClose={() => setActiveGroupMatch(null)}
+          />
+        );
+      }
+    }
+
+    const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa (GSL)</h3>
+          <div className="flex gap-2">
+            {!groupsGenerated && (
+              <button onClick={generateGslGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+                <Play className="w-4 h-4" />
+                Losuj grupy
+              </button>
+            )}
+            {allGroupsDone && (
+              <button onClick={() => setCurrentPhase("knockout")} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+                <Zap className="w-4 h-4" />
+                Przejdź do Playoffs →
+              </button>
+            )}
+          </div>
+        </div>
+
+        {gslGroups.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {gslGroups.map((group, gi) => (
+              <div key={group.groupName} className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-secondary/50 font-heading font-bold text-foreground flex items-center justify-between">
+                  <span>Grupa {group.groupName}</span>
+                  {group.phase === 3 && <span className="text-xs font-mono text-win">Zakończona</span>}
+                </div>
+                <div className="p-3 space-y-2">
+                  {group.matches.map((m, mi) => {
+                    if (m.team1 === "TBD" || m.team2 === "TBD") return null;
+                    const isResolved = !!m.winner;
+                    return (
+                      <div key={mi} className="space-y-1">
+                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{matchLabels[mi]}</p>
+                        <div className={cn(
+                          "bg-secondary/30 border rounded-md overflow-hidden text-sm",
+                          isResolved ? "border-win/20" : "border-primary/30"
+                        )}>
+                          <div className="flex items-center">
+                            <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", isResolved && m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
+                            <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[50px] text-center">
+                              {isResolved ? (
+                                <>
+                                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
+                                  <span className="text-muted-foreground mx-1">:</span>
+                                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">vs</span>
+                              )}
+                            </div>
+                            <div className={cn("flex-1 px-3 py-2 truncate font-medium", isResolved && m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
+                          </div>
+                          {!isResolved && (
+                            <button
+                              onClick={() => setActiveGroupMatch({ groupIdx: gi, matchIdx: mi })}
+                              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors border-t border-border/50"
+                            >
+                              <ExternalLink className="w-3 h-3" /> Przejdź do meczu
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Group status */}
+                <div className="px-3 pb-3 flex flex-wrap gap-1">
+                  {group.qualified.map(t => (
+                    <span key={t} className="text-[10px] font-mono text-win bg-win/10 px-2 py-0.5 rounded border border-win/30">✓ {t}</span>
+                  ))}
+                  {group.eliminated.map(t => (
+                    <span key={t} className="text-[10px] font-mono text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">✗ {t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-
-      {groupsResult && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {groupsResult.map(group => (
-            <div key={group.groupName} className="bg-card border border-border rounded-lg overflow-hidden">
-              <div className="px-4 py-2 bg-secondary/50 font-heading font-bold text-foreground">
-                Grupa {group.groupName}
-              </div>
-              {group.standings.map((s, i) => {
-                const isQualified = group.qualified.includes(s.team);
-                return (
-                  <div key={s.team} className={cn(
-                    "grid grid-cols-12 gap-1 px-4 py-2 border-t border-border/50 items-center text-sm",
-                    isQualified && "bg-win/5"
-                  )}>
-                    <div className="col-span-1 font-mono text-muted-foreground">{i + 1}</div>
-                    <div className="col-span-6 font-medium text-foreground truncate">{s.team}</div>
-                    <div className="col-span-2 text-center font-mono text-sm">
-                      <span className="text-win">{s.wins}</span>
-                      <span className="text-muted-foreground">-</span>
-                      <span className="text-loss">{s.losses}</span>
-                    </div>
-                    <div className="col-span-1 text-center font-mono text-xs text-muted-foreground">{s.roundDiff > 0 ? "+" : ""}{s.roundDiff}</div>
-                    <div className="col-span-2 text-center">
-                      {isQualified && <span className="text-xs font-mono text-win">✓ AWA</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <section className="py-8">
