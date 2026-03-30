@@ -35,15 +35,23 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
   const [s1, setS1] = useState("0");
   const [s2, setS2] = useState("0");
 
+  const isBo1 = (match.bo || 1) === 1;
+
   const confirmScore = () => {
     const score1 = parseInt(s1) || 0;
     const score2 = parseInt(s2) || 0;
     if (score1 === score2 || score1 < 0 || score2 < 0) return;
     const winner = score1 > score2 ? match.team1 : match.team2;
-    onUpdate({ ...match, score1, score2, winner });
+    const mapScore1 = isBo1 ? 1 : score1;
+    const mapScore2 = isBo1 ? 0 : score2;
+    onUpdate({ ...match, score1: winner === match.team1 ? mapScore1 : mapScore2, score2: winner === match.team1 ? mapScore2 : mapScore1, winner });
     setEditing(false);
     if (onUpdateStats) {
-      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? 1 : score1, isBo1 ? 0 : score2, match.bo);
+      if (isBo1 && stats.maps && stats.maps.length > 0) {
+        stats.maps[0].team1RoundsWon = winner === match.team1 ? score1 : score2;
+        stats.maps[0].team2RoundsWon = winner === match.team1 ? score2 : score1;
+      }
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };
