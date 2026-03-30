@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User } from "lucide-react";
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
+import { playerRealNames } from "@/data/playerRealNames";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,25 @@ interface TeamProfileProps {
   onBack: () => void;
   seasonStanding?: SeasonTeamStanding;
 }
+
+// Generate a consistent color based on player name for avatar
+const getAvatarColor = (name: string): string => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    "from-blue-500 to-blue-700",
+    "from-emerald-500 to-emerald-700",
+    "from-purple-500 to-purple-700",
+    "from-amber-500 to-amber-700",
+    "from-rose-500 to-rose-700",
+    "from-cyan-500 to-cyan-700",
+    "from-indigo-500 to-indigo-700",
+    "from-teal-500 to-teal-700",
+  ];
+  return colors[Math.abs(hash) % colors.length];
+};
 
 const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => {
   const team = teamDatabase.find((t) => t.name === teamName);
@@ -115,19 +135,32 @@ const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {team.roster.map((player, i) => {
               const playerCountry = playerNationalities[player] || team.country;
+              const realName = playerRealNames[player];
+              const avatarGradient = getAvatarColor(player);
               return (
                 <motion.div
                   key={player}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2 + i * 0.05 }}
-                  className="bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors"
+                  className="bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors group"
                 >
-                  <div className="w-12 h-12 rounded-full bg-muted border border-border mx-auto mb-2 flex items-center justify-center text-lg font-heading font-bold text-primary">
-                    {player[0]}
+                  <div className={cn(
+                    "w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-lg font-heading font-bold text-white bg-gradient-to-br shadow-lg",
+                    avatarGradient
+                  )}>
+                    <User className="w-6 h-6" />
                   </div>
                   <p className="font-heading font-bold text-foreground text-sm">{player}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{countryFlag(playerCountry)} {playerCountry}</p>
+                  {realName && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {realName.firstName} {realName.lastName}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <span>{countryFlag(playerCountry)}</span>
+                    <span>{playerCountry}</span>
+                  </p>
                 </motion.div>
               );
             })}
