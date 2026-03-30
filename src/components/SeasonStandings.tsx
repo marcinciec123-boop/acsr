@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Trophy, Medal, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SeasonTeamStanding } from "@/data/tournaments";
+import { type SeasonTeamStanding, teamDatabase } from "@/data/tournaments";
+import { countryFlag } from "@/lib/flags";
 import { useState } from "react";
 
 interface SeasonStandingsProps {
