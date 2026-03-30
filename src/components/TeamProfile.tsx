@@ -41,7 +41,7 @@ const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamP
 
   // Transfers related to this team
   const teamTransfers = useMemo(() => {
-    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
+    return getAllTransfers().filter(t => t.oldTeam === teamName || t.newTeam === teamName);
   }, [teamName]);
 
   if (!team) {

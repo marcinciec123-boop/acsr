@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter, ArrowUpDown, Plus, UserPlus, UserMinus, X } from "lucide-react";
-import { nameChanges, transfers as staticTransfers, disbands, type Transfer } from "@/data/history";
+import { nameChanges, transfers as staticTransfers, disbands, customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
