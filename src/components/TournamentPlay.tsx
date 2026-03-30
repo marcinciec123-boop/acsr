@@ -23,7 +23,15 @@ interface EditableMatchProps {
   resolved: boolean;
 }
 
-const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: EditableMatchProps) => {
+const getTeamRoster = (teamName: string): string[] => {
+  const team = teamDatabase.find(t => t.name === teamName);
+  return team?.roster || [teamName + "_p1", teamName + "_p2", teamName + "_p3", teamName + "_p4", teamName + "_p5"];
+};
+
+const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats }: EditableMatchProps & {
+  matchStats?: MatchStats | null;
+  onUpdateStats?: (matchId: string, stats: MatchStats) => void;
+}) => {
   const [editing, setEditing] = useState(false);
   const [s1, setS1] = useState(match.score1.toString());
   const [s2, setS2] = useState(match.score2.toString());
@@ -33,8 +41,14 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: Editabl
     const score2 = parseInt(s2) || 0;
     if (score1 === score2 || score1 < 0 || score2 < 0) return;
     const winner = score1 > score2 ? match.team1 : match.team2;
-    onUpdate(index, { ...match, score1, score2, winner });
+    const updatedMatch = { ...match, score1, score2, winner };
+    onUpdate(index, updatedMatch);
     setEditing(false);
+    // Auto-generate stats when manually entering score
+    if (onUpdateStats) {
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
+      onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
+    }
   };
 
   if (match.team2 === "BYE") {
@@ -46,6 +60,10 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: Editabl
       </div>
     );
   }
+
+  const handleSimulate = () => {
+    onSimulate(index);
+  };
 
   return (
     <div className={cn(
@@ -106,7 +124,7 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: Editabl
       {!resolved && !editing && (
         <div className="flex border-t border-border/50">
           <button
-            onClick={() => onSimulate(index)}
+            onClick={handleSimulate}
             className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors"
           >
             <Play className="w-3 h-3" />
@@ -125,6 +143,16 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: Editabl
             Wpisz wynik
           </button>
         </div>
+      )}
+
+      {/* Stats panel for resolved matches */}
+      {resolved && matchStats && (
+        <MatchStatsPanel
+          stats={matchStats}
+          team1={match.team1}
+          team2={match.team2}
+          onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
+        />
       )}
     </div>
   );
