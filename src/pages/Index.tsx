@@ -24,6 +24,8 @@ import {
   getDynamicRanking,
   getInvitedTeamsByRanking,
   getQualifierPool,
+  getRegionalSlotDistribution,
+  getRegionalQualifierPool,
 } from "@/data/tournaments";
 
 const Index = () => {

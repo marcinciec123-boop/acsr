@@ -598,6 +598,97 @@ export function teamsByRegion(region: string): string[] {
   return teamDatabase.filter(t => t.region === region).map(t => t.name);
 }
 
+// Region display names
+export const regionNames: Record<string, string> = {
+  EU: "Europa",
+  US: "Ameryka Północna",
+  LATAM: "Ameryka Południowa",
+  ASIA: "Azja",
+  OCE: "Oceania",
+  AFR: "Afryka",
+};
+
+// Calculate regional slot distribution based on region strength in ranking
+export function getRegionalSlotDistribution(
+  qualifierSlots: number,
+  regions: string[],
+  dynamicRanking: TeamData[]
+): Record<string, number> {
+  if (regions.length === 0) return {};
+  
+  // Calculate strength per region: sum of (maxRank - rank) for top teams
+  const regionStrength: Record<string, number> = {};
+  const maxRank = dynamicRanking.length;
+  
+  regions.forEach(region => {
+    const regionTeams = dynamicRanking.filter(t => t.region === region);
+    // Strength = sum of points of all region teams
+    regionStrength[region] = regionTeams.reduce((sum, t) => sum + t.points, 0);
+  });
+  
+  const totalStrength = Object.values(regionStrength).reduce((a, b) => a + b, 0);
+  if (totalStrength === 0) {
+    // Equal distribution
+    const perRegion = Math.floor(qualifierSlots / regions.length);
+    const result: Record<string, number> = {};
+    regions.forEach((r, i) => {
+      result[r] = perRegion + (i < qualifierSlots % regions.length ? 1 : 0);
+    });
+    return result;
+  }
+  
+  // Proportional distribution, minimum 1 slot per region
+  const result: Record<string, number> = {};
+  let remaining = qualifierSlots;
+  
+  // Sort by strength descending
+  const sorted = [...regions].sort((a, b) => (regionStrength[b] || 0) - (regionStrength[a] || 0));
+  
+  // First pass: assign proportional slots
+  const rawSlots: Record<string, number> = {};
+  sorted.forEach(region => {
+    const proportion = (regionStrength[region] || 0) / totalStrength;
+    rawSlots[region] = Math.max(1, Math.round(qualifierSlots * proportion));
+  });
+  
+  // Adjust to match total
+  let total = Object.values(rawSlots).reduce((a, b) => a + b, 0);
+  while (total > qualifierSlots) {
+    // Remove from weakest region (but keep min 1)
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (rawSlots[sorted[i]] > 1) {
+        rawSlots[sorted[i]]--;
+        total--;
+        if (total <= qualifierSlots) break;
+      }
+    }
+  }
+  while (total < qualifierSlots) {
+    // Add to strongest region
+    rawSlots[sorted[0]]++;
+    total++;
+  }
+  
+  return rawSlots;
+}
+
+// Get qualifier pool for a specific region
+export function getRegionalQualifierPool(
+  tournament: Tournament,
+  dynamicRanking: TeamData[],
+  invitedTeams: string[],
+  region: string
+): string[] {
+  const invitedSet = new Set(invitedTeams);
+  let pool = dynamicRanking.filter(t => !invitedSet.has(t.name) && t.region === region);
+  
+  const tierSkip: Record<string, number> = { 'S': 0, 'A': 2, 'B': 0, 'C': 4 };
+  const skip = tierSkip[tournament.tier] || 0;
+  if (skip > 0) pool = pool.slice(skip);
+  
+  return pool.slice(0, 32).map(t => t.name);
+}
+
 
 // ===== Qualification System =====
 
