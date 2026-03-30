@@ -46,7 +46,7 @@ const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings }: Pl
 
   // Transfer history
   const playerTransfers = useMemo(() => {
-    return transfers.filter(t => t.player === playerName);
+    return getAllTransfers().filter(t => t.player === playerName);
   }, [playerName]);
 
   // Season stats via team
