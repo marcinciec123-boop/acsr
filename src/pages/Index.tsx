@@ -22,6 +22,7 @@ const Index = () => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
+  const [rosterVersion, setRosterVersion] = useState(0);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
