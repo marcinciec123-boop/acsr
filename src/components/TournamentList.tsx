@@ -100,9 +100,10 @@ interface TournamentListProps {
   onSimulateAll: () => void;
   onReset: () => void;
   onPlayTournament: (id: string) => void;
+  dynamicRanking: TeamData[];
 }
 
-const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset, onPlayTournament }: TournamentListProps) => {
+const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset, onPlayTournament, dynamicRanking }: TournamentListProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
