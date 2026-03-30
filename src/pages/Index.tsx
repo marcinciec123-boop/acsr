@@ -22,6 +22,7 @@ const Index = () => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
+  const [rosterVersion, setRosterVersion] = useState(0);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
@@ -146,7 +147,7 @@ const Index = () => {
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
       )}
-      {activeTab === "history" && <HistoryTab />}
+      {activeTab === "history" && <HistoryTab onRosterChange={() => setRosterVersion(v => v + 1)} />}
       {activeTab === "settings" && (
         <SettingsTab
           tournaments={tournaments}

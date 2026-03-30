@@ -4,7 +4,7 @@ import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, Arrow
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
-import { transfers } from "@/data/history";
+import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +41,7 @@ const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamP
 
   // Transfers related to this team
   const teamTransfers = useMemo(() => {
-    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
+    return getAllTransfers().filter(t => t.oldTeam === teamName || t.newTeam === teamName);
   }, [teamName]);
 
   if (!team) {

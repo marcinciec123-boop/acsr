@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter, ArrowUpDown, Plus, UserPlus, UserMinus, X } from "lucide-react";
-import { nameChanges, transfers as staticTransfers, disbands, type Transfer } from "@/data/history";
+import { nameChanges, transfers as staticTransfers, disbands, customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
@@ -19,7 +19,11 @@ import {
 type HistorySection = "transfers" | "nameChanges" | "disbands" | "freeAgents";
 type TransferType = "all" | "join" | "leave" | "move";
 
-const HistoryTab = () => {
+interface HistoryTabProps {
+  onRosterChange?: () => void;
+}
+
+const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   const [section, setSection] = useState<HistorySection>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
@@ -77,35 +81,66 @@ const HistoryTab = () => {
 
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
-    setCustomTransfers(prev => [...prev, {
-      player: transferPlayer.trim(),
-      oldTeam: transferFrom,
-      newTeam: transferTo,
-    }]);
+    const player = transferPlayer.trim();
+    const newTransfer: Transfer = { player, oldTeam: transferFrom, newTeam: transferTo };
+    
+    // Actually update team rosters
+    if (transferFrom !== "-") {
+      const fromTeam = teamDatabase.find(t => t.name === transferFrom);
+      if (fromTeam) {
+        fromTeam.roster = fromTeam.roster.filter(p => p !== player);
+      }
+    }
+    if (transferTo !== "-") {
+      const toTeam = teamDatabase.find(t => t.name === transferTo);
+      if (toTeam && !toTeam.roster.includes(player)) {
+        toTeam.roster.push(player);
+      }
+    }
+    
+    customTransfersGlobal.push(newTransfer);
+    setCustomTransfers(prev => [...prev, newTransfer]);
     setTransferPlayer("");
     setTransferFrom("-");
     setTransferTo("-");
     setShowTransferDialog(false);
+    onRosterChange?.();
   };
 
   const handleAddFreeAgent = () => {
     if (!faPlayer.trim()) return;
+    const player = faPlayer.trim();
+    
+    // Remove from previous team roster
+    if (faPrevTeam) {
+      const prevTeam = teamDatabase.find(t => t.name === faPrevTeam);
+      if (prevTeam) {
+        prevTeam.roster = prevTeam.roster.filter(p => p !== player);
+      }
+      const faTransfer: Transfer = { player, oldTeam: faPrevTeam, newTeam: "-" };
+      customTransfersGlobal.push(faTransfer);
+      setCustomTransfers(prev => [...prev, faTransfer]);
+    }
+    
+    // Update nationality if provided
+    if (faNationality) {
+      playerNationalities[player] = faNationality;
+    }
+    
     setFreeAgents(prev => [...prev, {
-      player: faPlayer.trim(),
+      player,
       previousTeam: faPrevTeam || "Nieznana",
       firstName: faFirstName.trim(),
       lastName: faLastName.trim(),
       nationality: faNationality,
     }]);
-    if (faPrevTeam) {
-      setCustomTransfers(prev => [...prev, { player: faPlayer.trim(), oldTeam: faPrevTeam, newTeam: "-" }]);
-    }
     setFaPlayer("");
     setFaPrevTeam("");
     setFaFirstName("");
     setFaLastName("");
     setFaNationality("");
     setShowFADialog(false);
+    onRosterChange?.();
   };
 
   const handleRemoveFreeAgent = (idx: number) => {
