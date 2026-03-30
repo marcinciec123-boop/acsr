@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward } from "lucide-react";
-import { type Tournament, type TournamentSimulation } from "@/data/tournaments";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown } from "lucide-react";
+import { type Tournament, type TournamentSimulation, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
 
