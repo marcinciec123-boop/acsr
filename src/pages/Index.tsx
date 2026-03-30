@@ -216,6 +216,7 @@ const Index = () => {
             qualifierSlots={qualifyingTournament.qualification.qualifierSlots}
             onComplete={handleQualifierComplete}
             onBack={() => setQualifyingTournamentId(null)}
+            dynamicRanking={dynamicRanking}
           />
         ) : playingTournamentWithParticipants ? (
           <TournamentPlay
