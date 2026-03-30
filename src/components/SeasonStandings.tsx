@@ -7,7 +7,9 @@ import { useState } from "react";
 
 interface SeasonStandingsProps {
   standings: SeasonTeamStanding[];
+  onSelectTeam?: (teamName: string) => void;
 }
+
 
 const placementLabel = (p: number) => {
   if (p === 1) return "🥇";
