@@ -35,6 +35,15 @@ const getAvatarColor = (name: string): string => {
 
 const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamProfileProps) => {
   const team = teamDatabase.find((t) => t.name === teamName);
+  const globalRank = team ? teamDatabase.indexOf(team) + 1 : 0;
+  const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
+  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-silver" : "text-muted-foreground";
+
+  // Transfers related to this team
+  const teamTransfers = useMemo(() => {
+    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
+  }, [teamName]);
+
   if (!team) {
     return (
       <section className="py-12">
@@ -47,15 +56,6 @@ const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamP
       </section>
     );
   }
-
-  const globalRank = teamDatabase.indexOf(team) + 1;
-  const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
-  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-silver" : "text-muted-foreground";
-
-  // Transfers related to this team
-  const teamTransfers = useMemo(() => {
-    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
-  }, [teamName]);
 
   const placementLabel = (p: number) => {
     if (p === 1) return "🥇";
