@@ -655,8 +655,9 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
               )}
               </>
             )}
-
-        {/* FINISHED PHASE */}
+            </div>
+          </>
+        )}
         {phase === "finished" && (
           <div className="bg-card border border-border rounded-lg p-6">
             <div className="text-center mb-6">
