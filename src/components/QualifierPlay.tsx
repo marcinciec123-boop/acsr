@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown } from "lucide-react";
-import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch } from "@/data/tournaments";
+import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown, Plus, X, Search, UserPlus } from "lucide-react";
+import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
@@ -10,11 +10,11 @@ interface QualifierPlayProps {
   invitedTeams: string[];
   qualifierPool: string[];
   qualifierSlots: number;
-  onComplete: (qualifiedTeams: string[]) => void;
+  onComplete: (qualifiedTeams: string[], manualInvites?: string[]) => void;
   onBack: () => void;
 }
 
-// Reuse EditableMatch from TournamentPlay pattern
+// Editable match component
 const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: {
   match: MatchResult; index: number;
   onUpdate: (index: number, match: MatchResult) => void;
@@ -87,8 +87,223 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: {
   );
 };
 
+// Setup phase component for manual team selection
+const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onStart, onSimulateAll, onBack }: {
+  tournament: Tournament;
+  invitedTeams: string[];
+  qualifierPool: string[];
+  qualifierSlots: number;
+  onStart: (customPool: string[], manualInvites: string[]) => void;
+  onSimulateAll: (customPool: string[], manualInvites: string[]) => void;
+  onBack: () => void;
+}) => {
+  const manualInviteSlots = tournament.qualification.manualInviteSlots || 0;
+  const [manualInvites, setManualInvites] = useState<string[]>([]);
+  const [customPool, setCustomPool] = useState<string[]>(qualifierPool);
+  const [search, setSearch] = useState("");
+  const [poolSearch, setPoolSearch] = useState("");
+  const [showInvitePicker, setShowInvitePicker] = useState(false);
+  const [showPoolPicker, setShowPoolPicker] = useState(false);
+
+  const allTeamNames = useMemo(() => teamDatabase.map(t => t.name), []);
+  const usedTeams = useMemo(() => new Set([...invitedTeams, ...manualInvites, ...customPool]), [invitedTeams, manualInvites, customPool]);
+
+  const availableForInvite = useMemo(() =>
+    allTeamNames.filter(t => !usedTeams.has(t) && t.toLowerCase().includes(search.toLowerCase())),
+    [allTeamNames, usedTeams, search]
+  );
+
+  const availableForPool = useMemo(() =>
+    allTeamNames.filter(t => !new Set([...invitedTeams, ...manualInvites]).has(t) && !customPool.includes(t) && t.toLowerCase().includes(poolSearch.toLowerCase())),
+    [allTeamNames, invitedTeams, manualInvites, customPool, poolSearch]
+  );
+
+  const addManualInvite = (team: string) => {
+    if (manualInvites.length >= manualInviteSlots) return;
+    setManualInvites(prev => [...prev, team]);
+    setCustomPool(prev => prev.filter(t => t !== team));
+  };
+
+  const removeManualInvite = (team: string) => {
+    setManualInvites(prev => prev.filter(t => t !== team));
+  };
+
+  const addToPool = (team: string) => {
+    setCustomPool(prev => [...prev, team]);
+  };
+
+  const removeFromPool = (team: string) => {
+    setCustomPool(prev => prev.filter(t => t !== team));
+  };
+
+  const qualType = tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="p-2 rounded-md hover:bg-secondary transition-colors">
+          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="text-xs font-mono text-primary uppercase tracking-wider">Konfiguracja kwalifikacji {qualType}</span>
+          </div>
+          <h2 className="text-2xl font-heading font-bold text-foreground">
+            {tournament.name} — Kwalifikacje
+          </h2>
+        </div>
+      </div>
+
+      {/* Ranking-invited teams */}
+      <div className="bg-card border border-win/20 rounded-lg p-4">
+        <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
+          <Crown className="w-4 h-4 text-accent" />
+          Zaproszone z rankingu ({invitedTeams.length})
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {invitedTeams.map(t => (
+            <span key={t} className="px-2 py-1 bg-win/10 text-win border border-win/20 rounded text-xs font-mono">{t}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Manual invites section */}
+      {manualInviteSlots > 0 && (
+        <div className="bg-card border border-accent/20 rounded-lg p-4">
+          <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
+            <UserPlus className="w-4 h-4 text-accent" />
+            Ręczne zaproszenia ({manualInvites.length}/{manualInviteSlots})
+          </h3>
+          <p className="text-muted-foreground text-xs mb-3">Wybierz drużyny do zaproszenia bezpośrednio do turnieju</p>
+
+          {/* Selected manual invites */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {manualInvites.map(t => (
+              <span key={t} className="px-2 py-1 bg-accent/10 text-accent border border-accent/20 rounded text-xs font-mono flex items-center gap-1">
+                {t}
+                <button onClick={() => removeManualInvite(t)} className="hover:text-destructive"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+            {manualInvites.length < manualInviteSlots && (
+              <button
+                onClick={() => setShowInvitePicker(!showInvitePicker)}
+                className="px-2 py-1 border border-dashed border-accent/30 text-accent rounded text-xs font-mono flex items-center gap-1 hover:bg-accent/10 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> Dodaj
+              </button>
+            )}
+          </div>
+
+          {/* Invite picker */}
+          {showInvitePicker && manualInvites.length < manualInviteSlots && (
+            <div className="border border-border rounded-md p-3 bg-background">
+              <div className="relative mb-2">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Szukaj drużyny..."
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {availableForInvite.slice(0, 20).map(t => (
+                  <button key={t} onClick={() => addManualInvite(t)} className="w-full text-left px-2 py-1.5 text-xs font-mono hover:bg-accent/10 rounded transition-colors text-foreground">
+                    {t}
+                  </button>
+                ))}
+                {availableForInvite.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak wyników</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Qualifier pool */}
+      <div className="bg-card border border-primary/20 rounded-lg p-4">
+        <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-primary" />
+          Pula kwalifikacyjna ({customPool.length} drużyn → {qualifierSlots} miejsc)
+        </h3>
+        <p className="text-muted-foreground text-xs mb-3">Edytuj pulę drużyn walczących w kwalifikacjach</p>
+
+        {/* Pool teams */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {customPool.map((t, i) => (
+            <span key={t} className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-mono flex items-center gap-1">
+              <span className="text-muted-foreground text-[10px]">#{i + 1}</span>
+              {t}
+              <button onClick={() => removeFromPool(t)} className="hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
+            </span>
+          ))}
+        </div>
+
+        {/* Add to pool */}
+        <button
+          onClick={() => setShowPoolPicker(!showPoolPicker)}
+          className="px-3 py-1.5 border border-dashed border-primary/30 text-primary rounded text-xs font-mono flex items-center gap-1 hover:bg-primary/10 transition-colors"
+        >
+          <Plus className="w-3 h-3" /> Dodaj drużynę do puli
+        </button>
+
+        {showPoolPicker && (
+          <div className="border border-border rounded-md p-3 bg-background mt-2">
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={poolSearch}
+                onChange={e => setPoolSearch(e.target.value)}
+                placeholder="Szukaj drużyny..."
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {availableForPool.slice(0, 20).map(t => (
+                <button key={t} onClick={() => addToPool(t)} className="w-full text-left px-2 py-1.5 text-xs font-mono hover:bg-primary/10 rounded transition-colors text-foreground">
+                  {t}
+                </button>
+              ))}
+              {availableForPool.length === 0 && <p className="text-xs text-muted-foreground p-2">Brak wyników</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Summary & actions */}
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="text-sm text-muted-foreground mb-4">
+          <p>Łącznie w turnieju: <strong className="text-foreground">{invitedTeams.length + manualInvites.length + qualifierSlots}</strong> drużyn</p>
+          <p>Z rankingu: <strong className="text-win">{invitedTeams.length}</strong> • Ręczne zaproszenia: <strong className="text-accent">{manualInvites.length}</strong> • Z kwalifikacji: <strong className="text-primary">{qualifierSlots}</strong></p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => onStart(customPool, manualInvites)}
+            className="flex items-center gap-2 px-6 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity"
+            disabled={customPool.length < qualifierSlots * 2}
+          >
+            <Play className="w-4 h-4" /> Rozegraj kwalifikacje
+          </button>
+          <button
+            onClick={() => onSimulateAll(customPool, manualInvites)}
+            className="flex items-center gap-2 px-6 py-3 border border-primary/30 text-primary rounded-md font-heading font-semibold hover:bg-primary/10 transition-colors"
+            disabled={customPool.length < qualifierSlots * 2}
+          >
+            <SkipForward className="w-4 h-4" /> Symuluj kwalifikacje
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots, onComplete, onBack }: QualifierPlayProps) => {
-  const teamsForBracket = qualifierPool.slice(0, Math.max(qualifierSlots * 4, 8));
+  const [phase, setPhase] = useState<"setup" | "play" | "finished">("setup");
+  const [activePool, setActivePool] = useState<string[]>(qualifierPool);
+  const [activeManualInvites, setActiveManualInvites] = useState<string[]>([]);
+
+  const teamsForBracket = activePool.slice(0, Math.max(qualifierSlots * 4, 8));
 
   // Pad to power of 2
   let size = 2;
@@ -97,14 +312,9 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
   while (padded.length < size) padded.push("BYE");
   const totalRounds = Math.log2(size);
 
-  // How many rounds to play — stop when we have enough qualified teams
-  const qualifyingRound = Math.max(0, totalRounds - Math.log2(qualifierSlots));
-
   const [completedRounds, setCompletedRounds] = useState<KnockoutRound[]>([]);
   const [currentMatches, setCurrentMatches] = useState<MatchResult[]>([]);
   const [resolved, setResolved] = useState<boolean[]>([]);
-  const [started, setStarted] = useState(false);
-  const [finished, setFinished] = useState(false);
   const [qualifiedTeams, setQualifiedTeams] = useState<string[]>([]);
   const [roundName, setRoundName] = useState("");
 
@@ -116,13 +326,18 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
     return `Runda ${idx + 1} kwalifikacji`;
   };
 
-  const start = useCallback(() => {
-    setStarted(true);
+  const startBracket = useCallback((pool: string[]) => {
+    const bracket = pool.slice(0, Math.max(qualifierSlots * 4, 8));
+    let s = 2;
+    while (s < bracket.length) s *= 2;
+    const p = [...bracket];
+    while (p.length < s) p.push("BYE");
+
     setRoundName(getRoundName(0));
     const matches: MatchResult[] = [];
-    for (let i = 0; i < padded.length; i += 2) {
-      const t1 = padded[i];
-      const t2 = padded[i + 1];
+    for (let i = 0; i < p.length; i += 2) {
+      const t1 = p[i];
+      const t2 = p[i + 1];
       if (t2 === "BYE") {
         matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 1 });
       } else {
@@ -131,7 +346,45 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
     }
     setCurrentMatches(matches);
     setResolved(matches.map(m => m.team2 === "BYE"));
-  }, [padded]);
+  }, [qualifierSlots]);
+
+  const handleSetupStart = (customPool: string[], manualInvites: string[]) => {
+    setActivePool(customPool);
+    setActiveManualInvites(manualInvites);
+    setPhase("play");
+    startBracket(customPool);
+  };
+
+  const handleSetupSimulateAll = (customPool: string[], manualInvites: string[]) => {
+    setActiveManualInvites(manualInvites);
+
+    let teams = customPool.slice(0, Math.max(qualifierSlots * 4, 8));
+    let s = 2;
+    while (s < teams.length) s *= 2;
+    while (teams.length < s) teams.push("BYE");
+    const allRounds: KnockoutRound[] = [];
+    let current = [...teams];
+
+    while (current.length > qualifierSlots) {
+      const matches: MatchResult[] = [];
+      for (let i = 0; i < current.length; i += 2) {
+        const t1 = current[i];
+        const t2 = current[i + 1] || "BYE";
+        if (t2 === "BYE") {
+          matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
+        } else {
+          matches.push(simulateMatch(t1, t2, 3));
+        }
+      }
+      allRounds.push({ name: `Runda ${allRounds.length + 1}`, matches });
+      current = matches.map(m => m.winner);
+    }
+
+    setCompletedRounds(allRounds);
+    setQualifiedTeams(current.slice(0, qualifierSlots));
+    setCurrentMatches([]);
+    setPhase("finished");
+  };
 
   const updateMatch = useCallback((idx: number, match: MatchResult) => {
     setCurrentMatches(prev => { const n = [...prev]; n[idx] = match; return n; });
@@ -162,11 +415,10 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
     setCompletedRounds(newCompleted);
     const winners = currentMatches.map(m => m.winner);
 
-    // Check if we have enough qualified teams
     if (winners.length <= qualifierSlots || roundIdx + 1 >= totalRounds) {
-      setFinished(true);
       setQualifiedTeams(winners.slice(0, qualifierSlots));
       setCurrentMatches([]);
+      setPhase("finished");
       return;
     }
 
@@ -186,142 +438,107 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
     setResolved(matches.map(m => m.team2 === "BYE"));
   }, [completedRounds, currentMatches, roundName, totalRounds, qualifierSlots]);
 
-  const simulateAll = () => {
-    // Auto-simulate all remaining rounds
-    let teams = qualifierPool.slice(0, Math.max(qualifierSlots * 4, 8));
-    let s = 2;
-    while (s < teams.length) s *= 2;
-    while (teams.length < s) teams.push("BYE");
-    const allRounds: KnockoutRound[] = [];
-    let current = [...teams];
-
-    while (current.length > qualifierSlots) {
-      const matches: MatchResult[] = [];
-      for (let i = 0; i < current.length; i += 2) {
-        const t1 = current[i];
-        const t2 = current[i + 1] || "BYE";
-        if (t2 === "BYE") {
-          matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
-        } else {
-          matches.push(simulateMatch(t1, t2, 3));
-        }
-      }
-      allRounds.push({ name: `Runda ${allRounds.length + 1}`, matches });
-      current = matches.map(m => m.winner);
-    }
-
-    setCompletedRounds(allRounds);
-    setFinished(true);
-    setQualifiedTeams(current.slice(0, qualifierSlots));
-    setCurrentMatches([]);
-    setStarted(true);
-  };
-
   const allResolved = resolved.length > 0 && resolved.every(Boolean);
   const qualType = tournament.qualification.qualifierType === "regional" ? "Regionalne" : "Open";
 
   return (
     <section className="py-12">
       <div className="container mx-auto px-4 max-w-5xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={onBack} className="p-2 rounded-md hover:bg-secondary transition-colors">
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="text-xs font-mono text-primary uppercase tracking-wider">Kwalifikacje {qualType}</span>
-            </div>
-            <h2 className="text-2xl font-heading font-bold text-foreground">
-              {tournament.name} — Kwalifikacje
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              {qualifierSlots} miejsc do zdobycia • {teamsForBracket.length} drużyn w kwalifikacjach
-            </p>
-          </div>
-        </div>
+        {/* SETUP PHASE */}
+        {phase === "setup" && (
+          <QualifierSetup
+            tournament={tournament}
+            invitedTeams={invitedTeams}
+            qualifierPool={qualifierPool}
+            qualifierSlots={qualifierSlots}
+            onStart={handleSetupStart}
+            onSimulateAll={handleSetupSimulateAll}
+            onBack={onBack}
+          />
+        )}
 
-        {/* Invited teams info */}
-        <div className="bg-card border border-win/20 rounded-lg p-4 mb-6">
-          <h3 className="font-heading font-bold text-foreground flex items-center gap-2 mb-3">
-            <Crown className="w-4 h-4 text-accent" />
-            Zaproszone z rankingu ({invitedTeams.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {invitedTeams.map(t => (
-              <span key={t} className="px-2 py-1 bg-win/10 text-win border border-win/20 rounded text-xs font-mono">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Qualifier bracket */}
-        {!finished ? (
-          <div className="bg-card border border-border rounded-lg p-4">
-            {!started ? (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="font-heading text-xl font-bold text-foreground mb-2">
-                  Kwalifikacje {qualType} — {qualifierSlots} miejsc
-                </h3>
-                <p className="text-muted-foreground mb-6">{teamsForBracket.length} drużyn walczy o {qualifierSlots} miejsc w turnieju</p>
-                <div className="flex gap-3 justify-center">
-                  <button onClick={start} className="flex items-center gap-2 px-6 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-semibold hover:opacity-90 transition-opacity">
-                    <Play className="w-4 h-4" /> Rozegraj kwalifikacje
-                  </button>
-                  <button onClick={simulateAll} className="flex items-center gap-2 px-6 py-3 border border-primary/30 text-primary rounded-md font-heading font-semibold hover:bg-primary/10 transition-colors">
-                    <SkipForward className="w-4 h-4" /> Symuluj kwalifikacje
-                  </button>
+        {/* PLAY PHASE */}
+        {phase === "play" && (
+          <>
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => setPhase("setup")} className="p-2 rounded-md hover:bg-secondary transition-colors">
+                <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-mono text-primary uppercase tracking-wider">Kwalifikacje {qualType}</span>
                 </div>
+                <h2 className="text-2xl font-heading font-bold text-foreground">
+                  {tournament.name} — Kwalifikacje
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {qualifierSlots} miejsc do zdobycia • {teamsForBracket.length} drużyn w kwalifikacjach
+                </p>
               </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-heading font-bold text-foreground">{roundName}</h3>
-                  <div className="flex gap-2">
-                    <button onClick={simulateAllCurrent} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
-                      <SkipForward className="w-3 h-3" /> Symuluj rundę
-                    </button>
-                    {allResolved && (
-                      <button onClick={advanceRound} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono gradient-primary text-primary-foreground rounded hover:opacity-90 transition-opacity">
-                        Dalej →
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {currentMatches.map((m, i) => (
-                    <EditableMatch key={i} match={m} index={i} onUpdate={updateMatch} onSimulate={simulateOne} resolved={resolved[i]} />
+            </div>
+
+            {/* Manual invites info */}
+            {activeManualInvites.length > 0 && (
+              <div className="bg-card border border-accent/20 rounded-lg p-3 mb-4">
+                <h4 className="font-heading font-bold text-foreground flex items-center gap-2 text-sm mb-2">
+                  <UserPlus className="w-3.5 h-3.5 text-accent" />
+                  Ręczne zaproszenia ({activeManualInvites.length})
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {activeManualInvites.map(t => (
+                    <span key={t} className="px-2 py-1 bg-accent/10 text-accent border border-accent/20 rounded text-xs font-mono">{t}</span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Completed rounds */}
-            {completedRounds.length > 0 && (
-              <div className="mt-6 border-t border-border pt-4">
-                <h4 className="text-sm font-mono text-muted-foreground mb-3">Zakończone rundy</h4>
-                {completedRounds.map((round, ri) => (
-                  <div key={ri} className="mb-3">
-                    <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                      {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
-                        <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
-                          <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                          <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
-                          <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            <div className="bg-card border border-border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading font-bold text-foreground">{roundName}</h3>
+                <div className="flex gap-2">
+                  <button onClick={simulateAllCurrent} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
+                    <SkipForward className="w-3 h-3" /> Symuluj rundę
+                  </button>
+                  {allResolved && (
+                    <button onClick={advanceRound} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono gradient-primary text-primary-foreground rounded hover:opacity-90 transition-opacity">
+                      Dalej →
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {currentMatches.map((m, i) => (
+                  <EditableMatch key={i} match={m} index={i} onUpdate={updateMatch} onSimulate={simulateOne} resolved={resolved[i]} />
                 ))}
               </div>
-            )}
-          </div>
-        ) : (
-          /* Qualification results */
+
+              {/* Completed rounds */}
+              {completedRounds.length > 0 && (
+                <div className="mt-6 border-t border-border pt-4">
+                  <h4 className="text-sm font-mono text-muted-foreground mb-3">Zakończone rundy</h4>
+                  {completedRounds.map((round, ri) => (
+                    <div key={ri} className="mb-3">
+                      <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                        {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                          <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                            <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                            <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                            <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* FINISHED PHASE */}
+        {phase === "finished" && (
           <div className="bg-card border border-border rounded-lg p-6">
             <div className="text-center mb-6">
               <Trophy className="w-10 h-10 text-accent mx-auto mb-3" />
@@ -344,9 +561,30 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
               ))}
             </div>
 
+            {/* Show completed rounds */}
+            {completedRounds.length > 0 && (
+              <div className="border-t border-border pt-4 mb-6">
+                <h4 className="text-sm font-mono text-muted-foreground mb-3">Przebieg kwalifikacji</h4>
+                {completedRounds.map((round, ri) => (
+                  <div key={ri} className="mb-3">
+                    <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                      {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
+                        <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
+                          <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
+                          <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                          <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex justify-center">
               <button
-                onClick={() => onComplete(qualifiedTeams)}
+                onClick={() => onComplete(qualifiedTeams, activeManualInvites)}
                 className="flex items-center gap-2 px-8 py-3 gradient-primary text-primary-foreground rounded-md font-heading font-bold hover:opacity-90 transition-opacity"
               >
                 <Trophy className="w-5 h-5" />
