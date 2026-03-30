@@ -97,12 +97,18 @@ const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
                   </span>
 
                   <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-foreground">{team.name}</span>
+                    <span className="text-lg">{countryFlag(team.country)}</span>
+                    <span
+                      className="font-heading font-bold text-foreground hover:text-primary cursor-pointer transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(team.name); }}
+                    >
+                      {team.name}
+                    </span>
                     {isExpanded ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
                   </div>
 
                   <span className="font-mono font-bold text-primary text-right">{team.points.toLocaleString()}</span>
-                  <span className="text-center text-sm text-muted-foreground font-mono">{team.country}</span>
+                  <span className="text-center text-sm text-muted-foreground font-mono">{countryFlag(team.country)} {team.country}</span>
                   <span className="text-center text-sm text-muted-foreground font-mono">{team.region}</span>
                   <span className={cn("text-center text-sm font-heading font-bold", tier.color)}>{tier.label}</span>
                 </button>
