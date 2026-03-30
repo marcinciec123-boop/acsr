@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map, PlusCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map, PlusCircle, Keyboard } from "lucide-react";
 import { type PlayerMatchStats, type MatchStats, type MapStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { teamDatabase } from "@/data/tournaments";
 
 interface MatchStatsPanelProps {
   stats: MatchStats | null;
@@ -12,6 +13,15 @@ interface MatchStatsPanelProps {
   onUpdateStats?: (stats: MatchStats) => void;
   onCreateStats?: () => void;
 }
+
+const getTeamRosterForStats = (teamName: string): string[] => {
+  const team = teamDatabase.find(t => t.name === teamName);
+  return team?.roster?.slice(0, 5) || [teamName + "_p1", teamName + "_p2", teamName + "_p3", teamName + "_p4", teamName + "_p5"];
+};
+
+const createBlankPlayerStats = (playerName: string, team: string, rounds: number): PlayerMatchStats => ({
+  playerName, team, kills: 0, assists: 0, deaths: 0, adr: 0, kast: 0, ud: 0, ef: 0, rounds, rating: 0,
+});
 
 const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => (
   <Input
