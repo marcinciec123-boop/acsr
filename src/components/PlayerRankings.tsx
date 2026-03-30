@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { players } from "@/data/tournaments";
+import { Users, ChevronDown, ChevronUp, Globe } from "lucide-react";
+import { teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 
 const getRankBadge = (rank: number) => {
@@ -10,96 +11,116 @@ const getRankBadge = (rank: number) => {
   return "bg-muted text-muted-foreground border-border";
 };
 
+const tierLabel = (rank: number) => {
+  if (rank <= 10) return { label: "Tier 1", color: "text-accent" };
+  if (rank <= 30) return { label: "Tier 2", color: "text-primary" };
+  if (rank <= 60) return { label: "Tier 3", color: "text-silver" };
+  return { label: "Tier 4", color: "text-muted-foreground" };
+};
+
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
+
 const PlayerRankings = () => {
-  const sortedPlayers = [...players].sort((a, b) => b.rating - a.rating);
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
+
+  const filtered = regionFilter === "all"
+    ? teamDatabase
+    : teamDatabase.filter(t => t.region === regionFilter);
 
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <Users className="w-6 h-6 text-primary" />
-          <h2 className="text-3xl font-heading font-bold text-foreground">Player Rankings</h2>
+          <h2 className="text-3xl font-heading font-bold text-foreground">ACSR World Ranking</h2>
+          <span className="text-sm font-mono text-muted-foreground ml-2">{teamDatabase.length} drużyn</span>
+        </div>
+
+        {/* Region filter */}
+        <div className="flex items-center gap-2 flex-wrap mb-6">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
+            <button
+              key={r}
+              onClick={() => setRegionFilter(r)}
+              className={cn(
+                "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                regionFilter === r ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+              )}
+            >
+              {r === "all" ? "Wszystkie" : r}
+            </button>
+          ))}
         </div>
 
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-secondary/50 border-b border-border text-xs font-mono text-muted-foreground uppercase tracking-wider">
-            <div className="col-span-1 text-center">#</div>
-            <div className="col-span-3">Player</div>
-            <div className="col-span-2">Team</div>
-            <div className="col-span-1 text-center">Rating</div>
-            <div className="col-span-1 text-center hidden md:block">K/D</div>
-            <div className="col-span-1 text-center hidden md:block">ADR</div>
-            <div className="col-span-1 text-center hidden md:block">KAST</div>
-            <div className="col-span-1 text-center hidden lg:block">Maps</div>
-            <div className="col-span-1 text-center hidden lg:block">Trend</div>
+          <div className="grid grid-cols-[60px_1fr_100px_80px_80px_120px] gap-2 px-4 py-3 bg-secondary/50 border-b border-border text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <span className="text-center">#</span>
+            <span>Drużyna</span>
+            <span className="text-right">Punkty</span>
+            <span className="text-center">Kraj</span>
+            <span className="text-center">Region</span>
+            <span className="text-center">Tier</span>
           </div>
 
-          {/* Rows */}
-          {sortedPlayers.map((player, index) => {
-            const rank = index + 1;
-            const kd = (player.kills / player.deaths).toFixed(2);
-            const trend = rank <= 3 ? "up" : rank >= 8 ? "down" : "stable";
+          {filtered.map((team, index) => {
+            const globalRank = teamDatabase.indexOf(team) + 1;
+            const tier = tierLabel(globalRank);
+            const isExpanded = expandedTeam === team.name;
 
             return (
               <motion.div
-                key={player.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.04 }}
-                className={cn(
-                  "grid grid-cols-12 gap-2 px-4 py-3 items-center border-b border-border/50 hover:bg-secondary/30 transition-colors",
-                  rank <= 3 && "bg-primary/5"
-                )}
+                key={team.name}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.01 }}
               >
-                <div className="col-span-1 text-center">
-                  <span className={cn("inline-flex items-center justify-center w-7 h-7 rounded text-sm font-bold border", getRankBadge(rank))}>
-                    {rank}
+                <button
+                  onClick={() => setExpandedTeam(isExpanded ? null : team.name)}
+                  className={cn(
+                    "w-full grid grid-cols-[60px_1fr_100px_80px_80px_120px] gap-2 px-4 py-3 items-center border-b border-border/50 hover:bg-muted/30 transition-colors text-left",
+                    globalRank <= 3 && "bg-primary/5",
+                    isExpanded && "bg-muted/20"
+                  )}
+                >
+                  <span className="text-center">
+                    <span className={cn("inline-flex items-center justify-center w-7 h-7 rounded text-sm font-bold border", getRankBadge(globalRank))}>
+                      {globalRank}
+                    </span>
                   </span>
-                </div>
 
-                <div className="col-span-3 flex items-center gap-2">
-                  <span className="text-lg">{player.country}</span>
-                  <div>
-                    <p className="font-heading font-bold text-foreground">{player.name}</p>
-                    <p className="text-xs text-muted-foreground hidden sm:block">{player.realName}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-heading font-bold text-foreground">{team.name}</span>
+                    {isExpanded ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
                   </div>
-                </div>
 
-                <div className="col-span-2">
-                  <span className="text-sm text-secondary-foreground font-medium">{player.team}</span>
-                </div>
+                  <span className="font-mono font-bold text-primary text-right">{team.points.toLocaleString()}</span>
+                  <span className="text-center text-sm text-muted-foreground font-mono">{team.country}</span>
+                  <span className="text-center text-sm text-muted-foreground font-mono">{team.region}</span>
+                  <span className={cn("text-center text-sm font-heading font-bold", tier.color)}>{tier.label}</span>
+                </button>
 
-                <div className="col-span-1 text-center">
-                  <span className={cn(
-                    "font-mono font-bold text-sm",
-                    player.rating >= 1.25 ? "text-primary neon-text" : player.rating >= 1.15 ? "text-win" : "text-foreground"
-                  )}>
-                    {player.rating.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="col-span-1 text-center hidden md:block">
-                  <span className="font-mono text-sm text-foreground">{kd}</span>
-                </div>
-
-                <div className="col-span-1 text-center hidden md:block">
-                  <span className="font-mono text-sm text-foreground">{player.adr.toFixed(1)}</span>
-                </div>
-
-                <div className="col-span-1 text-center hidden md:block">
-                  <span className="font-mono text-sm text-muted-foreground">{player.kast}%</span>
-                </div>
-
-                <div className="col-span-1 text-center hidden lg:block">
-                  <span className="font-mono text-sm text-muted-foreground">{player.maps}</span>
-                </div>
-
-                <div className="col-span-1 text-center hidden lg:block">
-                  {trend === "up" && <TrendingUp className="w-4 h-4 text-win mx-auto" />}
-                  {trend === "down" && <TrendingDown className="w-4 h-4 text-loss mx-auto" />}
-                  {trend === "stable" && <Minus className="w-4 h-4 text-muted-foreground mx-auto" />}
-                </div>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    className="bg-muted/10 border-b border-border px-4 py-3"
+                  >
+                    <p className="text-xs font-mono text-muted-foreground uppercase mb-2">Roster</p>
+                    <div className="flex flex-wrap gap-2">
+                      {team.roster.map(player => (
+                        <span
+                          key={player}
+                          className="px-3 py-1.5 bg-card border border-border rounded text-sm font-heading font-bold text-foreground"
+                        >
+                          {player}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             );
           })}
