@@ -7,6 +7,7 @@ import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
 import TeamProfile from "@/components/TeamProfile";
+import SettingsTab from "@/components/SettingsTab";
 import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament, calculateSeasonStandings } from "@/data/tournaments";
 
 const Index = () => {
@@ -47,6 +48,11 @@ const Index = () => {
   const resetSeason = () => {
     setTournaments(initialTournaments.map((t) => ({ ...t })));
     setSimResults({});
+  };
+
+  const loadState = (t: Tournament[], s: Record<string, TournamentSimulation>) => {
+    setTournaments(t.map(tt => ({ ...tt })));
+    setSimResults({ ...s });
   };
 
   const handleSelectTeam = (teamName: string) => {
@@ -93,6 +99,14 @@ const Index = () => {
       )}
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
+      )}
+      {activeTab === "settings" && (
+        <SettingsTab
+          tournaments={tournaments}
+          simResults={simResults}
+          onReset={resetSeason}
+          onLoadState={loadState}
+        />
       )}
 
       <footer className="border-t border-border py-8 mt-12">

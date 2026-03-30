@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Crosshair, Trophy, Calendar, Users, Zap } from "lucide-react";
+import { Crosshair, Trophy, Calendar, Users, Zap, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "tournaments" | "calendar" | "rankings" | "standings";
+type Tab = "overview" | "tournaments" | "calendar" | "rankings" | "standings" | "settings";
 
 interface NavBarProps {
   activeTab: Tab;
@@ -16,6 +16,7 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "calendar", label: "Calendar", icon: <Calendar className="w-4 h-4" /> },
   { id: "rankings", label: "Rankings", icon: <Users className="w-4 h-4" /> },
   { id: "standings", label: "Standings", icon: <Trophy className="w-4 h-4" /> },
+  { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
 ];
 
 const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
