@@ -596,23 +596,105 @@ export function teamsByRegion(region: string): string[] {
   return teamDatabase.filter(t => t.region === region).map(t => t.name);
 }
 
+
+// ===== Qualification System =====
+
+export function getDefaultQualification(tier: 'S' | 'A' | 'B' | 'C', teams: number): QualificationConfig {
+  switch (tier) {
+    case 'S': return { inviteSlots: Math.min(8, Math.floor(teams / 2)), qualifierSlots: teams - Math.min(8, Math.floor(teams / 2)), qualifierType: 'regional', qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] };
+    case 'A': return { inviteSlots: Math.min(12, Math.floor(teams * 0.75)), qualifierSlots: teams - Math.min(12, Math.floor(teams * 0.75)), qualifierType: 'regional', qualifierRegions: ['EU', 'US'] };
+    case 'B': return { inviteSlots: teams, qualifierSlots: 0, qualifierType: 'none' };
+    case 'C': return { inviteSlots: 0, qualifierSlots: teams, qualifierType: 'open' };
+  }
+}
+
+export function getDynamicRanking(
+  baseTeams: TeamData[],
+  simResults: Record<string, TournamentSimulation>,
+  tournaments: Tournament[]
+): TeamData[] {
+  const pointsMap: Record<string, number> = {};
+  baseTeams.forEach(t => { pointsMap[t.name] = t.points; });
+  
+  for (const t of tournaments) {
+    const sim = simResults[t.id];
+    if (!sim) continue;
+    sim.placements.forEach(p => {
+      if (!pointsMap[p.team]) pointsMap[p.team] = 0;
+      pointsMap[p.team] += p.points;
+    });
+  }
+  
+  return [...baseTeams]
+    .map(t => ({ ...t, points: pointsMap[t.name] || t.points }))
+    .sort((a, b) => b.points - a.points);
+}
+
+export function getInvitedTeamsByRanking(
+  tournament: Tournament,
+  dynamicRanking: TeamData[]
+): string[] {
+  const config = tournament.qualification;
+  if (config.inviteSlots <= 0) return [];
+  return dynamicRanking.slice(0, config.inviteSlots).map(t => t.name);
+}
+
+export function getQualifierPool(
+  tournament: Tournament,
+  dynamicRanking: TeamData[],
+  invitedTeams: string[]
+): string[] {
+  const config = tournament.qualification;
+  if (config.qualifierSlots <= 0) return [];
+  
+  const invitedSet = new Set(invitedTeams);
+  let pool = dynamicRanking.filter(t => !invitedSet.has(t.name));
+  
+  if (config.qualifierType === 'regional' && config.qualifierRegions) {
+    const regions = new Set(config.qualifierRegions);
+    pool = pool.filter(t => regions.has(t.region));
+  }
+  
+  // Return more teams than needed for qualifier bracket
+  const qualifierSize = Math.max(config.qualifierSlots * 4, 16);
+  return pool.slice(0, qualifierSize).map(t => t.name);
+}
+
+export function isQualificationReady(tournament: Tournament, allTournaments: Tournament[], simResults: Record<string, TournamentSimulation>): boolean {
+  if (tournament.status === 'completed') return true;
+  if (tournament.qualifierCompleted) return true;
+  if (tournament.qualification.qualifierType === 'none') return true;
+  
+  // Check if 2 months before start date
+  const startDate = new Date(tournament.startDate);
+  const twoMonthsBefore = new Date(startDate);
+  twoMonthsBefore.setMonth(twoMonthsBefore.getMonth() - 2);
+  
+  // Check all earlier tournaments are completed
+  const earlier = allTournaments.filter(t => 
+    new Date(t.endDate) <= twoMonthsBefore && t.status === 'upcoming'
+  );
+  
+  return earlier.length === 0;
+}
+
 // ===== Full 2026 Season =====
 export const initialTournaments: Tournament[] = [
   // JANUARY
-  { id: "1", name: "BLAST Premier Spring Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-01-05", endDate: "2026-01-18", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 2)], description: "Season opener — top 12 in groups.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs" },
+  { id: "1", name: "BLAST Premier Spring Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-01-05", endDate: "2026-01-18", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [], description: "Season opener — top 12 in groups.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "2", name: "CCT Season 5 Europe", organizer: "CCT", prizePool: "$75,000", startDate: "2026-01-10", endDate: "2026-01-16", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(0, 8), description: "Regional EU circuit.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "3", name: "ESL Challenger League S1", organizer: "ESL", prizePool: "$100,000", startDate: "2026-01-15", endDate: "2026-01-28", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: tier3Teams.slice(0, 16), description: "Challenger league — promotion to Pro League.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
   { id: "4", name: "Pinnacle Cup #1", organizer: "Pinnacle", prizePool: "$20,000", startDate: "2026-01-22", endDate: "2026-01-25", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(4, 12), description: "Monthly Pinnacle cup.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "5", name: "ESEA Advanced S48", organizer: "ESEA", prizePool: "$25,000", startDate: "2026-01-28", endDate: "2026-02-02", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(8, 16), description: "ESEA Advanced.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // FEBRUARY
-  { id: "6", name: "IEM Katowice 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-02-03", endDate: "2026-02-16", status: "upcoming", teams: 16, location: "Katowice, Poland", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 6)], description: "Legendary venue, $1M.", format: "swiss+knockout", formatDetails: "Swiss 16 → top 8 playoffs BO3/BO5" },
-  { id: "7", name: "FACEIT League Season 1", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-02-10", endDate: "2026-02-22", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tier2Teams.slice(0, 8), ...tier3Teams.slice(0, 8)], description: "Online league with LAN finals.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs" },
+  { id: "6", name: "IEM Katowice 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-02-03", endDate: "2026-02-16", status: "upcoming", teams: 16, location: "Katowice, Poland", tier: "S", participants: [], description: "Legendary venue, $1M.", format: "swiss+knockout", formatDetails: "Swiss 16 → top 8 playoffs BO3/BO5", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
+  { id: "7", name: "FACEIT League Season 1", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-02-10", endDate: "2026-02-22", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [], description: "Online league with LAN finals.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "8", name: "YaLLa Compass Dubai", organizer: "YaLLa", prizePool: "$40,000", startDate: "2026-02-14", endDate: "2026-02-18", status: "upcoming", teams: 8, location: "Dubai, UAE", tier: "C", participants: tier4Teams.slice(0, 8), description: "Middle East showcase.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "9", name: "RES Regional Series EU #1", organizer: "RES", prizePool: "$15,000", startDate: "2026-02-25", endDate: "2026-02-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(12, 20), description: "EU regional series.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // MARCH
-  { id: "10", name: "ESL Pro League Season 23", organizer: "ESL", prizePool: "$850,000", startDate: "2026-03-02", endDate: "2026-03-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 14)], description: "24 teams, $850K.", format: "league", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "10", name: "ESL Pro League Season 23", organizer: "ESL", prizePool: "$850,000", startDate: "2026-03-02", endDate: "2026-03-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [], description: "24 teams, $850K.", format: "league", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "11", name: "CCT Season 5 Finals", organizer: "CCT", prizePool: "$150,000", startDate: "2026-03-08", endDate: "2026-03-14", status: "upcoming", teams: 8, location: "Online", tier: "B", participants: tier3Teams.slice(0, 8), description: "CCT circuit finals.", format: "knockout", formatDetails: "Single elimination BO3, finał BO5" },
   { id: "12", name: "Elisa Masters Espoo", organizer: "Elisa", prizePool: "$200,000", startDate: "2026-03-15", endDate: "2026-03-20", status: "upcoming", teams: 8, location: "Espoo, Finland", tier: "A", participants: tier2Teams.slice(0, 8), description: "Nordic tournament.", format: "groups+knockout", formatDetails: "2 grupy po 4 → playoffs" },
   { id: "13", name: "Pinnacle Cup #2", organizer: "Pinnacle", prizePool: "$20,000", startDate: "2026-03-25", endDate: "2026-03-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(16, 24), description: "Monthly cup.", format: "knockout", formatDetails: "Single elimination BO3" },
@@ -620,46 +702,46 @@ export const initialTournaments: Tournament[] = [
 
   // APRIL
   { id: "15", name: "BLAST Premier Spring Finals", organizer: "BLAST", prizePool: "$425,000", startDate: "2026-04-01", endDate: "2026-04-06", status: "upcoming", teams: 8, location: "Copenhagen, Denmark", tier: "S", participants: tier1Teams.slice(0, 8), description: "Top 8 clash.", format: "knockout", formatDetails: "Single elimination BO3, Grand Final BO5" },
-  { id: "16", name: "BetBoom Dacha Belgrade", organizer: "BetBoom", prizePool: "$200,000", startDate: "2026-04-08", endDate: "2026-04-14", status: "upcoming", teams: 12, location: "Belgrade, Serbia", tier: "A", participants: [...tier2Teams.slice(0, 6), ...tier3Teams.slice(0, 6)], description: "CIS-flavored LAN.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs" },
+  { id: "16", name: "BetBoom Dacha Belgrade", organizer: "BetBoom", prizePool: "$200,000", startDate: "2026-04-08", endDate: "2026-04-14", status: "upcoming", teams: 12, location: "Belgrade, Serbia", tier: "A", participants: [], description: "CIS-flavored LAN.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "17", name: "GamerLegion Invitational", organizer: "GamerLegion", prizePool: "$50,000", startDate: "2026-04-10", endDate: "2026-04-15", status: "upcoming", teams: 8, location: "Berlin, Germany", tier: "B", participants: tier3Teams.slice(10, 18), description: "Rising European teams.", format: "knockout", formatDetails: "Single elimination BO3" },
-  { id: "18", name: "IEM Dallas 2026", organizer: "ESL", prizePool: "$500,000", startDate: "2026-04-20", endDate: "2026-04-28", status: "upcoming", teams: 16, location: "Dallas, USA", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 6)], description: "North American IEM stop.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "18", name: "IEM Dallas 2026", organizer: "ESL", prizePool: "$500,000", startDate: "2026-04-20", endDate: "2026-04-28", status: "upcoming", teams: 16, location: "Dallas, USA", tier: "S", participants: [], description: "North American IEM stop.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "19", name: "Dust2.dk Masters", organizer: "Dust2.dk", prizePool: "$35,000", startDate: "2026-04-25", endDate: "2026-04-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(0, 8), description: "Danish org cup.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // MAY — RMRs + MAJOR
-  { id: "20", name: "RMR Europe A", organizer: "PGL", prizePool: "$75,000", startDate: "2026-05-01", endDate: "2026-05-03", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tier2Teams.slice(0, 8), ...tier3Teams.slice(0, 8)], description: "European RMR.", format: "swiss+knockout", formatDetails: "Swiss → top 8" },
+  { id: "20", name: "RMR Europe A", organizer: "PGL", prizePool: "$75,000", startDate: "2026-05-01", endDate: "2026-05-03", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [], description: "European RMR.", format: "swiss+knockout", formatDetails: "Swiss → top 8", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "21", name: "RMR Americas", organizer: "PGL", prizePool: "$50,000", startDate: "2026-05-01", endDate: "2026-05-03", status: "upcoming", teams: 8, location: "Online", tier: "B", participants: tier3Teams.slice(16, 24), description: "Americas RMR.", format: "knockout", formatDetails: "Single elimination BO3" },
-  { id: "22", name: "PGL Major Antwerp", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-05-05", endDate: "2026-05-25", status: "upcoming", teams: 24, location: "Antwerp, Belgium", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 14)], description: "THE MAJOR — $1.25M.", format: "major", formatDetails: "Challengers Swiss → Legends Swiss → Champions Playoffs" },
-  { id: "23", name: "Thunderpick World Championship", organizer: "Thunderpick", prizePool: "$1,000,000", startDate: "2026-05-28", endDate: "2026-06-08", status: "upcoming", teams: 16, location: "Istanbul, Turkey", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 6)], description: "$1M championship.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "22", name: "PGL Major Antwerp", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-05-05", endDate: "2026-05-25", status: "upcoming", teams: 24, location: "Antwerp, Belgium", tier: "S", participants: [], description: "THE MAJOR — $1.25M.", format: "major", formatDetails: "Challengers Swiss → Legends Swiss → Champions Playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
+  { id: "23", name: "Thunderpick World Championship", organizer: "Thunderpick", prizePool: "$1,000,000", startDate: "2026-05-28", endDate: "2026-06-08", status: "upcoming", teams: 16, location: "Istanbul, Turkey", tier: "S", participants: [], description: "$1M championship.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
 
   // JUNE
   { id: "24", name: "BLAST Premier Spring Showdown", organizer: "BLAST", prizePool: "$162,500", startDate: "2026-06-08", endDate: "2026-06-14", status: "upcoming", teams: 8, location: "Online", tier: "A", participants: tier2Teams.slice(0, 8), description: "BLAST showdown.", format: "knockout", formatDetails: "Single elimination BO3" },
-  { id: "25", name: "FACEIT League Season 2", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-06-15", endDate: "2026-06-28", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tier2Teams.slice(4, 12), ...tier3Teams.slice(0, 8)], description: "Second FACEIT League.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs" },
+  { id: "25", name: "FACEIT League Season 2", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-06-15", endDate: "2026-06-28", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [], description: "Second FACEIT League.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "26", name: "WePlay Academy League S7", organizer: "WePlay", prizePool: "$30,000", startDate: "2026-06-10", endDate: "2026-06-20", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(8, 16), description: "Academy-level.", format: "knockout", formatDetails: "Single elimination BO3" },
-  { id: "27", name: "ESL Challenger League S2", organizer: "ESL", prizePool: "$100,000", startDate: "2026-06-20", endDate: "2026-07-05", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: [...tier3Teams.slice(10, 26)], description: "Challenger League S2.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "27", name: "ESL Challenger League S2", organizer: "ESL", prizePool: "$100,000", startDate: "2026-06-20", endDate: "2026-07-05", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: [], description: "Challenger League S2.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 16, qualifierSlots: 0, qualifierType: 'none' as const } },
   { id: "28", name: "Pinnacle Cup #3", organizer: "Pinnacle", prizePool: "$20,000", startDate: "2026-06-28", endDate: "2026-06-30", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(20, 28), description: "Monthly cup.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // JULY
-  { id: "29", name: "IEM Cologne 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-07-06", endDate: "2026-07-20", status: "upcoming", teams: 16, location: "Cologne, Germany", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 6)], description: "Cathedral of CS — $1M.", format: "swiss+knockout", formatDetails: "Swiss 16 → top 8 playoffs" },
+  { id: "29", name: "IEM Cologne 2026", organizer: "ESL", prizePool: "$1,000,000", startDate: "2026-07-06", endDate: "2026-07-20", status: "upcoming", teams: 16, location: "Cologne, Germany", tier: "S", participants: [], description: "Cathedral of CS — $1M.", format: "swiss+knockout", formatDetails: "Swiss 16 → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "30", name: "Roobet Cup", organizer: "Roobet", prizePool: "$250,000", startDate: "2026-07-10", endDate: "2026-07-16", status: "upcoming", teams: 8, location: "Online", tier: "A", participants: tier2Teams.slice(0, 8), description: "High-stakes online cup.", format: "knockout", formatDetails: "Single elimination BO3" },
-  { id: "31", name: "Gamers8 Riyadh", organizer: "Saudi Esports", prizePool: "$400,000", startDate: "2026-07-20", endDate: "2026-07-28", status: "upcoming", teams: 12, location: "Riyadh, Saudi Arabia", tier: "A", participants: [...tier2Teams.slice(4, 10), ...tier1Teams.slice(4, 10)], description: "Saudi esports festival.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs" },
+  { id: "31", name: "Gamers8 Riyadh", organizer: "Saudi Esports", prizePool: "$400,000", startDate: "2026-07-20", endDate: "2026-07-28", status: "upcoming", teams: 12, location: "Riyadh, Saudi Arabia", tier: "A", participants: [], description: "Saudi esports festival.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "32", name: "DreamHack Open Valencia", organizer: "DreamHack", prizePool: "$60,000", startDate: "2026-07-28", endDate: "2026-07-31", status: "upcoming", teams: 8, location: "Valencia, Spain", tier: "B", participants: tier3Teams.slice(4, 12), description: "DreamHack LAN.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "33", name: "CCT South America", organizer: "CCT", prizePool: "$45,000", startDate: "2026-07-22", endDate: "2026-07-26", status: "upcoming", teams: 8, location: "São Paulo, Brazil", tier: "C", participants: tier4Teams.slice(0, 8), description: "South American circuit.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // AUGUST
-  { id: "34", name: "BLAST Premier Fall Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-08-01", endDate: "2026-08-14", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 2)], description: "Fall season begins.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs" },
+  { id: "34", name: "BLAST Premier Fall Groups", organizer: "BLAST", prizePool: "$300,000", startDate: "2026-08-01", endDate: "2026-08-14", status: "upcoming", teams: 12, location: "Copenhagen, Denmark", tier: "S", participants: [], description: "Fall season begins.", format: "groups+knockout", formatDetails: "3 grupy po 4 → playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "35", name: "ESL Challenger League S3", organizer: "ESL", prizePool: "$100,000", startDate: "2026-08-05", endDate: "2026-08-18", status: "upcoming", teams: 16, location: "Online", tier: "B", participants: tier3Teams.slice(0, 16), description: "Challenger League S3.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
-  { id: "36", name: "FACEIT League Season 3", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-08-10", endDate: "2026-08-22", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tier2Teams.slice(0, 8), ...tier3Teams.slice(8, 16)], description: "Third FACEIT League.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs" },
+  { id: "36", name: "FACEIT League Season 3", organizer: "FACEIT", prizePool: "$250,000", startDate: "2026-08-10", endDate: "2026-08-22", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [], description: "Third FACEIT League.", format: "groups+knockout", formatDetails: "4 grupy po 4 → playoffs", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "37", name: "WePlay Academy League S8", organizer: "WePlay", prizePool: "$30,000", startDate: "2026-08-15", endDate: "2026-08-22", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(16, 24), description: "Academy League.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "38", name: "Pinnacle Cup #4", organizer: "Pinnacle", prizePool: "$20,000", startDate: "2026-08-25", endDate: "2026-08-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(24, 32), description: "Monthly cup.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // SEPTEMBER
-  { id: "39", name: "ESL Pro League Season 24", organizer: "ESL", prizePool: "$850,000", startDate: "2026-09-01", endDate: "2026-09-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 14)], description: "Season 24.", format: "league", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "39", name: "ESL Pro League Season 24", organizer: "ESL", prizePool: "$850,000", startDate: "2026-09-01", endDate: "2026-09-22", status: "upcoming", teams: 24, location: "Malta", tier: "S", participants: [], description: "Season 24.", format: "league", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "40", name: "BetBoom Dacha Moscow", organizer: "BetBoom", prizePool: "$150,000", startDate: "2026-09-08", endDate: "2026-09-14", status: "upcoming", teams: 8, location: "Moscow, Russia", tier: "A", participants: tier2Teams.slice(4, 12), description: "CIS autumn event.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "41", name: "DreamHack Open Atlanta", organizer: "DreamHack", prizePool: "$75,000", startDate: "2026-09-18", endDate: "2026-09-22", status: "upcoming", teams: 8, location: "Atlanta, USA", tier: "B", participants: tier3Teams.slice(16, 24), description: "DreamHack NA stop.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "42", name: "ESEA Advanced S49", organizer: "ESEA", prizePool: "$25,000", startDate: "2026-09-20", endDate: "2026-09-28", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(0, 8), description: "ESEA Advanced.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // OCTOBER — RMRs + BLAST World Final
-  { id: "43", name: "RMR Europe B", organizer: "PGL", prizePool: "$75,000", startDate: "2026-10-01", endDate: "2026-10-05", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [...tier2Teams.slice(4, 12), ...tier3Teams.slice(0, 8)], description: "Second European RMR.", format: "swiss+knockout", formatDetails: "Swiss → top 8" },
+  { id: "43", name: "RMR Europe B", organizer: "PGL", prizePool: "$75,000", startDate: "2026-10-01", endDate: "2026-10-05", status: "upcoming", teams: 16, location: "Online", tier: "A", participants: [], description: "Second European RMR.", format: "swiss+knockout", formatDetails: "Swiss → top 8", qualification: { inviteSlots: 6, qualifierSlots: 2, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US'] } },
   { id: "44", name: "RMR Asia", organizer: "PGL", prizePool: "$40,000", startDate: "2026-10-01", endDate: "2026-10-04", status: "upcoming", teams: 8, location: "Shanghai, China", tier: "B", participants: tier3Teams.slice(20, 28), description: "Asian RMR.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "45", name: "Elisa Masters Helsinki", organizer: "Elisa", prizePool: "$200,000", startDate: "2026-10-08", endDate: "2026-10-14", status: "upcoming", teams: 8, location: "Helsinki, Finland", tier: "A", participants: tier2Teams.slice(0, 8), description: "Nordic LAN.", format: "groups+knockout", formatDetails: "2 grupy po 4 → playoffs" },
   { id: "46", name: "BLAST Premier World Final", organizer: "BLAST", prizePool: "$1,000,000", startDate: "2026-10-15", endDate: "2026-10-27", status: "upcoming", teams: 8, location: "Abu Dhabi, UAE", tier: "S", participants: tier1Teams.slice(0, 8), description: "BLAST World Final.", format: "knockout", formatDetails: "Single elimination BO3, Grand Final BO5" },
@@ -667,13 +749,13 @@ export const initialTournaments: Tournament[] = [
   { id: "48", name: "Pinnacle Cup #5", organizer: "Pinnacle", prizePool: "$20,000", startDate: "2026-10-20", endDate: "2026-10-23", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(8, 16), description: "Monthly cup.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // NOVEMBER — FALL MAJOR
-  { id: "49", name: "PGL Major Copenhagen", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-11-03", endDate: "2026-11-24", status: "upcoming", teams: 24, location: "Copenhagen, Denmark", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 14)], description: "Fall Major — $1.25M.", format: "major", formatDetails: "Challengers Swiss → Legends Swiss → Champions Playoffs" },
+  { id: "49", name: "PGL Major Copenhagen", organizer: "PGL", prizePool: "$1,250,000", startDate: "2026-11-03", endDate: "2026-11-24", status: "upcoming", teams: 24, location: "Copenhagen, Denmark", tier: "S", participants: [], description: "Fall Major — $1.25M.", format: "major", formatDetails: "Challengers Swiss → Legends Swiss → Champions Playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "50", name: "DreamHack Open Winter", organizer: "DreamHack", prizePool: "$100,000", startDate: "2026-11-10", endDate: "2026-11-14", status: "upcoming", teams: 8, location: "Jönköping, Sweden", tier: "B", participants: tier3Teams.slice(0, 8), description: "DreamHack classic.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "51", name: "LOOT.BET Season 9", organizer: "LOOT.BET", prizePool: "$15,000", startDate: "2026-11-15", endDate: "2026-11-20", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(20, 28), description: "Online league.", format: "knockout", formatDetails: "Single elimination BO3" },
 
   // DECEMBER
   { id: "52", name: "BLAST Premier Fall Finals", organizer: "BLAST", prizePool: "$425,000", startDate: "2026-12-01", endDate: "2026-12-06", status: "upcoming", teams: 8, location: "Copenhagen, Denmark", tier: "S", participants: tier1Teams.slice(0, 8), description: "BLAST Fall Finals.", format: "knockout", formatDetails: "Single elimination BO3, Grand Final BO5" },
-  { id: "53", name: "IEM Chengdu", organizer: "ESL", prizePool: "$500,000", startDate: "2026-12-08", endDate: "2026-12-15", status: "upcoming", teams: 16, location: "Chengdu, China", tier: "S", participants: [...tier1Teams, ...tier2Teams.slice(0, 6)], description: "Asian IEM stop.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs" },
+  { id: "53", name: "IEM Chengdu", organizer: "ESL", prizePool: "$500,000", startDate: "2026-12-08", endDate: "2026-12-15", status: "upcoming", teams: 16, location: "Chengdu, China", tier: "S", participants: [], description: "Asian IEM stop.", format: "swiss+knockout", formatDetails: "Swiss → top 8 playoffs", qualification: { inviteSlots: 8, qualifierSlots: 8, qualifierType: 'regional' as const, qualifierRegions: ['EU', 'US', 'ASIA', 'LATAM'] } },
   { id: "54", name: "CCT Season 6 Finals", organizer: "CCT", prizePool: "$100,000", startDate: "2026-12-10", endDate: "2026-12-14", status: "upcoming", teams: 8, location: "Online", tier: "B", participants: tier3Teams.slice(8, 16), description: "CCT year-end finals.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "55", name: "Pinnacle Cup Grand Final", organizer: "Pinnacle", prizePool: "$40,000", startDate: "2026-12-18", endDate: "2026-12-20", status: "upcoming", teams: 8, location: "Online", tier: "C", participants: tier4Teams.slice(0, 8), description: "Year-end showdown.", format: "knockout", formatDetails: "Single elimination BO3" },
   { id: "56", name: "WePlay Invitational", organizer: "WePlay", prizePool: "$150,000", startDate: "2026-12-20", endDate: "2026-12-23", status: "upcoming", teams: 8, location: "Kyiv, Ukraine", tier: "A", participants: tier2Teams.slice(0, 8), description: "Year-end exhibition.", format: "knockout", formatDetails: "Single elimination BO3" },
