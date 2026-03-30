@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, Edit3, Check, X, Map, PlusCircle } from "lucide-react";
 import { type PlayerMatchStats, type MatchStats, type MapStats, calculateRating, getRatingColor, getKDColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,9 @@ interface MatchStatsPanelProps {
   stats: MatchStats | null;
   team1: string;
   team2: string;
+  bo?: number;
   onUpdateStats?: (stats: MatchStats) => void;
+  onCreateStats?: () => void;
 }
 
 const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => (
@@ -110,15 +112,35 @@ const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer, roundsInfo
   );
 };
 
-const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanelProps) => {
+const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats }: MatchStatsPanelProps) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [localStats, setLocalStats] = useState<MatchStats | null>(stats);
-  const [selectedMap, setSelectedMap] = useState<number | "total">("total"); // "total" or map index
+  const [selectedMap, setSelectedMap] = useState<number | "total">("total");
 
-  if (!localStats) return null;
+  // Sync if stats prop changes externally
+  if (stats && !localStats) {
+    setLocalStats(stats);
+  }
 
-  const hasMaps = localStats.maps && localStats.maps.length > 1;
+  const hasMaps = localStats?.maps && localStats.maps.length > 1;
+
+  // No stats yet — offer to generate or create
+  if (!localStats) {
+    return (
+      <div className="mt-1">
+        <button
+          onClick={() => {
+            if (onCreateStats) onCreateStats();
+          }}
+          className="flex items-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1 w-full justify-center border-t border-border/30"
+        >
+          <PlusCircle className="w-3 h-3" />
+          Generuj statystyki {bo && bo > 1 ? `(BO${bo})` : ""}
+        </button>
+      </div>
+    );
+  }
 
   const handleUpdateTeam1Player = (index: number, player: PlayerMatchStats) => {
     const updated = { ...localStats, team1Stats: localStats.team1Stats.map((p, i) => i === index ? { ...player, rating: calculateRating(player) } : p) };
@@ -142,7 +164,6 @@ const MatchStatsPanel = ({ stats, team1, team2, onUpdateStats }: MatchStatsPanel
     setEditing(false);
   };
 
-  // Get currently displayed stats
   const getDisplayStats = () => {
     if (selectedMap === "total" || !hasMaps) {
       return { t1: localStats.team1Stats, t2: localStats.team2Stats, roundsInfo1: undefined, roundsInfo2: undefined };
