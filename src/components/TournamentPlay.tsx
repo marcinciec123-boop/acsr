@@ -479,8 +479,16 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   // Wrap swiss simulate to generate stats
   const wrappedSwissSimulateOne = useCallback((idx: number) => {
     swiss.simulateOne(idx);
-    // Stats will be generated when match renders as resolved
-  }, [swiss.simulateOne]);
+    setTimeout(() => {
+      // After simulation, check resolved matches and generate stats
+      swiss.currentMatches.forEach((m) => {
+        if (m.winner && !allMatchStats[`${m.team1}-vs-${m.team2}`]) {
+          const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo);
+          setAllMatchStats(prev => ({ ...prev, [`${m.team1}-vs-${m.team2}`]: stats }));
+        }
+      });
+    }, 0);
+  }, [swiss, allMatchStats]);
 
   const wrappedSwissSimulateAll = useCallback(() => {
     swiss.simulateAllCurrent();
