@@ -81,15 +81,29 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
 
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
-    setCustomTransfers(prev => [...prev, {
-      player: transferPlayer.trim(),
-      oldTeam: transferFrom,
-      newTeam: transferTo,
-    }]);
+    const player = transferPlayer.trim();
+    const newTransfer: Transfer = { player, oldTeam: transferFrom, newTeam: transferTo };
+    
+    // Actually update team rosters
+    if (transferFrom !== "-") {
+      const fromTeam = teamDatabase.find(t => t.name === transferFrom);
+      if (fromTeam) {
+        fromTeam.roster = fromTeam.roster.filter(p => p !== player);
+      }
+    }
+    if (transferTo !== "-") {
+      const toTeam = teamDatabase.find(t => t.name === transferTo);
+      if (toTeam && !toTeam.roster.includes(player)) {
+        toTeam.roster.push(player);
+      }
+    }
+    
+    setCustomTransfers(prev => [...prev, newTransfer]);
     setTransferPlayer("");
     setTransferFrom("-");
     setTransferTo("-");
     setShowTransferDialog(false);
+    onRosterChange?.();
   };
 
   const handleAddFreeAgent = () => {
