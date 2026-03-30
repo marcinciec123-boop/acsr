@@ -222,7 +222,7 @@ const Index = () => {
           <TournamentList
             tournaments={tournaments}
             simResults={simResults}
-            onSimulateNext={simulateNext}
+            onSimulateNext={playNext}
             onSimulateAll={simulateAll}
             onReset={resetSeason}
             onPlayTournament={handlePlayTournament}
