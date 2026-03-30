@@ -792,16 +792,23 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
             {knockout.currentMatches[0]?.bo > 1 ? ` (BO${knockout.currentMatches[0].bo})` : ""}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {knockout.currentMatches.filter(m => m.team2 !== "BYE").map((m, i) => (
-              <EditableMatch
-                key={`${m.team1}-${m.team2}-${i}`}
-                match={m}
-                index={i}
-                onUpdate={knockout.updateMatch}
-                onSimulate={knockout.simulateOne}
-                resolved={knockout.resolved[i]}
-              />
-            ))}
+            {knockout.currentMatches.filter(m => m.team2 !== "BYE").map((m, i) => {
+              if (knockout.resolved[i] && m.winner && !getStatsForMatch(m)) {
+                generateStatsForMatch(m);
+              }
+              return (
+                <EditableMatch
+                  key={`${m.team1}-${m.team2}-${i}`}
+                  match={m}
+                  index={i}
+                  onUpdate={knockout.updateMatch}
+                  onSimulate={knockout.simulateOne}
+                  resolved={knockout.resolved[i]}
+                  matchStats={getStatsForMatch(m)}
+                  onUpdateStats={handleUpdateStats}
+                />
+              );
+            })}
           </div>
         </div>
       )}
