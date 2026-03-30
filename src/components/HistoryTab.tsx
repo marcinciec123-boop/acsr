@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter } from "lucide-react";
+import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter, ArrowUpDown } from "lucide-react";
 import { nameChanges, transfers, disbands } from "@/data/history";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
