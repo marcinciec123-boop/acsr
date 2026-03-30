@@ -135,19 +135,42 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
 
   const hasMaps = localStats?.maps && localStats.maps.length > 1;
 
-  // No stats yet — offer to generate or create
+  const createBlankStats = () => {
+    const rounds = 24;
+    const roster1 = getTeamRosterForStats(team1);
+    const roster2 = getTeamRosterForStats(team2);
+    const blank: MatchStats = {
+      matchId: `${team1}-vs-${team2}`,
+      team1Stats: roster1.map(p => createBlankPlayerStats(p, team1, rounds)),
+      team2Stats: roster2.map(p => createBlankPlayerStats(p, team2, rounds)),
+      bo: bo || 1,
+    };
+    setLocalStats(blank);
+    setEditing(true);
+    setExpanded(true);
+  };
+
+  // No stats yet — offer to generate or create manually
   if (!localStats) {
     return (
-      <div className="mt-1">
-        <button
-          onClick={() => {
-            if (onCreateStats) onCreateStats();
-          }}
-          className="flex items-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1 w-full justify-center border-t border-border/30"
-        >
-          <PlusCircle className="w-3 h-3" />
-          Generuj statystyki {bo && bo > 1 ? `(BO${bo})` : ""}
-        </button>
+      <div className="mt-1 border-t border-border/30">
+        <div className="flex">
+          <button
+            onClick={() => { if (onCreateStats) onCreateStats(); }}
+            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1.5 hover:bg-accent/5"
+          >
+            <PlusCircle className="w-3 h-3" />
+            Generuj statystyki
+          </button>
+          <div className="w-px bg-border/30" />
+          <button
+            onClick={createBlankStats}
+            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1.5 hover:bg-primary/5"
+          >
+            <Keyboard className="w-3 h-3" />
+            Wpisz ręcznie
+          </button>
+        </div>
       </div>
     );
   }
