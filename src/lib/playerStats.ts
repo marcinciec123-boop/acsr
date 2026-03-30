@@ -205,14 +205,9 @@ export function generateMatchStats(
   const mapNames = pickMaps(mapsPlayed);
 
   if (bo <= 1 || mapsPlayed <= 1) {
-    // Single map - generate rounds based on score (in Bo1, score is map score like 16-12)
-    const t1Rounds = Math.max(score1, Math.round(10 + Math.random() * 6));
-    const t2Rounds = Math.max(score2, Math.round(10 + Math.random() * 6));
-    // Ensure winner has more rounds
-    const winnerRounds = Math.max(t1Rounds, t2Rounds, 13);
-    const loserRounds = Math.min(t1Rounds, t2Rounds);
-    const finalT1 = score1 > score2 ? winnerRounds : loserRounds;
-    const finalT2 = score1 > score2 ? loserRounds : winnerRounds;
+    // Single map - use scores directly as round scores
+    const finalT1 = score1;
+    const finalT2 = score2;
 
     const map = generateMapStats(team1Roster, team2Roster, team1, team2, finalT1, finalT2, 1, mapNames[0] || "Mirage");
 
