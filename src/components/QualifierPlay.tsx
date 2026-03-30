@@ -4,6 +4,8 @@ import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crow
 import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
+import MatchStatsPanel from "@/components/MatchStatsPanel";
 
 interface QualifierPlayProps {
   tournament: Tournament;
@@ -14,12 +16,19 @@ interface QualifierPlayProps {
   onBack: () => void;
 }
 
-// Editable match component
-const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: {
+const getTeamRoster = (teamName: string): string[] => {
+  const team = teamDatabase.find(t => t.name === teamName);
+  return team?.roster || [teamName + "_p1", teamName + "_p2", teamName + "_p3", teamName + "_p4", teamName + "_p5"];
+};
+
+// Editable match component with stats
+const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats }: {
   match: MatchResult; index: number;
   onUpdate: (index: number, match: MatchResult) => void;
   onSimulate: (index: number) => void;
   resolved: boolean;
+  matchStats?: MatchStats | null;
+  onUpdateStats?: (matchId: string, stats: MatchStats) => void;
 }) => {
   const [editing, setEditing] = useState(false);
   const [s1, setS1] = useState("0");
@@ -32,6 +41,10 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: {
     const winner = score1 > score2 ? match.team1 : match.team2;
     onUpdate(index, { ...match, score1, score2, winner });
     setEditing(false);
+    if (onUpdateStats) {
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
+      onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
+    }
   };
 
   if (match.team2 === "BYE") {
@@ -82,6 +95,20 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved }: {
             <Edit3 className="w-3 h-3" /> Wpisz wynik
           </button>
         </div>
+      )}
+      {/* Stats panel */}
+      {resolved && (
+        <MatchStatsPanel
+          stats={matchStats || null}
+          team1={match.team1}
+          team2={match.team2}
+          bo={match.bo}
+          onUpdateStats={onUpdateStats ? (updated) => onUpdateStats(`${match.team1}-vs-${match.team2}`, updated) : undefined}
+          onCreateStats={onUpdateStats ? () => {
+            const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), match.score1, match.score2, match.bo);
+            onUpdateStats!(`${match.team1}-vs-${match.team2}`, stats);
+          } : undefined}
+        />
       )}
     </div>
   );
@@ -166,6 +193,9 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           {invitedTeams.map(t => (
             <span key={t} className="px-2 py-1 bg-win/10 text-win border border-win/20 rounded text-xs font-mono">{t}</span>
           ))}
+          {invitedTeams.length === 0 && (
+            <span className="text-xs text-muted-foreground font-mono">Brak zaproszeń z rankingu — wszystkie miejsca przez kwalifikacje</span>
+          )}
         </div>
       </div>
 
@@ -178,7 +208,6 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           </h3>
           <p className="text-muted-foreground text-xs mb-3">Wybierz drużyny do zaproszenia bezpośrednio do turnieju</p>
 
-          {/* Selected manual invites */}
           <div className="flex flex-wrap gap-2 mb-3">
             {manualInvites.map(t => (
               <span key={t} className="px-2 py-1 bg-accent/10 text-accent border border-accent/20 rounded text-xs font-mono flex items-center gap-1">
@@ -196,7 +225,6 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
             )}
           </div>
 
-          {/* Invite picker */}
           {showInvitePicker && manualInvites.length < manualInviteSlots && (
             <div className="border border-border rounded-md p-3 bg-background">
               <div className="relative mb-2">
@@ -229,7 +257,6 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
         </h3>
         <p className="text-muted-foreground text-xs mb-3">Edytuj pulę drużyn walczących w kwalifikacjach</p>
 
-        {/* Pool teams */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {customPool.map((t, i) => (
             <span key={t} className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-mono flex items-center gap-1">
@@ -240,7 +267,6 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           ))}
         </div>
 
-        {/* Add to pool */}
         <button
           onClick={() => setShowPoolPicker(!showPoolPicker)}
           className="px-3 py-1.5 border border-dashed border-primary/30 text-primary rounded text-xs font-mono flex items-center gap-1 hover:bg-primary/10 transition-colors"
@@ -302,6 +328,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
   const [phase, setPhase] = useState<"setup" | "play" | "finished">("setup");
   const [activePool, setActivePool] = useState<string[]>(qualifierPool);
   const [activeManualInvites, setActiveManualInvites] = useState<string[]>([]);
+  const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>({});
 
   const teamsForBracket = activePool.slice(0, Math.max(qualifierSlots * 4, 8));
 
@@ -317,6 +344,14 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
   const [resolved, setResolved] = useState<boolean[]>([]);
   const [qualifiedTeams, setQualifiedTeams] = useState<string[]>([]);
   const [roundName, setRoundName] = useState("");
+
+  const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
+    setAllMatchStats(prev => ({ ...prev, [matchId]: stats }));
+  }, []);
+
+  const getStatsForMatch = (m: MatchResult): MatchStats | null => {
+    return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
+  };
 
   const getRoundName = (idx: number) => {
     const remaining = size / Math.pow(2, idx);
@@ -373,7 +408,11 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
         if (t2 === "BYE") {
           matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: 3 });
         } else {
-          matches.push(simulateMatch(t1, t2, 3));
+          const result = simulateMatch(t1, t2, 3);
+          matches.push(result);
+          // Generate stats for simulated matches
+          const stats = generateMatchStats(t1, t2, getTeamRoster(t1), getTeamRoster(t2), result.score1, result.score2, 3);
+          setAllMatchStats(prev => ({ ...prev, [`${t1}-vs-${t2}`]: stats }));
         }
       }
       allRounds.push({ name: `Runda ${allRounds.length + 1}`, matches });
@@ -393,20 +432,28 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
 
   const simulateOne = useCallback((idx: number) => {
     const m = currentMatches[idx];
-    updateMatch(idx, simulateMatch(m.team1, m.team2, m.bo));
+    const result = simulateMatch(m.team1, m.team2, m.bo);
+    updateMatch(idx, result);
+    // Auto-generate stats
+    const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
+    setAllMatchStats(prev => ({ ...prev, [`${m.team1}-vs-${m.team2}`]: stats }));
   }, [currentMatches, updateMatch]);
 
   const simulateAllCurrent = useCallback(() => {
     const next = [...currentMatches];
     const res = [...resolved];
+    const newStats: Record<string, MatchStats> = {};
     next.forEach((m, i) => {
       if (!res[i] && m.team2 !== "BYE") {
-        next[i] = simulateMatch(m.team1, m.team2, m.bo);
+        const result = simulateMatch(m.team1, m.team2, m.bo);
+        next[i] = result;
         res[i] = true;
+        newStats[`${m.team1}-vs-${m.team2}`] = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), result.score1, result.score2, m.bo);
       }
     });
     setCurrentMatches(next);
     setResolved(res);
+    setAllMatchStats(prev => ({ ...prev, ...newStats }));
   }, [currentMatches, resolved]);
 
   const advanceRound = useCallback(() => {
@@ -509,7 +556,16 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {currentMatches.map((m, i) => (
-                  <EditableMatch key={i} match={m} index={i} onUpdate={updateMatch} onSimulate={simulateOne} resolved={resolved[i]} />
+                  <EditableMatch
+                    key={`${m.team1}-${m.team2}-${i}`}
+                    match={m}
+                    index={i}
+                    onUpdate={updateMatch}
+                    onSimulate={simulateOne}
+                    resolved={resolved[i]}
+                    matchStats={getStatsForMatch(m)}
+                    onUpdateStats={handleUpdateStats}
+                  />
                 ))}
               </div>
 
