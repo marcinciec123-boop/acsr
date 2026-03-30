@@ -140,7 +140,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
 
           {editing ? (
             <div className="flex flex-col items-center gap-2">
-              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy</span>}
+              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input
                   value={s1}
