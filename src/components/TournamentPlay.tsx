@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save } from "lucide-react";
+import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save, ExternalLink, Keyboard } from "lucide-react";
 import { type Tournament, type TournamentSimulation, type MatchResult, type SwissResult, type SwissStanding, type SwissRound, type GroupResult, type GroupStanding, type KnockoutResult, type KnockoutRound, type MajorStage, simulateMatch, derivePlacements, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
