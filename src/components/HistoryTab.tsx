@@ -19,7 +19,11 @@ import {
 type HistorySection = "transfers" | "nameChanges" | "disbands" | "freeAgents";
 type TransferType = "all" | "join" | "leave" | "move";
 
-const HistoryTab = () => {
+interface HistoryTabProps {
+  onRosterChange?: () => void;
+}
+
+const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   const [section, setSection] = useState<HistorySection>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
