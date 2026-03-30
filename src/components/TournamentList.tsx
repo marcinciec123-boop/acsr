@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Users, Trophy, Zap } from "lucide-react";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter } from "lucide-react";
 import { tournaments, type Tournament } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
+import TournamentDetail from "./TournamentDetail";
 
 const statusConfig = {
   live: { label: "LIVE", className: "bg-destructive/20 text-destructive border-destructive/40" },
@@ -9,22 +11,24 @@ const statusConfig = {
   completed: { label: "COMPLETED", className: "bg-muted text-muted-foreground border-border" },
 };
 
-const tierColors = {
-  S: "text-accent gradient-accent bg-clip-text",
+const tierColors: Record<string, string> = {
+  S: "text-accent",
   A: "text-primary",
   B: "text-silver",
+  C: "text-muted-foreground",
 };
 
-const TournamentCard = ({ tournament, index }: { tournament: Tournament; index: number }) => {
+const TournamentCard = ({ tournament, index, onClick }: { tournament: Tournament; index: number; onClick: () => void }) => {
   const status = statusConfig[tournament.status];
 
   return (
-    <motion.div
+    <motion.button
+      onClick={onClick}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
       className={cn(
-        "group relative bg-card border border-border rounded-lg p-5 hover:border-primary/40 transition-all duration-300",
+        "group relative bg-card border border-border rounded-lg p-5 hover:border-primary/40 transition-all duration-300 text-left w-full",
         tournament.status === "live" && "border-destructive/30 neon-border"
       )}
     >
@@ -49,6 +53,7 @@ const TournamentCard = ({ tournament, index }: { tournament: Tournament; index: 
           </h3>
           <p className="text-muted-foreground text-sm">{tournament.organizer}</p>
         </div>
+        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors mt-1" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mt-4">
@@ -62,32 +67,101 @@ const TournamentCard = ({ tournament, index }: { tournament: Tournament; index: 
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MapPin className="w-3.5 h-3.5" />
-          <span>{tournament.location}</span>
+          <span className="truncate">{tournament.location}</span>
         </div>
         <div className="text-sm text-muted-foreground font-mono">
-          {new Date(tournament.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {new Date(tournament.startDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
           {" – "}
-          {new Date(tournament.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {new Date(tournament.endDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
         </div>
       </div>
-    </motion.div>
+    </motion.button>
   );
 };
 
+type TierFilter = "all" | "S" | "A" | "B" | "C";
+type StatusFilter = "all" | "live" | "upcoming" | "completed";
+
 const TournamentList = () => {
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+  const filtered = sorted.filter((t) => {
+    if (tierFilter !== "all" && t.tier !== tierFilter) return false;
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    return true;
+  });
+
+  // Group by month
+  const grouped = filtered.reduce<Record<string, Tournament[]>>((acc, t) => {
+    const key = new Date(t.startDate).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
+
+  if (selectedTournament) {
+    return <TournamentDetail tournament={selectedTournament} onBack={() => setSelectedTournament(null)} />;
+  }
+
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-3 mb-8">
-          <Trophy className="w-6 h-6 text-primary" />
-          <h2 className="text-3xl font-heading font-bold text-foreground">Tournaments</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-primary" />
+            <h2 className="text-3xl font-heading font-bold text-foreground">Turnieje — Sezon 2026</h2>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            {(["all", "S", "A", "B", "C"] as TierFilter[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTierFilter(t)}
+                className={cn(
+                  "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                  tierFilter === t ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+                )}
+              >
+                {t === "all" ? "Wszystkie" : `Tier ${t}`}
+              </button>
+            ))}
+            <div className="w-px h-5 bg-border mx-1" />
+            {(["all", "live", "upcoming", "completed"] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={cn(
+                  "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                  statusFilter === s ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+                )}
+              >
+                {s === "all" ? "Status" : s === "live" ? "🔴 Live" : s === "upcoming" ? "Nadchodzące" : "Zakończone"}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tournaments.map((t, i) => (
-            <TournamentCard key={t.id} tournament={t} index={i} />
-          ))}
-        </div>
+        {Object.entries(grouped).map(([month, monthTournaments]) => (
+          <div key={month} className="mb-8">
+            <h3 className="font-heading text-lg font-bold text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">
+              {month}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {monthTournaments.map((t, i) => (
+                <TournamentCard key={t.id} tournament={t} index={i} onClick={() => setSelectedTournament(t)} />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <p className="text-muted-foreground text-center py-12 font-mono">Brak turniejów spełniających kryteria filtrowania.</p>
+        )}
       </div>
     </section>
   );
