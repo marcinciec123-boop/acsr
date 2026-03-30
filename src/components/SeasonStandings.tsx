@@ -18,8 +18,13 @@ const placementLabel = (p: number) => {
   return `#${p}`;
 };
 
-const SeasonStandings = ({ standings }: SeasonStandingsProps) => {
+const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  const getTeamFlag = (name: string) => {
+    const t = teamDatabase.find(td => td.name === name);
+    return t ? countryFlag(t.country) : "🏳️";
+  };
 
   if (standings.length === 0) {
     return (
