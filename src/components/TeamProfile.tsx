@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin } from "lucide-react";
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
+import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 
