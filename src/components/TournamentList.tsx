@@ -102,7 +102,7 @@ interface TournamentListProps {
   onPlayTournament: (id: string) => void;
 }
 
-const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset }: TournamentListProps) => {
+const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll, onReset, onPlayTournament }: TournamentListProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
