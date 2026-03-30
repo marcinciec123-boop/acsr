@@ -98,7 +98,9 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
           <Users className="w-3.5 h-3.5" />
           <span>{tournament.teams} Teams</span>
           {config.qualifierType !== "none" && (
-            <span className="text-xs text-primary">({config.inviteSlots}+{config.qualifierSlots})</span>
+            <span className="text-xs text-primary">
+              ({config.inviteSlots}{config.manualInviteSlots ? `+${config.manualInviteSlots}☆` : ''}+{config.qualifierSlots})
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

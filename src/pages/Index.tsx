@@ -179,10 +179,11 @@ const Index = () => {
     }
   };
 
-  const handleQualifierComplete = (qualifiedTeams: string[]) => {
+  const handleQualifierComplete = (qualifiedTeams: string[], manualInvites?: string[]) => {
     const id = qualifyingTournamentId!;
     const tournament = tournaments.find(t => t.id === id)!;
     const invited = getInvitedTeamsByRanking(tournament, dynamicRanking);
+    const allInvited = [...invited, ...(manualInvites || [])];
 
     setTournaments(prev => prev.map(t =>
       t.id === id ? {
@@ -190,7 +191,8 @@ const Index = () => {
         qualifierCompleted: true,
         qualifiedTeams,
         invitedTeams: invited,
-        participants: [...invited, ...qualifiedTeams].slice(0, t.teams),
+        manualInvites: manualInvites || [],
+        participants: [...allInvited, ...qualifiedTeams].slice(0, t.teams),
       } : t
     ));
     setQualifyingTournamentId(null);
