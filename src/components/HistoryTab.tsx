@@ -108,22 +108,36 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
 
   const handleAddFreeAgent = () => {
     if (!faPlayer.trim()) return;
+    const player = faPlayer.trim();
+    
+    // Remove from previous team roster
+    if (faPrevTeam) {
+      const prevTeam = teamDatabase.find(t => t.name === faPrevTeam);
+      if (prevTeam) {
+        prevTeam.roster = prevTeam.roster.filter(p => p !== player);
+      }
+      setCustomTransfers(prev => [...prev, { player, oldTeam: faPrevTeam, newTeam: "-" }]);
+    }
+    
+    // Update nationality if provided
+    if (faNationality) {
+      playerNationalities[player] = faNationality;
+    }
+    
     setFreeAgents(prev => [...prev, {
-      player: faPlayer.trim(),
+      player,
       previousTeam: faPrevTeam || "Nieznana",
       firstName: faFirstName.trim(),
       lastName: faLastName.trim(),
       nationality: faNationality,
     }]);
-    if (faPrevTeam) {
-      setCustomTransfers(prev => [...prev, { player: faPlayer.trim(), oldTeam: faPrevTeam, newTeam: "-" }]);
-    }
     setFaPlayer("");
     setFaPrevTeam("");
     setFaFirstName("");
     setFaLastName("");
     setFaNationality("");
     setShowFADialog(false);
+    onRosterChange?.();
   };
 
   const handleRemoveFreeAgent = (idx: number) => {
