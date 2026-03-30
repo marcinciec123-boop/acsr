@@ -88,16 +88,25 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
   const [s1, setS1] = useState(match.score1.toString());
   const [s2, setS2] = useState(match.score2.toString());
 
+  const isBo1 = (match.bo || 1) === 1;
+
   const confirmScore = () => {
     const score1 = parseInt(s1) || 0;
     const score2 = parseInt(s2) || 0;
     if (score1 === score2 || score1 < 0 || score2 < 0) return;
     const winner = score1 > score2 ? match.team1 : match.team2;
-    const updatedMatch = { ...match, score1, score2, winner };
+    // For Bo1, scores are rounds — store map score as 1:0 but keep round scores for stats
+    const mapScore1 = isBo1 ? 1 : score1;
+    const mapScore2 = isBo1 ? 0 : score2;
+    const updatedMatch = { ...match, score1: winner === match.team1 ? mapScore1 : mapScore2, score2: winner === match.team1 ? mapScore2 : mapScore1, winner };
     onUpdate(updatedMatch);
     setEditing(false);
     if (onUpdateStats) {
-      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? 1 : score1, isBo1 ? 0 : score2, match.bo);
+      if (isBo1 && stats.maps && stats.maps.length > 0) {
+        stats.maps[0].team1RoundsWon = winner === match.team1 ? score1 : score2;
+        stats.maps[0].team2RoundsWon = winner === match.team1 ? score2 : score1;
+      }
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };
@@ -128,25 +137,28 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
           </div>
 
           {editing ? (
-            <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
-              <Input
-                value={s1}
-                onChange={(e) => setS1(e.target.value)}
-                className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
-                type="number"
-                min="0"
-              />
-              <span className="text-muted-foreground text-xl font-mono">:</span>
-              <Input
-                value={s2}
-                onChange={(e) => setS2(e.target.value)}
-                className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
-                type="number"
-                min="0"
-              />
-              <button onClick={confirmScore} className="ml-2 p-2 rounded-md hover:bg-primary/20 text-primary">
-                <Check className="w-5 h-5" />
-              </button>
+            <div className="flex flex-col items-center gap-1">
+              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy</span>}
+              <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
+                <Input
+                  value={s1}
+                  onChange={(e) => setS1(e.target.value)}
+                  className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
+                  type="number"
+                  min="0"
+                />
+                <span className="text-muted-foreground text-xl font-mono">:</span>
+                <Input
+                  value={s2}
+                  onChange={(e) => setS2(e.target.value)}
+                  className="w-14 h-10 text-center font-mono text-lg p-0 bg-background"
+                  type="number"
+                  min="0"
+                />
+                <button onClick={confirmScore} className="ml-2 p-2 rounded-md hover:bg-primary/20 text-primary">
+                  <Check className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           ) : (
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
