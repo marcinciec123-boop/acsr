@@ -4,6 +4,7 @@ import { ArrowLeft, User, Globe, ArrowRightLeft, Trophy, MapPin, Shield } from "
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
+import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,11 @@ const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings }: Pl
                   {realName.firstName} {realName.lastName}
                 </p>
               )}
+              {playerRoles[playerName] && (
+                <span className={cn("inline-flex items-center gap-1 text-xs font-mono font-bold mt-1.5 px-2.5 py-0.5 rounded-full border w-fit", roleColors[playerRoles[playerName]])}>
+                  {roleIcons[playerRoles[playerName]]} {playerRoles[playerName]}
+                </span>
+              )}
               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1">
                   <Globe className="w-3.5 h-3.5" /> {countryFlag(country)} {country}
@@ -110,7 +116,7 @@ const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings }: Pl
         {/* Info cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Narodowość", value: `${countryFlag(country)} ${country}`, icon: MapPin },
+            { label: "Rola", value: playerRoles[playerName] ? `${roleIcons[playerRoles[playerName]]} ${playerRoles[playerName]}` : "—", icon: User },
             { label: "Drużyna", value: currentTeam?.name || "Free Agent", icon: Shield },
             { label: "Ranking drużyny", value: teamRank ? `#${teamRank}` : "—", icon: Trophy },
             { label: "Transfery", value: playerTransfers.length.toString(), icon: ArrowRightLeft },

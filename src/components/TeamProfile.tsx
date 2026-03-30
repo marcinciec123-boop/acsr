@@ -4,6 +4,7 @@ import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, Arrow
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
+import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
@@ -167,6 +168,11 @@ const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamP
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {realName.firstName} {realName.lastName}
                     </p>
+                  )}
+                  {playerRoles[player] && (
+                    <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1.5 px-2 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+                      {roleIcons[playerRoles[player]]} {playerRoles[player]}
+                    </span>
                   )}
                   <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <span>{countryFlag(playerCountry)}</span>
