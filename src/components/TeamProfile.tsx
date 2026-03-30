@@ -169,6 +169,11 @@ const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamP
                       {realName.firstName} {realName.lastName}
                     </p>
                   )}
+                  {playerRoles[player] && (
+                    <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1.5 px-2 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+                      {roleIcons[playerRoles[player]]} {playerRoles[player]}
+                    </span>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
                     <span>{countryFlag(playerCountry)}</span>
                     <span>{playerCountry}</span>
