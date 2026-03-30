@@ -1069,10 +1069,37 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         {/* Roster preview */}
         <TournamentRoster tournament={tournament} participants={teams} />
 
-        {/* Phase content */}
-        {(currentPhase === "swiss" || currentPhase === "major-s1" || currentPhase === "major-s2") && renderSwissPhase()}
-        {currentPhase === "groups" && renderGroupsPhase()}
-        {(currentPhase === "knockout" || currentPhase === "major-playoffs") && renderKnockoutPhase()}
+        {/* Match Detail Panel */}
+        {activeMatchDetail && (() => {
+          const src = activeMatchDetail.source;
+          const idx = activeMatchDetail.index;
+          const matches = src === "swiss" ? swiss.currentMatches : knockout.currentMatches;
+          const resolvedArr = src === "swiss" ? swiss.resolved : knockout.resolved;
+          const updateFn = src === "swiss" ? swiss.updateMatch : knockout.updateMatch;
+          const simFn = src === "swiss" ? swiss.simulateOne : knockout.simulateOne;
+          const m = matches[idx];
+          if (!m) { setActiveMatchDetail(null); return null; }
+          return (
+            <MatchDetailPanel
+              match={m}
+              onUpdate={(updated) => updateFn(idx, updated)}
+              onSimulate={() => simFn(idx)}
+              resolved={resolvedArr[idx]}
+              matchStats={getStatsForMatch(m)}
+              onUpdateStats={handleUpdateStats}
+              onClose={() => setActiveMatchDetail(null)}
+            />
+          );
+        })()}
+
+        {/* Phase content (hidden when match detail is open) */}
+        {!activeMatchDetail && (
+          <>
+            {(currentPhase === "swiss" || currentPhase === "major-s1" || currentPhase === "major-s2") && renderSwissPhase()}
+            {currentPhase === "groups" && renderGroupsPhase()}
+            {(currentPhase === "knockout" || currentPhase === "major-playoffs") && renderKnockoutPhase()}
+          </>
+        )}
       </div>
     </section>
   );
