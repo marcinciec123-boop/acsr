@@ -9,11 +9,11 @@ export const playerRoles: Record<string, PlayerRole> = {
   "TeSeS": "Lurker",
   "ZywOo": "AWPer",
   "apEX": "Entry",
-  "kyxsan": "Closer",
+  "kyxsan": "IGL",
 
   // Windigo
   "bubble": "Entry",
-  "nukkye": "Closer",
+  "nukkye": "IGL",
   "ArtFr0sT": "Lurker",
   "dem0n": "Anchor",
   "sh1ro": "AWPer",
@@ -22,7 +22,7 @@ export const playerRoles: Record<string, PlayerRole> = {
   "firaXi": "Entry",
   "TaReX": "Lurker",
   "svaipZ": "Anchor",
-  "PlesseN": "Closer",
+  "PlesseN": "IGL",
   "EliGE": "AWPer",
 
   // AVANGAR
@@ -30,18 +30,18 @@ export const playerRoles: Record<string, PlayerRole> = {
   "bl3nd": "Entry",
   "MazloV": "AWPer",
   "zont1x": "Anchor",
-  "VolTage": "Closer",
+  "VolTage": "IGL",
 
   // Vitality
   "hantZ": "Entry",
   "JACKZ": "Anchor",
   "mezii": "Lurker",
-  "ropz": "Closer",
+  "ropz": "IGL",
   "AcilioN": "AWPer",
 
   // LT Twisted Minds
   "ToKsin": "Entry",
-  "EspiranTo": "Closer",
+  "EspiranTo": "IGL",
   "SanTeliS": "Anchor",
   "jL": "AWPer",
   "Horus": "Lurker",
@@ -50,19 +50,19 @@ export const playerRoles: Record<string, PlayerRole> = {
   "xms": "Entry",
   "to1nou": "AWPer",
   "myez": "Lurker",
-  "Lucky": "Closer",
+  "Lucky": "IGL",
   "Kursy": "Anchor",
 
   // FURIA
   "molodoy": "Lurker",
   "arT": "Entry",
-  "KSCERATO": "Closer",
+  "KSCERATO": "IGL",
   "yuurih": "Anchor",
   "FalleN": "AWPer",
 
   // Team Liquid
   "NAF": "Anchor",
-  "Twistzz": "Closer",
+  "Twistzz": "IGL",
   "YEKINDAR": "Entry",
   "maden": "Lurker",
   "ultimate": "AWPer",
@@ -72,18 +72,18 @@ export const playerRoles: Record<string, PlayerRole> = {
   "Mzinho": "AWPer",
   "Senzu": "Lurker",
   "Techno4k": "Anchor",
-  "bLitz": "Closer",
+  "bLitz": "IGL",
 
   // Vision Gaming
   "nats": "Lurker",
   "dennis": "Entry",
   "draken": "AWPer",
   "KeZi": "Anchor",
-  "RusTy": "Closer",
+  "RusTy": "IGL",
 
   // FaZe Clan
   "SunPayus": "AWPer",
-  "frozen": "Closer",
+  "frozen": "IGL",
   "NiKo": "Entry",
   "AcreoN": "Anchor",
   "iM": "Lurker",
@@ -93,12 +93,12 @@ export const playerRoles: Record<string, PlayerRole> = {
   "loWel": "Entry",
   "dav1g": "AWPer",
   "cadmo": "Lurker",
-  "iNSTiNCT": "Closer",
+  "iNSTiNCT": "IGL",
 
   // NRG eSports
   "CeRq": "AWPer",
   "nitr0": "Anchor",
-  "Xyp9x": "Closer",
+  "Xyp9x": "IGL",
   "ottoNd": "Lurker",
   "KmZ": "Entry",
 
@@ -107,27 +107,27 @@ export const playerRoles: Record<string, PlayerRole> = {
   "cadiaN": "AWPer",
   "HUNDEN": "Lurker",
   "Magisk": "Anchor",
-  "nicoodoz": "Closer",
+  "nicoodoz": "IGL",
 
   // Sprout
   "dantamax": "Entry",
   "iSt3s": "AWPer",
   "Spiidi": "Lurker",
   "teNzki": "Anchor",
-  "Tr1xie": "Closer",
+  "Tr1xie": "IGL",
 
   // Grayhound
   "malta": "Entry",
   "Fairlii": "Lurker",
   "angeL": "Anchor",
   "INS": "AWPer",
-  "satoshi": "Closer",
+  "satoshi": "IGL",
 
   // Team Spirit
   "donk": "Entry",
   "iDISBALANCE": "Anchor",
   "FL1T": "Lurker",
-  "chopper": "Closer",
+  "chopper": "IGL",
   "m0NESY": "AWPer",
 
   // MVP Project
@@ -135,20 +135,20 @@ export const playerRoles: Record<string, PlayerRole> = {
   "jBk": "AWPer",
   "henox": "Lurker",
   "derkos": "Anchor",
-  "XigN": "Closer",
+  "XigN": "IGL",
 
   // Complexity
   "elemeNt": "Entry",
   "sjuush": "Lurker",
   "aproTo": "AWPer",
-  "oBo": "Closer",
+  "oBo": "IGL",
   "NikkeZ": "Anchor",
 
   // MOUZ
   "kRYSTAL": "Anchor",
   "syrsoN": "AWPer",
   "Spinx": "Entry",
-  "huNter": "Closer",
+  "huNter": "IGL",
   "REZ": "Lurker",
 
   // Astralis
@@ -156,46 +156,46 @@ export const playerRoles: Record<string, PlayerRole> = {
   "dev1ce": "AWPer",
   "v4lde": "Lurker",
   "Snappi": "Anchor",
-  "HooXi": "Closer",
+  "HooXi": "IGL",
 
   // Bravado Gaming
   "Bizzy": "Entry",
   "bLiZzard": "AWPer",
   "arkiN": "Lurker",
   "MisteM": "Anchor",
-  "EleTrick": "Closer",
+  "EleTrick": "IGL",
 
   // OG eSports
   "mantuu": "AWPer",
   "hutji": "Lurker",
   "SHiPZ": "Entry",
   "es3tag": "Anchor",
-  "dexter": "Closer",
+  "dexter": "IGL",
 
   // VOX Eminor
   "dither": "Entry",
   "scarra": "Lurker",
   "proSeN": "AWPer",
   "f1nest": "Anchor",
-  "Gratisfaction": "Closer",
+  "Gratisfaction": "IGL",
 
   // Eternal Fire
   "MAJ3R": "Anchor",
   "Wicadia": "AWPer",
   "Calyx": "Entry",
-  "XANTARES": "Closer",
+  "XANTARES": "IGL",
   "w0xic": "Lurker",
 
   // Natus Vincere
   "b1t": "Entry",
   "poizon": "AWPer",
   "Makazze": "Lurker",
-  "electronic": "Closer",
+  "electronic": "IGL",
   "malbsMd": "Anchor",
 
   // Astana Dragons
   "KrizzeN": "Entry",
-  "qikert": "Closer",
+  "qikert": "IGL",
   "griff": "AWPer",
   "frontales": "Lurker",
   "neaLaN": "Anchor",
@@ -205,18 +205,18 @@ export const playerRoles: Record<string, PlayerRole> = {
   "allu": "AWPer",
   "Kaaymos": "Entry",
   "xseveN": "Lurker",
-  "LETN1": "Closer",
+  "LETN1": "IGL",
 
   // Ijsberen eSports
   "sefa": "Entry",
   "PCK": "AWPer",
   "MissK8": "Lurker",
   "ElStaK": "Anchor",
-  "ZykloN": "Closer",
+  "ZykloN": "IGL",
 
   // FlyQuest
   "liazz": "Lurker",
-  "jks": "Closer",
+  "jks": "IGL",
   "AZR": "Anchor",
   "USTILO": "Entry",
   "Nifty": "AWPer",
@@ -226,40 +226,40 @@ export const playerRoles: Record<string, PlayerRole> = {
   "v1tal": "AWPer",
   "keshandr": "Lurker",
   "gr1ks": "Anchor",
-  "kyousuke": "Closer",
+  "kyousuke": "IGL",
 
   // Pollen Tantrum
   "xertz": "Entry",
   "RaZ": "AWPer",
   "aslan": "Lurker",
   "sterling": "Anchor",
-  "nebet": "Closer",
+  "nebet": "IGL",
 
   // Parivision
   "sdy": "Entry",
   "KaiR0N-": "AWPer",
   "Neityu": "Lurker",
   "torzsi": "Anchor",
-  "Magnojez": "Closer",
+  "Magnojez": "IGL",
 
   // x6tence galaxy
   "coRoZz": "Entry",
   "spyder": "AWPer",
   "shimari": "Lurker",
   "Polen": "Anchor",
-  "LoReN": "Closer",
+  "LoReN": "IGL",
 
   // NiP
   "hampus": "Anchor",
   "Lekr0": "Lurker",
   "ZyTre": "AWPer",
-  "KRIMZ": "Closer",
+  "KRIMZ": "IGL",
   "Benzn": "Entry",
 
   // Inner Circle
   "saveey": "Entry",
   "jR": "AWPer",
-  "NEOFRAG": "Closer",
+  "NEOFRAG": "IGL",
   "jank0": "Lurker",
   "stressarN": "Anchor",
 
@@ -268,166 +268,166 @@ export const playerRoles: Record<string, PlayerRole> = {
   "sk0r": "AWPer",
   "ANNIHILA": "Lurker",
   "hasteka": "Anchor",
-  "910": "Closer",
+  "910": "IGL",
 
   // Splyce
   "zOOt": "Entry",
   "deficit": "AWPer",
   "Kila": "Lurker",
   "primaL": "Anchor",
-  "RFX": "Closer",
+  "RFX": "IGL",
 
   // 3Dmax
   "VirreN": "Entry",
   "Ex3rcice": "Lurker",
   "ryL": "AWPer",
   "TrusT": "Anchor",
-  "Graviti": "Closer",
+  "Graviti": "IGL",
 
   // Entropiq
   "MariX": "Entry",
   "syco": "Lurker",
   "h0bbit": "Anchor",
   "Krimbo": "AWPer",
-  "MaXi": "Closer",
+  "MaXi": "IGL",
 
   // paiN Gaming
   "felps": "Entry",
   "cerdaN": "Lurker",
   "biguzera": "AWPer",
   "snow": "Anchor",
-  "abone": "Closer",
+  "abone": "IGL",
 
   // Sinister5
   "scheeR": "Entry",
   "Chappy": "AWPer",
   "ruben": "Lurker",
   "godspeed": "Anchor",
-  "tr1ton": "Closer",
+  "tr1ton": "IGL",
 
   // Gamers2
   "xeta": "Anchor",
   "iKo": "Entry",
   "ryuk": "AWPer",
   "poL1tz": "Lurker",
-  "DD": "Closer",
+  "DD": "IGL",
 
   // Keyd Stars
   "t9rnay": "Entry",
   "abr": "AWPer",
   "brnz4n": "Lurker",
   "insani": "Anchor",
-  "kye": "Closer",
+  "kye": "IGL",
 
   // Ancient
   "shroud": "Lurker",
   "aykeN": "AWPer",
   "DeadFox": "Entry",
   "jasonR": "Anchor",
-  "craen": "Closer",
+  "craen": "IGL",
 
   // Syman Gaming
   "erkaSt": "Entry",
   "MagnumZ": "AWPer",
   "lucid": "Lurker",
   "cool4st": "Anchor",
-  "laxiee": "Closer",
+  "laxiee": "IGL",
 
   // KRU eSports
   "Noktse": "Entry",
   "yeL": "AWPer",
   "meyern": "Lurker",
   "kriT": "Anchor",
-  "kinho": "Closer",
+  "kinho": "IGL",
 
   // Game Agents
   "kolor": "Entry",
   "ngiN": "AWPer",
   "eLiVe": "Lurker",
   "Zero": "Anchor",
-  "paz": "Closer",
+  "paz": "IGL",
 
   // Rogue
   "SkerZ": "Entry",
   "playn": "AWPer",
   "double": "Lurker",
   "quaKe": "Anchor",
-  "xprt": "Closer",
+  "xprt": "IGL",
 
   // ATK
   "mendo": "Entry",
   "vice": "AWPer",
   "yukar": "Lurker",
   "Pot1on": "Anchor",
-  "pOp": "Closer",
+  "pOp": "IGL",
 
   // Apeks
   "jkaem": "Entry",
   "hallzerk": "AWPer",
   "isak": "Lurker",
   "crusaDe": "Anchor",
-  "Xander": "Closer",
+  "Xander": "IGL",
 
   // Renegades
   "vexite": "Entry",
   "cam1x": "Lurker",
   "xsepower": "AWPer",
   "nettik": "Anchor",
-  "oSee": "Closer",
+  "oSee": "IGL",
 
   // Evil Geniuses
   "skyhe": "Entry",
   "zanz": "AWPer",
   "st1ch": "Lurker",
   "JDC": "Anchor",
-  "zyoN": "Closer",
+  "zyoN": "IGL",
 
   // Dream Eaters
   "addicT": "Entry",
   "s1mke": "AWPer",
   "FASHR": "Lurker",
   "PakG": "Anchor",
-  "vince": "Closer",
+  "vince": "IGL",
 
   // Got200 Gaming
   "vanisch": "Entry",
   "Qwickshel": "AWPer",
   "davy": "Lurker",
   "lynX": "Anchor",
-  "flame": "Closer",
+  "flame": "IGL",
 
   // 9ine
   "KEi": "Entry",
   "Demho": "AWPer",
   "KMX": "Lurker",
   "Prism": "Anchor",
-  "hades": "Closer",
+  "hades": "IGL",
 
   // Valhalla
   "diaXuuN": "Entry",
   "HUNDZi": "AWPer",
   "EdezeNNN": "Lurker",
   "em3radic": "Anchor",
-  "Bjarni": "Closer",
+  "Bjarni": "IGL",
 
   // Legacy
   "dumau": "Entry",
   "latto": "AWPer",
   "saadziN": "Lurker",
   "danoCo": "Anchor",
-  "lux": "Closer",
+  "lux": "IGL",
 
   // Space Soldiers
   "DESPE": "Entry",
   "imoRR": "AWPer",
   "TuGuX": "Lurker",
   "EMSTAR": "Anchor",
-  "hardstyle": "Closer",
+  "hardstyle": "IGL",
 
   // Cr4zy
   "Woro2k": "Entry",
   "DemQQ": "AWPer",
-  "rain": "Closer",
+  "rain": "IGL",
   "ISSAA": "Lurker",
   "stanislaw": "Anchor",
 
@@ -436,273 +436,273 @@ export const playerRoles: Record<string, PlayerRole> = {
   "tn1R": "AWPer",
   "stavn": "Entry",
   "aizy": "Lurker",
-  "LNZ": "Closer",
+  "LNZ": "IGL",
 
   // Portal
   "HSB": "Entry",
   "traNz": "AWPer",
   "PokemoN": "Lurker",
   "Yaqob": "Anchor",
-  "StoraX": "Closer",
+  "StoraX": "IGL",
 
   // Bad News Eagles
   "SENER1": "Entry",
   "gxx-": "AWPer",
   "Krabeni": "Lurker",
   "sinopsyy": "Anchor",
-  "rigoN": "Closer",
+  "rigoN": "IGL",
 
   // Quantum Bellator
   "x1ron": "Entry",
   "kasya": "AWPer",
   "saRRafi": "Lurker",
   "raizo": "Anchor",
-  "pa1nkiller": "Closer",
+  "pa1nkiller": "IGL",
 
   // BIG
   "gob b": "Anchor",
   "keev": "AWPer",
   "xfl0ud": "Entry",
   "hippo": "Lurker",
-  "k1to": "Closer",
+  "k1to": "IGL",
 
   // Imperial
   "boltz": "Entry",
   "VINI": "Lurker",
   "chelo": "AWPer",
   "skullz": "Anchor",
-  "zakk": "Closer",
+  "zakk": "IGL",
 
   // fnatic
   "Brollan": "Entry",
   "Xizt": "Anchor",
   "kyuubii": "AWPer",
   "modurist": "Lurker",
-  "sheddaN": "Closer",
+  "sheddaN": "IGL",
 
   // 9z Team
   "dgt": "Entry",
   "max": "AWPer",
   "dav1deuS": "Lurker",
   "buda": "Anchor",
-  "try": "Closer",
+  "try": "IGL",
 
   // Team Immunity
   "bURNRUOk": "Entry",
   "MoeycQ": "AWPer",
   "james": "Lurker",
   "MAGIKKK": "Anchor",
-  "gazR": "Closer",
+  "gazR": "IGL",
 
   // Marsborne
   "GriZz": "Entry",
   "gonzo": "AWPer",
   "ToraTTi": "Lurker",
   "Pengu1n": "Anchor",
-  "mst": "Closer",
+  "mst": "IGL",
 
   // GODSENT
   "eXpeL": "Entry",
   "zehN": "AWPer",
   "pr1metapz": "Lurker",
   "stan": "Anchor",
-  "polaroid": "Closer",
+  "polaroid": "IGL",
 
   // GamerLegion
   "ztr": "Entry",
   "PR": "AWPer",
   "faveN": "Lurker",
   "MATYS": "Anchor",
-  "hypex": "Closer",
+  "hypex": "IGL",
 
   // M80
   "wonder": "Entry",
   "maNkz": "AWPer",
   "dazzLe": "Lurker",
   "Lake": "Anchor",
-  "reck": "Closer",
+  "reck": "IGL",
 
   // Penta Sports
   "awzek": "Entry",
   "s1n": "AWPer",
   "PANIX": "Lurker",
   "innocent": "Anchor",
-  "hyped": "Closer",
+  "hyped": "IGL",
 
   // Wildcard
   "JBa": "Entry",
   "Swisher": "AWPer",
   "br0": "Lurker",
   "XotiC": "Anchor",
-  "nicx": "Closer",
+  "nicx": "IGL",
 
   // Vexed Gaming
   "coSbo": "Entry",
   "AciDiC": "AWPer",
   "redge0": "Lurker",
   "RitZy": "Anchor",
-  "depthSpider": "Closer",
+  "depthSpider": "IGL",
 
   // TyLoo
   "Moseyuh": "Entry",
   "BnTeT": "AWPer",
   "fancy": "Lurker",
   "JamYoung": "Anchor",
-  "Jee": "Closer",
+  "Jee": "IGL",
 
   // Epsilon eSports
   "NaqeLi": "Entry",
   "maka": "AWPer",
   "mKadin": "Lurker",
   "antika": "Anchor",
-  "Creo": "Closer",
+  "Creo": "IGL",
 
   // Nexus
   "arc": "Entry",
   "regali": "AWPer",
   "lauNX": "Lurker",
   "kavenTo": "Anchor",
-  "ZetioN": "Closer",
+  "ZetioN": "IGL",
 
   // Betclic Apogee
   "TaZ": "Anchor",
   "hfah": "AWPer",
   "jcobbb": "Entry",
   "Kylar": "Lurker",
-  "Melavi": "Closer",
+  "Melavi": "IGL",
 
   // Nemiga
   "Jyo": "Entry",
   "Frynaut": "AWPer",
   "botez": "Lurker",
   "boX": "Anchor",
-  "evire": "Closer",
+  "evire": "IGL",
 
   // OpTic Gaming
   "JUGi": "AWPer",
   "gade": "Entry",
   "jdm64": "Lurker",
   "Skadoodle": "Anchor",
-  "FreakZ": "Closer",
+  "FreakZ": "IGL",
 
   // Lazarus eSports
   "FNS": "Anchor",
   "Subroza": "Lurker",
   "yay": "AWPer",
   "infinite": "Entry",
-  "wardell": "Closer",
+  "wardell": "IGL",
 
   // NoLimit Gaming
   "s4nzy": "Entry",
   "GaXe": "AWPer",
   "rasmus": "Lurker",
   "basiq": "Anchor",
-  "toggler": "Closer",
+  "toggler": "IGL",
 
   // Endpoint
   "spektra": "Entry",
   "jeLLo": "AWPer",
   "sl3nd": "Lurker",
   "KanOx": "Anchor",
-  "CRUC1AL": "Closer",
+  "CRUC1AL": "IGL",
 
   // Parallax
   "Hatz": "Entry",
   "Lonsdale": "AWPer",
   "yellow": "Lurker",
   "sico": "Anchor",
-  "kyoto": "Closer",
+  "kyoto": "IGL",
 
   // Astra Vendetta
   "kaarT": "Entry",
   "filian": "AWPer",
   "5erene5": "Lurker",
   "SkarmaT": "Anchor",
-  "leveni": "Closer",
+  "leveni": "IGL",
 
   // Fluxo
   "v$m": "Entry",
   "astera": "AWPer",
   "PuFFy": "Lurker",
   "chuti": "Anchor",
-  "Spamzzy": "Closer",
+  "Spamzzy": "IGL",
 
   // Third Impact
   "RZU": "Entry",
   "grape": "AWPer",
   "DaneJoris": "Lurker",
   "mont4na": "Anchor",
-  "xCeeD": "Closer",
+  "xCeeD": "IGL",
 
   // Mythic
   "fl0m": "AWPer",
   "hate": "Entry",
   "cooper": "Lurker",
   "freakazoid": "Anchor",
-  "cxzi": "Closer",
+  "cxzi": "IGL",
 
   // FUT eSports
   "eclyon": "Entry",
   "SparkZ": "AWPer",
   "kriMp": "Lurker",
   "v1caR": "Anchor",
-  "Xaka": "Closer",
+  "Xaka": "IGL",
 
   // Renevant eSports
   "3nable": "Entry",
   "argenT": "AWPer",
   "fluckZ": "Lurker",
   "GFi": "Anchor",
-  "kaZe": "Closer",
+  "kaZe": "IGL",
 
   // 9Pandas
   "r3salt": "Entry",
   "d1Ledez": "AWPer",
   "zhoKing": "Lurker",
   "Krad": "Anchor",
-  "s1kura": "Closer",
+  "s1kura": "IGL",
 
   // Tengri
   "SNk": "Entry",
   "ProjeksT": "AWPer",
   "Ramz1k": "Lurker",
   "enzero": "Anchor",
-  "yaqK": "Closer",
+  "yaqK": "IGL",
 
   // Rare Atom
   "nJta": "Entry",
   "baLi": "AWPer",
   "enlai": "Lurker",
   "kaito": "Anchor",
-  "abiLo": "Closer",
+  "abiLo": "IGL",
 
   // ZIGMA
   "RoLEX": "Entry",
   "NIFFY": "AWPer",
   "GeniusSs": "Lurker",
   "j9": "Anchor",
-  "hxskxth": "Closer",
+  "hxskxth": "IGL",
 
   // Lynn Vision
   "EmiliaQaQ": "Entry",
   "Su3": "AWPer",
   "z4kr": "Lurker",
   "Starry": "Anchor",
-  "westmelon": "Closer",
+  "westmelon": "IGL",
 
   // InSilio
   "sugaR": "Entry",
   "t0rick": "AWPer",
   "veslaR": "Lurker",
   "tokuzo": "Anchor",
-  "zanxxX": "Closer",
+  "zanxxX": "IGL",
 
   // Sharks
   "chay": "Entry",
   "drg": "AWPer",
   "Gafolo": "Lurker",
   "rdnzao": "Anchor",
-  "n1ssim": "Closer",
+  "n1ssim": "IGL",
 };
 
 // Role display helpers
@@ -711,7 +711,7 @@ export const roleColors: Record<PlayerRole, string> = {
   "Lurker": "bg-purple-500/20 text-purple-400 border-purple-500/30",
   "AWPer": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Anchor": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "Closer": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  "IGL": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
 };
 
 export const roleIcons: Record<PlayerRole, string> = {
@@ -719,5 +719,5 @@ export const roleIcons: Record<PlayerRole, string> = {
   "Lurker": "👁️",
   "AWPer": "🎯",
   "Anchor": "🛡️",
-  "Closer": "💀",
+  "IGL": "💀",
 };
