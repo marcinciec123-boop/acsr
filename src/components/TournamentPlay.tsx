@@ -872,6 +872,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                 resolved={swiss.resolved[i]}
                 matchStats={getStatsForMatch(m)}
                 onUpdateStats={handleUpdateStats}
+                onOpenDetail={() => setActiveMatchDetail({ source: "swiss", index: i })}
               />
             ))}
           </div>
