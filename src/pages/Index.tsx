@@ -8,6 +8,7 @@ import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import SeasonStandings from "@/components/SeasonStandings";
 import TeamProfile from "@/components/TeamProfile";
+import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
 import HistoryTab from "@/components/HistoryTab";
 import { initialTournaments, type Tournament, type TournamentSimulation, simulateTournament, calculateSeasonStandings } from "@/data/tournaments";
@@ -19,6 +20,7 @@ const Index = () => {
   );
   const [simResults, setSimResults] = useState<Record<string, TournamentSimulation>>({});
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [playingTournamentId, setPlayingTournamentId] = useState<string | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
@@ -61,12 +63,19 @@ const Index = () => {
 
   const handleSelectTeam = (teamName: string) => {
     setSelectedTeam(teamName);
+    setSelectedPlayer(null);
     setActiveTab("rankings");
+  };
+
+  const handleSelectPlayer = (playerName: string) => {
+    setSelectedPlayer(playerName);
+    setSelectedTeam(null);
   };
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     setSelectedTeam(null);
+    setSelectedPlayer(null);
     setPlayingTournamentId(null);
   };
 
@@ -116,14 +125,22 @@ const Index = () => {
       )}
       {activeTab === "calendar" && <EventCalendar />}
       {activeTab === "rankings" && (
-        selectedTeam ? (
+        selectedPlayer ? (
+          <PlayerProfile
+            playerName={selectedPlayer}
+            onBack={() => { setSelectedPlayer(null); }}
+            onSelectTeam={handleSelectTeam}
+            seasonStandings={seasonStandings}
+          />
+        ) : selectedTeam ? (
           <TeamProfile
             teamName={selectedTeam}
             onBack={() => setSelectedTeam(null)}
             seasonStanding={seasonStandings.find(s => s.team === selectedTeam)}
+            onSelectPlayer={handleSelectPlayer}
           />
         ) : (
-          <PlayerRankings onSelectTeam={handleSelectTeam} />
+          <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} />
         )
       )}
       {activeTab === "standings" && (
