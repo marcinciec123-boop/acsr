@@ -17,6 +17,7 @@ export interface QualificationConfig {
   qualifierSlots: number;
   qualifierType: QualifierType;
   qualifierRegions?: string[];  // for regional qualifiers
+  manualInviteSlots?: number;   // slots for manually invited teams (by user)
 }
 
 export interface Tournament {
