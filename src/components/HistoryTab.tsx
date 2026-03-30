@@ -179,7 +179,13 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
                     <Input
                       placeholder="Nick gracza..."
                       value={transferPlayer}
-                      onChange={e => setTransferPlayer(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setTransferPlayer(val);
+                        // Auto-detect current team
+                        const team = teamDatabase.find(t => t.roster.includes(val));
+                        setTransferFrom(team ? team.name : "-");
+                      }}
                       list="player-list"
                     />
                     <datalist id="player-list">
@@ -188,14 +194,9 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
                   </div>
                   <div>
                     <label className="text-sm font-mono text-muted-foreground mb-1 block">Z drużyny</label>
-                    <select
-                      value={transferFrom}
-                      onChange={e => setTransferFrom(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
-                    >
-                      <option value="-">Free Agent (brak drużyny)</option>
-                      {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    <div className="w-full px-3 py-2 rounded-md bg-muted border border-border text-foreground text-sm font-mono opacity-70">
+                      {transferFrom === "-" ? "Free Agent (brak drużyny)" : transferFrom}
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-mono text-muted-foreground mb-1 block">Do drużyny</label>
