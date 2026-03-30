@@ -262,7 +262,7 @@ export function calculateSeasonStandings(
 
 // ===== Simulation Logic =====
 
-function simulateMatch(team1: string, team2: string, bo: number): MatchResult {
+export function simulateMatch(team1: string, team2: string, bo: number): MatchResult {
   const winsNeeded = Math.ceil(bo / 2);
   let s1 = 0, s2 = 0;
   // Strength based on ranking position
