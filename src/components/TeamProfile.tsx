@@ -4,6 +4,7 @@ import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, Arrow
 import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
+import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
