@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown, Plus, X, Search, UserPlus } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Play, SkipForward, Edit3, Check, Shield, Crown, Plus, X, Search, UserPlus, ExternalLink } from "lucide-react";
 import { type Tournament, type MatchResult, type KnockoutRound, simulateMatch, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
