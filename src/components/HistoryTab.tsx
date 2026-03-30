@@ -371,7 +371,7 @@ const HistoryTab = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {freeAgents.map((fa, i) => {
-                  const country = playerNationalities[fa.player];
+                  const country = fa.nationality || playerNationalities[fa.player];
                   return (
                     <motion.div
                       key={`${fa.player}-${i}`}
@@ -388,6 +388,9 @@ const HistoryTab = () => {
                           {country && <span className="text-xs">{countryFlag(country)}</span>}
                           {fa.player}
                         </p>
+                        {(fa.firstName || fa.lastName) && (
+                          <p className="text-xs text-muted-foreground">{fa.firstName} {fa.lastName}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Poprzednio: <span className="text-foreground">{fa.previousTeam}</span>
                         </p>
