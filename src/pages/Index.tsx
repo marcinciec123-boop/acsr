@@ -50,6 +50,11 @@ const Index = () => {
     setSimResults({});
   };
 
+  const loadState = (t: Tournament[], s: Record<string, TournamentSimulation>) => {
+    setTournaments(t.map(tt => ({ ...tt })));
+    setSimResults({ ...s });
+  };
+
   const handleSelectTeam = (teamName: string) => {
     setSelectedTeam(teamName);
     setActiveTab("rankings");
