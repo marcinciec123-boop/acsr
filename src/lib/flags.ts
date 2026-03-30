@@ -13,8 +13,8 @@ const countryToISO: Record<string, string> = {
 
 export function countryFlag(countryCode: string): string {
   const iso = countryToISO[countryCode] || countryCode;
-  if (iso.length !== 2) return "🏳️";
-  // Convert to regional indicator symbols
+  if (!iso || iso.length !== 2) return "🏳️";
+  if (iso === "XK") return "🇽🇰"; // Kosovo special case
   const codePoints = [...iso.toUpperCase()].map(
     (c) => 0x1f1e6 + c.charCodeAt(0) - 65
   );
