@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Users, ChevronDown, ChevronUp, Globe } from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
+import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 

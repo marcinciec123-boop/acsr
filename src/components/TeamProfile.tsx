@@ -113,21 +113,24 @@ const TeamProfile = ({ teamName, onBack, seasonStanding }: TeamProfileProps) => 
             <Users className="w-5 h-5 text-primary" /> Roster
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {team.roster.map((player, i) => (
-              <motion.div
-                key={player}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + i * 0.05 }}
-                className="bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-muted border border-border mx-auto mb-2 flex items-center justify-center text-lg font-heading font-bold text-primary">
-                  {player[0]}
-                </div>
-                <p className="font-heading font-bold text-foreground text-sm">{player}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{countryFlag(team.country)} {team.country}</p>
-              </motion.div>
-            ))}
+            {team.roster.map((player, i) => {
+              const playerCountry = playerNationalities[player] || team.country;
+              return (
+                <motion.div
+                  key={player}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 + i * 0.05 }}
+                  className="bg-secondary/30 border border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-muted border border-border mx-auto mb-2 flex items-center justify-center text-lg font-heading font-bold text-primary">
+                    {player[0]}
+                  </div>
+                  <p className="font-heading font-bold text-foreground text-sm">{player}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{countryFlag(playerCountry)} {playerCountry}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
