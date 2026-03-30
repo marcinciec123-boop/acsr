@@ -459,6 +459,41 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   // Groups state (simplified - use auto-sim for groups, then manual knockout)
   const [groupsGenerated, setGroupsGenerated] = useState(false);
 
+  // Stats helpers
+  const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
+    setAllMatchStats(prev => ({ ...prev, [matchId]: stats }));
+  }, []);
+
+  const getStatsForMatch = (m: MatchResult): MatchStats | null => {
+    return allMatchStats[`${m.team1}-vs-${m.team2}`] || null;
+  };
+
+  const generateStatsForMatch = useCallback((m: MatchResult) => {
+    const id = `${m.team1}-vs-${m.team2}`;
+    if (!allMatchStats[id] && m.winner) {
+      const stats = generateMatchStats(m.team1, m.team2, getTeamRoster(m.team1), getTeamRoster(m.team2), m.score1, m.score2, m.bo);
+      setAllMatchStats(prev => ({ ...prev, [id]: stats }));
+    }
+  }, [allMatchStats]);
+
+  // Wrap swiss simulate to generate stats
+  const wrappedSwissSimulateOne = useCallback((idx: number) => {
+    swiss.simulateOne(idx);
+    // Stats will be generated when match renders as resolved
+  }, [swiss.simulateOne]);
+
+  const wrappedSwissSimulateAll = useCallback(() => {
+    swiss.simulateAllCurrent();
+  }, [swiss.simulateAllCurrent]);
+
+  const wrappedKnockoutSimulateOne = useCallback((idx: number) => {
+    knockout.simulateOne(idx);
+  }, [knockout.simulateOne]);
+
+  const wrappedKnockoutSimulateAll = useCallback(() => {
+    knockout.simulateAllCurrent();
+  }, [knockout.simulateAllCurrent]);
+
   const handleSwissComplete = () => {
     if (!swiss.result) return;
     const sr = swiss.result;
