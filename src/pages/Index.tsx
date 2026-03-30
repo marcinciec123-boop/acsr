@@ -129,6 +129,7 @@ const Index = () => {
       {activeTab === "standings" && (
         <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
       )}
+      {activeTab === "history" && <HistoryTab />}
       {activeTab === "settings" && (
         <SettingsTab
           tournaments={tournaments}
