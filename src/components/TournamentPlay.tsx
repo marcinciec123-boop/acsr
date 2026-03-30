@@ -1095,59 +1095,122 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     </div>
   );
 
-  // Render Groups Phase
-  const renderGroupsPhase = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa</h3>
-        {!groupsGenerated && (
-          <button onClick={generateGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
-            <Play className="w-4 h-4" />
-            Losuj i rozegraj grupy
-          </button>
-        )}
-        {groupsGenerated && (
-          <button onClick={() => setCurrentPhase("knockout")} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
-            <Zap className="w-4 h-4" />
-            Przejdź do Playoffs →
-          </button>
+  // Render GSL Groups Phase
+  const renderGroupsPhase = () => {
+    const allGroupsDone = gslGroups.length > 0 && gslGroups.every(g => g.phase === 3);
+
+    // GSL match detail overlay
+    if (activeGroupMatch) {
+      const { groupIdx, matchIdx } = activeGroupMatch;
+      const group = gslGroups[groupIdx];
+      const match = group?.matches[matchIdx];
+      if (match && match.team1 !== "TBD" && match.team2 !== "TBD") {
+        return (
+          <MatchDetailPanel
+            match={match}
+            onUpdate={(updated) => {
+              resolveGslMatch(groupIdx, matchIdx, updated);
+              setActiveGroupMatch(null);
+            }}
+            onSimulate={() => {
+              const result = simulateMatch(match.team1, match.team2, match.bo);
+              resolveGslMatch(groupIdx, matchIdx, result);
+              setActiveGroupMatch(null);
+            }}
+            resolved={!!match.winner}
+            matchStats={getStatsForMatch(match)}
+            onUpdateStats={handleUpdateStats}
+            onClose={() => setActiveGroupMatch(null)}
+          />
+        );
+      }
+    }
+
+    const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa (GSL)</h3>
+          <div className="flex gap-2">
+            {!groupsGenerated && (
+              <button onClick={generateGslGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+                <Play className="w-4 h-4" />
+                Losuj grupy
+              </button>
+            )}
+            {allGroupsDone && (
+              <button onClick={() => setCurrentPhase("knockout")} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+                <Zap className="w-4 h-4" />
+                Przejdź do Playoffs →
+              </button>
+            )}
+          </div>
+        </div>
+
+        {gslGroups.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {gslGroups.map((group, gi) => (
+              <div key={group.groupName} className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-secondary/50 font-heading font-bold text-foreground flex items-center justify-between">
+                  <span>Grupa {group.groupName}</span>
+                  {group.phase === 3 && <span className="text-xs font-mono text-win">Zakończona</span>}
+                </div>
+                <div className="p-3 space-y-2">
+                  {group.matches.map((m, mi) => {
+                    if (m.team1 === "TBD" || m.team2 === "TBD") return null;
+                    const isResolved = !!m.winner;
+                    return (
+                      <div key={mi} className="space-y-1">
+                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{matchLabels[mi]}</p>
+                        <div className={cn(
+                          "bg-secondary/30 border rounded-md overflow-hidden text-sm",
+                          isResolved ? "border-win/20" : "border-primary/30"
+                        )}>
+                          <div className="flex items-center">
+                            <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", isResolved && m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
+                            <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[50px] text-center">
+                              {isResolved ? (
+                                <>
+                                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
+                                  <span className="text-muted-foreground mx-1">:</span>
+                                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">vs</span>
+                              )}
+                            </div>
+                            <div className={cn("flex-1 px-3 py-2 truncate font-medium", isResolved && m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
+                          </div>
+                          {!isResolved && (
+                            <button
+                              onClick={() => setActiveGroupMatch({ groupIdx: gi, matchIdx: mi })}
+                              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors border-t border-border/50"
+                            >
+                              <ExternalLink className="w-3 h-3" /> Przejdź do meczu
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Group status */}
+                <div className="px-3 pb-3 flex flex-wrap gap-1">
+                  {group.qualified.map(t => (
+                    <span key={t} className="text-[10px] font-mono text-win bg-win/10 px-2 py-0.5 rounded border border-win/30">✓ {t}</span>
+                  ))}
+                  {group.eliminated.map(t => (
+                    <span key={t} className="text-[10px] font-mono text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">✗ {t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-
-      {groupsResult && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {groupsResult.map(group => (
-            <div key={group.groupName} className="bg-card border border-border rounded-lg overflow-hidden">
-              <div className="px-4 py-2 bg-secondary/50 font-heading font-bold text-foreground">
-                Grupa {group.groupName}
-              </div>
-              {group.standings.map((s, i) => {
-                const isQualified = group.qualified.includes(s.team);
-                return (
-                  <div key={s.team} className={cn(
-                    "grid grid-cols-12 gap-1 px-4 py-2 border-t border-border/50 items-center text-sm",
-                    isQualified && "bg-win/5"
-                  )}>
-                    <div className="col-span-1 font-mono text-muted-foreground">{i + 1}</div>
-                    <div className="col-span-6 font-medium text-foreground truncate">{s.team}</div>
-                    <div className="col-span-2 text-center font-mono text-sm">
-                      <span className="text-win">{s.wins}</span>
-                      <span className="text-muted-foreground">-</span>
-                      <span className="text-loss">{s.losses}</span>
-                    </div>
-                    <div className="col-span-1 text-center font-mono text-xs text-muted-foreground">{s.roundDiff > 0 ? "+" : ""}{s.roundDiff}</div>
-                    <div className="col-span-2 text-center">
-                      {isQualified && <span className="text-xs font-mono text-win">✓ AWA</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <section className="py-8">
