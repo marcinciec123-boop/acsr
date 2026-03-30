@@ -7,10 +7,14 @@ import { Input } from "@/components/ui/input";
 
 type HistorySection = "transfers" | "nameChanges" | "disbands";
 
+type TransferType = "all" | "join" | "leave" | "move";
+
 const HistoryTab = () => {
   const [section, setSection] = useState<HistorySection>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [reversed, setReversed] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TransferType>("all");
 
   const allTeams = useMemo(() => {
     const teams = new Set<string>();
@@ -22,12 +26,17 @@ const HistoryTab = () => {
   }, []);
 
   const filteredTransfers = useMemo(() => {
-    return transfers.filter(t => {
+    let result = transfers.filter(t => {
       if (search && !t.player.toLowerCase().includes(search.toLowerCase())) return false;
       if (teamFilter && t.oldTeam !== teamFilter && t.newTeam !== teamFilter) return false;
+      if (typeFilter === "join" && t.oldTeam !== "-") return false;
+      if (typeFilter === "leave" && t.newTeam !== "-") return false;
+      if (typeFilter === "move" && (t.oldTeam === "-" || t.newTeam === "-")) return false;
       return true;
     });
-  }, [search, teamFilter]);
+    if (reversed) result = [...result].reverse();
+    return result;
+  }, [search, teamFilter, reversed, typeFilter]);
 
   const sections: { id: HistorySection; label: string; icon: React.ReactNode; count: number }[] = [
     { id: "transfers", label: "Transfery", icon: <ArrowRightLeft className="w-4 h-4" />, count: transfers.length },
