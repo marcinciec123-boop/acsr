@@ -392,6 +392,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
   const [resolved, setResolved] = useState<boolean[]>([]);
   const [qualifiedTeams, setQualifiedTeams] = useState<string[]>([]);
   const [roundName, setRoundName] = useState("");
+  const [activeMatchDetail, setActiveMatchDetail] = useState<number | null>(null);
 
   const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
     setAllMatchStats(prev => ({ ...prev, [matchId]: stats }));
