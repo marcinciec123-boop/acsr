@@ -122,14 +122,17 @@ const PlayerRankings = ({ onSelectTeam }: PlayerRankingsProps) => {
                   >
                     <p className="text-xs font-mono text-muted-foreground uppercase mb-2">Roster</p>
                     <div className="flex flex-wrap gap-2">
-                      {team.roster.map(player => (
-                        <span
-                          key={player}
-                          className="px-3 py-1.5 bg-card border border-border rounded text-sm font-heading font-bold text-foreground"
-                        >
-                          {countryFlag(team.country)} {player}
-                        </span>
-                      ))}
+                      {team.roster.map(player => {
+                        const playerCountry = playerNationalities[player] || team.country;
+                        return (
+                          <span
+                            key={player}
+                            className="px-3 py-1.5 bg-card border border-border rounded text-sm font-heading font-bold text-foreground"
+                          >
+                            {countryFlag(playerCountry)} {player}
+                          </span>
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}
