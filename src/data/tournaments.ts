@@ -10,6 +10,15 @@ export interface TeamData {
   roster: string[];
 }
 
+export type QualifierType = "open" | "regional" | "none";
+
+export interface QualificationConfig {
+  inviteSlots: number;
+  qualifierSlots: number;
+  qualifierType: QualifierType;
+  qualifierRegions?: string[];  // for regional qualifiers
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -25,6 +34,11 @@ export interface Tournament {
   description: string;
   format: TournamentFormat;
   formatDetails: string;
+  qualification: QualificationConfig;
+  qualifierCompleted?: boolean;
+  qualifierParticipants?: string[];  // teams that entered qualifier
+  qualifiedTeams?: string[];  // teams that won through qualifier
+  invitedTeams?: string[];  // teams invited via ranking
 }
 
 export interface CalendarEvent {
