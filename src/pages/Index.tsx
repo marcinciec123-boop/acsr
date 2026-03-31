@@ -236,7 +236,7 @@ const Index = () => {
           />
         )
       )}
-      {activeTab === "calendar" && <EventCalendar />}
+      {activeTab === "calendar" && <EventCalendar tournaments={tournaments} simResults={simResults} />}
       {activeTab === "rankings" && (
         selectedPlayer ? (
           <PlayerProfile
