@@ -178,12 +178,15 @@ const Index = () => {
     setPlayingTournamentId(id);
   };
 
-  const handlePlayComplete = (sim: TournamentSimulation) => {
+  const handlePlayComplete = (sim: TournamentSimulation, matchStats?: Record<string, MatchStats>) => {
     const id = playingTournamentId!;
     setSimResults((prev) => ({ ...prev, [id]: sim }));
     setTournaments((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: "completed" as const } : t))
     );
+    if (matchStats) {
+      setGlobalMatchStats(prev => ({ ...prev, ...matchStats }));
+    }
     setPlayingTournamentId(null);
   };
 
@@ -236,7 +239,7 @@ const Index = () => {
           />
         )
       )}
-      {activeTab === "calendar" && <EventCalendar />}
+      {activeTab === "calendar" && <EventCalendar tournaments={tournaments} simResults={simResults} />}
       {activeTab === "rankings" && (
         selectedPlayer ? (
           <PlayerProfile

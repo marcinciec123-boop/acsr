@@ -4,6 +4,7 @@ import { Star, Trophy, Calendar, TrendingUp, User } from "lucide-react";
 import { teamDatabase, type TournamentSimulation, type Tournament } from "@/data/tournaments";
 import { type MatchStats, calculateRating } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
+import { collectAllMatches } from "@/lib/eloSystem";
 
 interface PlayerRatingRankingsProps {
   simResults: Record<string, TournamentSimulation>;
@@ -24,9 +25,8 @@ interface PlayerRatingEntry {
   adr: number;
 }
 
-function getPlayerRatings(
+function getPlayerRatingsFromStats(
   allMatchStats: Record<string, MatchStats>,
-  _filter: TimeFilter
 ): PlayerRatingEntry[] {
   const playerData: Record<string, { ratings: number[]; kills: number; deaths: number; adr: number[]; team: string }> = {};
 
@@ -63,16 +63,96 @@ function getPlayerRatings(
       adr: data.adr.length > 0 ? data.adr.reduce((a, b) => a + b, 0) / data.adr.length : 0,
     }))
     .filter(p => p.matches > 0)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 100);
+    .sort((a, b) => b.rating - a.rating);
 }
 
-// Generate mock stats for all teams to fill rankings
-function generateAutoRatings(): PlayerRatingEntry[] {
+// Generate ratings for all teams based on simulated tournament results
+function generateRatingsFromSims(
+  simResults: Record<string, TournamentSimulation>,
+  tournaments: Tournament[],
+  filter: TimeFilter
+): PlayerRatingEntry[] {
+  const entries: PlayerRatingEntry[] = [];
+  const playerMap: Record<string, { ratings: number[]; kills: number; deaths: number; adr: number[]; team: string }> = {};
+
+  // Filter tournaments by time
+  const completedTournaments = tournaments.filter(t => simResults[t.id]);
+  let filteredTournaments = completedTournaments;
+  
+  if (filter === "last-tournament" && completedTournaments.length > 0) {
+    filteredTournaments = [completedTournaments[completedTournaments.length - 1]];
+  } else if (filter === "month") {
+    // Last 3 tournaments
+    filteredTournaments = completedTournaments.slice(-3);
+  }
+
+  // For each tournament, generate ratings for participating players
+  for (const t of filteredTournaments) {
+    const sim = simResults[t.id];
+    if (!sim) continue;
+
+    const allMatches = collectAllMatches(sim);
+    const matchCountPerTeam: Record<string, number> = {};
+    const winsPerTeam: Record<string, number> = {};
+
+    for (const m of allMatches) {
+      matchCountPerTeam[m.team1] = (matchCountPerTeam[m.team1] || 0) + 1;
+      matchCountPerTeam[m.team2] = (matchCountPerTeam[m.team2] || 0) + 1;
+      if (m.winner) {
+        winsPerTeam[m.winner] = (winsPerTeam[m.winner] || 0) + 1;
+      }
+    }
+
+    // Generate plausible player stats based on team performance
+    for (const placement of sim.placements) {
+      const teamData = teamDatabase.find(td => td.name === placement.team);
+      if (!teamData) continue;
+
+      const teamMatches = matchCountPerTeam[placement.team] || 1;
+      const teamWins = winsPerTeam[placement.team] || 0;
+      const winRate = teamMatches > 0 ? teamWins / teamMatches : 0.5;
+
+      for (const player of teamData.roster) {
+        if (!playerMap[player]) {
+          playerMap[player] = { ratings: [], kills: 0, deaths: 0, adr: [], team: placement.team };
+        }
+        const entry = playerMap[player];
+        // Generate plausible rating based on placement and win rate
+        const baseRating = 0.85 + winRate * 0.4 + (1 - placement.placement / sim.placements.length) * 0.2;
+        const variance = (Math.random() - 0.5) * 0.2;
+        const rating = Math.max(0.5, Math.min(1.8, baseRating + variance));
+        
+        entry.ratings.push(rating);
+        const matchKills = Math.floor(15 + rating * 8 + Math.random() * 5) * teamMatches;
+        const matchDeaths = Math.floor(12 + (2 - rating) * 5 + Math.random() * 4) * teamMatches;
+        entry.kills += matchKills;
+        entry.deaths += matchDeaths;
+        entry.adr.push(60 + rating * 25 + Math.random() * 15);
+        entry.team = placement.team;
+      }
+    }
+  }
+
+  for (const [name, data] of Object.entries(playerMap)) {
+    entries.push({
+      name,
+      team: data.team,
+      rating: Math.round((data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length) * 100) / 100,
+      matches: data.ratings.length,
+      kills: data.kills,
+      deaths: data.deaths,
+      adr: Math.round(data.adr.reduce((a, b) => a + b, 0) / data.adr.length),
+    });
+  }
+
+  return entries.sort((a, b) => b.rating - a.rating).slice(0, 100);
+}
+
+// Generate fallback rankings for teams that haven't played
+function generateBaseRatings(): PlayerRatingEntry[] {
   const entries: PlayerRatingEntry[] = [];
   for (const team of teamDatabase) {
     for (const player of team.roster) {
-      // Generate a plausible rating based on team ranking
       const teamIdx = teamDatabase.indexOf(team);
       const baseRating = 1.15 - (teamIdx / teamDatabase.length) * 0.4;
       const variance = (Math.random() - 0.5) * 0.3;
@@ -100,19 +180,32 @@ const getRatingColor = (rating: number) => {
   return "text-muted-foreground";
 };
 
-const PlayerRatingRankings = ({ allMatchStats, onSelectPlayer }: PlayerRatingRankingsProps) => {
+const PlayerRatingRankings = ({ simResults, tournaments, allMatchStats, onSelectPlayer }: PlayerRatingRankingsProps) => {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("year");
 
-  const playedRatings = useMemo(() => getPlayerRatings(allMatchStats, timeFilter), [allMatchStats, timeFilter]);
-  const autoRatings = useMemo(() => generateAutoRatings(), []);
+  const completedCount = Object.keys(simResults).length;
 
-  // Merge: played ratings take priority, fill remaining from auto
+  // Get ratings from actual match stats (manually entered)
+  const manualRatings = useMemo(() => getPlayerRatingsFromStats(allMatchStats), [allMatchStats]);
+
+  // Get ratings from simulation results
+  const simRatings = useMemo(() => generateRatingsFromSims(simResults, tournaments, timeFilter), [simResults, tournaments, timeFilter]);
+
+  // Base fallback
+  const baseRatings = useMemo(() => generateBaseRatings(), []);
+
+  // Merge: manual > sim > base
   const ratings = useMemo(() => {
-    if (playedRatings.length >= 20) return playedRatings;
-    const playedNames = new Set(playedRatings.map(p => p.name));
-    const remaining = autoRatings.filter(p => !playedNames.has(p.name));
-    return [...playedRatings, ...remaining].sort((a, b) => b.rating - a.rating).slice(0, 100);
-  }, [playedRatings, autoRatings]);
+    const manualNames = new Set(manualRatings.map(p => p.name));
+    const simFiltered = simRatings.filter(p => !manualNames.has(p.name));
+    const combined = [...manualRatings, ...simFiltered];
+    
+    if (combined.length >= 20) return combined.sort((a, b) => b.rating - a.rating).slice(0, 100);
+    
+    const combinedNames = new Set(combined.map(p => p.name));
+    const remaining = baseRatings.filter(p => !combinedNames.has(p.name));
+    return [...combined, ...remaining].sort((a, b) => b.rating - a.rating).slice(0, 100);
+  }, [manualRatings, simRatings, baseRatings]);
 
   const filterButtons: { key: TimeFilter; label: string; icon: typeof Calendar }[] = [
     { key: "last-tournament", label: "Ostatni turniej", icon: Trophy },
@@ -124,10 +217,16 @@ const PlayerRatingRankings = ({ allMatchStats, onSelectPlayer }: PlayerRatingRan
     <section className="py-8">
       <div className="container mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-2">
             <Star className="w-6 h-6 text-accent" />
             <h2 className="text-3xl font-heading font-bold text-foreground">Top 100 Graczy</h2>
           </div>
+          <p className="text-muted-foreground text-sm font-mono mb-6">
+            {completedCount > 0 
+              ? `Bazowane na ${completedCount} rozegranych turniejach`
+              : "Rozegraj turnieje, aby zobaczyć dokładniejsze statystyki"
+            }
+          </p>
 
           {/* Time filter */}
           <div className="flex gap-2 mb-6">
