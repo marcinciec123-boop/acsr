@@ -11,7 +11,7 @@ import MapVeto from "@/components/MapVeto";
 
 interface TournamentPlayProps {
   tournament: Tournament;
-  onComplete: (sim: TournamentSimulation) => void;
+  onComplete: (sim: TournamentSimulation, matchStats?: Record<string, MatchStats>) => void;
   onBack: () => void;
 }
 
