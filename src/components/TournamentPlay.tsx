@@ -762,7 +762,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
 
     sim.placements = derivePlacements(sim, tournament);
     clearProgress(tournament.id);
-    onComplete(sim);
+    onComplete(sim, allMatchStats);
   };
 
   // GSL Groups: Interactive double-elimination per group
