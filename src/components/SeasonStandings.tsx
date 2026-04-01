@@ -19,8 +19,23 @@ const placementLabel = (p: number) => {
   return `#${p}`;
 };
 
-const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
+const SeasonStandings = ({ standings, dynamicRanking, onSelectTeam }: SeasonStandingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  // Build merged ranking: use dynamicRanking points (base + earned) enriched with season stats
+  const mergedRanking = dynamicRanking.map((team, idx) => {
+    const seasonData = standings.find(s => s.team === team.name);
+    return {
+      team: team.name,
+      totalPoints: team.points,
+      tournaments: seasonData?.tournaments || 0,
+      wins: seasonData?.wins || 0,
+      top4: seasonData?.top4 || 0,
+      bestPlacement: seasonData?.bestPlacement || 999,
+      pointHistory: seasonData?.pointHistory || [],
+      rank: idx + 1,
+    };
+  });
 
   const getTeamFlag = (name: string) => {
     const t = teamDatabase.find(td => td.name === name);
