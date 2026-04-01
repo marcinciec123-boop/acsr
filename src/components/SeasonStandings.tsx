@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Trophy, Medal, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SeasonTeamStanding, teamDatabase } from "@/data/tournaments";
+import { type SeasonTeamStanding, type TeamData, teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { useState } from "react";
 
 interface SeasonStandingsProps {
   standings: SeasonTeamStanding[];
+  dynamicRanking: TeamData[];
   onSelectTeam?: (teamName: string) => void;
 }
 
