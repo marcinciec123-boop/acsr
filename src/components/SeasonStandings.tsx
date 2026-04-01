@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Trophy, Medal, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SeasonTeamStanding, teamDatabase } from "@/data/tournaments";
+import { type SeasonTeamStanding, type TeamData, teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { useState } from "react";
 
 interface SeasonStandingsProps {
   standings: SeasonTeamStanding[];
+  dynamicRanking: TeamData[];
   onSelectTeam?: (teamName: string) => void;
 }
 
@@ -18,49 +19,64 @@ const placementLabel = (p: number) => {
   return `#${p}`;
 };
 
-const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
+const SeasonStandings = ({ standings, dynamicRanking, onSelectTeam }: SeasonStandingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  // Build merged ranking: use dynamicRanking points (base + earned) enriched with season stats
+  const mergedRanking = dynamicRanking.map((team, idx) => {
+    const seasonData = standings.find(s => s.team === team.name);
+    return {
+      team: team.name,
+      totalPoints: team.points,
+      tournaments: seasonData?.tournaments || 0,
+      wins: seasonData?.wins || 0,
+      top4: seasonData?.top4 || 0,
+      bestPlacement: seasonData?.bestPlacement || 999,
+      pointHistory: seasonData?.pointHistory || [],
+      rank: idx + 1,
+    };
+  });
 
   const getTeamFlag = (name: string) => {
     const t = teamDatabase.find(td => td.name === name);
     return t ? countryFlag(t.country) : "🏳️";
   };
 
-  if (standings.length === 0) {
+  if (mergedRanking.length === 0) {
     return (
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-3 mb-6">
             <TrendingUp className="w-6 h-6 text-primary" />
-            <h2 className="text-3xl font-heading font-bold text-foreground">Ranking Sezonowy</h2>
+            <h2 className="text-3xl font-heading font-bold text-foreground">Ranking Ogólny</h2>
           </div>
           <div className="bg-card border border-border rounded-lg p-12 text-center">
             <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-            <p className="text-muted-foreground font-mono">Zagraj turnieje, aby zobaczyć ranking sezonowy.</p>
-            <p className="text-muted-foreground/60 text-sm mt-2">Przejdź do zakładki Turnieje → Symulacja Sezonu</p>
+            <p className="text-muted-foreground font-mono">Zagraj turnieje, aby zobaczyć zmiany w rankingu.</p>
           </div>
         </div>
       </section>
     );
   }
 
-  const maxPoints = standings[0]?.totalPoints || 1;
+  const maxPoints = mergedRanking[0]?.totalPoints || 1;
+  const completedTournaments = standings.length > 0 ? standings[0]?.tournaments || 0 : 0;
 
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-3 mb-6">
           <TrendingUp className="w-6 h-6 text-primary" />
-          <h2 className="text-3xl font-heading font-bold text-foreground">Ranking Sezonowy</h2>
+          <h2 className="text-3xl font-heading font-bold text-foreground">Ranking Ogólny</h2>
           <span className="text-sm font-mono text-muted-foreground ml-2">
-            {standings.length} drużyn • {standings.reduce((sum, s) => sum + s.tournaments, 0) / standings.length > 0 ? `${standings[0]?.tournaments || 0} turniejów` : ""}
+            {mergedRanking.length} drużyn {completedTournaments > 0 ? `• ${completedTournaments} turniejów rozegranych` : ""}
           </span>
         </div>
 
         {/* Top 3 Podium */}
-        {standings.length >= 3 && (
+        {mergedRanking.length >= 3 && (
           <div className="grid grid-cols-3 gap-4 mb-8">
-            {[standings[1], standings[0], standings[2]].map((team, i) => {
+            {[mergedRanking[1], mergedRanking[0], mergedRanking[2]].map((team, i) => {
               const rank = i === 0 ? 2 : i === 1 ? 1 : 3;
               const heights = ["h-32", "h-40", "h-24"];
               const colors = [
@@ -103,7 +119,7 @@ const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
             <span>Pasek</span>
           </div>
 
-          {standings.map((team, i) => {
+          {mergedRanking.map((team, i) => {
             const isExpanded = expandedTeam === team.team;
             return (
               <motion.div
@@ -149,7 +165,7 @@ const SeasonStandings = ({ standings, onSelectTeam }: SeasonStandingsProps) => {
                 </button>
 
                 {/* Expanded history */}
-                {isExpanded && (
+                {isExpanded && team.pointHistory.length > 0 && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}

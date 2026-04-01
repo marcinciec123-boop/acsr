@@ -268,7 +268,7 @@ const Index = () => {
         />
       )}
       {activeTab === "standings" && (
-        <SeasonStandings standings={seasonStandings} onSelectTeam={handleSelectTeam} />
+        <SeasonStandings standings={seasonStandings} dynamicRanking={dynamicRanking} onSelectTeam={handleSelectTeam} />
       )}
       {activeTab === "history" && <HistoryTab onRosterChange={() => setRosterVersion(v => v + 1)} />}
       {activeTab === "settings" && (
