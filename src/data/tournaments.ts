@@ -255,10 +255,17 @@ export function calculateSeasonStandings(
   simResults: Record<string, TournamentSimulation>
 ): SeasonTeamStanding[] {
   const standings: Record<string, SeasonTeamStanding> = {};
+  // Track cumulative points for ELO rank calculation
+  const cumulativePoints: Record<string, number> = {};
+  teamDatabase.forEach(t => { cumulativePoints[t.name] = t.points; });
 
   for (const t of tournaments) {
     const sim = simResults[t.id];
     if (!sim) continue;
+    const tournament = tournaments.find(tr => tr.id === t.id);
+    if (!tournament) continue;
+
+    // Placement points
     sim.placements.forEach(p => {
       if (!standings[p.team]) {
         standings[p.team] = { team: p.team, totalPoints: 0, tournaments: 0, wins: 0, top4: 0, bestPlacement: 999, pointHistory: [] };
@@ -269,9 +276,63 @@ export function calculateSeasonStandings(
       if (p.placement === 1) s.wins++;
       if (p.placement <= 4) s.top4++;
       if (p.placement < s.bestPlacement) s.bestPlacement = p.placement;
-      s.pointHistory.push({ tournamentId: t.id, tournamentName: t.name, placement: p.placement, points: p.points });
+      if (!cumulativePoints[p.team]) cumulativePoints[p.team] = 0;
+      cumulativePoints[p.team] += p.points;
+    });
+
+    // ELO match points
+    const allMatches = collectAllSimMatches(sim);
+    const tempRanking = teamDatabase
+      .map(team => ({ name: team.name, points: cumulativePoints[team.name] || team.points }))
+      .sort((a, b) => b.points - a.points);
+
+    const kFactor = tournament.tier === "S" ? 40 : tournament.tier === "A" ? 30 : tournament.tier === "B" ? 20 : 12;
+
+    for (const match of allMatches) {
+      if (match.winner === "" || match.team2 === "BYE") continue;
+      const rank1 = tempRanking.findIndex(r => r.name === match.team1) + 1 || 50;
+      const rank2 = tempRanking.findIndex(r => r.name === match.team2) + 1 || 50;
+      const loser = match.winner === match.team1 ? match.team2 : match.team1;
+      const winnerRank = match.winner === match.team1 ? rank1 : rank2;
+      const loserRank = match.winner === match.team1 ? rank2 : rank1;
+
+      const s1 = 100 - Math.min(winnerRank, 100);
+      const s2 = 100 - Math.min(loserRank, 100);
+      const expected = 1 / (1 + Math.pow(10, -(s1 - s2) / 40));
+      const winPts = Math.round(kFactor * (1 - expected));
+      const losePts = Math.round(kFactor * (0 - (1 - expected)));
+
+      // Add ELO to standings
+      [match.winner, loser].forEach(team => {
+        if (!standings[team]) {
+          standings[team] = { team, totalPoints: 0, tournaments: 0, wins: 0, top4: 0, bestPlacement: 999, pointHistory: [] };
+        }
+      });
+      standings[match.winner].totalPoints += winPts;
+      standings[loser].totalPoints += losePts;
+
+      if (!cumulativePoints[match.winner]) cumulativePoints[match.winner] = 0;
+      if (!cumulativePoints[loser]) cumulativePoints[loser] = 0;
+      cumulativePoints[match.winner] += winPts;
+      cumulativePoints[loser] += losePts;
+    }
+
+    // Record history per tournament
+    sim.placements.forEach(p => {
+      const s = standings[p.team];
+      if (s) {
+        const eloForTeam = (cumulativePoints[p.team] || 0) - (teamDatabase.find(td => td.name === p.team)?.points || 0);
+        // Update last history entry with total earned
+        const lastEntry = s.pointHistory[s.pointHistory.length - 1];
+        if (lastEntry && lastEntry.tournamentId === t.id) {
+          lastEntry.points = p.points + Math.round(eloForTeam / s.tournaments);
+        }
+      }
     });
   }
+
+  // Remove negative totals
+  Object.values(standings).forEach(s => { s.totalPoints = Math.max(0, s.totalPoints); });
 
   return Object.values(standings).sort((a, b) => b.totalPoints - a.totalPoints);
 }
