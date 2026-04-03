@@ -625,7 +625,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const [groupsResult, setGroupsResult] = useState<GroupResult[] | null>(savedProgress.current?.groupsResult || null);
   const [majorStages, setMajorStages] = useState<MajorStage[]>(savedProgress.current?.majorStages || []);
   const [groupsGenerated, setGroupsGenerated] = useState(savedProgress.current?.groupsGenerated || false);
-
+  const [showDrawCeremony, setShowDrawCeremony] = useState(false);
   // Determine initial phase
   const initialPhase = savedProgress.current?.currentPhase || (
     format === "knockout" ? "knockout"
