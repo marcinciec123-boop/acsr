@@ -777,28 +777,33 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   }[]>([]);
   const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
 
+  const generateGslGroupsFromDraw = (drawnGroups: string[][]) => {
+    const groups = drawnGroups.map((groupTeams, g) => {
+      const groupName = String.fromCharCode(65 + g);
+      const gt = groupTeams.slice(0, 4);
+      const matches: MatchResult[] = [
+        { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
+        { team1: gt[2], team2: gt[3] || "BYE", score1: 0, score2: 0, winner: gt[3] ? "" : gt[2], bo: 1 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
+      ];
+      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[] };
+    });
+    setGslGroups(groups);
+    setGroupsGenerated(true);
+    setShowDrawCeremony(false);
+  };
+
   const generateGslGroups = () => {
     const shuffled = [...teams].sort(() => Math.random() - 0.5);
     const groupCount = teams.length <= 8 ? 2 : 4;
     const perGroup = Math.ceil(shuffled.length / groupCount);
-    const groups = [];
-
+    const drawnGroups: string[][] = [];
     for (let g = 0; g < groupCount; g++) {
-      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4);
-      const groupName = String.fromCharCode(65 + g);
-      // Create opening matches
-      const matches: MatchResult[] = [
-        { team1: groupTeams[0], team2: groupTeams[1], score1: 0, score2: 0, winner: "", bo: 1 }, // opening 1
-        { team1: groupTeams[2], team2: groupTeams[3] || "BYE", score1: 0, score2: 0, winner: groupTeams[3] ? "" : groupTeams[2], bo: 1 }, // opening 2
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // winners match
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 }, // losers match (elimination)
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // decider
-      ];
-      groups.push({ groupName, teams: groupTeams, matches, phase: 0, qualified: [], eliminated: [] });
+      drawnGroups.push(shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4));
     }
-
-    setGslGroups(groups);
-    setGroupsGenerated(true);
+    generateGslGroupsFromDraw(drawnGroups);
   };
 
   const resolveGslMatch = (groupIdx: number, matchIdx: number, result: MatchResult) => {
