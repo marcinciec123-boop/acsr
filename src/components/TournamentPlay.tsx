@@ -1134,13 +1134,26 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
 
     const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
 
+    // Show draw ceremony
+    if (showDrawCeremony) {
+      const groupCount = teams.length <= 8 ? 2 : 4;
+      return (
+        <GroupDrawCeremony
+          teams={teams}
+          groupCount={groupCount}
+          onComplete={(drawnGroups) => generateGslGroupsFromDraw(drawnGroups)}
+          onSkip={generateGslGroups}
+        />
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa (GSL)</h3>
           <div className="flex gap-2">
             {!groupsGenerated && (
-              <button onClick={generateGslGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+              <button onClick={() => setShowDrawCeremony(true)} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
                 <Play className="w-4 h-4" />
                 Losuj grupy
               </button>
