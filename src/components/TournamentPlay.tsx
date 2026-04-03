@@ -8,6 +8,7 @@ import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
+import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -624,7 +625,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const [groupsResult, setGroupsResult] = useState<GroupResult[] | null>(savedProgress.current?.groupsResult || null);
   const [majorStages, setMajorStages] = useState<MajorStage[]>(savedProgress.current?.majorStages || []);
   const [groupsGenerated, setGroupsGenerated] = useState(savedProgress.current?.groupsGenerated || false);
-
+  const [showDrawCeremony, setShowDrawCeremony] = useState(false);
   // Determine initial phase
   const initialPhase = savedProgress.current?.currentPhase || (
     format === "knockout" ? "knockout"
@@ -776,28 +777,33 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   }[]>([]);
   const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
 
+  const generateGslGroupsFromDraw = (drawnGroups: string[][]) => {
+    const groups = drawnGroups.map((groupTeams, g) => {
+      const groupName = String.fromCharCode(65 + g);
+      const gt = groupTeams.slice(0, 4);
+      const matches: MatchResult[] = [
+        { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
+        { team1: gt[2], team2: gt[3] || "BYE", score1: 0, score2: 0, winner: gt[3] ? "" : gt[2], bo: 1 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 },
+        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
+      ];
+      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[] };
+    });
+    setGslGroups(groups);
+    setGroupsGenerated(true);
+    setShowDrawCeremony(false);
+  };
+
   const generateGslGroups = () => {
     const shuffled = [...teams].sort(() => Math.random() - 0.5);
     const groupCount = teams.length <= 8 ? 2 : 4;
     const perGroup = Math.ceil(shuffled.length / groupCount);
-    const groups = [];
-
+    const drawnGroups: string[][] = [];
     for (let g = 0; g < groupCount; g++) {
-      const groupTeams = shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4);
-      const groupName = String.fromCharCode(65 + g);
-      // Create opening matches
-      const matches: MatchResult[] = [
-        { team1: groupTeams[0], team2: groupTeams[1], score1: 0, score2: 0, winner: "", bo: 1 }, // opening 1
-        { team1: groupTeams[2], team2: groupTeams[3] || "BYE", score1: 0, score2: 0, winner: groupTeams[3] ? "" : groupTeams[2], bo: 1 }, // opening 2
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // winners match
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 }, // losers match (elimination)
-        { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 }, // decider
-      ];
-      groups.push({ groupName, teams: groupTeams, matches, phase: 0, qualified: [], eliminated: [] });
+      drawnGroups.push(shuffled.slice(g * perGroup, (g + 1) * perGroup).slice(0, 4));
     }
-
-    setGslGroups(groups);
-    setGroupsGenerated(true);
+    generateGslGroupsFromDraw(drawnGroups);
   };
 
   const resolveGslMatch = (groupIdx: number, matchIdx: number, result: MatchResult) => {
@@ -1128,13 +1134,26 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
 
     const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
 
+    // Show draw ceremony
+    if (showDrawCeremony) {
+      const groupCount = teams.length <= 8 ? 2 : 4;
+      return (
+        <GroupDrawCeremony
+          teams={teams}
+          groupCount={groupCount}
+          onComplete={(drawnGroups) => generateGslGroupsFromDraw(drawnGroups)}
+          onSkip={generateGslGroups}
+        />
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-xl font-bold text-foreground">Faza Grupowa (GSL)</h3>
           <div className="flex gap-2">
             {!groupsGenerated && (
-              <button onClick={generateGslGroups} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+              <button onClick={() => setShowDrawCeremony(true)} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
                 <Play className="w-4 h-4" />
                 Losuj grupy
               </button>

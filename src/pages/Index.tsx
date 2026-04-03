@@ -13,6 +13,7 @@ import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
 import HistoryTab from "@/components/HistoryTab";
+import TournamentSummary from "@/components/TournamentSummary";
 import { type MatchStats } from "@/lib/playerStats";
 import {
   initialTournaments,
@@ -40,6 +41,7 @@ const Index = () => {
   const [qualifyingTournamentId, setQualifyingTournamentId] = useState<string | null>(null);
   const [rosterVersion, setRosterVersion] = useState(0);
   const [globalMatchStats, setGlobalMatchStats] = useState<Record<string, MatchStats>>({});
+  const [completedSummary, setCompletedSummary] = useState<{ tournament: Tournament; sim: TournamentSimulation; stats: Record<string, MatchStats> } | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
@@ -180,14 +182,18 @@ const Index = () => {
 
   const handlePlayComplete = (sim: TournamentSimulation, matchStats?: Record<string, MatchStats>) => {
     const id = playingTournamentId!;
+    const tournament = tournaments.find(t => t.id === id)!;
     setSimResults((prev) => ({ ...prev, [id]: sim }));
     setTournaments((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: "completed" as const } : t))
     );
+    const stats = matchStats || {};
     if (matchStats) {
       setGlobalMatchStats(prev => ({ ...prev, ...matchStats }));
     }
     setPlayingTournamentId(null);
+    // Show tournament summary
+    setCompletedSummary({ tournament, sim, stats });
   };
 
   const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
@@ -211,7 +217,18 @@ const Index = () => {
       )}
 
       {activeTab === "tournaments" && (
-        qualifyingTournament ? (
+        completedSummary ? (
+          <section className="py-8">
+            <div className="container mx-auto px-4">
+              <TournamentSummary
+                tournament={completedSummary.tournament}
+                simulation={completedSummary.sim}
+                matchStats={completedSummary.stats}
+                onClose={() => setCompletedSummary(null)}
+              />
+            </div>
+          </section>
+        ) : qualifyingTournament ? (
           <QualifierPlay
             tournament={qualifyingTournament}
             invitedTeams={getInvitedTeamsByRanking(qualifyingTournament, dynamicRanking)}
