@@ -217,7 +217,18 @@ const Index = () => {
       )}
 
       {activeTab === "tournaments" && (
-        qualifyingTournament ? (
+        completedSummary ? (
+          <section className="py-8">
+            <div className="container mx-auto px-4">
+              <TournamentSummary
+                tournament={completedSummary.tournament}
+                simulation={completedSummary.sim}
+                matchStats={completedSummary.stats}
+                onClose={() => setCompletedSummary(null)}
+              />
+            </div>
+          </section>
+        ) : qualifyingTournament ? (
           <QualifierPlay
             tournament={qualifyingTournament}
             invitedTeams={getInvitedTeamsByRanking(qualifyingTournament, dynamicRanking)}
