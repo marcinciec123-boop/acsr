@@ -182,14 +182,18 @@ const Index = () => {
 
   const handlePlayComplete = (sim: TournamentSimulation, matchStats?: Record<string, MatchStats>) => {
     const id = playingTournamentId!;
+    const tournament = tournaments.find(t => t.id === id)!;
     setSimResults((prev) => ({ ...prev, [id]: sim }));
     setTournaments((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: "completed" as const } : t))
     );
+    const stats = matchStats || {};
     if (matchStats) {
       setGlobalMatchStats(prev => ({ ...prev, ...matchStats }));
     }
     setPlayingTournamentId(null);
+    // Show tournament summary
+    setCompletedSummary({ tournament, sim, stats });
   };
 
   const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
