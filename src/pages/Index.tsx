@@ -41,6 +41,7 @@ const Index = () => {
   const [qualifyingTournamentId, setQualifyingTournamentId] = useState<string | null>(null);
   const [rosterVersion, setRosterVersion] = useState(0);
   const [globalMatchStats, setGlobalMatchStats] = useState<Record<string, MatchStats>>({});
+  const [completedSummary, setCompletedSummary] = useState<{ tournament: Tournament; sim: TournamentSimulation; stats: Record<string, MatchStats> } | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
