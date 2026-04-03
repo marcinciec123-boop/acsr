@@ -18,15 +18,15 @@ const TournamentSummary = ({ tournament, simulation, matchStats, onClose }: Tour
   // Calculate MVP from match stats
   const playerPerformances: Record<string, { kills: number; deaths: number; maps: number; rating: number; team: string }> = {};
   Object.values(matchStats).forEach(stats => {
-    [...stats.team1Players, ...stats.team2Players].forEach(p => {
-      if (!playerPerformances[p.name]) {
-        playerPerformances[p.name] = { kills: 0, deaths: 0, maps: 0, rating: 0, team: p.team || "" };
+    [...stats.team1Stats, ...stats.team2Stats].forEach(p => {
+      if (!playerPerformances[p.playerName]) {
+        playerPerformances[p.playerName] = { kills: 0, deaths: 0, maps: 0, rating: 0, team: p.team || "" };
       }
-      const pp = playerPerformances[p.name];
+      const pp = playerPerformances[p.playerName];
       pp.kills += p.kills;
       pp.deaths += p.deaths;
       pp.maps += 1;
-      pp.rating += p.rating;
+      pp.rating += (p.rating || 0);
       if (p.team) pp.team = p.team;
     });
   });
