@@ -13,6 +13,7 @@ import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
 import HistoryTab from "@/components/HistoryTab";
+import TournamentSummary from "@/components/TournamentSummary";
 import { type MatchStats } from "@/lib/playerStats";
 import {
   initialTournaments,
