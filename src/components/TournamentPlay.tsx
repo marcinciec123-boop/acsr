@@ -8,6 +8,7 @@ import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
+import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 
 interface TournamentPlayProps {
   tournament: Tournament;
