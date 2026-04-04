@@ -273,7 +273,7 @@ const Index = () => {
             onSelectPlayer={handleSelectPlayer}
           />
         ) : (
-          <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} />
+          <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} dynamicRanking={dynamicRanking} />
         )
       )}
       {activeTab === "player-ratings" && (
@@ -283,9 +283,6 @@ const Index = () => {
           allMatchStats={globalMatchStats}
           onSelectPlayer={handleSelectPlayer}
         />
-      )}
-      {activeTab === "standings" && (
-        <SeasonStandings standings={seasonStandings} dynamicRanking={dynamicRanking} onSelectTeam={handleSelectTeam} />
       )}
       {activeTab === "history" && <HistoryTab onRosterChange={() => setRosterVersion(v => v + 1)} />}
       {activeTab === "settings" && (
