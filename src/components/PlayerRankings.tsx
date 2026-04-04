@@ -80,7 +80,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <Users className="w-6 h-6 text-primary" />
           <h2 className="text-3xl font-heading font-bold text-foreground">ACSR World Ranking</h2>
-          <span className="text-sm font-mono text-muted-foreground ml-2">{teamDatabase.length} drużyn</span>
+          <span className="text-sm font-mono text-muted-foreground ml-2">{rankingSource.length} drużyn</span>
           <button
             onClick={() => setShowPlayerSearch(!showPlayerSearch)}
             className={cn(
