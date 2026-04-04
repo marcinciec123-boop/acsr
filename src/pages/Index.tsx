@@ -8,7 +8,7 @@ import QualifierPlay from "@/components/QualifierPlay";
 import EventCalendar from "@/components/EventCalendar";
 import PlayerRankings from "@/components/PlayerRankings";
 import PlayerRatingRankings from "@/components/PlayerRatingRankings";
-import SeasonStandings from "@/components/SeasonStandings";
+
 import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import SettingsTab from "@/components/SettingsTab";
@@ -273,7 +273,7 @@ const Index = () => {
             onSelectPlayer={handleSelectPlayer}
           />
         ) : (
-          <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} />
+          <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} dynamicRanking={dynamicRanking} />
         )
       )}
       {activeTab === "player-ratings" && (
@@ -283,9 +283,6 @@ const Index = () => {
           allMatchStats={globalMatchStats}
           onSelectPlayer={handleSelectPlayer}
         />
-      )}
-      {activeTab === "standings" && (
-        <SeasonStandings standings={seasonStandings} dynamicRanking={dynamicRanking} onSelectTeam={handleSelectTeam} />
       )}
       {activeTab === "history" && <HistoryTab onRosterChange={() => setRosterVersion(v => v + 1)} />}
       {activeTab === "settings" && (

@@ -9,6 +9,7 @@ import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
+import PlayoffBracket from "@/components/PlayoffBracket";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -110,13 +111,16 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
       if (low < minLoser || low > maxLoser) return;
     }
     const winner = score1 > score2 ? match.team1 : match.team2;
-    const mapScore1 = isBo1 ? 1 : score1;
-    const mapScore2 = isBo1 ? 0 : score2;
-    const updatedMatch = { ...match, score1: winner === match.team1 ? mapScore1 : mapScore2, score2: winner === match.team1 ? mapScore2 : mapScore1, winner };
-    onUpdate(updatedMatch);
+    if (isBo1) {
+      const updatedMatch = { ...match, score1: 1, score2: 0, winner, mapScore1: winner === match.team1 ? score1 : score2, mapScore2: winner === match.team1 ? score2 : score1 };
+      onUpdate(updatedMatch);
+    } else {
+      const updatedMatch = { ...match, score1: winner === match.team1 ? score1 : score2, score2: winner === match.team1 ? score2 : score1, winner };
+      onUpdate(updatedMatch);
+    }
     setEditing(false);
     if (onUpdateStats) {
-      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? score1 : score1, isBo1 ? score2 : score2, match.bo);
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };
@@ -172,13 +176,16 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
             </div>
           ) : (
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
-              {resolved ? (
+              {resolved ? (() => {
+                const [ds1, ds2] = getDisplayScores(match);
+                return (
                 <div className="flex items-center gap-3">
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{ds1}</span>
                   <span className="text-muted-foreground text-xl">:</span>
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{ds2}</span>
                 </div>
-              ) : (
+                );
+              })() : (
                 <span className="text-xl font-mono text-muted-foreground">vs</span>
               )}
             </div>
@@ -269,6 +276,14 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
   );
 };
 
+// Helper to get display scores (mapScore for Bo1, series score for Bo3/Bo5)
+const getDisplayScores = (m: MatchResult): [number | string, number | string] => {
+  if (m.bo === 1 && m.mapScore1 !== undefined && m.mapScore2 !== undefined) {
+    return [m.mapScore1, m.mapScore2];
+  }
+  return [m.score1, m.score2];
+};
+
 // ===== Compact Match Card (in list) =====
 const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats, onOpenDetail }: EditableMatchProps & {
   matchStats?: MatchStats | null;
@@ -284,6 +299,8 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       </div>
     );
   }
+
+  const [ds1, ds2] = getDisplayScores(match);
 
   return (
     <div className={cn(
@@ -301,9 +318,9 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
         <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
           {resolved ? (
             <>
-              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
+              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{ds1}</span>
               <span className="text-muted-foreground mx-1">:</span>
-              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{ds2}</span>
             </>
           ) : (
             <span className="text-muted-foreground">vs</span>
@@ -318,13 +335,12 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
         </div>
       </div>
 
-      {/* "Go to match" button */}
       <button
         onClick={onOpenDetail}
         className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors border-t border-border/50"
       >
         <ExternalLink className="w-3 h-3" />
-        Przejdź do meczu
+        {resolved ? "Podgląd meczu" : "Przejdź do meczu"}
       </button>
     </div>
   );
@@ -770,10 +786,11 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const [gslGroups, setGslGroups] = useState<{
     groupName: string;
     teams: string[];
-    matches: MatchResult[]; // 0: opening1, 1: opening2, 2: winners, 3: losers, 4: decider
-    phase: number; // 0=opening, 1=winners+losers, 2=decider, 3=done
+    matches: MatchResult[];
+    phase: number;
     qualified: string[];
     eliminated: string[];
+    is3Team?: boolean;
   }[]>([]);
   const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
 
@@ -781,6 +798,18 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     const groups = drawnGroups.map((groupTeams, g) => {
       const groupName = String.fromCharCode(65 + g);
       const gt = groupTeams.slice(0, 4);
+      
+      if (gt.length === 3) {
+        // 3-team group: round-robin (3 Bo1 matches), top 2 qualify
+        const matches: MatchResult[] = [
+          { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
+          { team1: gt[0], team2: gt[2], score1: 0, score2: 0, winner: "", bo: 1 },
+          { team1: gt[1], team2: gt[2], score1: 0, score2: 0, winner: "", bo: 1 },
+        ];
+        return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[], is3Team: true };
+      }
+      
+      // 4-team GSL group
       const matches: MatchResult[] = [
         { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
         { team1: gt[2], team2: gt[3] || "BYE", score1: 0, score2: 0, winner: gt[3] ? "" : gt[2], bo: 1 },
@@ -788,7 +817,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 },
         { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
       ];
-      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[] };
+      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[], is3Team: false };
     });
     setGslGroups(groups);
     setGroupsGenerated(true);
@@ -812,47 +841,55 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     const matches = [...group.matches];
     matches[matchIdx] = result;
 
-    // Progress GSL bracket
-    if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
-      // Opening done → set up winners & losers matches
-      matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
-      const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
-      const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
-      matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
-      group.phase = 1;
-    }
+    if (group.is3Team) {
+      // 3-team round-robin: once all 3 matches resolved, rank by wins
+      const allDone = matches.every(m => !!m.winner);
+      if (allDone) {
+        const teamWins: Record<string, number> = {};
+        group.teams.forEach(t => { teamWins[t] = 0; });
+        matches.forEach(m => { if (m.winner) teamWins[m.winner] = (teamWins[m.winner] || 0) + 1; });
+        const sorted = Object.entries(teamWins).sort((a, b) => b[1] - a[1]);
+        group.qualified = [sorted[0][0], sorted[1][0]];
+        group.eliminated = [sorted[2][0]];
+        group.phase = 3;
+      }
+    } else {
+      // Standard GSL bracket logic
+      if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
+        matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
+        const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
+        const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
+        matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
+        group.phase = 1;
+      }
 
-    if (matchIdx === 2 && matches[2].winner) {
-      // Winners match done → winner qualifies
-      group.qualified = [...group.qualified, matches[2].winner];
-      const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
-      // Check if losers match is done to set up decider
-      if (matches[3].winner) {
+      if (matchIdx === 2 && matches[2].winner) {
+        group.qualified = [...group.qualified, matches[2].winner];
+        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+        if (matches[3].winner) {
+          const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+          group.eliminated = [...group.eliminated, losersLoser];
+          matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+          group.phase = 2;
+        }
+      }
+
+      if (matchIdx === 3 && matches[3].winner) {
         const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
         group.eliminated = [...group.eliminated, losersLoser];
-        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
-        group.phase = 2;
+        if (matches[2].winner) {
+          const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+          matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+          group.phase = 2;
+        }
       }
-    }
 
-    if (matchIdx === 3 && matches[3].winner) {
-      // Losers match done → loser eliminated
-      const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
-      group.eliminated = [...group.eliminated, losersLoser];
-      // Check if winners match is done to set up decider
-      if (matches[2].winner) {
-        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
-        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
-        group.phase = 2;
+      if (matchIdx === 4 && matches[4].winner) {
+        group.qualified = [...group.qualified, matches[4].winner];
+        const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
+        group.eliminated = [...group.eliminated, deciderLoser];
+        group.phase = 3;
       }
-    }
-
-    if (matchIdx === 4 && matches[4].winner) {
-      // Decider done → winner qualifies, loser eliminated
-      group.qualified = [...group.qualified, matches[4].winner];
-      const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
-      group.eliminated = [...group.eliminated, deciderLoser];
-      group.phase = 3;
     }
 
     group.matches = matches;
@@ -968,9 +1005,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
               <div key={i} className="flex items-center bg-card border border-border/50 rounded-md overflow-hidden text-sm">
                 <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
                 <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
-                  <span className="text-muted-foreground mx-1">:</span>
-                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
+                  {(() => { const [d1,d2] = getDisplayScores(m); return (<><span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span><span className="text-muted-foreground mx-1">:</span><span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span></>); })()}
                 </div>
                 <div className={cn("flex-1 px-3 py-2 truncate font-medium", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
               </div>
@@ -1042,38 +1077,23 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         </div>
       </div>
 
-      {/* Winner */}
-      {knockout.finished && knockout.winner && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 rounded-lg border border-accent/30 bg-accent/5 text-center">
-          <Crown className="w-8 h-8 text-accent mx-auto mb-2" />
-          <p className="text-xs font-mono text-accent uppercase tracking-widest mb-1">Zwycięzca</p>
-          <p className="text-3xl font-heading font-bold text-foreground">{knockout.winner}</p>
-        </motion.div>
+      {/* Visual Bracket */}
+      {knockout.started && (
+        <PlayoffBracket
+          completedRounds={knockout.completedRounds}
+          currentMatches={knockout.currentMatches}
+          currentRoundName={knockout.roundName}
+          winner={knockout.winner}
+          finished={knockout.finished}
+          onMatchClick={(ri, mi, isCurrent) => {
+            if (isCurrent) {
+              setActiveMatchDetail({ source: "knockout", index: mi });
+            }
+          }}
+        />
       )}
 
-      {/* Completed rounds */}
-      {knockout.completedRounds.map((round, ri) => (
-        <div key={ri}>
-          <h4 className="font-heading text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">
-            {round.name} (zakończona)
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 opacity-70">
-            {round.matches.filter(m => m.team2 !== "BYE").map((m, i) => (
-              <div key={i} className="flex items-center bg-card border border-border/50 rounded-md overflow-hidden text-sm">
-                <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
-                <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
-                  <span className="text-muted-foreground mx-1">:</span>
-                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
-                </div>
-                <div className={cn("flex-1 px-3 py-2 truncate font-medium", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* Current round */}
+      {/* Current round interactive matches */}
       {knockout.started && !knockout.finished && knockout.currentMatches.length > 0 && (
         <div>
           <h4 className="font-heading text-sm font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
@@ -1133,6 +1153,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     }
 
     const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
+    const matchLabels3Team = ["Kolejka 1", "Kolejka 2", "Kolejka 3"];
 
     // Show draw ceremony
     if (showDrawCeremony) {
@@ -1181,7 +1202,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                     const isResolved = !!m.winner;
                     return (
                       <div key={mi} className="space-y-1">
-                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{matchLabels[mi]}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{group.is3Team ? matchLabels3Team[mi] : matchLabels[mi]}</p>
                         <div className={cn(
                           "bg-secondary/30 border rounded-md overflow-hidden text-sm",
                           isResolved ? "border-win/20" : "border-primary/30"
@@ -1189,13 +1210,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                           <div className="flex items-center">
                             <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", isResolved && m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
                             <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[50px] text-center">
-                              {isResolved ? (
-                                <>
-                                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
-                                  <span className="text-muted-foreground mx-1">:</span>
-                                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
-                                </>
-                              ) : (
+                              {isResolved ? (() => { const [d1,d2] = getDisplayScores(m); return (<><span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span><span className="text-muted-foreground mx-1">:</span><span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span></>); })() : (
                                 <span className="text-muted-foreground">vs</span>
                               )}
                             </div>

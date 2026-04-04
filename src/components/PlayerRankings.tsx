@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, ChevronDown, ChevronUp, Globe, Search, X, User } from "lucide-react";
-import { teamDatabase } from "@/data/tournaments";
+import { Users, ChevronDown, ChevronUp, Globe, Search, X, User, TrendingUp } from "lucide-react";
+import { teamDatabase, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
@@ -22,27 +22,30 @@ const tierLabel = (rank: number) => {
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
-// Build unique player nationalities list
 const allPlayerCountries = [...new Set(Object.values(playerNationalities))].sort();
 
 interface PlayerRankingsProps {
   onSelectTeam?: (teamName: string) => void;
   onSelectPlayer?: (playerName: string) => void;
+  dynamicRanking?: TeamData[];
 }
 
-const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) => {
+const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: PlayerRankingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
   const [nationalityFilter, setNationalityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showPlayerSearch, setShowPlayerSearch] = useState(false);
 
+  // Use dynamic ranking if available, otherwise base teamDatabase
+  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
+
   // Player search results
   const playerResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     const results: { player: string; country: string; team: string; teamRank: number }[] = [];
-    teamDatabase.forEach((team, idx) => {
+    rankingSource.forEach((team, idx) => {
       team.roster.forEach(player => {
         if (player.toLowerCase().includes(q)) {
           results.push({
@@ -55,11 +58,11 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) =
       });
     });
     return results.slice(0, 20);
-  }, [searchQuery]);
+  }, [searchQuery, rankingSource]);
 
   // Filter teams
   const filtered = useMemo(() => {
-    let teams = teamDatabase;
+    let teams = rankingSource;
     if (regionFilter !== "all") {
       teams = teams.filter(t => t.region === regionFilter);
     }
@@ -69,7 +72,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) =
       );
     }
     return teams;
-  }, [regionFilter, nationalityFilter]);
+  }, [regionFilter, nationalityFilter, rankingSource]);
 
   return (
     <section className="py-12">
@@ -77,7 +80,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) =
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <Users className="w-6 h-6 text-primary" />
           <h2 className="text-3xl font-heading font-bold text-foreground">ACSR World Ranking</h2>
-          <span className="text-sm font-mono text-muted-foreground ml-2">{teamDatabase.length} drużyn</span>
+          <span className="text-sm font-mono text-muted-foreground ml-2">{rankingSource.length} drużyn</span>
           <button
             onClick={() => setShowPlayerSearch(!showPlayerSearch)}
             className={cn(
@@ -196,7 +199,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) =
           </div>
 
           {filtered.map((team, index) => {
-            const globalRank = teamDatabase.indexOf(team) + 1;
+            const globalRank = rankingSource.indexOf(team) + 1;
             const tier = tierLabel(globalRank);
             const isExpanded = expandedTeam === team.name;
 
