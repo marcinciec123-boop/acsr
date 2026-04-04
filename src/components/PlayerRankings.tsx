@@ -199,7 +199,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
           </div>
 
           {filtered.map((team, index) => {
-            const globalRank = teamDatabase.indexOf(team) + 1;
+            const globalRank = rankingSource.indexOf(team) + 1;
             const tier = tierLabel(globalRank);
             const isExpanded = expandedTeam === team.name;
 
