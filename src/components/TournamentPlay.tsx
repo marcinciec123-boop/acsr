@@ -9,6 +9,7 @@ import MatchStatsPanel from "@/components/MatchStatsPanel";
 import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
+import PlayoffBracket from "@/components/PlayoffBracket";
 
 interface TournamentPlayProps {
   tournament: Tournament;
