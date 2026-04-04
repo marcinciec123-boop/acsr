@@ -62,7 +62,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
 
   // Filter teams
   const filtered = useMemo(() => {
-    let teams = teamDatabase;
+    let teams = rankingSource;
     if (regionFilter !== "all") {
       teams = teams.filter(t => t.region === regionFilter);
     }
@@ -72,7 +72,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
       );
     }
     return teams;
-  }, [regionFilter, nationalityFilter]);
+  }, [regionFilter, nationalityFilter, rankingSource]);
 
   return (
     <section className="py-12">
