@@ -1075,9 +1075,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
               <div key={i} className="flex items-center bg-card border border-border/50 rounded-md overflow-hidden text-sm">
                 <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
                 <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-                  <span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score1}</span>
-                  <span className="text-muted-foreground mx-1">:</span>
-                  <span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{m.score2}</span>
+                  {(() => { const [d1,d2] = getDisplayScores(m); return (<><span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span><span className="text-muted-foreground mx-1">:</span><span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span></>); })()}
                 </div>
                 <div className={cn("flex-1 px-3 py-2 truncate font-medium", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
               </div>
