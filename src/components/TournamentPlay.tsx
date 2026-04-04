@@ -272,6 +272,14 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
   );
 };
 
+// Helper to get display scores (mapScore for Bo1, series score for Bo3/Bo5)
+const getDisplayScores = (m: MatchResult): [number | string, number | string] => {
+  if (m.bo === 1 && m.mapScore1 !== undefined && m.mapScore2 !== undefined) {
+    return [m.mapScore1, m.mapScore2];
+  }
+  return [m.score1, m.score2];
+};
+
 // ===== Compact Match Card (in list) =====
 const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStats, onUpdateStats, onOpenDetail }: EditableMatchProps & {
   matchStats?: MatchStats | null;
@@ -287,6 +295,8 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       </div>
     );
   }
+
+  const [ds1, ds2] = getDisplayScores(match);
 
   return (
     <div className={cn(
@@ -304,9 +314,9 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
         <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
           {resolved ? (
             <>
-              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
+              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{ds1}</span>
               <span className="text-muted-foreground mx-1">:</span>
-              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{ds2}</span>
             </>
           ) : (
             <span className="text-muted-foreground">vs</span>
@@ -321,13 +331,12 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
         </div>
       </div>
 
-      {/* "Go to match" button */}
       <button
         onClick={onOpenDetail}
         className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors border-t border-border/50"
       >
         <ExternalLink className="w-3 h-3" />
-        Przejdź do meczu
+        {resolved ? "Podgląd meczu" : "Przejdź do meczu"}
       </button>
     </div>
   );
