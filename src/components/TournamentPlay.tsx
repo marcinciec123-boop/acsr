@@ -796,6 +796,18 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     const groups = drawnGroups.map((groupTeams, g) => {
       const groupName = String.fromCharCode(65 + g);
       const gt = groupTeams.slice(0, 4);
+      
+      if (gt.length === 3) {
+        // 3-team group: round-robin (3 Bo1 matches), top 2 qualify
+        const matches: MatchResult[] = [
+          { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
+          { team1: gt[0], team2: gt[2], score1: 0, score2: 0, winner: "", bo: 1 },
+          { team1: gt[1], team2: gt[2], score1: 0, score2: 0, winner: "", bo: 1 },
+        ];
+        return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[], is3Team: true };
+      }
+      
+      // 4-team GSL group
       const matches: MatchResult[] = [
         { team1: gt[0], team2: gt[1], score1: 0, score2: 0, winner: "", bo: 1 },
         { team1: gt[2], team2: gt[3] || "BYE", score1: 0, score2: 0, winner: gt[3] ? "" : gt[2], bo: 1 },
@@ -803,7 +815,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 1 },
         { team1: "TBD", team2: "TBD", score1: 0, score2: 0, winner: "", bo: 3 },
       ];
-      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[] };
+      return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[], is3Team: false };
     });
     setGslGroups(groups);
     setGroupsGenerated(true);
