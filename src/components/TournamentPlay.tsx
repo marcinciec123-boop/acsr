@@ -785,10 +785,11 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const [gslGroups, setGslGroups] = useState<{
     groupName: string;
     teams: string[];
-    matches: MatchResult[]; // 0: opening1, 1: opening2, 2: winners, 3: losers, 4: decider
-    phase: number; // 0=opening, 1=winners+losers, 2=decider, 3=done
+    matches: MatchResult[];
+    phase: number;
     qualified: string[];
     eliminated: string[];
+    is3Team?: boolean;
   }[]>([]);
   const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
 
