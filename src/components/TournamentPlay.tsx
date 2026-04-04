@@ -175,13 +175,16 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
             </div>
           ) : (
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
-              {resolved ? (
+              {resolved ? (() => {
+                const [ds1, ds2] = getDisplayScores(match);
+                return (
                 <div className="flex items-center gap-3">
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{ds1}</span>
                   <span className="text-muted-foreground text-xl">:</span>
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{ds2}</span>
                 </div>
-              ) : (
+                );
+              })() : (
                 <span className="text-xl font-mono text-muted-foreground">vs</span>
               )}
             </div>
