@@ -37,12 +37,15 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
   const [searchQuery, setSearchQuery] = useState("");
   const [showPlayerSearch, setShowPlayerSearch] = useState(false);
 
+  // Use dynamic ranking if available, otherwise base teamDatabase
+  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
+
   // Player search results
   const playerResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     const results: { player: string; country: string; team: string; teamRank: number }[] = [];
-    teamDatabase.forEach((team, idx) => {
+    rankingSource.forEach((team, idx) => {
       team.roster.forEach(player => {
         if (player.toLowerCase().includes(q)) {
           results.push({
@@ -55,7 +58,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
       });
     });
     return results.slice(0, 20);
-  }, [searchQuery]);
+  }, [searchQuery, rankingSource]);
 
   // Filter teams
   const filtered = useMemo(() => {
