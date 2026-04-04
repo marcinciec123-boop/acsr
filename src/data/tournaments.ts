@@ -343,16 +343,39 @@ export function calculateSeasonStandings(
 
 export function simulateMatch(team1: string, team2: string, bo: number): MatchResult {
   const winsNeeded = Math.ceil(bo / 2);
-  let s1 = 0, s2 = 0;
   // Strength based on ranking position
   const rank1 = teamDatabase.findIndex(t => t.name === team1);
   const rank2 = teamDatabase.findIndex(t => t.name === team2);
   const r1 = rank1 >= 0 ? rank1 : 50;
   const r2 = rank2 >= 0 ? rank2 : 50;
-  // Higher ranked = lower index = stronger. Winrate range: ~40% to ~60%
-  const diff = r2 - r1; // positive means team1 is better
+  const diff = r2 - r1;
   const baseWin = 0.5 + Math.tanh(diff / 30) * 0.12;
 
+  if (bo === 1) {
+    // Generate realistic round score for Bo1
+    const t1Wins = Math.random() < baseWin;
+    const loserRounds = Math.floor(Math.random() * 13); // 0-12
+    const isOT = loserRounds === 12;
+    let winnerRounds = 13;
+    let finalLoserRounds = loserRounds;
+    if (isOT) {
+      // Overtime: play sets of 3 until one side leads by 4 from 12
+      const otSets = Math.floor(Math.random() * 3) + 1; // 1-3 OT sets
+      winnerRounds = 13 + (otSets * 3);
+      finalLoserRounds = 12 + (otSets * 3) - Math.floor(Math.random() * 4) - 1;
+      // Ensure gap is correct (winner wins the OT set)
+      finalLoserRounds = Math.min(finalLoserRounds, winnerRounds - 1);
+      finalLoserRounds = Math.max(finalLoserRounds, winnerRounds - 4);
+    }
+    const ms1 = t1Wins ? winnerRounds : finalLoserRounds;
+    const ms2 = t1Wins ? finalLoserRounds : winnerRounds;
+    return {
+      team1, team2, score1: 1, score2: 0, winner: t1Wins ? team1 : team2, bo: 1,
+      mapScore1: ms1, mapScore2: ms2,
+    };
+  }
+
+  let s1 = 0, s2 = 0;
   while (s1 < winsNeeded && s2 < winsNeeded) {
     if (Math.random() < baseWin) s1++;
     else s2++;
