@@ -840,47 +840,55 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     const matches = [...group.matches];
     matches[matchIdx] = result;
 
-    // Progress GSL bracket
-    if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
-      // Opening done → set up winners & losers matches
-      matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
-      const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
-      const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
-      matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
-      group.phase = 1;
-    }
+    if (group.is3Team) {
+      // 3-team round-robin: once all 3 matches resolved, rank by wins
+      const allDone = matches.every(m => !!m.winner);
+      if (allDone) {
+        const teamWins: Record<string, number> = {};
+        group.teams.forEach(t => { teamWins[t] = 0; });
+        matches.forEach(m => { if (m.winner) teamWins[m.winner] = (teamWins[m.winner] || 0) + 1; });
+        const sorted = Object.entries(teamWins).sort((a, b) => b[1] - a[1]);
+        group.qualified = [sorted[0][0], sorted[1][0]];
+        group.eliminated = [sorted[2][0]];
+        group.phase = 3;
+      }
+    } else {
+      // Standard GSL bracket logic
+      if (matchIdx <= 1 && matches[0].winner && matches[1].winner) {
+        matches[2] = { ...matches[2], team1: matches[0].winner, team2: matches[1].winner };
+        const loser0 = matches[0].winner === matches[0].team1 ? matches[0].team2 : matches[0].team1;
+        const loser1 = matches[1].winner === matches[1].team1 ? matches[1].team2 : matches[1].team1;
+        matches[3] = { ...matches[3], team1: loser0, team2: loser1 };
+        group.phase = 1;
+      }
 
-    if (matchIdx === 2 && matches[2].winner) {
-      // Winners match done → winner qualifies
-      group.qualified = [...group.qualified, matches[2].winner];
-      const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
-      // Check if losers match is done to set up decider
-      if (matches[3].winner) {
+      if (matchIdx === 2 && matches[2].winner) {
+        group.qualified = [...group.qualified, matches[2].winner];
+        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+        if (matches[3].winner) {
+          const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
+          group.eliminated = [...group.eliminated, losersLoser];
+          matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+          group.phase = 2;
+        }
+      }
+
+      if (matchIdx === 3 && matches[3].winner) {
         const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
         group.eliminated = [...group.eliminated, losersLoser];
-        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
-        group.phase = 2;
+        if (matches[2].winner) {
+          const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
+          matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
+          group.phase = 2;
+        }
       }
-    }
 
-    if (matchIdx === 3 && matches[3].winner) {
-      // Losers match done → loser eliminated
-      const losersLoser = matches[3].winner === matches[3].team1 ? matches[3].team2 : matches[3].team1;
-      group.eliminated = [...group.eliminated, losersLoser];
-      // Check if winners match is done to set up decider
-      if (matches[2].winner) {
-        const winnersLoser = matches[2].winner === matches[2].team1 ? matches[2].team2 : matches[2].team1;
-        matches[4] = { ...matches[4], team1: winnersLoser, team2: matches[3].winner };
-        group.phase = 2;
+      if (matchIdx === 4 && matches[4].winner) {
+        group.qualified = [...group.qualified, matches[4].winner];
+        const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
+        group.eliminated = [...group.eliminated, deciderLoser];
+        group.phase = 3;
       }
-    }
-
-    if (matchIdx === 4 && matches[4].winner) {
-      // Decider done → winner qualifies, loser eliminated
-      group.qualified = [...group.qualified, matches[4].winner];
-      const deciderLoser = matches[4].winner === matches[4].team1 ? matches[4].team2 : matches[4].team1;
-      group.eliminated = [...group.eliminated, deciderLoser];
-      group.phase = 3;
     }
 
     group.matches = matches;
