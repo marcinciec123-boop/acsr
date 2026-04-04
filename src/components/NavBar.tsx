@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Crosshair, Trophy, Calendar, Users, Zap, Settings, ArrowRightLeft, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "tournaments" | "calendar" | "rankings" | "standings" | "history" | "settings" | "player-ratings";
+type Tab = "overview" | "tournaments" | "calendar" | "rankings" | "history" | "settings" | "player-ratings";
 
 interface NavBarProps {
   activeTab: Tab;
