@@ -1165,6 +1165,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
     }
 
     const matchLabels = ["Mecz otwarcia 1", "Mecz otwarcia 2", "Mecz zwycięzców", "Mecz przegranych", "Decider"];
+    const matchLabels3Team = ["Kolejka 1", "Kolejka 2", "Kolejka 3"];
 
     // Show draw ceremony
     if (showDrawCeremony) {
