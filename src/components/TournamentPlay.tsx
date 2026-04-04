@@ -110,13 +110,16 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
       if (low < minLoser || low > maxLoser) return;
     }
     const winner = score1 > score2 ? match.team1 : match.team2;
-    const mapScore1 = isBo1 ? 1 : score1;
-    const mapScore2 = isBo1 ? 0 : score2;
-    const updatedMatch = { ...match, score1: winner === match.team1 ? mapScore1 : mapScore2, score2: winner === match.team1 ? mapScore2 : mapScore1, winner };
-    onUpdate(updatedMatch);
+    if (isBo1) {
+      const updatedMatch = { ...match, score1: 1, score2: 0, winner, mapScore1: winner === match.team1 ? score1 : score2, mapScore2: winner === match.team1 ? score2 : score1 };
+      onUpdate(updatedMatch);
+    } else {
+      const updatedMatch = { ...match, score1: winner === match.team1 ? score1 : score2, score2: winner === match.team1 ? score2 : score1, winner };
+      onUpdate(updatedMatch);
+    }
     setEditing(false);
     if (onUpdateStats) {
-      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), isBo1 ? score1 : score1, isBo1 ? score2 : score2, match.bo);
+      const stats = generateMatchStats(match.team1, match.team2, getTeamRoster(match.team1), getTeamRoster(match.team2), score1, score2, match.bo);
       onUpdateStats(`${match.team1}-vs-${match.team2}`, stats);
     }
   };

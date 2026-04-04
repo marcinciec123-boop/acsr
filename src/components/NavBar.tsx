@@ -16,7 +16,6 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "calendar", label: "Calendar", icon: <Calendar className="w-4 h-4" /> },
   { id: "rankings", label: "Rankings", icon: <Users className="w-4 h-4" /> },
   { id: "player-ratings", label: "Top 100", icon: <Star className="w-4 h-4" /> },
-  { id: "standings", label: "Standings", icon: <Trophy className="w-4 h-4" /> },
   { id: "history", label: "History", icon: <ArrowRightLeft className="w-4 h-4" /> },
   { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
 ];
