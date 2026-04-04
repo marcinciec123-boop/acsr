@@ -60,6 +60,8 @@ export interface MatchResult {
   score2: number;
   winner: string;
   bo: number;
+  mapScore1?: number; // actual round score for Bo1 (e.g., 16)
+  mapScore2?: number; // actual round score for Bo1 (e.g., 13)
 }
 
 export interface SwissRound { roundNumber: number; matches: MatchResult[]; }
