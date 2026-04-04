@@ -1077,36 +1077,23 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
         </div>
       </div>
 
-      {/* Winner */}
-      {knockout.finished && knockout.winner && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 rounded-lg border border-accent/30 bg-accent/5 text-center">
-          <Crown className="w-8 h-8 text-accent mx-auto mb-2" />
-          <p className="text-xs font-mono text-accent uppercase tracking-widest mb-1">Zwycięzca</p>
-          <p className="text-3xl font-heading font-bold text-foreground">{knockout.winner}</p>
-        </motion.div>
+      {/* Visual Bracket */}
+      {knockout.started && (
+        <PlayoffBracket
+          completedRounds={knockout.completedRounds}
+          currentMatches={knockout.currentMatches}
+          currentRoundName={knockout.roundName}
+          winner={knockout.winner}
+          finished={knockout.finished}
+          onMatchClick={(ri, mi, isCurrent) => {
+            if (isCurrent) {
+              setActiveMatchDetail({ source: "knockout", index: mi });
+            }
+          }}
+        />
       )}
 
-      {/* Completed rounds */}
-      {knockout.completedRounds.map((round, ri) => (
-        <div key={ri}>
-          <h4 className="font-heading text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">
-            {round.name} (zakończona)
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 opacity-70">
-            {round.matches.filter(m => m.team2 !== "BYE").map((m, i) => (
-              <div key={i} className="flex items-center bg-card border border-border/50 rounded-md overflow-hidden text-sm">
-                <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</div>
-                <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-                  {(() => { const [d1,d2] = getDisplayScores(m); return (<><span className={m.winner === m.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span><span className="text-muted-foreground mx-1">:</span><span className={m.winner === m.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span></>); })()}
-                </div>
-                <div className={cn("flex-1 px-3 py-2 truncate font-medium", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* Current round */}
+      {/* Current round interactive matches */}
       {knockout.started && !knockout.finished && knockout.currentMatches.length > 0 && (
         <div>
           <h4 className="font-heading text-sm font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
