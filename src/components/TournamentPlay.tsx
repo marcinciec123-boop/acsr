@@ -1214,7 +1214,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
                     const isResolved = !!m.winner;
                     return (
                       <div key={mi} className="space-y-1">
-                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{matchLabels[mi]}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{group.is3Team ? matchLabels3Team[mi] : matchLabels[mi]}</p>
                         <div className={cn(
                           "bg-secondary/30 border rounded-md overflow-hidden text-sm",
                           isResolved ? "border-win/20" : "border-primary/30"
