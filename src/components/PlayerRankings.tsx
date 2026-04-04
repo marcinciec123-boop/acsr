@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, ChevronDown, ChevronUp, Globe, Search, X, User } from "lucide-react";
-import { teamDatabase } from "@/data/tournaments";
+import { Users, ChevronDown, ChevronUp, Globe, Search, X, User, TrendingUp } from "lucide-react";
+import { teamDatabase, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,12 @@ const tierLabel = (rank: number) => {
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
-// Build unique player nationalities list
 const allPlayerCountries = [...new Set(Object.values(playerNationalities))].sort();
 
 interface PlayerRankingsProps {
   onSelectTeam?: (teamName: string) => void;
   onSelectPlayer?: (playerName: string) => void;
+  dynamicRanking?: TeamData[];
 }
 
 const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) => {
