@@ -30,7 +30,7 @@ interface PlayerRankingsProps {
   dynamicRanking?: TeamData[];
 }
 
-const PlayerRankings = ({ onSelectTeam, onSelectPlayer }: PlayerRankingsProps) => {
+const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: PlayerRankingsProps) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
   const [nationalityFilter, setNationalityFilter] = useState<string>("all");
