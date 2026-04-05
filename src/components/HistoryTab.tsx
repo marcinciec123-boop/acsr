@@ -150,7 +150,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
       playerNationalities[player] = faNationality;
     }
     
-    setFreeAgents(prev => [...prev, {
+    setManualFreeAgents(prev => [...prev, {
       player,
       previousTeam: faPrevTeam || "Nieznana",
       firstName: faFirstName.trim(),
@@ -167,7 +167,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   };
 
   const handleRemoveFreeAgent = (idx: number) => {
-    setFreeAgents(prev => prev.filter((_, i) => i !== idx));
+    setManualFreeAgents(prev => prev.filter((_, i) => i !== idx));
   };
 
   const sections: { id: HistorySection; label: string; icon: React.ReactNode; count: number }[] = [
