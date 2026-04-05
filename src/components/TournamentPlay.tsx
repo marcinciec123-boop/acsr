@@ -643,13 +643,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   const [groupsGenerated, setGroupsGenerated] = useState(savedProgress.current?.groupsGenerated || false);
   const [showDrawCeremony, setShowDrawCeremony] = useState(false);
 
-  // Auto-show draw ceremony for groups phase when groups not yet generated
-  useEffect(() => {
-    if (currentPhase === "groups" && !groupsGenerated && !showDrawCeremony && teams.length > 0) {
-      setShowDrawCeremony(true);
-    }
-  }, [currentPhase, groupsGenerated, showDrawCeremony, teams.length]);
-
   // Determine initial phase
   const initialPhase = savedProgress.current?.currentPhase || (
     format === "knockout" ? "knockout"
@@ -660,6 +653,13 @@ const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps)
   );
 
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
+
+  // Auto-show draw ceremony for groups phase when groups not yet generated
+  useEffect(() => {
+    if (currentPhase === "groups" && !groupsGenerated && !showDrawCeremony && teams.length > 0) {
+      setShowDrawCeremony(true);
+    }
+  }, [currentPhase, groupsGenerated, showDrawCeremony, teams.length]);
 
   // Swiss hook (used for swiss phases)
   const swissTeams = currentPhase === "major-s1"
