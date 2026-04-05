@@ -42,11 +42,16 @@ const Index = () => {
   const [rosterVersion, setRosterVersion] = useState(0);
   const [globalMatchStats, setGlobalMatchStats] = useState<Record<string, MatchStats>>({});
   const [completedSummary, setCompletedSummary] = useState<{ tournament: Tournament; sim: TournamentSimulation; stats: Record<string, MatchStats> } | null>(null);
+  // Live sim for in-progress tournament (updates ranking in real-time)
+  const [liveSim, setLiveSim] = useState<{ id: string; sim: TournamentSimulation } | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
-  // Dynamic ranking based on completed tournament results
-  const dynamicRanking = getDynamicRanking(teamDatabase, simResults, tournaments);
+  // Dynamic ranking based on completed + live tournament results
+  const effectiveSimResults = liveSim 
+    ? { ...simResults, [liveSim.id]: liveSim.sim }
+    : simResults;
+  const dynamicRanking = getDynamicRanking(teamDatabase, effectiveSimResults, tournaments);
 
   // Get participants for a tournament based on ranking + qualifier results
   const getParticipants = (tournament: Tournament): string[] => {
@@ -192,8 +197,15 @@ const Index = () => {
       setGlobalMatchStats(prev => ({ ...prev, ...matchStats }));
     }
     setPlayingTournamentId(null);
+    setLiveSim(null);
     // Show tournament summary
     setCompletedSummary({ tournament, sim, stats });
+  };
+
+  const handleLiveSimUpdate = (sim: TournamentSimulation) => {
+    if (playingTournamentId) {
+      setLiveSim({ id: playingTournamentId, sim });
+    }
   };
 
   const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
@@ -242,7 +254,8 @@ const Index = () => {
           <TournamentPlay
             tournament={playingTournamentWithParticipants}
             onComplete={handlePlayComplete}
-            onBack={() => setPlayingTournamentId(null)}
+            onBack={() => { setPlayingTournamentId(null); setLiveSim(null); }}
+            onLiveUpdate={handleLiveSimUpdate}
           />
         ) : (
           <TournamentList

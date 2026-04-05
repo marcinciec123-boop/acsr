@@ -32,7 +32,30 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
 
   // Manual transfers
   const [customTransfers, setCustomTransfers] = useState<Transfer[]>([]);
-  const [freeAgents, setFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
+  const [manualFreeAgents, setManualFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
+
+  // Compute free agents from all transfers: players whose last transfer was to "-"
+  const freeAgents = useMemo(() => {
+    const allT = [...staticTransfers, ...customTransfersGlobal, ...customTransfers];
+    // Track last transfer for each player
+    const lastTransfer: Record<string, Transfer> = {};
+    allT.forEach(t => { lastTransfer[t.player] = t; });
+    
+    const fromHistory = Object.values(lastTransfer)
+      .filter(t => t.newTeam === "-")
+      .map(t => ({
+        player: t.player,
+        previousTeam: t.oldTeam,
+        firstName: "",
+        lastName: "",
+        nationality: playerNationalities[t.player] || "",
+      }));
+    
+    // Merge with manually added free agents (dedup by player name)
+    const seen = new Set(fromHistory.map(f => f.player));
+    const manual = manualFreeAgents.filter(f => !seen.has(f.player));
+    return [...fromHistory, ...manual];
+  }, [customTransfers, manualFreeAgents]);
 
   // Transfer dialog
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -127,7 +150,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
       playerNationalities[player] = faNationality;
     }
     
-    setFreeAgents(prev => [...prev, {
+    setManualFreeAgents(prev => [...prev, {
       player,
       previousTeam: faPrevTeam || "Nieznana",
       firstName: faFirstName.trim(),
@@ -144,7 +167,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   };
 
   const handleRemoveFreeAgent = (idx: number) => {
-    setFreeAgents(prev => prev.filter((_, i) => i !== idx));
+    setManualFreeAgents(prev => prev.filter((_, i) => i !== idx));
   };
 
   const sections: { id: HistorySection; label: string; icon: React.ReactNode; count: number }[] = [
