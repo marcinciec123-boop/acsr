@@ -706,39 +706,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
     tournament.id,
   ]);
 
-  // Live ranking update: build partial sim from current state and report to parent
-  useEffect(() => {
-    if (!onLiveUpdate) return;
-    const allMatches: MatchResult[] = [];
-    
-    // Collect swiss matches
-    if (swiss.rounds) swiss.rounds.forEach(r => allMatches.push(...r.matches));
-    if (swiss.currentMatches) allMatches.push(...swiss.currentMatches.filter(m => !!m.winner));
-    
-    // Collect group matches
-    if (gslGroups.length > 0) {
-      gslGroups.forEach(g => allMatches.push(...g.matches.filter(m => !!m.winner && m.team1 !== "TBD")));
-    }
-    
-    // Collect knockout matches
-    if (knockout.completedRounds) knockout.completedRounds.forEach(r => allMatches.push(...r.matches));
-    if (knockout.currentMatches) allMatches.push(...knockout.currentMatches.filter(m => !!m.winner));
-    
-    if (allMatches.length === 0) return;
-    
-    // Build a partial sim for live ranking
-    const liveSim: TournamentSimulation = {
-      tournamentId: tournament.id,
-      format: format as any,
-      winner: "",
-      placements: [],
-      knockout: { rounds: [{ name: "live", matches: allMatches }], winner: "" },
-    };
-    onLiveUpdate(liveSim);
-  }, [
-    swiss.rounds, swiss.currentMatches, knockout.completedRounds, knockout.currentMatches,
-    gslGroups, onLiveUpdate, tournament.id, format,
-  ]);
 
   const handleUpdateStats = useCallback((matchId: string, stats: MatchStats) => {
     setAllMatchStats(prev => ({ ...prev, [matchId]: stats }));
