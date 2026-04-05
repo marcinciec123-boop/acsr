@@ -47,8 +47,11 @@ const Index = () => {
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
-  // Dynamic ranking based on completed tournament results
-  const dynamicRanking = getDynamicRanking(teamDatabase, simResults, tournaments);
+  // Dynamic ranking based on completed + live tournament results
+  const effectiveSimResults = liveSim 
+    ? { ...simResults, [liveSim.id]: liveSim.sim }
+    : simResults;
+  const dynamicRanking = getDynamicRanking(teamDatabase, effectiveSimResults, tournaments);
 
   // Get participants for a tournament based on ranking + qualifier results
   const getParticipants = (tournament: Tournament): string[] => {
