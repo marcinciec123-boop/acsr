@@ -15,6 +15,7 @@ interface TournamentPlayProps {
   tournament: Tournament;
   onComplete: (sim: TournamentSimulation, matchStats?: Record<string, MatchStats>) => void;
   onBack: () => void;
+  onLiveUpdate?: (sim: TournamentSimulation) => void;
 }
 
 // ===== Persistence =====
