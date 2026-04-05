@@ -826,6 +826,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
   }, [swiss.rounds, swiss.currentMatches, knockout.completedRounds, knockout.currentMatches, gslGroups, onLiveUpdate, tournament.id, format]);
 
 
+  const generateGslGroupsFromDraw = (drawnGroups: string[][]) => {
     const groups = drawnGroups.map((groupTeams, g) => {
       const groupName = String.fromCharCode(65 + g);
       const gt = groupTeams.slice(0, 4);
