@@ -42,6 +42,8 @@ const Index = () => {
   const [rosterVersion, setRosterVersion] = useState(0);
   const [globalMatchStats, setGlobalMatchStats] = useState<Record<string, MatchStats>>({});
   const [completedSummary, setCompletedSummary] = useState<{ tournament: Tournament; sim: TournamentSimulation; stats: Record<string, MatchStats> } | null>(null);
+  // Live sim for in-progress tournament (updates ranking in real-time)
+  const [liveSim, setLiveSim] = useState<{ id: string; sim: TournamentSimulation } | null>(null);
 
   const seasonStandings = calculateSeasonStandings(tournaments, simResults);
 
