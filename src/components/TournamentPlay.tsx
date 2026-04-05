@@ -626,7 +626,7 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
 
 // ===== Main TournamentPlay Component =====
 
-const TournamentPlay = ({ tournament, onComplete, onBack }: TournamentPlayProps) => {
+const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
   const format = tournament.format;
 
