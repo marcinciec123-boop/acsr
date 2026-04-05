@@ -197,8 +197,15 @@ const Index = () => {
       setGlobalMatchStats(prev => ({ ...prev, ...matchStats }));
     }
     setPlayingTournamentId(null);
+    setLiveSim(null);
     // Show tournament summary
     setCompletedSummary({ tournament, sim, stats });
+  };
+
+  const handleLiveSimUpdate = (sim: TournamentSimulation) => {
+    if (playingTournamentId) {
+      setLiveSim({ id: playingTournamentId, sim });
+    }
   };
 
   const playingTournament = playingTournamentId ? tournaments.find(t => t.id === playingTournamentId) : null;
