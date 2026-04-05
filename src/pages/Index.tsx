@@ -254,7 +254,8 @@ const Index = () => {
           <TournamentPlay
             tournament={playingTournamentWithParticipants}
             onComplete={handlePlayComplete}
-            onBack={() => setPlayingTournamentId(null)}
+            onBack={() => { setPlayingTournamentId(null); setLiveSim(null); }}
+            onLiveUpdate={handleLiveSimUpdate}
           />
         ) : (
           <TournamentList
