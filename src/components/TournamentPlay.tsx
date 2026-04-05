@@ -803,7 +803,29 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
   }[]>([]);
   const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
 
-  const generateGslGroupsFromDraw = (drawnGroups: string[][]) => {
+  // Live ranking update: build partial sim from current state and report to parent
+  useEffect(() => {
+    if (!onLiveUpdate) return;
+    const allMatches: MatchResult[] = [];
+    if (swiss.rounds) swiss.rounds.forEach(r => allMatches.push(...r.matches));
+    if (swiss.currentMatches) allMatches.push(...swiss.currentMatches.filter(m => !!m.winner));
+    if (gslGroups.length > 0) {
+      gslGroups.forEach(g => allMatches.push(...g.matches.filter(m => !!m.winner && m.team1 !== "TBD")));
+    }
+    if (knockout.completedRounds) knockout.completedRounds.forEach(r => allMatches.push(...r.matches));
+    if (knockout.currentMatches) allMatches.push(...knockout.currentMatches.filter(m => !!m.winner));
+    if (allMatches.length === 0) return;
+    const liveSim: TournamentSimulation = {
+      tournamentId: tournament.id,
+      format: format as any,
+      winner: "",
+      placements: [],
+      knockout: { rounds: [{ name: "live", matches: allMatches }], winner: "" },
+    };
+    onLiveUpdate(liveSim);
+  }, [swiss.rounds, swiss.currentMatches, knockout.completedRounds, knockout.currentMatches, gslGroups, onLiveUpdate, tournament.id, format]);
+
+
     const groups = drawnGroups.map((groupTeams, g) => {
       const groupName = String.fromCharCode(65 + g);
       const gt = groupTeams.slice(0, 4);
