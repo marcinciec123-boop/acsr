@@ -1,15 +1,17 @@
 import { motion } from "framer-motion";
 import { Zap, Trophy, Users, Calendar } from "lucide-react";
-import { initialTournaments as tournaments, teamDatabase, calendarEvents } from "@/data/tournaments";
+import { initialTournaments as tournaments, teamDatabase, calendarEvents, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 
 interface OverviewProps {
   onNavigate: (tab: "tournaments" | "calendar" | "rankings") => void;
+  dynamicRanking?: TeamData[];
 }
 
-const OverviewSection = ({ onNavigate }: OverviewProps) => {
+const OverviewSection = ({ onNavigate, dynamicRanking }: OverviewProps) => {
+  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
   const upcomingTournaments = tournaments.filter((t) => t.status === "upcoming").slice(0, 5);
-  const topTeams = teamDatabase.slice(0, 5);
+  const topTeams = rankingSource.slice(0, 5);
   const upcomingEvents = calendarEvents.slice(0, 4);
 
   return (
@@ -21,7 +23,7 @@ const OverviewSection = ({ onNavigate }: OverviewProps) => {
             { label: "Turnieje w sezonie", value: tournaments.length, icon: Trophy, color: "text-accent" },
             { label: "Nadchodzące", value: upcomingTournaments.length, icon: Calendar, color: "text-primary" },
             { label: "Łączna pula nagród", value: "$10M+", icon: Zap, color: "text-accent" },
-            { label: "Drużyny w rankingu", value: teamDatabase.length, icon: Users, color: "text-win" },
+            { label: "Drużyny w rankingu", value: rankingSource.length, icon: Users, color: "text-win" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
