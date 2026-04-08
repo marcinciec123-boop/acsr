@@ -19,8 +19,19 @@ interface TournamentPlayProps {
 }
 
 // ===== Persistence =====
+type GslGroupState = {
+  groupName: string;
+  teams: string[];
+  matches: MatchResult[];
+  phase: number;
+  qualified: string[];
+  eliminated: string[];
+  is3Team?: boolean;
+};
+
 interface TournamentProgress {
   tournamentId: string;
+  participants: string[];
   currentPhase: string;
   allMatchStats: Record<string, MatchStats>;
   swissState?: {
@@ -43,8 +54,8 @@ interface TournamentProgress {
   knockoutTeams: string[];
   swissResult: SwissResult | null;
   groupsResult: GroupResult[] | null;
+  gslGroups: GslGroupState[];
   majorStages: MajorStage[];
-  groupsGenerated: boolean;
 }
 
 function saveProgress(tournamentId: string, progress: TournamentProgress) {
@@ -62,6 +73,27 @@ function loadProgress(tournamentId: string): TournamentProgress | null {
 
 function clearProgress(tournamentId: string) {
   localStorage.removeItem(`tournament_progress_${tournamentId}`);
+}
+
+function hasSameParticipants(savedParticipants: string[] | undefined, currentParticipants: string[]): boolean {
+  if (!savedParticipants || savedParticipants.length === 0) return false;
+
+  const saved = [...savedParticipants].filter(Boolean).sort();
+  const current = [...currentParticipants].filter(Boolean).sort();
+
+  return saved.length === current.length && saved.every((team, index) => team === current[index]);
+}
+
+function getSavedProgress(tournamentId: string, participants: string[]): TournamentProgress | null {
+  const progress = loadProgress(tournamentId);
+  if (!progress) return null;
+
+  if (!hasSameParticipants(progress.participants, participants)) {
+    clearProgress(tournamentId);
+    return null;
+  }
+
+  return progress;
 }
 
 // ===== Editable Match Row =====
@@ -631,7 +663,8 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
   const format = tournament.format;
 
   // Load saved progress
-  const savedProgress = useRef(loadProgress(tournament.id));
+  const savedProgress = useRef(getSavedProgress(tournament.id, teams));
+  const initialGslGroups = savedProgress.current?.gslGroups || [];
 
   const [allMatchStats, setAllMatchStats] = useState<Record<string, MatchStats>>(
     savedProgress.current?.allMatchStats || {}
@@ -641,8 +674,10 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
   const [swissResult, setSwissResult] = useState<SwissResult | null>(savedProgress.current?.swissResult || null);
   const [groupsResult, setGroupsResult] = useState<GroupResult[] | null>(savedProgress.current?.groupsResult || null);
   const [majorStages, setMajorStages] = useState<MajorStage[]>(savedProgress.current?.majorStages || []);
-  const [groupsGenerated, setGroupsGenerated] = useState(savedProgress.current?.groupsGenerated || false);
   const [showDrawCeremony, setShowDrawCeremony] = useState(false);
+  const [gslGroups, setGslGroups] = useState<GslGroupState[]>(initialGslGroups);
+  const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
+  const groupsGenerated = gslGroups.length > 0;
 
   // Determine initial phase
   const initialPhase = savedProgress.current?.currentPhase || (
@@ -688,6 +723,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
   useEffect(() => {
     const progress: TournamentProgress = {
       tournamentId: tournament.id,
+      participants: teams,
       currentPhase,
       allMatchStats,
       swissState: swiss.getState(),
@@ -695,12 +731,12 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
       knockoutTeams,
       swissResult,
       groupsResult,
+      gslGroups,
       majorStages,
-      groupsGenerated,
     };
     saveProgress(tournament.id, progress);
   }, [
-    currentPhase, allMatchStats, knockoutTeams, swissResult, groupsResult, majorStages, groupsGenerated,
+    currentPhase, allMatchStats, knockoutTeams, swissResult, groupsResult, gslGroups, majorStages,
     swiss.standings, swiss.rounds, swiss.currentMatches, swiss.resolved, swiss.finished, swiss.started,
     knockout.completedRounds, knockout.currentMatches, knockout.resolved, knockout.finished, knockout.started, knockout.winner, knockout.roundName,
     tournament.id,
@@ -791,18 +827,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
     onComplete(sim, allMatchStats);
   };
 
-  // GSL Groups: Interactive double-elimination per group
-  const [gslGroups, setGslGroups] = useState<{
-    groupName: string;
-    teams: string[];
-    matches: MatchResult[];
-    phase: number;
-    qualified: string[];
-    eliminated: string[];
-    is3Team?: boolean;
-  }[]>([]);
-  const [activeGroupMatch, setActiveGroupMatch] = useState<{ groupIdx: number; matchIdx: number } | null>(null);
-
   // Live ranking update: build partial sim from current state and report to parent
   useEffect(() => {
     if (!onLiveUpdate) return;
@@ -852,7 +876,6 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
       return { groupName, teams: gt, matches, phase: 0, qualified: [] as string[], eliminated: [] as string[], is3Team: false };
     });
     setGslGroups(groups);
-    setGroupsGenerated(true);
     setShowDrawCeremony(false);
   };
 
