@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, User, Globe, ArrowRightLeft, Trophy, MapPin, Shield } from "lucide-react";
-import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
+import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
@@ -14,6 +14,7 @@ interface PlayerProfileProps {
   onBack: () => void;
   onSelectTeam: (team: string) => void;
   seasonStandings: SeasonTeamStanding[];
+  dynamicRanking?: TeamData[];
 }
 
 const getAvatarColor = (name: string): string => {
@@ -34,16 +35,17 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings }: PlayerProfileProps) => {
+const PlayerProfile = ({ playerName, onBack, onSelectTeam, seasonStandings, dynamicRanking }: PlayerProfileProps) => {
   const country = playerNationalities[playerName] || "??";
   const realName = playerRealNames[playerName];
+  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
 
   // Find current team
   const currentTeam = useMemo(() => {
-    return teamDatabase.find(t => t.roster.includes(playerName));
-  }, [playerName]);
+    return rankingSource.find(t => t.roster.includes(playerName));
+  }, [playerName, rankingSource]);
 
-  const teamRank = currentTeam ? teamDatabase.indexOf(currentTeam) + 1 : null;
+  const teamRank = currentTeam ? rankingSource.indexOf(currentTeam) + 1 : null;
 
   // Transfer history
   const playerTransfers = useMemo(() => {

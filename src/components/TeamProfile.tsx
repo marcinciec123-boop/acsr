@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, ArrowRightLeft } from "lucide-react";
-import { teamDatabase, type SeasonTeamStanding } from "@/data/tournaments";
+import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
@@ -14,6 +14,7 @@ interface TeamProfileProps {
   onBack: () => void;
   seasonStanding?: SeasonTeamStanding;
   onSelectPlayer?: (playerName: string) => void;
+  dynamicRanking?: TeamData[];
 }
 
 const getAvatarColor = (name: string): string => {
@@ -34,9 +35,10 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer }: TeamProfileProps) => {
-  const team = teamDatabase.find((t) => t.name === teamName);
-  const globalRank = team ? teamDatabase.indexOf(team) + 1 : 0;
+const TeamProfile = ({ teamName, onBack, seasonStanding, onSelectPlayer, dynamicRanking }: TeamProfileProps) => {
+  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
+  const team = rankingSource.find((t) => t.name === teamName);
+  const globalRank = team ? rankingSource.indexOf(team) + 1 : 0;
   const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
   const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-silver" : "text-muted-foreground";
 

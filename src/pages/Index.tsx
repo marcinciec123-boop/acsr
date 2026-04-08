@@ -224,7 +224,7 @@ const Index = () => {
       {activeTab === "overview" && (
         <>
           <HeroSection onNavigate={handleTabChange} />
-          <OverviewSection onNavigate={handleTabChange} />
+          <OverviewSection onNavigate={handleTabChange} dynamicRanking={dynamicRanking} />
         </>
       )}
 
@@ -277,6 +277,7 @@ const Index = () => {
             onBack={() => { setSelectedPlayer(null); }}
             onSelectTeam={handleSelectTeam}
             seasonStandings={seasonStandings}
+            dynamicRanking={dynamicRanking}
           />
         ) : selectedTeam ? (
           <TeamProfile
@@ -284,6 +285,7 @@ const Index = () => {
             onBack={() => setSelectedTeam(null)}
             seasonStanding={seasonStandings.find(s => s.team === selectedTeam)}
             onSelectPlayer={handleSelectPlayer}
+            dynamicRanking={dynamicRanking}
           />
         ) : (
           <PlayerRankings onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer} dynamicRanking={dynamicRanking} />
