@@ -18,9 +18,20 @@ type Section = "transfers" | "freeAgents";
 const TRANSFERS_KEY = "transfers_data";
 
 const TransferPanel = () => {
-  const [transfers, setTransfers] = useState<Transfer[]>(() =>
-    loadFromStorage<Transfer[]>(TRANSFERS_KEY, [])
-  );
+  const [transfers, setTransfers] = useState<Transfer[]>(() => {
+    const saved = loadFromStorage<Transfer[]>(TRANSFERS_KEY, []);
+    if (saved.length > 0) return saved;
+    // Seed from history.ts
+    const seeded: Transfer[] = seedTransfers.map((t, i) => ({
+      id: `seed-${i}`,
+      player: t.player,
+      oldTeam: t.oldTeam,
+      newTeam: t.newTeam,
+      date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+    }));
+    saveToStorage(TRANSFERS_KEY, seeded);
+    return seeded;
+  });
   const [section, setSection] = useState<Section>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
