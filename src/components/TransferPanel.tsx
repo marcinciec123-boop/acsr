@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { Transfer } from "@/lib/types";
+import type { Transfer, TeamData } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 
 type TransferType = "all" | "join" | "leave" | "move";
