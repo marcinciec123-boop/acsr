@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Transfer, TeamData } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
+import { transfers as seedTransfers } from "@/data/history";
 
 type TransferType = "all" | "join" | "leave" | "move";
 type Section = "transfers" | "freeAgents";
