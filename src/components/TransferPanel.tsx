@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { Transfer } from "@/lib/types";
+import type { Transfer, TeamData } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 
 type TransferType = "all" | "join" | "leave" | "move";
@@ -85,7 +85,7 @@ const TransferPanel = () => {
       date: new Date().toISOString(),
     };
 
-    // Update teamDatabase rosters
+    // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
       const fromTeam = teamDatabase.find(td => td.name === transferFrom);
       if (fromTeam) fromTeam.roster = fromTeam.roster.filter(p => p !== t.player);
@@ -93,6 +93,22 @@ const TransferPanel = () => {
     if (transferTo !== "-") {
       const toTeam = teamDatabase.find(td => td.name === transferTo);
       if (toTeam && !toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
+    }
+
+    // Persist roster changes to ranking data in localStorage
+    const RANKING_KEY = "ranking_data";
+    const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+    if (rankingData) {
+      const updated = rankingData.map(team => {
+        if (team.name === transferFrom) {
+          return { ...team, roster: team.roster.filter(p => p !== t.player) };
+        }
+        if (team.name === transferTo && !team.roster.includes(t.player)) {
+          return { ...team, roster: [...team.roster, t.player] };
+        }
+        return team;
+      });
+      saveToStorage(RANKING_KEY, updated);
     }
 
     setTransfers(prev => [t, ...prev]);
