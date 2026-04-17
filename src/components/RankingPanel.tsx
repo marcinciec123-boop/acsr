@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Minus, Edit3, Check, X, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Users, Plus, Edit3, Check, X, Search, ChevronUp, ChevronDown, Globe, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +9,9 @@ import type { TeamData, RankingAdjustment } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
+import { playerNationalities } from "@/data/playerNationalities";
+
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
 const RANKING_KEY = "ranking_data";
 const ADJUSTMENTS_KEY = "ranking_adjustments";
@@ -27,6 +30,8 @@ const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
     loadFromStorage<RankingAdjustment[]>(ADJUSTMENTS_KEY, [])
   );
   const [search, setSearch] = useState("");
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
+  const [nationalityFilter, setNationalityFilter] = useState<string>("all");
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjTeam, setAdjTeam] = useState("");
   const [adjPoints, setAdjPoints] = useState("");
@@ -37,10 +42,22 @@ const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
   useEffect(() => { saveToStorage(RANKING_KEY, teams); }, [teams]);
   useEffect(() => { saveToStorage(ADJUSTMENTS_KEY, adjustments); }, [adjustments]);
 
-  const sorted = [...teams].sort((a, b) => b.points - a.points);
-  const filtered = sorted.filter(t =>
-    !search || t.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const sorted = useMemo(() => [...teams].sort((a, b) => b.points - a.points), [teams]);
+
+  const allNationalities = useMemo(() => {
+    const set = new Set<string>();
+    teams.forEach(t => t.roster.forEach(p => set.add(playerNationalities[p] || t.country)));
+    return Array.from(set).sort();
+  }, [teams]);
+
+  const filtered = useMemo(() => {
+    return sorted.filter(t => {
+      if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (regionFilter !== "all" && t.region !== regionFilter) return false;
+      if (nationalityFilter !== "all" && !t.roster.some(p => (playerNationalities[p] || t.country) === nationalityFilter)) return false;
+      return true;
+    });
+  }, [sorted, search, regionFilter, nationalityFilter]);
 
   const handleAdjust = () => {
     const pts = parseInt(adjPoints);
