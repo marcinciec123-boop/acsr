@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Minus, Edit3, Check, X, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Users, Plus, Edit3, Check, X, Search, ChevronUp, ChevronDown, Globe, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +9,9 @@ import type { TeamData, RankingAdjustment } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
+import { playerNationalities } from "@/data/playerNationalities";
+
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
 const RANKING_KEY = "ranking_data";
 const ADJUSTMENTS_KEY = "ranking_adjustments";
@@ -27,6 +30,8 @@ const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
     loadFromStorage<RankingAdjustment[]>(ADJUSTMENTS_KEY, [])
   );
   const [search, setSearch] = useState("");
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
+  const [nationalityFilter, setNationalityFilter] = useState<string>("all");
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjTeam, setAdjTeam] = useState("");
   const [adjPoints, setAdjPoints] = useState("");
@@ -37,10 +42,22 @@ const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
   useEffect(() => { saveToStorage(RANKING_KEY, teams); }, [teams]);
   useEffect(() => { saveToStorage(ADJUSTMENTS_KEY, adjustments); }, [adjustments]);
 
-  const sorted = [...teams].sort((a, b) => b.points - a.points);
-  const filtered = sorted.filter(t =>
-    !search || t.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const sorted = useMemo(() => [...teams].sort((a, b) => b.points - a.points), [teams]);
+
+  const allNationalities = useMemo(() => {
+    const set = new Set<string>();
+    teams.forEach(t => t.roster.forEach(p => set.add(playerNationalities[p] || t.country)));
+    return Array.from(set).sort();
+  }, [teams]);
+
+  const filtered = useMemo(() => {
+    return sorted.filter(t => {
+      if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (regionFilter !== "all" && t.region !== regionFilter) return false;
+      if (nationalityFilter !== "all" && !t.roster.some(p => (playerNationalities[p] || t.country) === nationalityFilter)) return false;
+      return true;
+    });
+  }, [sorted, search, regionFilter, nationalityFilter]);
 
   const handleAdjust = () => {
     const pts = parseInt(adjPoints);
@@ -137,15 +154,56 @@ const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
           </Dialog>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-4 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Szukaj drużyny..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 bg-card border-border"
-          />
+        {/* Search + Filters */}
+        <div className="space-y-3 mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Szukaj drużyny..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 bg-card border-border"
+            />
+          </div>
+
+          <div className="flex items-start gap-6 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRegionFilter(r)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                    regionFilter === r
+                      ? "bg-primary/20 text-primary border-primary/40"
+                      : "text-muted-foreground border-border hover:text-foreground"
+                  )}
+                >
+                  {r === "all" ? "Wszystkie" : r}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <select
+                value={nationalityFilter}
+                onChange={e => setNationalityFilter(e.target.value)}
+                className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/50 text-foreground focus:outline-none focus:border-primary/50"
+              >
+                <option value="all">Wszystkie narodowości</option>
+                {allNationalities.map(n => (
+                  <option key={n} value={n}>{countryFlag(n)} {n}</option>
+                ))}
+              </select>
+              {nationalityFilter !== "all" && (
+                <span className="text-xs text-muted-foreground font-mono">
+                  {filtered.length} drużyn
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Table */}
