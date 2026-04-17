@@ -1,21 +1,41 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Trophy, Plus, Edit3, Trash2, Check, X, ChevronDown, ChevronUp, 
-  Calendar, MapPin, DollarSign, Users as UsersIcon, Medal
+  Trophy, Plus, Trash2, ChevronDown, ChevronUp,
+  Calendar, MapPin, DollarSign, Users as UsersIcon,
+  Shuffle, Layers, GitBranch, Grid3x3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { TournamentData, MatchResult } from "@/lib/types";
+import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
+import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
+import { BracketView } from "./tournament/BracketView";
+import { GroupTable } from "./tournament/GroupTable";
 
 const STORAGE_KEY = "tournaments_data";
+
+const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch }[] = [
+  { value: "single-elim", label: "Single Elimination", icon: GitBranch },
+  { value: "double-elim", label: "Double Elimination", icon: GitBranch },
+  { value: "swiss", label: "Swiss System", icon: Layers },
+  { value: "round-robin", label: "Round Robin (Groups)", icon: Grid3x3 },
+  { value: "gsl-groups", label: "GSL Groups", icon: Grid3x3 },
+  { value: "showmatch", label: "Showmatch", icon: Trophy },
+];
+
+interface PhaseDraft {
+  name: string;
+  format: PhaseFormat;
+  bo: 1 | 3 | 5;
+  groupCount: number;
+  advanceCount: number;
+}
 
 const TournamentPanel = () => {
   const [tournaments, setTournaments] = useState<TournamentData[]>(() =>
@@ -23,9 +43,8 @@ const TournamentPanel = () => {
   );
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showMatchDialog, setShowMatchDialog] = useState<string | null>(null);
 
-  // New tournament form
+  // Tournament meta
   const [newName, setNewName] = useState("");
   const [newOrg, setNewOrg] = useState("");
   const [newPrize, setNewPrize] = useState("");
@@ -33,21 +52,75 @@ const TournamentPanel = () => {
   const [newEnd, setNewEnd] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
-  const [newTeams, setNewTeams] = useState("8");
-  const [newFormat, setNewFormat] = useState("BO3 Single Elimination");
 
-  // Match form
-  const [matchTeam1, setMatchTeam1] = useState("");
-  const [matchTeam2, setMatchTeam2] = useState("");
-  const [matchScore1, setMatchScore1] = useState("");
-  const [matchScore2, setMatchScore2] = useState("");
+  // Participants
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [teamSearch, setTeamSearch] = useState("");
+
+  // Phases (custom builder)
+  const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>([
+    { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 },
+  ]);
 
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
-  const allTeams = teamDatabase.map(t => t.name).sort();
+  const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
+  const filteredTeams = useMemo(
+    () => allTeams.filter(t => t.toLowerCase().includes(teamSearch.toLowerCase())),
+    [allTeams, teamSearch]
+  );
+
+  const resetForm = () => {
+    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
+    setNewLocation(""); setNewTier("A");
+    setSelectedTeams([]); setTeamSearch("");
+    setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 }]);
+  };
+
+  const toggleTeam = (name: string) => {
+    setSelectedTeams(prev =>
+      prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name]
+    );
+  };
+
+  const seedRandom = () => setSelectedTeams(prev => shuffle(prev));
+
+  const addPhaseDraft = () => {
+    setPhaseDrafts(prev => [
+      ...prev,
+      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4 },
+    ]);
+  };
+
+  const updatePhaseDraft = (idx: number, patch: Partial<PhaseDraft>) => {
+    setPhaseDrafts(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
+  };
+
+  const removePhaseDraft = (idx: number) => {
+    setPhaseDrafts(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const handleCreate = () => {
-    if (!newName.trim()) return;
+    if (!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0) return;
+
+    // Build phases sequentially: first phase gets all selected teams,
+    // subsequent phases get `advanceCount` placeholder slots
+    const phases: TournamentPhase[] = [];
+    let teamsForPhase = [...selectedTeams];
+    phaseDrafts.forEach((draft, idx) => {
+      const phase = buildPhase(draft.name, draft.format, teamsForPhase, {
+        bo: draft.bo,
+        groupCount: draft.groupCount,
+        advanceCount: draft.advanceCount,
+      });
+      phases.push(phase);
+      // Next phase gets placeholder TBD teams equal to advanceCount
+      if (idx < phaseDrafts.length - 1) {
+        const nextCount = draft.advanceCount || teamsForPhase.length;
+        teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-${idx}-${i + 1}`);
+      }
+    });
+
     const t: TournamentData = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name: newName.trim(),
@@ -57,50 +130,63 @@ const TournamentPanel = () => {
       endDate: newEnd,
       location: newLocation.trim(),
       tier: newTier,
-      teams: parseInt(newTeams) || 8,
-      format: newFormat.trim(),
+      teams: selectedTeams.length,
+      format: phaseDrafts.map(p => formatLabel(p.format)).join(" → "),
       status: "upcoming",
-      participants: [],
-      matches: [],
+      participants: selectedTeams,
+      phases,
       placements: [],
     };
     setTournaments(prev => [t, ...prev]);
-    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
-    setNewLocation(""); setNewTier("A"); setNewTeams("8"); setNewFormat("BO3 Single Elimination");
+    resetForm();
     setShowCreate(false);
   };
 
-  const handleAddMatch = (tournamentId: string) => {
-    if (!matchTeam1 || !matchTeam2 || matchTeam1 === matchTeam2) return;
-    const s1 = parseInt(matchScore1) || 0;
-    const s2 = parseInt(matchScore2) || 0;
-    const match: MatchResult = {
-      id: Date.now().toString(36),
-      team1: matchTeam1,
-      team2: matchTeam2,
-      score1: s1,
-      score2: s2,
-    };
-    setTournaments(prev => prev.map(t =>
-      t.id === tournamentId
-        ? {
-            ...t,
-            matches: [...t.matches, match],
-            status: "live" as const,
-            participants: Array.from(new Set([...t.participants, matchTeam1, matchTeam2])),
+  const updatePhaseMatch = (
+    tournamentId: string,
+    phaseId: string,
+    matchId: string,
+    patch: Partial<MatchResult>,
+    groupId?: string,
+  ) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId) return p;
+          if (groupId && p.groups) {
+            return {
+              ...p,
+              groups: p.groups.map(g => g.id !== groupId ? g : {
+                ...g,
+                matches: g.matches.map(m => m.id !== matchId ? m : { ...m, ...patch }),
+              }),
+            };
           }
-        : t
-    ));
-    setMatchTeam1(""); setMatchTeam2(""); setMatchScore1(""); setMatchScore2("");
-    setShowMatchDialog(null);
+          if (p.bracket) {
+            return {
+              ...p,
+              bracket: p.bracket.map(m => m.id !== matchId ? m : { ...m, ...patch }),
+            };
+          }
+          return p;
+        }),
+      };
+    }));
   };
 
-  const handleDeleteMatch = (tournamentId: string, matchId: string) => {
-    setTournaments(prev => prev.map(t =>
-      t.id === tournamentId
-        ? { ...t, matches: t.matches.filter(m => m.id !== matchId) }
-        : t
-    ));
+  const deleteBracketMatch = (tournamentId: string, phaseId: string, matchId: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => p.id !== phaseId ? p : {
+          ...p,
+          bracket: p.bracket?.filter(m => m.id !== matchId),
+        }),
+      };
+    }));
   };
 
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
@@ -138,59 +224,10 @@ const TournamentPanel = () => {
             <Trophy className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Turnieje</h2>
           </div>
-          <Button size="sm" onClick={() => setShowCreate(!showCreate)} className="gap-1.5">
+          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
             <Plus className="w-4 h-4" /> Nowy turniej
           </Button>
         </div>
-
-        {/* Create form */}
-        <AnimatePresence>
-          {showCreate && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-                <Input placeholder="Nazwa turnieju..." value={newName} onChange={e => setNewName(e.target.value)} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Organizator..." value={newOrg} onChange={e => setNewOrg(e.target.value)} />
-                  <Input placeholder="Pula nagród (np. $500,000)..." value={newPrize} onChange={e => setNewPrize(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-mono text-muted-foreground mb-1 block">Start</label>
-                    <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-mono text-muted-foreground mb-1 block">Koniec</label>
-                    <Input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <Input placeholder="Lokalizacja..." value={newLocation} onChange={e => setNewLocation(e.target.value)} />
-                  <select
-                    value={newTier}
-                    onChange={e => setNewTier(e.target.value as "S" | "A" | "B" | "C")}
-                    className="px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
-                  >
-                    <option value="S">Tier S</option>
-                    <option value="A">Tier A</option>
-                    <option value="B">Tier B</option>
-                    <option value="C">Tier C</option>
-                  </select>
-                  <Input type="number" placeholder="Ilość drużyn" value={newTeams} onChange={e => setNewTeams(e.target.value)} />
-                </div>
-                <Input placeholder="Format (np. BO3 Double Elimination)..." value={newFormat} onChange={e => setNewFormat(e.target.value)} />
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>Anuluj</Button>
-                  <Button size="sm" onClick={handleCreate}>Utwórz turniej</Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Tournament list */}
         {tournaments.length === 0 && (
@@ -202,6 +239,9 @@ const TournamentPanel = () => {
         <div className="space-y-3">
           {tournaments.map(t => {
             const isExpanded = expandedId === t.id;
+            const totalMatches = t.phases.reduce((sum, p) =>
+              sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
+            );
             return (
               <motion.div
                 key={t.id}
@@ -209,29 +249,27 @@ const TournamentPanel = () => {
                 animate={{ opacity: 1 }}
                 className="bg-card border border-border rounded-lg overflow-hidden"
               >
-                {/* Header */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : t.id)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(t.tier))}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>
                       {t.tier}
                     </span>
-                    <span className="font-heading font-semibold text-foreground text-sm">{t.name}</span>
-                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono", statusBadge(t.status))}>
+                    <span className="font-heading font-semibold text-foreground text-sm truncate">{t.name}</span>
+                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0", statusBadge(t.status))}>
                       {statusLabel(t.status)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs text-muted-foreground font-mono hidden sm:block">
-                      {t.matches.length} mecz(ów)
+                      {t.phases.length} faz • {totalMatches} mecz(ów)
                     </span>
-                    {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
                 </button>
 
-                {/* Expanded content */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
@@ -254,53 +292,59 @@ const TournamentPanel = () => {
                             <DollarSign className="w-3 h-3" /> {t.prizePool}
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <UsersIcon className="w-3 h-3" /> {t.teams} drużyn • {t.format}
+                            <UsersIcon className="w-3 h-3" /> {t.teams} drużyn
                           </div>
                         </div>
+                        <p className="text-xs text-muted-foreground font-mono">Format: {t.format}</p>
 
-                        {/* Matches */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-xs font-heading font-semibold text-muted-foreground uppercase">Mecze</h4>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1"
-                              onClick={() => setShowMatchDialog(t.id)}
-                            >
-                              <Plus className="w-3 h-3" /> Dodaj mecz
-                            </Button>
-                          </div>
-                          {t.matches.length === 0 ? (
-                            <p className="text-xs text-muted-foreground font-mono">Brak meczów</p>
-                          ) : (
-                            <div className="space-y-1">
-                              {t.matches.map(m => (
-                                <div key={m.id} className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 rounded text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <span className={cn("font-medium", m.score1 > m.score2 ? "text-foreground" : "text-muted-foreground")}>
-                                      {m.team1}
-                                    </span>
-                                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-background">
-                                      {m.score1} : {m.score2}
-                                    </span>
-                                    <span className={cn("font-medium", m.score2 > m.score1 ? "text-foreground" : "text-muted-foreground")}>
-                                      {m.team2}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-destructive"
-                                    onClick={() => handleDeleteMatch(t.id, m.id)}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ))}
+                        {/* Phases */}
+                        {t.phases.map((phase, idx) => (
+                          <div key={phase.id} className="border border-border/60 rounded-md overflow-hidden">
+                            <div className="bg-secondary/40 px-3 py-2 flex items-center justify-between border-b border-border/50">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono text-muted-foreground">FAZA {idx + 1}</span>
+                                <h4 className="text-sm font-heading font-bold text-foreground">{phase.name}</h4>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                                  {formatLabel(phase.format)} • BO{phase.bo}
+                                </span>
+                              </div>
+                              {phase.advanceCount ? (
+                                <span className="text-[10px] font-mono text-muted-foreground">
+                                  Awansuje: {phase.advanceCount}
+                                </span>
+                              ) : null}
                             </div>
-                          )}
-                        </div>
+                            <div className="p-3">
+                              {phase.groups && phase.groups.length > 0 && (
+                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {phase.groups.map(g => (
+                                    <GroupTable
+                                      key={g.id}
+                                      group={g}
+                                      onMatchUpdate={(mid, s1, s2) =>
+                                        updatePhaseMatch(t.id, phase.id, mid, { score1: s1, score2: s2 }, g.id)
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {phase.bracket && phase.bracket.length > 0 && (
+                                <BracketView
+                                  matches={phase.bracket}
+                                  allTeams={[...t.participants, ...allTeams]}
+                                  onUpdate={(mid, s1, s2, t1, t2) =>
+                                    updatePhaseMatch(t.id, phase.id, mid, {
+                                      score1: s1, score2: s2,
+                                      ...(t1 !== undefined && { team1: t1 }),
+                                      ...(t2 !== undefined && { team2: t2 }),
+                                    })
+                                  }
+                                  onDelete={(mid) => deleteBracketMatch(t.id, phase.id, mid)}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ))}
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
@@ -316,7 +360,7 @@ const TournamentPanel = () => {
                           )}
                           {t.status === "completed" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSetStatus(t.id, "upcoming")}>
-                              Resetuj status
+                              Resetuj
                             </Button>
                           )}
                           <Button
@@ -337,51 +381,182 @@ const TournamentPanel = () => {
           })}
         </div>
 
-        {/* Add match dialog */}
-        <Dialog open={showMatchDialog !== null} onOpenChange={() => setShowMatchDialog(null)}>
-          <DialogContent>
+        {/* CREATE DIALOG */}
+        <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) resetForm(); }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Dodaj mecz</DialogTitle>
+              <DialogTitle className="font-heading">Kreator turnieju</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-mono text-muted-foreground mb-1 block">Drużyna 1</label>
+
+            <div className="space-y-5 pt-2">
+              {/* Meta */}
+              <section className="space-y-3">
+                <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">1. Podstawowe info</h3>
+                <Input placeholder="Nazwa turnieju..." value={newName} onChange={e => setNewName(e.target.value)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="Organizator..." value={newOrg} onChange={e => setNewOrg(e.target.value)} />
+                  <Input placeholder="Pula nagród (np. $500,000)..." value={newPrize} onChange={e => setNewPrize(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} />
+                  <Input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="Lokalizacja..." value={newLocation} onChange={e => setNewLocation(e.target.value)} />
                   <select
-                    value={matchTeam1}
-                    onChange={e => setMatchTeam1(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+                    value={newTier}
+                    onChange={e => setNewTier(e.target.value as "S" | "A" | "B" | "C")}
+                    className="px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
                   >
-                    <option value="">Wybierz...</option>
-                    {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="S">Tier S</option>
+                    <option value="A">Tier A</option>
+                    <option value="B">Tier B</option>
+                    <option value="C">Tier C</option>
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-mono text-muted-foreground mb-1 block">Drużyna 2</label>
-                  <select
-                    value={matchTeam2}
-                    onChange={e => setMatchTeam2(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
-                  >
-                    <option value="">Wybierz...</option>
-                    {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+              </section>
+
+              {/* Participants */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    2. Uczestnicy ({selectedTeams.length})
+                  </h3>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={seedRandom} disabled={selectedTeams.length < 2}>
+                    <Shuffle className="w-3 h-3" /> Losuj rozstawienie
+                  </Button>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-mono text-muted-foreground mb-1 block">Wynik 1</label>
-                  <Input type="number" min="0" value={matchScore1} onChange={e => setMatchScore1(e.target.value)} placeholder="0" />
+                {selectedTeams.length > 0 && (
+                  <div className="bg-secondary/30 border border-border rounded-md p-2">
+                    <p className="text-[10px] font-mono text-muted-foreground mb-1.5">Rozstawienie (kolejność = seed):</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedTeams.map((t, i) => (
+                        <button
+                          key={t}
+                          onClick={() => toggleTeam(t)}
+                          className="text-[11px] px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40 font-mono"
+                        >
+                          #{i + 1} {t} ✕
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <Input
+                  placeholder="Szukaj drużyny..."
+                  value={teamSearch}
+                  onChange={e => setTeamSearch(e.target.value)}
+                />
+                <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 gap-1">
+                  {filteredTeams.slice(0, 60).map(name => {
+                    const checked = selectedTeams.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => toggleTeam(name)}
+                        className={cn(
+                          "text-[11px] text-left px-2 py-1 rounded font-mono truncate transition-colors",
+                          checked
+                            ? "bg-primary/20 text-primary border border-primary/40"
+                            : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
+                        )}
+                      >
+                        {checked ? "✓ " : "+ "}{name}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label className="text-xs font-mono text-muted-foreground mb-1 block">Wynik 2</label>
-                  <Input type="number" min="0" value={matchScore2} onChange={e => setMatchScore2(e.target.value)} placeholder="0" />
+              </section>
+
+              {/* Phases */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    3. Fazy turnieju ({phaseDrafts.length})
+                  </h3>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addPhaseDraft}>
+                    <Plus className="w-3 h-3" /> Dodaj fazę
+                  </Button>
                 </div>
-              </div>
-              <Button onClick={() => showMatchDialog && handleAddMatch(showMatchDialog)} className="w-full">
-                Dodaj mecz
-              </Button>
+                <div className="space-y-2">
+                  {phaseDrafts.map((draft, idx) => {
+                    const showGroups = draft.format === "round-robin" || draft.format === "gsl-groups";
+                    const showAdvance = idx < phaseDrafts.length - 1;
+                    return (
+                      <div key={idx} className="bg-secondary/30 border border-border rounded-md p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-muted-foreground shrink-0">FAZA {idx + 1}</span>
+                          <Input
+                            placeholder="Nazwa fazy..."
+                            value={draft.name}
+                            onChange={e => updatePhaseDraft(idx, { name: e.target.value })}
+                            className="h-8 text-sm flex-1"
+                          />
+                          {phaseDrafts.length > 1 && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePhaseDraft(idx)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <select
+                            value={draft.format}
+                            onChange={e => updatePhaseDraft(idx, { format: e.target.value as PhaseFormat })}
+                            className="px-2 py-1.5 rounded bg-card border border-border text-xs font-mono col-span-2"
+                          >
+                            {PHASE_FORMATS.map(f => (
+                              <option key={f.value} value={f.value}>{f.label}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={draft.bo}
+                            onChange={e => updatePhaseDraft(idx, { bo: parseInt(e.target.value) as 1 | 3 | 5 })}
+                            className="px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
+                          >
+                            <option value={1}>BO1</option>
+                            <option value={3}>BO3</option>
+                            <option value={5}>BO5</option>
+                          </select>
+                          {showGroups && (
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Liczba grup"
+                              value={draft.groupCount}
+                              onChange={e => updatePhaseDraft(idx, { groupCount: parseInt(e.target.value) || 1 })}
+                              className="h-8 text-xs"
+                            />
+                          )}
+                          {showAdvance && (
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Awansuje X drużyn"
+                              value={draft.advanceCount}
+                              onChange={e => updatePhaseDraft(idx, { advanceCount: parseInt(e.target.value) || 0 })}
+                              className={cn("h-8 text-xs", !showGroups && "col-span-1")}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] font-mono text-muted-foreground">
+                  💡 Możesz łączyć fazy: np. <span className="text-primary">Swiss → Single Elim</span> (Major), <span className="text-primary">Round Robin → Double Elim</span>, <span className="text-primary">GSL Groups → Single Elim</span>.
+                </p>
+              </section>
             </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setShowCreate(false); resetForm(); }}>Anuluj</Button>
+              <Button
+                onClick={handleCreate}
+                disabled={!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0}
+              >
+                Utwórz turniej
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

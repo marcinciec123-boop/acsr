@@ -15,6 +15,49 @@ export interface MatchResult {
   score1: number;
   score2: number;
   maps?: { map: string; score1: number; score2: number }[];
+  /** Bracket position metadata (used by SE/DE/GSL phases) */
+  bracketSlot?: string; // e.g. "UB-R1-M1", "LB-R2-M3", "GA-WM" (group A winners match)
+  /** Round label for display, e.g. "Quarterfinals", "Round 1" */
+  round?: string;
+  /** For bracket auto-progression: where winner advances to (matchId) */
+  winnerTo?: string;
+  /** Where loser advances (DE only) */
+  loserTo?: string;
+  bo?: 1 | 3 | 5; // best-of
+}
+
+export type PhaseFormat =
+  | "single-elim"
+  | "double-elim"
+  | "swiss"
+  | "round-robin"
+  | "gsl-groups"
+  | "showmatch";
+
+export interface PhaseGroup {
+  id: string;
+  name: string; // "Group A"
+  teams: string[]; // seeded order
+  matches: MatchResult[]; // for RR/GSL
+}
+
+export interface TournamentPhase {
+  id: string;
+  name: string; // e.g. "Group Stage", "Playoffs"
+  format: PhaseFormat;
+  bo: 1 | 3 | 5;
+  /** Teams entering this phase (resolved from prev phase or initial seeding) */
+  teams: string[];
+  /** For groups (RR / GSL): list of groups */
+  groups?: PhaseGroup[];
+  /** For bracket formats (SE/DE): flat match list with bracketSlot */
+  bracket?: MatchResult[];
+  /** How many teams advance from this phase */
+  advanceCount?: number;
+  /** Number of groups for groups format */
+  groupCount?: number;
+  /** Swiss rounds (computed from teams length if absent) */
+  swissRounds?: number;
 }
 
 export interface TournamentData {
@@ -27,10 +70,14 @@ export interface TournamentData {
   location: string;
   tier: "S" | "A" | "B" | "C";
   teams: number;
+  /** High level format label (auto-derived from phases) */
   format: string;
   status: "upcoming" | "live" | "completed";
-  participants: string[];
-  matches: MatchResult[];
+  participants: string[]; // seeded team list
+  /** New: ordered list of phases */
+  phases: TournamentPhase[];
+  /** Legacy flat match list — kept for backward compatibility */
+  matches?: MatchResult[];
   placements: { team: string; placement: number; points: number }[];
 }
 
