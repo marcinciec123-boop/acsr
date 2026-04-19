@@ -215,6 +215,8 @@ const TournamentPanel = () => {
 
   const statusLabel = (s: string) => s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
+  const selectedTournament = selectedId ? tournaments.find(t => t.id === selectedId) ?? null : null;
+
   return (
     <>
     {selectedTournament ? (
