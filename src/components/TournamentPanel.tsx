@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Trophy, Plus, Trash2, ChevronDown, ChevronUp,
+  Trophy, Plus, Trash2, ChevronRight,
   Calendar, MapPin, DollarSign, Users as UsersIcon,
-  Shuffle, Layers, GitBranch, Grid3x3
+  Layers, GitBranch, Grid3x3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,7 @@ import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult } from "
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
-import { BracketView } from "./tournament/BracketView";
-import { GroupTable } from "./tournament/GroupTable";
+import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 
 const STORAGE_KEY = "tournaments_data";
 
