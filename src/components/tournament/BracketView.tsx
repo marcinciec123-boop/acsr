@@ -86,7 +86,17 @@ export const BracketView = ({ matches, onUpdate, onDelete, onOpenMatch, allTeams
                             className="w-12 h-7 text-center text-xs"
                           />
                         </div>
-                        <div className="flex gap-1 justify-end">
+                        <div className="flex gap-1 justify-end items-center">
+                          {onOpenMatch && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] text-primary hover:text-primary"
+                              onClick={() => onOpenMatch(m.id)}
+                            >
+                              <Maximize2 className="w-3 h-3 mr-1" /> Otwórz
+                            </Button>
+                          )}
                           {onDelete && (
                             <Button
                               size="icon"
@@ -109,7 +119,9 @@ export const BracketView = ({ matches, onUpdate, onDelete, onOpenMatch, allTeams
                       </div>
                     ) : (
                       <button
-                        onClick={() => setEditingId(m.id)}
+                        onClick={() => onOpenMatch ? onOpenMatch(m.id) : setEditingId(m.id)}
+                        onContextMenu={(e) => { e.preventDefault(); setEditingId(m.id); }}
+                        title={onOpenMatch ? "Klik: szczegóły meczu • PPM: szybka edycja" : "Klik: edytuj"}
                         className="w-full text-left hover:bg-secondary/60 transition-colors"
                       >
                         <div className={cn(
