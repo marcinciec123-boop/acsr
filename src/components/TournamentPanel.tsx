@@ -16,6 +16,13 @@ import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
+import { MatchDetailPage } from "./tournament/MatchDetailPage";
+
+interface SelectedMatchRef {
+  phaseId: string;
+  matchId: string;
+  groupId?: string;
+}
 
 const STORAGE_KEY = "tournaments_data";
 
@@ -42,6 +49,7 @@ const TournamentPanel = () => {
   );
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
 
   // Tournament meta
   const [newName, setNewName] = useState("");
