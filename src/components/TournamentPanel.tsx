@@ -479,6 +479,8 @@ const TournamentPanel = () => {
         </Dialog>
       </div>
     </section>
+    )}
+    </>
   );
 };
 
