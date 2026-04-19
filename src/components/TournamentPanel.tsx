@@ -41,7 +41,7 @@ const TournamentPanel = () => {
     loadFromStorage<TournamentData[]>(STORAGE_KEY, [])
   );
   const [showCreate, setShowCreate] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Tournament meta
   const [newName, setNewName] = useState("");
