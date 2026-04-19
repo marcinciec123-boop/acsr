@@ -22,6 +22,7 @@ interface Props {
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
+  onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
 }
 
 const tierColor = (tier: string) => {
