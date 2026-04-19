@@ -1,4 +1,4 @@
-import { Trash2, Edit3 } from "lucide-react";
+import { Trash2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,11 +9,12 @@ interface Props {
   matches: MatchResult[];
   onUpdate: (id: string, score1: number, score2: number, team1?: string, team2?: string) => void;
   onDelete?: (id: string) => void;
+  onOpenMatch?: (id: string) => void;
   allTeams?: string[];
 }
 
 /** Groups matches by round for column-style bracket display */
-export const BracketView = ({ matches, onUpdate, onDelete, allTeams = [] }: Props) => {
+export const BracketView = ({ matches, onUpdate, onDelete, onOpenMatch, allTeams = [] }: Props) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Group by round name preserving insertion order
