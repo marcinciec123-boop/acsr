@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Trophy, Plus, Trash2, ChevronDown, ChevronUp,
+  Trophy, Plus, Trash2, ChevronRight,
   Calendar, MapPin, DollarSign, Users as UsersIcon,
-  Shuffle, Layers, GitBranch, Grid3x3
+  Layers, GitBranch, Grid3x3, Shuffle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,7 @@ import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult } from "
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
-import { BracketView } from "./tournament/BracketView";
-import { GroupTable } from "./tournament/GroupTable";
+import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 
 const STORAGE_KEY = "tournaments_data";
 
@@ -42,7 +41,7 @@ const TournamentPanel = () => {
     loadFromStorage<TournamentData[]>(STORAGE_KEY, [])
   );
   const [showCreate, setShowCreate] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Tournament meta
   const [newName, setNewName] = useState("");
@@ -216,7 +215,25 @@ const TournamentPanel = () => {
 
   const statusLabel = (s: string) => s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
+  const selectedTournament = selectedId ? tournaments.find(t => t.id === selectedId) ?? null : null;
+
   return (
+    <>
+    {selectedTournament ? (
+      <TournamentDetailPage
+        tournament={selectedTournament}
+        allTeams={allTeams}
+        onBack={() => setSelectedId(null)}
+        onUpdateMatch={(phaseId, matchId, patch, groupId) =>
+          updatePhaseMatch(selectedTournament.id, phaseId, matchId, patch, groupId)
+        }
+        onDeleteBracketMatch={(phaseId, matchId) =>
+          deleteBracketMatch(selectedTournament.id, phaseId, matchId)
+        }
+        onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
+        onDelete={() => handleDelete(selectedTournament.id)}
+      />
+    ) : (
     <section className="py-6">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
@@ -236,147 +253,50 @@ const TournamentPanel = () => {
             <p className="font-mono text-sm">Brak turniejów. Utwórz pierwszy!</p>
           </div>
         )}
-        <div className="space-y-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {tournaments.map(t => {
-            const isExpanded = expandedId === t.id;
             const totalMatches = t.phases.reduce((sum, p) =>
               sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
             );
             return (
-              <motion.div
+              <motion.button
                 key={t.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-card border border-border rounded-lg overflow-hidden"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => setSelectedId(t.id)}
+                className="group bg-card border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:bg-secondary/20 transition-all"
               >
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
                     <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>
                       {t.tier}
                     </span>
-                    <span className="font-heading font-semibold text-foreground text-sm truncate">{t.name}</span>
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0", statusBadge(t.status))}>
                       {statusLabel(t.status)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs text-muted-foreground font-mono hidden sm:block">
-                      {t.phases.length} faz • {totalMatches} mecz(ów)
-                    </span>
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                </div>
+                <h3 className="font-heading font-bold text-foreground text-base mb-1 truncate">{t.name}</h3>
+                {t.organizer && (
+                  <p className="text-xs text-muted-foreground mb-3 truncate">{t.organizer}</p>
+                )}
+                <div className="space-y-1 text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-2">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3" /> {t.startDate || "—"} → {t.endDate || "—"}
                   </div>
-                </button>
-
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: "auto" }}
-                      exit={{ height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 border-t border-border/50 pt-3 space-y-4">
-                        {/* Info */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {t.startDate || "—"} → {t.endDate || "—"}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <MapPin className="w-3 h-3" /> {t.location || "—"}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <DollarSign className="w-3 h-3" /> {t.prizePool}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <UsersIcon className="w-3 h-3" /> {t.teams} drużyn
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono">Format: {t.format}</p>
-
-                        {/* Phases */}
-                        {t.phases.map((phase, idx) => (
-                          <div key={phase.id} className="border border-border/60 rounded-md overflow-hidden">
-                            <div className="bg-secondary/40 px-3 py-2 flex items-center justify-between border-b border-border/50">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono text-muted-foreground">FAZA {idx + 1}</span>
-                                <h4 className="text-sm font-heading font-bold text-foreground">{phase.name}</h4>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
-                                  {formatLabel(phase.format)} • BO{phase.bo}
-                                </span>
-                              </div>
-                              {phase.advanceCount ? (
-                                <span className="text-[10px] font-mono text-muted-foreground">
-                                  Awansuje: {phase.advanceCount}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="p-3">
-                              {phase.groups && phase.groups.length > 0 && (
-                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {phase.groups.map(g => (
-                                    <GroupTable
-                                      key={g.id}
-                                      group={g}
-                                      onMatchUpdate={(mid, s1, s2) =>
-                                        updatePhaseMatch(t.id, phase.id, mid, { score1: s1, score2: s2 }, g.id)
-                                      }
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              {phase.bracket && phase.bracket.length > 0 && (
-                                <BracketView
-                                  matches={phase.bracket}
-                                  allTeams={[...t.participants, ...allTeams]}
-                                  onUpdate={(mid, s1, s2, t1, t2) =>
-                                    updatePhaseMatch(t.id, phase.id, mid, {
-                                      score1: s1, score2: s2,
-                                      ...(t1 !== undefined && { team1: t1 }),
-                                      ...(t2 !== undefined && { team2: t2 }),
-                                    })
-                                  }
-                                  onDelete={(mid) => deleteBracketMatch(t.id, phase.id, mid)}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Actions */}
-                        <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
-                          {t.status !== "live" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSetStatus(t.id, "live")}>
-                              Rozpocznij
-                            </Button>
-                          )}
-                          {t.status !== "completed" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSetStatus(t.id, "completed")}>
-                              Zakończ
-                            </Button>
-                          )}
-                          {t.status === "completed" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSetStatus(t.id, "upcoming")}>
-                              Resetuj
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
-                            onClick={() => handleDelete(t.id)}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" /> Usuń
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3" /> {t.location || "—"}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="w-3 h-3 text-primary" />
+                    <span className="text-primary">{t.prizePool}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <UsersIcon className="w-3 h-3" /> {t.teams} drużyn • {t.phases.length} faz • {totalMatches} mecz(ów)
+                  </div>
+                </div>
+              </motion.button>
             );
           })}
         </div>
@@ -561,6 +481,8 @@ const TournamentPanel = () => {
         </Dialog>
       </div>
     </section>
+    )}
+    </>
   );
 };
 
