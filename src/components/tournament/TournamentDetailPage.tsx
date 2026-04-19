@@ -46,7 +46,7 @@ const statusLabel = (s: string) =>
   s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
 export const TournamentDetailPage = ({
-  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch, onSetStatus, onDelete,
+  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch, onSetStatus, onDelete, onOpenMatch,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
