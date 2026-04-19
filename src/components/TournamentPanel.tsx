@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Trophy, Plus, Trash2, ChevronRight,
   Calendar, MapPin, DollarSign, Users as UsersIcon,
-  Layers, GitBranch, Grid3x3
+  Layers, GitBranch, Grid3x3, Shuffle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
