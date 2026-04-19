@@ -16,6 +16,13 @@ import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
+import { MatchDetailPage } from "./tournament/MatchDetailPage";
+
+interface SelectedMatchRef {
+  phaseId: string;
+  matchId: string;
+  groupId?: string;
+}
 
 const STORAGE_KEY = "tournaments_data";
 
@@ -42,6 +49,7 @@ const TournamentPanel = () => {
   );
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
 
   // Tournament meta
   const [newName, setNewName] = useState("");
@@ -217,13 +225,43 @@ const TournamentPanel = () => {
 
   const selectedTournament = selectedId ? tournaments.find(t => t.id === selectedId) ?? null : null;
 
+  // Find the currently-selected match (for MatchDetailPage)
+  const selectedMatchInfo = useMemo(() => {
+    if (!selectedTournament || !selectedMatchRef) return null;
+    const phase = selectedTournament.phases.find(p => p.id === selectedMatchRef.phaseId);
+    if (!phase) return null;
+    let match: MatchResult | undefined;
+    if (selectedMatchRef.groupId && phase.groups) {
+      const g = phase.groups.find(g => g.id === selectedMatchRef.groupId);
+      match = g?.matches.find(m => m.id === selectedMatchRef.matchId);
+    } else if (phase.bracket) {
+      match = phase.bracket.find(m => m.id === selectedMatchRef.matchId);
+    }
+    if (!match) return null;
+    return { match, phaseName: phase.name, bo: (match.bo || phase.bo) as 1 | 3 | 5 };
+  }, [selectedTournament, selectedMatchRef]);
+
   return (
     <>
-    {selectedTournament ? (
+    {selectedTournament && selectedMatchInfo ? (
+      <MatchDetailPage
+        match={selectedMatchInfo.match}
+        phaseName={selectedMatchInfo.phaseName}
+        bo={selectedMatchInfo.bo}
+        onBack={() => setSelectedMatchRef(null)}
+        onUpdate={(patch) => updatePhaseMatch(
+          selectedTournament.id,
+          selectedMatchRef!.phaseId,
+          selectedMatchRef!.matchId,
+          patch,
+          selectedMatchRef!.groupId,
+        )}
+      />
+    ) : selectedTournament ? (
       <TournamentDetailPage
         tournament={selectedTournament}
         allTeams={allTeams}
-        onBack={() => setSelectedId(null)}
+        onBack={() => { setSelectedId(null); setSelectedMatchRef(null); }}
         onUpdateMatch={(phaseId, matchId, patch, groupId) =>
           updatePhaseMatch(selectedTournament.id, phaseId, matchId, patch, groupId)
         }
@@ -232,6 +270,7 @@ const TournamentPanel = () => {
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}
+        onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
       />
     ) : (
     <section className="py-6">

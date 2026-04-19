@@ -1,4 +1,6 @@
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
@@ -6,9 +8,10 @@ import { computeGroupStandings } from "@/lib/tournamentBuilder";
 interface Props {
   group: PhaseGroup;
   onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
+  onOpenMatch?: (matchId: string) => void;
 }
 
-export const GroupTable = ({ group, onMatchUpdate }: Props) => {
+export const GroupTable = ({ group, onMatchUpdate, onOpenMatch }: Props) => {
   const standings = computeGroupStandings(group);
 
   return (
@@ -45,7 +48,7 @@ export const GroupTable = ({ group, onMatchUpdate }: Props) => {
       <div className="space-y-1">
         <h6 className="text-[10px] font-mono uppercase text-muted-foreground">Mecze</h6>
         {group.matches.map((m: MatchResult) => (
-          <div key={m.id} className="flex items-center gap-2 text-xs">
+          <div key={m.id} className="flex items-center gap-1.5 text-xs">
             <span className={cn("flex-1 text-right truncate", m.score1 > m.score2 ? "text-foreground font-medium" : "text-muted-foreground")}>
               {m.team1 || "TBD"}
             </span>
@@ -67,6 +70,17 @@ export const GroupTable = ({ group, onMatchUpdate }: Props) => {
             <span className={cn("flex-1 truncate", m.score2 > m.score1 ? "text-foreground font-medium" : "text-muted-foreground")}>
               {m.team2 || "TBD"}
             </span>
+            {onOpenMatch && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-primary hover:text-primary shrink-0"
+                onClick={() => onOpenMatch(m.id)}
+                title="Otwórz szczegóły meczu"
+              >
+                <Maximize2 className="w-3 h-3" />
+              </Button>
+            )}
           </div>
         ))}
       </div>

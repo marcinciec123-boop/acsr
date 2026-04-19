@@ -3,7 +3,11 @@ import type {
   PhaseFormat,
   PhaseGroup,
   TournamentPhase,
+  TournamentData,
+  MapPlayerStats,
 } from "./types";
+import type { MatchStats, MapStats, PlayerMatchStats } from "./playerStats";
+import { calculateRating } from "./playerStats";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -267,3 +271,98 @@ export const formatLabel = (f: PhaseFormat): string => ({
   "gsl-groups": "GSL Groups",
   "showmatch": "Showmatch",
 }[f]);
+
+// ===== Stats aggregation =====
+
+const toMatchPlayer = (p: MapPlayerStats, rounds: number, teamName: string): PlayerMatchStats => {
+  const stats: PlayerMatchStats = {
+    playerName: p.playerName,
+    team: teamName,
+    kills: p.kills,
+    assists: p.assists,
+    deaths: p.deaths,
+    adr: p.adr,
+    kast: p.kast,
+    ud: p.ud,
+    ef: p.ef,
+    rounds,
+  };
+  stats.rating = p.rating ?? calculateRating(stats);
+  return stats;
+};
+
+const aggregatePlayer = (perMap: PlayerMatchStats[]): PlayerMatchStats => {
+  const totalRounds = perMap.reduce((s, m) => s + m.rounds, 0) || 1;
+  const agg: PlayerMatchStats = {
+    playerName: perMap[0].playerName,
+    team: perMap[0].team,
+    kills: perMap.reduce((s, m) => s + m.kills, 0),
+    assists: perMap.reduce((s, m) => s + m.assists, 0),
+    deaths: perMap.reduce((s, m) => s + m.deaths, 0),
+    adr: Math.round(perMap.reduce((s, m) => s + m.adr * m.rounds, 0) / totalRounds),
+    kast: Math.round(perMap.reduce((s, m) => s + m.kast * m.rounds, 0) / totalRounds),
+    ud: perMap.reduce((s, m) => s + m.ud, 0),
+    ef: perMap.reduce((s, m) => s + m.ef, 0),
+    rounds: totalRounds,
+  };
+  agg.rating = calculateRating(agg);
+  return agg;
+};
+
+const matchToStats = (m: MatchResult): MatchStats | null => {
+  if (!m.maps || m.maps.length === 0) return null;
+  const mapsWithStats = m.maps.filter(mp => mp.team1Players?.length || mp.team2Players?.length);
+  if (mapsWithStats.length === 0) return null;
+
+  const mapStatsList: MapStats[] = mapsWithStats.map((mp, idx) => {
+    const totalRounds = (mp.score1 || 0) + (mp.score2 || 0);
+    return {
+      mapNumber: idx + 1,
+      mapName: mp.map,
+      team1Stats: (mp.team1Players || []).map(p => toMatchPlayer(p, totalRounds, m.team1)),
+      team2Stats: (mp.team2Players || []).map(p => toMatchPlayer(p, totalRounds, m.team2)),
+      team1RoundsWon: mp.score1 || 0,
+      team2RoundsWon: mp.score2 || 0,
+      totalRounds,
+    };
+  });
+
+  const aggregateSide = (mapStats: MapStats[], side: "team1Stats" | "team2Stats"): PlayerMatchStats[] => {
+    const byPlayer: Record<string, PlayerMatchStats[]> = {};
+    mapStats.forEach(ms => {
+      ms[side].forEach(p => {
+        if (!byPlayer[p.playerName]) byPlayer[p.playerName] = [];
+        byPlayer[p.playerName].push(p);
+      });
+    });
+    return Object.values(byPlayer).map(aggregatePlayer);
+  };
+
+  return {
+    matchId: m.id,
+    team1Stats: aggregateSide(mapStatsList, "team1Stats"),
+    team2Stats: aggregateSide(mapStatsList, "team2Stats"),
+    maps: mapStatsList,
+    bo: m.bo || 1,
+  };
+};
+
+/** Walk a tournament's phases/groups/brackets and produce a MatchStats record map. */
+export const collectMatchStatsFromTournaments = (
+  tournaments: TournamentData[],
+): Record<string, MatchStats> => {
+  const out: Record<string, MatchStats> = {};
+  for (const t of tournaments) {
+    for (const phase of t.phases) {
+      const allMatches: MatchResult[] = [
+        ...(phase.bracket || []),
+        ...(phase.groups?.flatMap(g => g.matches) || []),
+      ];
+      for (const m of allMatches) {
+        const stats = matchToStats(m);
+        if (stats) out[`${t.id}-${m.id}`] = stats;
+      }
+    }
+  }
+  return out;
+};

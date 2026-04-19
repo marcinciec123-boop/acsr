@@ -8,13 +8,36 @@ export interface TeamData {
   roster: string[];
 }
 
+export interface MapPlayerStats {
+  playerName: string;
+  team: string; // team name this player belongs to ("team1" or actual team name)
+  kills: number;
+  assists: number;
+  deaths: number;
+  adr: number;     // average damage per round
+  kast: number;    // KAST% (0-100)
+  ud: number;      // utility damage
+  ef: number;      // enemies flashed
+  rating?: number; // computed
+}
+
+export interface MatchMap {
+  /** Map name e.g. "Mirage", "Inferno" */
+  map: string;
+  score1: number;  // rounds team1
+  score2: number;  // rounds team2
+  team1Players?: MapPlayerStats[]; // 5 players
+  team2Players?: MapPlayerStats[]; // 5 players
+}
+
 export interface MatchResult {
   id: string;
   team1: string;
   team2: string;
   score1: number;
   score2: number;
-  maps?: { map: string; score1: number; score2: number }[];
+  /** Per-map breakdown: rounds + player stats (Bo1: 1 entry, Bo3: up to 3, Bo5: up to 5) */
+  maps?: MatchMap[];
   /** Bracket position metadata (used by SE/DE/GSL phases) */
   bracketSlot?: string; // e.g. "UB-R1-M1", "LB-R2-M3", "GA-WM" (group A winners match)
   /** Round label for display, e.g. "Quarterfinals", "Round 1" */

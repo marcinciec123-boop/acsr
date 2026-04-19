@@ -22,6 +22,7 @@ interface Props {
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
+  onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
 }
 
 const tierColor = (tier: string) => {
@@ -45,7 +46,7 @@ const statusLabel = (s: string) =>
   s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
 export const TournamentDetailPage = ({
-  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch, onSetStatus, onDelete,
+  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch, onSetStatus, onDelete, onOpenMatch,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
@@ -174,6 +175,7 @@ export const TournamentDetailPage = ({
                         onMatchUpdate={(mid, s1, s2) =>
                           onUpdateMatch(phase.id, mid, { score1: s1, score2: s2 }, g.id)
                         }
+                        onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
                       />
                     ))}
                   </div>
@@ -190,6 +192,7 @@ export const TournamentDetailPage = ({
                       })
                     }
                     onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+                    onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
                   />
                 )}
                 {(!phase.groups || phase.groups.length === 0) && (!phase.bracket || phase.bracket.length === 0) && (
