@@ -1,4 +1,6 @@
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
@@ -6,9 +8,10 @@ import { computeGroupStandings } from "@/lib/tournamentBuilder";
 interface Props {
   group: PhaseGroup;
   onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
+  onOpenMatch?: (matchId: string) => void;
 }
 
-export const GroupTable = ({ group, onMatchUpdate }: Props) => {
+export const GroupTable = ({ group, onMatchUpdate, onOpenMatch }: Props) => {
   const standings = computeGroupStandings(group);
 
   return (
