@@ -261,7 +261,7 @@ const TournamentPanel = () => {
       <TournamentDetailPage
         tournament={selectedTournament}
         allTeams={allTeams}
-        onBack={() => setSelectedId(null)}
+        onBack={() => { setSelectedId(null); setSelectedMatchRef(null); }}
         onUpdateMatch={(phaseId, matchId, patch, groupId) =>
           updatePhaseMatch(selectedTournament.id, phaseId, matchId, patch, groupId)
         }
