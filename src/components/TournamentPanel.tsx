@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult } from "@/lib/types";
+import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
@@ -33,6 +33,15 @@ const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch
   { value: "round-robin", label: "Round Robin (Groups)", icon: Grid3x3 },
   { value: "gsl-groups", label: "GSL Groups", icon: Grid3x3 },
   { value: "showmatch", label: "Showmatch", icon: Trophy },
+];
+
+const REGIONS: { code: string; label: string }[] = [
+  { code: "EU", label: "Europa" },
+  { code: "US", label: "Ameryka Płn" },
+  { code: "LATAM", label: "Ameryka Płd" },
+  { code: "ASIA", label: "Azja" },
+  { code: "OCE", label: "Oceania" },
+  { code: "AFR", label: "Afryka" },
 ];
 
 interface PhaseDraft {
