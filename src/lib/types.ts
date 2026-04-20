@@ -81,6 +81,8 @@ export interface TournamentPhase {
   groupCount?: number;
   /** Swiss rounds (computed from teams length if absent) */
   swissRounds?: number;
+  /** Region tag (dla kwalifikacji regionalnych: "EU", "US", "ASIA"...) */
+  region?: string;
 }
 
 export type TournamentKind = "main" | "qualifier";
