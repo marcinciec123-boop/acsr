@@ -20,6 +20,8 @@ interface Props {
     groupId?: string,
   ) => void;
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
+  onAddBracketMatch: (phaseId: string, round: string) => void;
+  onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
@@ -46,7 +48,8 @@ const statusLabel = (s: string) =>
   s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
 export const TournamentDetailPage = ({
-  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch, onSetStatus, onDelete, onOpenMatch,
+  tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
+  onAddBracketMatch, onMoveBracketMatch, onSetStatus, onDelete, onOpenMatch,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
@@ -184,21 +187,33 @@ export const TournamentDetailPage = ({
                   <BracketView
                     matches={phase.bracket}
                     allTeams={[...t.participants, ...allTeams]}
-                    onUpdate={(mid, s1, s2, t1, t2) =>
+                    onUpdate={(mid, s1, s2, t1, t2, round) =>
                       onUpdateMatch(phase.id, mid, {
                         score1: s1, score2: s2,
                         ...(t1 !== undefined && { team1: t1 }),
                         ...(t2 !== undefined && { team2: t2 }),
+                        ...(round !== undefined && { round }),
                       })
                     }
                     onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+                    onMove={(mid, dir) => onMoveBracketMatch(phase.id, mid, dir)}
+                    onAdd={(round) => onAddBracketMatch(phase.id, round)}
                     onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
                   />
                 )}
                 {(!phase.groups || phase.groups.length === 0) && (!phase.bracket || phase.bracket.length === 0) && (
-                  <p className="text-xs text-muted-foreground font-mono text-center py-4">
-                    Brak meczów w tej fazie.
-                  </p>
+                  <div className="text-center py-4">
+                    <p className="text-xs text-muted-foreground font-mono mb-3">
+                      Brak meczów w tej fazie.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onAddBracketMatch(phase.id, "Round 1")}
+                    >
+                      + Dodaj pierwszy mecz
+                    </Button>
+                  </div>
                 )}
               </div>
             </motion.div>
