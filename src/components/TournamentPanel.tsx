@@ -78,6 +78,13 @@ const TournamentPanel = () => {
     { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 },
   ]);
 
+  // Qualifier config
+  const [isQualifier, setIsQualifier] = useState(false);
+  const [qualScope, setQualScope] = useState<"global" | "regional">("regional");
+  const [qualRegions, setQualRegions] = useState<string[]>(["EU"]);
+  const [qualSlots, setQualSlots] = useState<Record<string, number>>({ EU: 2, GLOBAL: 2 });
+  const [qualLinkedTo, setQualLinkedTo] = useState<string>("");
+
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
   const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
