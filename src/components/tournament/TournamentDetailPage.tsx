@@ -52,13 +52,64 @@ const statusBadge = (status: string) => {
 const statusLabel = (s: string) =>
   s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
+/** Compute top-N team names per region/global based on bracket finals + group standings */
+const computeQualifierWinners = (t: TournamentData): Record<string, string[]> => {
+  const result: Record<string, string[]> = {};
+  if (!t.qualifierConfig) return result;
+  const { scope, regions, slotsPerRegion } = t.qualifierConfig;
+
+  // For each region (or "GLOBAL"), find phases tagged with that region (or all phases if global/no tag)
+  regions.forEach(regionKey => {
+    const slots = slotsPerRegion[regionKey] || 0;
+    if (slots <= 0) return;
+    const matchingPhases = t.phases.filter(p =>
+      scope === "global" ? true : (p.region === regionKey || !p.region)
+    );
+
+    // 1) Try to extract from bracket Final winners first
+    const winners: string[] = [];
+    matchingPhases.forEach(p => {
+      if (p.bracket && p.bracket.length > 0) {
+        // Find the last round (likely "Final" or biggest index)
+        const rounds = Array.from(new Set(p.bracket.map(m => m.round || "Match")));
+        const finalRound = rounds.find(r => r.toLowerCase().includes("final")) || rounds[rounds.length - 1];
+        const finals = p.bracket.filter(m => (m.round || "Match") === finalRound);
+        finals.forEach(m => {
+          if (m.score1 + m.score2 === 0) return;
+          const w = m.score1 > m.score2 ? m.team1 : m.team2;
+          if (w && w !== "BYE" && w !== "TBD" && !winners.includes(w)) winners.push(w);
+        });
+      }
+      if (p.groups) {
+        p.groups.forEach(g => {
+          const standings = computeGroupStandings(g);
+          standings.slice(0, slots).forEach(s => {
+            if (s.team && !winners.includes(s.team)) winners.push(s.team);
+          });
+        });
+      }
+    });
+    result[regionKey] = winners.slice(0, slots);
+  });
+  return result;
+};
+
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
   onAddBracketMatch, onMoveBracketMatch, onSetStatus, onDelete, onOpenMatch,
+  mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
+
+  const isQualifier = t.kind === "qualifier" && !!t.qualifierConfig;
+  const winnersByRegion = useMemo(() => isQualifier ? computeQualifierWinners(t) : {}, [t, isQualifier]);
+  const [linkedTarget, setLinkedTarget] = useState<string>(t.qualifierConfig?.linkedTournamentId || "");
+
+  const promoted = t.qualifierConfig?.promotedTeams || [];
+  const allWinners = Object.values(winnersByRegion).flat();
+  const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
 
   return (
     <section className="py-6">
