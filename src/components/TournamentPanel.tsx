@@ -206,6 +206,47 @@ const TournamentPanel = () => {
     }));
   };
 
+  const addBracketMatch = (tournamentId: string, phaseId: string, round: string) => {
+    const newMatch: MatchResult = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      team1: "",
+      team2: "",
+      score1: 0,
+      score2: 0,
+      round,
+      bo: 3,
+    };
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId) return p;
+          newMatch.bo = p.bo;
+          return { ...p, bracket: [...(p.bracket || []), newMatch] };
+        }),
+      };
+    }));
+  };
+
+  const moveBracketMatch = (tournamentId: string, phaseId: string, matchId: string, dir: -1 | 1) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId || !p.bracket) return p;
+          const idx = p.bracket.findIndex(m => m.id === matchId);
+          const tgt = idx + dir;
+          if (idx === -1 || tgt < 0 || tgt >= p.bracket.length) return p;
+          const next = [...p.bracket];
+          [next[idx], next[tgt]] = [next[tgt], next[idx]];
+          return { ...p, bracket: next };
+        }),
+      };
+    }));
+  };
+
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
     setTournaments(prev => prev.map(t => t.id === id ? { ...t, status } : t));
   };
