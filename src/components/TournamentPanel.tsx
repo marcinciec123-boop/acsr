@@ -397,16 +397,41 @@ const TournamentPanel = () => {
                 </div>
                 {selectedTeams.length > 0 && (
                   <div className="bg-secondary/30 border border-border rounded-md p-2">
-                    <p className="text-[10px] font-mono text-muted-foreground mb-1.5">Rozstawienie (kolejność = seed):</p>
-                    <div className="flex flex-wrap gap-1.5">
+                    <p className="text-[10px] font-mono text-muted-foreground mb-1.5">
+                      Rozstawienie (kolejność = seed). Użyj ↑↓ aby przesunąć, ✕ aby usunąć:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                       {selectedTeams.map((t, i) => (
-                        <button
+                        <div
                           key={t}
-                          onClick={() => toggleTeam(t)}
-                          className="text-[11px] px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40 font-mono"
+                          className="flex items-center gap-1 bg-card border border-border rounded px-2 py-1"
                         >
-                          #{i + 1} {t} ✕
-                        </button>
+                          <span className="text-[10px] font-mono text-primary w-6 shrink-0">#{i + 1}</span>
+                          <span className="text-[11px] font-mono flex-1 truncate text-foreground">{t}</span>
+                          <button
+                            onClick={() => moveSeed(i, -1)}
+                            disabled={i === 0}
+                            className="text-muted-foreground hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed"
+                            title="W górę"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => moveSeed(i, 1)}
+                            disabled={i === selectedTeams.length - 1}
+                            className="text-muted-foreground hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed"
+                            title="W dół"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => toggleTeam(t)}
+                            className="text-muted-foreground hover:text-destructive"
+                            title="Usuń"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
