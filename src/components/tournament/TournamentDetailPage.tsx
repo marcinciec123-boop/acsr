@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
-import { teamDatabase } from "@/data/tournaments";
+
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
 
