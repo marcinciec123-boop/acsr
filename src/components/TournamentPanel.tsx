@@ -438,6 +438,11 @@ const TournamentPanel = () => {
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0", statusBadge(t.status))}>
                       {statusLabel(t.status)}
                     </span>
+                    {t.kind === "qualifier" && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] font-mono font-bold shrink-0">
+                        QUAL {t.qualifierConfig?.scope === "global" ? "GLOBAL" : (t.qualifierConfig?.regions || []).join("+")}
+                      </span>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
