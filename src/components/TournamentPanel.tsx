@@ -577,11 +577,127 @@ const TournamentPanel = () => {
                 </div>
               </section>
 
+              {/* Qualifier toggle & config */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    3. Typ wydarzenia
+                  </h3>
+                  <label className="flex items-center gap-2 text-xs font-mono cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isQualifier}
+                      onChange={e => setIsQualifier(e.target.checked)}
+                      className="accent-primary"
+                    />
+                    To jest kwalifikacja
+                  </label>
+                </div>
+                {isQualifier && (
+                  <div className="bg-secondary/30 border border-border rounded-md p-3 space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setQualScope("global")}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded text-xs font-mono border transition-colors",
+                          qualScope === "global"
+                            ? "bg-primary/15 text-primary border-primary/40"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        🌍 Globalna (wszyscy razem)
+                      </button>
+                      <button
+                        onClick={() => setQualScope("regional")}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded text-xs font-mono border transition-colors",
+                          qualScope === "regional"
+                            ? "bg-primary/15 text-primary border-primary/40"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        📍 Regionalna (osobne sloty)
+                      </button>
+                    </div>
+
+                    {qualScope === "regional" ? (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-mono text-muted-foreground">
+                          Wybierz regiony i liczbę slotów awansu z każdego:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {REGIONS.map(r => {
+                            const active = qualRegions.includes(r.code);
+                            return (
+                              <div key={r.code} className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 rounded border",
+                                active ? "bg-primary/10 border-primary/30" : "bg-card border-border"
+                              )}>
+                                <label className="flex items-center gap-2 flex-1 cursor-pointer text-xs font-mono">
+                                  <input
+                                    type="checkbox"
+                                    checked={active}
+                                    onChange={() => toggleQualRegion(r.code)}
+                                    className="accent-primary"
+                                  />
+                                  <span className={active ? "text-foreground" : "text-muted-foreground"}>
+                                    {r.label} <span className="text-[10px] opacity-60">({r.code})</span>
+                                  </span>
+                                </label>
+                                {active && (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={qualSlots[r.code] ?? 1}
+                                      onChange={e => setQualSlots(s => ({ ...s, [r.code]: parseInt(e.target.value) || 1 }))}
+                                      className="w-14 h-7 text-center text-xs"
+                                    />
+                                    <span className="text-[10px] font-mono text-muted-foreground">slot</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-mono text-muted-foreground">Liczba slotów awansu:</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={qualSlots.GLOBAL ?? 2}
+                          onChange={e => setQualSlots(s => ({ ...s, GLOBAL: parseInt(e.target.value) || 1 }))}
+                          className="w-20 h-7 text-center text-xs"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                        Powiązany turniej główny (opcjonalnie)
+                      </label>
+                      <select
+                        value={qualLinkedTo}
+                        onChange={e => setQualLinkedTo(e.target.value)}
+                        className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
+                      >
+                        <option value="">— brak (wybierzesz później) —</option>
+                        {tournaments.filter(x => x.kind !== "qualifier").map(x => (
+                          <option key={x.id} value={x.id}>{x.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </section>
+
               {/* Phases */}
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
-                    3. Fazy turnieju ({phaseDrafts.length})
+                    4. Fazy turnieju ({phaseDrafts.length})
                   </h3>
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addPhaseDraft}>
                     <Plus className="w-3 h-3" /> Dodaj fazę
