@@ -200,6 +200,98 @@ export const TournamentDetailPage = ({
           </div>
         )}
 
+        {/* Qualifier panel */}
+        {isQualifier && (
+          <div className="bg-gradient-to-br from-[hsl(var(--gold))]/5 to-card border border-[hsl(var(--gold))]/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="w-4 h-4 text-[hsl(var(--gold))]" />
+              <h3 className="text-xs font-heading font-bold uppercase text-[hsl(var(--gold))] tracking-wider">
+                Kwalifikacja {t.qualifierConfig!.scope === "global" ? "globalna" : "regionalna"}
+              </h3>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                • {Object.values(t.qualifierConfig!.slotsPerRegion).reduce((a, b) => a + b, 0)} miejsc do zdobycia
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {t.qualifierConfig!.regions.map(regionKey => {
+                const slots = t.qualifierConfig!.slotsPerRegion[regionKey] || 0;
+                const winners = winnersByRegion[regionKey] || [];
+                return (
+                  <div key={regionKey} className="bg-card/60 border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono font-bold text-foreground">
+                        {regionKey === "GLOBAL" ? "🌍 Globalna pula" : `📍 ${regionKey}`}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {winners.length}/{slots} miejsc obsadzonych
+                      </span>
+                    </div>
+                    {winners.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground font-mono italic">
+                        Brak rozegranych meczów — wpisz wyniki, aby wyłonić zwycięzców.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {winners.map((w, i) => (
+                          <span key={w} className={cn(
+                            "text-[11px] font-mono px-2 py-1 rounded border flex items-center gap-1.5",
+                            promoted.includes(w)
+                              ? "bg-[hsl(var(--win))]/15 border-[hsl(var(--win))]/40 text-[hsl(var(--win))]"
+                              : "bg-primary/10 border-primary/30 text-primary"
+                          )}>
+                            <span className="opacity-60">#{i + 1}</span>
+                            {w}
+                            {promoted.includes(w) && <span className="text-[9px]">✓ awansował</span>}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {onPromoteWinners && (
+              <div className="mt-4 pt-4 border-t border-[hsl(var(--gold))]/20 space-y-2">
+                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                  Awansuj zwycięzców do turnieju głównego
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={linkedTarget}
+                    onChange={e => setLinkedTarget(e.target.value)}
+                    className="flex-1 min-w-[200px] px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
+                  >
+                    <option value="">— wybierz turniej główny —</option>
+                    {mainTournaments.map(mt => (
+                      <option key={mt.id} value={mt.id}>{mt.name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (linkedTarget && pendingPromotion.length > 0) {
+                        onPromoteWinners(pendingPromotion, linkedTarget);
+                      }
+                    }}
+                    disabled={!linkedTarget || pendingPromotion.length === 0}
+                    className="gap-1.5"
+                  >
+                    <Send className="w-3 h-3" />
+                    Awansuj {pendingPromotion.length} drużyn
+                  </Button>
+                </div>
+                {pendingPromotion.length === 0 && allWinners.length > 0 && (
+                  <p className="text-[10px] font-mono text-muted-foreground">
+                    ✓ Wszyscy zwycięzcy zostali już awansowani.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Phases */}
         <div className="space-y-4">
           {t.phases.map((phase, idx) => (
