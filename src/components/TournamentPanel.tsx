@@ -319,6 +319,12 @@ const TournamentPanel = () => {
         onDeleteBracketMatch={(phaseId, matchId) =>
           deleteBracketMatch(selectedTournament.id, phaseId, matchId)
         }
+        onAddBracketMatch={(phaseId, round) =>
+          addBracketMatch(selectedTournament.id, phaseId, round)
+        }
+        onMoveBracketMatch={(phaseId, matchId, dir) =>
+          moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
+        }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
