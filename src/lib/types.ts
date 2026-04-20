@@ -81,6 +81,23 @@ export interface TournamentPhase {
   groupCount?: number;
   /** Swiss rounds (computed from teams length if absent) */
   swissRounds?: number;
+  /** Region tag (dla kwalifikacji regionalnych: "EU", "US", "ASIA"...) */
+  region?: string;
+}
+
+export type TournamentKind = "main" | "qualifier";
+
+export interface QualifierConfig {
+  /** "global" = jedna pula, "regional" = osobne sloty per region */
+  scope: "global" | "regional";
+  /** Wybrane regiony (dla scope=regional). Dla global puste lub ["GLOBAL"]. */
+  regions: string[];
+  /** Sloty awansu — klucz: region (lub "GLOBAL"), wartość: liczba miejsc */
+  slotsPerRegion: Record<string, number>;
+  /** ID turnieju głównego, do którego awansują zwycięzcy (opcjonalne) */
+  linkedTournamentId?: string;
+  /** Drużyny już awansowane (zapobiega podwójnemu awansowi) */
+  promotedTeams?: string[];
 }
 
 export interface TournamentData {
@@ -102,6 +119,11 @@ export interface TournamentData {
   /** Legacy flat match list — kept for backward compatibility */
   matches?: MatchResult[];
   placements: { team: string; placement: number; points: number }[];
+  /** Czy to turniej główny czy kwalifikacja */
+  kind?: TournamentKind;
+  /** Konfiguracja kwalifikacji (gdy kind === "qualifier") */
+  qualifierConfig?: QualifierConfig;
+  /** Region przypisany do meczu — używane do grupowania zwycięzców (opcjonalne, na poziomie fazy) */
 }
 
 export interface Transfer {

@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
+  Award, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
-import { formatLabel } from "@/lib/tournamentBuilder";
+import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
+
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
 
@@ -25,6 +28,8 @@ interface Props {
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
+  mainTournaments?: TournamentData[];
+  onPromoteWinners?: (winners: string[], targetTournamentId: string) => void;
 }
 
 const tierColor = (tier: string) => {
@@ -47,13 +52,64 @@ const statusBadge = (status: string) => {
 const statusLabel = (s: string) =>
   s === "live" ? "W trakcie" : s === "completed" ? "Zakończony" : "Nadchodzący";
 
+/** Compute top-N team names per region/global based on bracket finals + group standings */
+const computeQualifierWinners = (t: TournamentData): Record<string, string[]> => {
+  const result: Record<string, string[]> = {};
+  if (!t.qualifierConfig) return result;
+  const { scope, regions, slotsPerRegion } = t.qualifierConfig;
+
+  // For each region (or "GLOBAL"), find phases tagged with that region (or all phases if global/no tag)
+  regions.forEach(regionKey => {
+    const slots = slotsPerRegion[regionKey] || 0;
+    if (slots <= 0) return;
+    const matchingPhases = t.phases.filter(p =>
+      scope === "global" ? true : (p.region === regionKey || !p.region)
+    );
+
+    // 1) Try to extract from bracket Final winners first
+    const winners: string[] = [];
+    matchingPhases.forEach(p => {
+      if (p.bracket && p.bracket.length > 0) {
+        // Find the last round (likely "Final" or biggest index)
+        const rounds = Array.from(new Set(p.bracket.map(m => m.round || "Match")));
+        const finalRound = rounds.find(r => r.toLowerCase().includes("final")) || rounds[rounds.length - 1];
+        const finals = p.bracket.filter(m => (m.round || "Match") === finalRound);
+        finals.forEach(m => {
+          if (m.score1 + m.score2 === 0) return;
+          const w = m.score1 > m.score2 ? m.team1 : m.team2;
+          if (w && w !== "BYE" && w !== "TBD" && !winners.includes(w)) winners.push(w);
+        });
+      }
+      if (p.groups) {
+        p.groups.forEach(g => {
+          const standings = computeGroupStandings(g);
+          standings.slice(0, slots).forEach(s => {
+            if (s.team && !winners.includes(s.team)) winners.push(s.team);
+          });
+        });
+      }
+    });
+    result[regionKey] = winners.slice(0, slots);
+  });
+  return result;
+};
+
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
   onAddBracketMatch, onMoveBracketMatch, onSetStatus, onDelete, onOpenMatch,
+  mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
+
+  const isQualifier = t.kind === "qualifier" && !!t.qualifierConfig;
+  const winnersByRegion = useMemo(() => isQualifier ? computeQualifierWinners(t) : {}, [t, isQualifier]);
+  const [linkedTarget, setLinkedTarget] = useState<string>(t.qualifierConfig?.linkedTournamentId || "");
+
+  const promoted = t.qualifierConfig?.promotedTeams || [];
+  const allWinners = Object.values(winnersByRegion).flat();
+  const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
 
   return (
     <section className="py-6">
@@ -141,6 +197,98 @@ export const TournamentDetailPage = ({
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Qualifier panel */}
+        {isQualifier && (
+          <div className="bg-gradient-to-br from-[hsl(var(--gold))]/5 to-card border border-[hsl(var(--gold))]/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="w-4 h-4 text-[hsl(var(--gold))]" />
+              <h3 className="text-xs font-heading font-bold uppercase text-[hsl(var(--gold))] tracking-wider">
+                Kwalifikacja {t.qualifierConfig!.scope === "global" ? "globalna" : "regionalna"}
+              </h3>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                • {Object.values(t.qualifierConfig!.slotsPerRegion).reduce((a, b) => a + b, 0)} miejsc do zdobycia
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {t.qualifierConfig!.regions.map(regionKey => {
+                const slots = t.qualifierConfig!.slotsPerRegion[regionKey] || 0;
+                const winners = winnersByRegion[regionKey] || [];
+                return (
+                  <div key={regionKey} className="bg-card/60 border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono font-bold text-foreground">
+                        {regionKey === "GLOBAL" ? "🌍 Globalna pula" : `📍 ${regionKey}`}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {winners.length}/{slots} miejsc obsadzonych
+                      </span>
+                    </div>
+                    {winners.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground font-mono italic">
+                        Brak rozegranych meczów — wpisz wyniki, aby wyłonić zwycięzców.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {winners.map((w, i) => (
+                          <span key={w} className={cn(
+                            "text-[11px] font-mono px-2 py-1 rounded border flex items-center gap-1.5",
+                            promoted.includes(w)
+                              ? "bg-[hsl(var(--win))]/15 border-[hsl(var(--win))]/40 text-[hsl(var(--win))]"
+                              : "bg-primary/10 border-primary/30 text-primary"
+                          )}>
+                            <span className="opacity-60">#{i + 1}</span>
+                            {w}
+                            {promoted.includes(w) && <span className="text-[9px]">✓ awansował</span>}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {onPromoteWinners && (
+              <div className="mt-4 pt-4 border-t border-[hsl(var(--gold))]/20 space-y-2">
+                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                  Awansuj zwycięzców do turnieju głównego
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={linkedTarget}
+                    onChange={e => setLinkedTarget(e.target.value)}
+                    className="flex-1 min-w-[200px] px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
+                  >
+                    <option value="">— wybierz turniej główny —</option>
+                    {mainTournaments.map(mt => (
+                      <option key={mt.id} value={mt.id}>{mt.name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (linkedTarget && pendingPromotion.length > 0) {
+                        onPromoteWinners(pendingPromotion, linkedTarget);
+                      }
+                    }}
+                    disabled={!linkedTarget || pendingPromotion.length === 0}
+                    className="gap-1.5"
+                  >
+                    <Send className="w-3 h-3" />
+                    Awansuj {pendingPromotion.length} drużyn
+                  </Button>
+                </div>
+                {pendingPromotion.length === 0 && allWinners.length > 0 && (
+                  <p className="text-[10px] font-mono text-muted-foreground">
+                    ✓ Wszyscy zwycięzcy zostali już awansowani.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

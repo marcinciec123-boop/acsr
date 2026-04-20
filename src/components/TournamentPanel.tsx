@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult } from "@/lib/types";
+import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle } from "@/lib/tournamentBuilder";
@@ -33,6 +33,15 @@ const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch
   { value: "round-robin", label: "Round Robin (Groups)", icon: Grid3x3 },
   { value: "gsl-groups", label: "GSL Groups", icon: Grid3x3 },
   { value: "showmatch", label: "Showmatch", icon: Trophy },
+];
+
+const REGIONS: { code: string; label: string }[] = [
+  { code: "EU", label: "Europa" },
+  { code: "US", label: "Ameryka Płn" },
+  { code: "LATAM", label: "Ameryka Płd" },
+  { code: "ASIA", label: "Azja" },
+  { code: "OCE", label: "Oceania" },
+  { code: "AFR", label: "Afryka" },
 ];
 
 interface PhaseDraft {
@@ -69,6 +78,13 @@ const TournamentPanel = () => {
     { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 },
   ]);
 
+  // Qualifier config
+  const [isQualifier, setIsQualifier] = useState(false);
+  const [qualScope, setQualScope] = useState<"global" | "regional">("regional");
+  const [qualRegions, setQualRegions] = useState<string[]>(["EU"]);
+  const [qualSlots, setQualSlots] = useState<Record<string, number>>({ EU: 2, GLOBAL: 2 });
+  const [qualLinkedTo, setQualLinkedTo] = useState<string>("");
+
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
   const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
@@ -82,6 +98,19 @@ const TournamentPanel = () => {
     setNewLocation(""); setNewTier("A");
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 }]);
+    setIsQualifier(false);
+    setQualScope("regional");
+    setQualRegions(["EU"]);
+    setQualSlots({ EU: 2, GLOBAL: 2 });
+    setQualLinkedTo("");
+  };
+
+  const toggleQualRegion = (code: string) => {
+    setQualRegions(prev => {
+      const next = prev.includes(code) ? prev.filter(r => r !== code) : [...prev, code];
+      setQualSlots(s => ({ ...s, [code]: s[code] ?? 2 }));
+      return next;
+    });
   };
 
   const toggleTeam = (name: string) => {
@@ -138,6 +167,20 @@ const TournamentPanel = () => {
       }
     });
 
+    let qualifierConfig: QualifierConfig | undefined;
+    if (isQualifier) {
+      const regs = qualScope === "global" ? ["GLOBAL"] : qualRegions;
+      const slots: Record<string, number> = {};
+      regs.forEach(r => { slots[r] = Math.max(1, qualSlots[r] ?? 1); });
+      qualifierConfig = {
+        scope: qualScope,
+        regions: regs,
+        slotsPerRegion: slots,
+        linkedTournamentId: qualLinkedTo || undefined,
+        promotedTeams: [],
+      };
+    }
+
     const t: TournamentData = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name: newName.trim(),
@@ -153,6 +196,8 @@ const TournamentPanel = () => {
       participants: selectedTeams,
       phases,
       placements: [],
+      kind: isQualifier ? "qualifier" : "main",
+      qualifierConfig,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
@@ -255,6 +300,27 @@ const TournamentPanel = () => {
     setTournaments(prev => prev.filter(t => t.id !== id));
   };
 
+  const handlePromoteWinners = (qualifierId: string, winners: string[], targetId: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id === qualifierId && t.qualifierConfig) {
+        return {
+          ...t,
+          qualifierConfig: {
+            ...t.qualifierConfig,
+            linkedTournamentId: targetId,
+            promotedTeams: Array.from(new Set([...(t.qualifierConfig.promotedTeams || []), ...winners])),
+          },
+        };
+      }
+      if (t.id === targetId) {
+        const newParticipants = [...t.participants];
+        winners.forEach(w => { if (!newParticipants.includes(w)) newParticipants.push(w); });
+        return { ...t, participants: newParticipants, teams: newParticipants.length };
+      }
+      return t;
+    }));
+  };
+
   const tierColor = (tier: string) => {
     switch (tier) {
       case "S": return "text-[hsl(var(--gold))] border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10";
@@ -328,6 +394,8 @@ const TournamentPanel = () => {
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
+        mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
+        onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />
     ) : (
     <section className="py-6">
@@ -370,6 +438,11 @@ const TournamentPanel = () => {
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0", statusBadge(t.status))}>
                       {statusLabel(t.status)}
                     </span>
+                    {t.kind === "qualifier" && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] font-mono font-bold shrink-0">
+                        QUAL {t.qualifierConfig?.scope === "global" ? "GLOBAL" : (t.qualifierConfig?.regions || []).join("+")}
+                      </span>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
@@ -509,11 +582,127 @@ const TournamentPanel = () => {
                 </div>
               </section>
 
+              {/* Qualifier toggle & config */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    3. Typ wydarzenia
+                  </h3>
+                  <label className="flex items-center gap-2 text-xs font-mono cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isQualifier}
+                      onChange={e => setIsQualifier(e.target.checked)}
+                      className="accent-primary"
+                    />
+                    To jest kwalifikacja
+                  </label>
+                </div>
+                {isQualifier && (
+                  <div className="bg-secondary/30 border border-border rounded-md p-3 space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setQualScope("global")}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded text-xs font-mono border transition-colors",
+                          qualScope === "global"
+                            ? "bg-primary/15 text-primary border-primary/40"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        🌍 Globalna (wszyscy razem)
+                      </button>
+                      <button
+                        onClick={() => setQualScope("regional")}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded text-xs font-mono border transition-colors",
+                          qualScope === "regional"
+                            ? "bg-primary/15 text-primary border-primary/40"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        📍 Regionalna (osobne sloty)
+                      </button>
+                    </div>
+
+                    {qualScope === "regional" ? (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-mono text-muted-foreground">
+                          Wybierz regiony i liczbę slotów awansu z każdego:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {REGIONS.map(r => {
+                            const active = qualRegions.includes(r.code);
+                            return (
+                              <div key={r.code} className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 rounded border",
+                                active ? "bg-primary/10 border-primary/30" : "bg-card border-border"
+                              )}>
+                                <label className="flex items-center gap-2 flex-1 cursor-pointer text-xs font-mono">
+                                  <input
+                                    type="checkbox"
+                                    checked={active}
+                                    onChange={() => toggleQualRegion(r.code)}
+                                    className="accent-primary"
+                                  />
+                                  <span className={active ? "text-foreground" : "text-muted-foreground"}>
+                                    {r.label} <span className="text-[10px] opacity-60">({r.code})</span>
+                                  </span>
+                                </label>
+                                {active && (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={qualSlots[r.code] ?? 1}
+                                      onChange={e => setQualSlots(s => ({ ...s, [r.code]: parseInt(e.target.value) || 1 }))}
+                                      className="w-14 h-7 text-center text-xs"
+                                    />
+                                    <span className="text-[10px] font-mono text-muted-foreground">slot</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-mono text-muted-foreground">Liczba slotów awansu:</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={qualSlots.GLOBAL ?? 2}
+                          onChange={e => setQualSlots(s => ({ ...s, GLOBAL: parseInt(e.target.value) || 1 }))}
+                          className="w-20 h-7 text-center text-xs"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                        Powiązany turniej główny (opcjonalnie)
+                      </label>
+                      <select
+                        value={qualLinkedTo}
+                        onChange={e => setQualLinkedTo(e.target.value)}
+                        className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
+                      >
+                        <option value="">— brak (wybierzesz później) —</option>
+                        {tournaments.filter(x => x.kind !== "qualifier").map(x => (
+                          <option key={x.id} value={x.id}>{x.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </section>
+
               {/* Phases */}
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
-                    3. Fazy turnieju ({phaseDrafts.length})
+                    4. Fazy turnieju ({phaseDrafts.length})
                   </h3>
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addPhaseDraft}>
                     <Plus className="w-3 h-3" /> Dodaj fazę
