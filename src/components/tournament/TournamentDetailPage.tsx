@@ -28,6 +28,8 @@ interface Props {
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
+  mainTournaments?: TournamentData[];
+  onPromoteWinners?: (winners: string[], targetTournamentId: string) => void;
 }
 
 const tierColor = (tier: string) => {
