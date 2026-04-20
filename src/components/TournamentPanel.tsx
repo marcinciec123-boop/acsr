@@ -98,6 +98,19 @@ const TournamentPanel = () => {
     setNewLocation(""); setNewTier("A");
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 }]);
+    setIsQualifier(false);
+    setQualScope("regional");
+    setQualRegions(["EU"]);
+    setQualSlots({ EU: 2, GLOBAL: 2 });
+    setQualLinkedTo("");
+  };
+
+  const toggleQualRegion = (code: string) => {
+    setQualRegions(prev => {
+      const next = prev.includes(code) ? prev.filter(r => r !== code) : [...prev, code];
+      setQualSlots(s => ({ ...s, [code]: s[code] ?? 2 }));
+      return next;
+    });
   };
 
   const toggleTeam = (name: string) => {
@@ -154,6 +167,20 @@ const TournamentPanel = () => {
       }
     });
 
+    let qualifierConfig: QualifierConfig | undefined;
+    if (isQualifier) {
+      const regs = qualScope === "global" ? ["GLOBAL"] : qualRegions;
+      const slots: Record<string, number> = {};
+      regs.forEach(r => { slots[r] = Math.max(1, qualSlots[r] ?? 1); });
+      qualifierConfig = {
+        scope: qualScope,
+        regions: regs,
+        slotsPerRegion: slots,
+        linkedTournamentId: qualLinkedTo || undefined,
+        promotedTeams: [],
+      };
+    }
+
     const t: TournamentData = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name: newName.trim(),
@@ -169,6 +196,8 @@ const TournamentPanel = () => {
       participants: selectedTeams,
       phases,
       placements: [],
+      kind: isQualifier ? "qualifier" : "main",
+      qualifierConfig,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
