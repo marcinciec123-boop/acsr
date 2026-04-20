@@ -300,6 +300,27 @@ const TournamentPanel = () => {
     setTournaments(prev => prev.filter(t => t.id !== id));
   };
 
+  const handlePromoteWinners = (qualifierId: string, winners: string[], targetId: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id === qualifierId && t.qualifierConfig) {
+        return {
+          ...t,
+          qualifierConfig: {
+            ...t.qualifierConfig,
+            linkedTournamentId: targetId,
+            promotedTeams: Array.from(new Set([...(t.qualifierConfig.promotedTeams || []), ...winners])),
+          },
+        };
+      }
+      if (t.id === targetId) {
+        const newParticipants = [...t.participants];
+        winners.forEach(w => { if (!newParticipants.includes(w)) newParticipants.push(w); });
+        return { ...t, participants: newParticipants, teams: newParticipants.length };
+      }
+      return t;
+    }));
+  };
+
   const tierColor = (tier: string) => {
     switch (tier) {
       case "S": return "text-[hsl(var(--gold))] border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10";
