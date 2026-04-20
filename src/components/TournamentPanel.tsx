@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Trophy, Plus, Trash2, ChevronRight,
   Calendar, MapPin, DollarSign, Users as UsersIcon,
-  Layers, GitBranch, Grid3x3, Shuffle
+  Layers, GitBranch, Grid3x3, Shuffle, ArrowUp, ArrowDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,16 @@ const TournamentPanel = () => {
   };
 
   const seedRandom = () => setSelectedTeams(prev => shuffle(prev));
+
+  const moveSeed = (idx: number, dir: -1 | 1) => {
+    setSelectedTeams(prev => {
+      const next = [...prev];
+      const tgt = idx + dir;
+      if (tgt < 0 || tgt >= next.length) return prev;
+      [next[idx], next[tgt]] = [next[tgt], next[idx]];
+      return next;
+    });
+  };
 
   const addPhaseDraft = () => {
     setPhaseDrafts(prev => [
