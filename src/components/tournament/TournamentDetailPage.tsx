@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
+  Award, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
-import { formatLabel } from "@/lib/tournamentBuilder";
+import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
+import { teamDatabase } from "@/data/tournaments";
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
 
