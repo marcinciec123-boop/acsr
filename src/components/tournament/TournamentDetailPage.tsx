@@ -447,7 +447,19 @@ export const TournamentDetailPage = ({
                   </span>
                 ) : null}
               </div>
-              <div className="p-4">
+              <div className="p-4 space-y-4">
+                {/* Seeding panel — assign real teams to phase slots (works for any phase, including higher rounds) */}
+                {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
+                  <PhaseSeedingPanel
+                    phaseTeams={phase.teams}
+                    allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
+                    slotCount={Math.max(
+                      phase.teams.length,
+                      (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
+                    )}
+                    onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
+                  />
+                )}
                 {phase.groups && phase.groups.length > 0 && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
