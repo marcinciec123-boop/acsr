@@ -454,6 +454,9 @@ const TournamentPanel = () => {
         onMoveBracketMatch={(phaseId, matchId, dir) =>
           moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
         }
+        onReseedPhase={(phaseId, teams) =>
+          reseedPhase(selectedTournament.id, phaseId, teams)
+        }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
