@@ -5,6 +5,7 @@ import RankingPanel from "@/components/RankingPanel";
 import TournamentPanel from "@/components/TournamentPanel";
 import TransferPanel from "@/components/TransferPanel";
 import TeamProfile from "@/components/TeamProfile";
+import PlayerProfile from "@/components/PlayerProfile";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -12,37 +13,59 @@ import { teamDatabase } from "@/data/tournaments";
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("news");
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
 
   const handleSelectTeam = (name: string) => {
+    setSelectedPlayer(null);
     setSelectedTeam(name);
   };
 
-  const handleBackFromTeam = () => {
+  const handleSelectPlayer = (name: string) => {
     setSelectedTeam(null);
+    setSelectedPlayer(name);
   };
+
+  const handleBackFromTeam = () => setSelectedTeam(null);
+  const handleBackFromPlayer = () => setSelectedPlayer(null);
 
   const handleTabChange = (tab: Tab) => {
     setSelectedTeam(null);
+    setSelectedPlayer(null);
     setActiveTab(tab);
   };
 
-  // Get current ranking data for team profile
+  // Get current ranking data for profiles
   const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
 
   return (
     <div className="min-h-screen bg-background">
       <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
 
-      {selectedTeam ? (
+      {selectedPlayer ? (
+        <PlayerProfile
+          playerName={selectedPlayer}
+          onBack={handleBackFromPlayer}
+          onSelectTeam={handleSelectTeam}
+          onSelectPlayer={handleSelectPlayer}
+          seasonStandings={[]}
+          dynamicRanking={teams}
+        />
+      ) : selectedTeam ? (
         <TeamProfile
           teamName={selectedTeam}
           onBack={handleBackFromTeam}
           teams={teams}
+          onSelectPlayer={handleSelectPlayer}
         />
       ) : (
         <>
           {activeTab === "news" && <NewsFeed />}
-          {activeTab === "rankings" && <RankingPanel onSelectTeam={handleSelectTeam} />}
+          {activeTab === "rankings" && (
+            <RankingPanel
+              onSelectTeam={handleSelectTeam}
+              onSelectPlayer={handleSelectPlayer}
+            />
+          )}
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
         </>
