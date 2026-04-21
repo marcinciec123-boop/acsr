@@ -14,6 +14,7 @@ interface TeamProfileProps {
   teamName: string;
   onBack: () => void;
   teams?: TeamData[];
+  onSelectPlayer?: (player: string) => void;
 }
 
 const getAvatarColor = (name: string): string => {
@@ -34,7 +35,7 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const TeamProfile = ({ teamName, onBack, teams }: TeamProfileProps) => {
+const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfileProps) => {
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
   const sorted = [...rankingSource].sort((a, b) => b.points - a.points);
   const team = sorted.find((t) => t.name === teamName);
@@ -120,12 +121,17 @@ const TeamProfile = ({ teamName, onBack, teams }: TeamProfileProps) => {
               const realName = playerRealNames[player];
               const avatarGradient = getAvatarColor(player);
               return (
-                <motion.div
+                <motion.button
                   key={player}
+                  type="button"
+                  onClick={() => onSelectPlayer?.(player)}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.15 + i * 0.05 }}
-                  className="bg-secondary/30 border border-border rounded-lg p-3 sm:p-4 text-center"
+                  className={cn(
+                    "bg-secondary/30 border border-border rounded-lg p-3 sm:p-4 text-center transition-all",
+                    onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50 hover:-translate-y-0.5 cursor-pointer",
+                  )}
                 >
                   <div className={cn(
                     "w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white bg-gradient-to-br shadow-lg",
@@ -148,7 +154,7 @@ const TeamProfile = ({ teamName, onBack, teams }: TeamProfileProps) => {
                     <span>{countryFlag(playerCountry)}</span>
                     <span>{playerCountry}</span>
                   </p>
-                </motion.div>
+                </motion.button>
               );
             })}
           </div>
@@ -177,12 +183,19 @@ const TeamProfile = ({ teamName, onBack, teams }: TeamProfileProps) => {
                       {isJoin ? "+" : "−"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-heading font-bold text-foreground text-sm">
+                      <button
+                        type="button"
+                        onClick={() => onSelectPlayer?.(t.player)}
+                        className={cn(
+                          "font-heading font-bold text-foreground text-sm text-left",
+                          onSelectPlayer && "hover:text-primary transition-colors",
+                        )}
+                      >
                         {playerNationalities[t.player] && (
                           <span className="mr-1">{countryFlag(playerNationalities[t.player])}</span>
                         )}
                         {t.player}
-                      </p>
+                      </button>
                       <p className="text-xs text-muted-foreground">
                         {isJoin
                           ? t.oldTeam === "-" ? "Free Agent → Dołączył" : `z ${t.oldTeam}`
