@@ -18,9 +18,10 @@ const ADJUSTMENTS_KEY = "ranking_adjustments";
 
 interface RankingPanelProps {
   onSelectTeam?: (name: string) => void;
+  onSelectPlayer?: (name: string) => void;
 }
 
-const RankingPanel = ({ onSelectTeam }: RankingPanelProps) => {
+const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const [teams, setTeams] = useState<TeamData[]>(() => {
     const saved = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
     if (saved) return saved;
