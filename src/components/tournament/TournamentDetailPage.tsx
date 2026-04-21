@@ -2,9 +2,10 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
-  Award, Send,
+  Award, Send, ArrowUp, ArrowDown, Shuffle, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
@@ -25,6 +26,7 @@ interface Props {
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
   onAddBracketMatch: (phaseId: string, round: string) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
+  onReseedPhase?: (phaseId: string, teams: string[]) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
