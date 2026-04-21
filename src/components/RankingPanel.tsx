@@ -160,11 +160,45 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Szukaj drużyny..."
+              placeholder="Szukaj drużyny lub gracza..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 bg-card border-border"
             />
+            {/* Player search dropdown — shows only when query has 2+ chars and onSelectPlayer is wired */}
+            {onSelectPlayer && search.trim().length >= 2 && (() => {
+              const q = search.toLowerCase();
+              const matches: { player: string; team: string; country: string }[] = [];
+              for (const t of teams) {
+                for (const p of t.roster) {
+                  if (p.toLowerCase().includes(q)) {
+                    matches.push({ player: p, team: t.name, country: playerNationalities[p] || t.country });
+                    if (matches.length >= 8) break;
+                  }
+                }
+                if (matches.length >= 8) break;
+              }
+              if (matches.length === 0) return null;
+              return (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-xl overflow-hidden">
+                  <div className="px-3 py-1.5 text-[10px] font-mono uppercase text-muted-foreground tracking-wider border-b border-border/50 bg-secondary/40">
+                    Gracze ({matches.length})
+                  </div>
+                  {matches.map(m => (
+                    <button
+                      key={`${m.team}-${m.player}`}
+                      onClick={() => { onSelectPlayer(m.player); setSearch(""); }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-mono hover:bg-secondary/40 transition-colors text-left"
+                    >
+                      <User className="w-3 h-3 text-primary shrink-0" />
+                      <span>{countryFlag(m.country)}</span>
+                      <span className="font-bold text-foreground">{m.player}</span>
+                      <span className="text-muted-foreground ml-auto">{m.team}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-start gap-6 flex-wrap">
