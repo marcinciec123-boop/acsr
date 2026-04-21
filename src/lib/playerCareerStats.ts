@@ -1,0 +1,301 @@
+// ===== Aggregate career stats for a single player across all tournaments =====
+//
+// Walks the saved tournaments_data (flat MatchResult.maps[].team{1,2}Players)
+// and produces an HLTV-style profile: career rating, K/D, ADR, KAST, per-map
+// breakdown, recent matches, head-to-head opponents, etc.
+
+import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
+import { calculateRating, type PlayerMatchStats } from "./playerStats";
+import { loadFromStorage } from "./storage";
+
+export interface CareerMatchEntry {
+  tournamentId: string;
+  tournamentName: string;
+  matchId: string;
+  team: string;
+  opponent: string;
+  ownScore: number;
+  oppScore: number;
+  won: boolean;
+  bo: 1 | 3 | 5;
+  /** Aggregated across all maps in this match */
+  kills: number;
+  deaths: number;
+  assists: number;
+  adr: number;
+  kast: number;
+  ud: number;
+  ef: number;
+  rounds: number;
+  rating: number;
+  maps: {
+    map: string;
+    score1: number;
+    score2: number;
+    stats: MapPlayerStats & { rating: number };
+  }[];
+}
+
+export interface CareerStats {
+  player: string;
+  matchesPlayed: number;
+  mapsPlayed: number;
+  totalRounds: number;
+  totalKills: number;
+  totalDeaths: number;
+  totalAssists: number;
+  totalUd: number;
+  totalEf: number;
+  /** Round-weighted averages */
+  avgAdr: number;
+  avgKast: number;
+  /** Career rating: arithmetic mean of per-match ratings (HLTV style) */
+  careerRating: number;
+  /** Per-round derived */
+  kpr: number;
+  dpr: number;
+  apr: number;
+  kdRatio: number;
+  /** Best map by avg rating */
+  bestMap?: { map: string; rating: number; mapsPlayed: number };
+  worstMap?: { map: string; rating: number; mapsPlayed: number };
+  /** Per-map aggregates */
+  perMap: { map: string; mapsPlayed: number; avgRating: number; kpr: number; adr: number; winRate: number }[];
+  /** Last 20 matches sorted newest first */
+  recentMatches: CareerMatchEntry[];
+  wins: number;
+  losses: number;
+  /** Top opponents (most matches against) */
+  topOpponents: { opponent: string; matches: number; wins: number }[];
+  /** Most-used teammates */
+  topTeammates: { teammate: string; matches: number }[];
+}
+
+const ratingFor = (p: MapPlayerStats, rounds: number): number => {
+  if (typeof p.rating === "number" && p.rating > 0) return p.rating;
+  return calculateRating({
+    playerName: p.playerName,
+    team: p.team,
+    kills: p.kills,
+    assists: p.assists,
+    deaths: p.deaths,
+    adr: p.adr,
+    kast: p.kast,
+    ud: p.ud,
+    ef: p.ef,
+    rounds,
+  } as PlayerMatchStats);
+};
+
+const findInMap = (
+  match: MatchResult,
+  playerName: string,
+): { map: NonNullable<MatchResult["maps"]>[number]; player: MapPlayerStats; isTeam1: boolean }[] => {
+  const out: { map: NonNullable<MatchResult["maps"]>[number]; player: MapPlayerStats; isTeam1: boolean }[] = [];
+  if (!match.maps) return out;
+  for (const m of match.maps) {
+    const t1 = m.team1Players?.find(p => p.playerName === playerName);
+    if (t1) { out.push({ map: m, player: t1, isTeam1: true }); continue; }
+    const t2 = m.team2Players?.find(p => p.playerName === playerName);
+    if (t2) { out.push({ map: m, player: t2, isTeam1: false }); }
+  }
+  return out;
+};
+
+export function computeCareerStats(playerName: string, tournaments?: TournamentData[]): CareerStats {
+  const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []);
+
+  const matchEntries: CareerMatchEntry[] = [];
+  const perMapAgg = new Map<string, { ratings: number[]; rounds: number; kills: number; adr: number[]; wins: number; played: number }>();
+  const opponentCount = new Map<string, { matches: number; wins: number }>();
+  const teammateCount = new Map<string, number>();
+
+  let totalKills = 0, totalDeaths = 0, totalAssists = 0, totalUd = 0, totalEf = 0;
+  let totalRounds = 0, totalAdrWeighted = 0, totalKastWeighted = 0;
+  let mapsPlayed = 0;
+  const matchRatings: number[] = [];
+  let wins = 0, losses = 0;
+
+  for (const t of ts) {
+    // Collect all bracket + group matches
+    const allMatches: MatchResult[] = [];
+    for (const phase of t.phases || []) {
+      if (phase.bracket) allMatches.push(...phase.bracket);
+      if (phase.groups) for (const g of phase.groups) allMatches.push(...g.matches);
+    }
+    if (t.matches) allMatches.push(...t.matches);
+
+    for (const match of allMatches) {
+      const inMaps = findInMap(match, playerName);
+      if (inMaps.length === 0) continue;
+
+      // Determine which team the player belongs to in this match
+      const isTeam1 = inMaps[0].isTeam1;
+      const team = isTeam1 ? match.team1 : match.team2;
+      const opponent = isTeam1 ? match.team2 : match.team1;
+      const ownScore = isTeam1 ? match.score1 : match.score2;
+      const oppScore = isTeam1 ? match.score2 : match.score1;
+      const won = ownScore > oppScore && (ownScore + oppScore) > 0;
+      if (ownScore + oppScore > 0) {
+        if (won) wins++; else losses++;
+      }
+
+      let mKills = 0, mDeaths = 0, mAssists = 0, mUd = 0, mEf = 0;
+      let mRounds = 0, mAdrWeighted = 0, mKastWeighted = 0;
+      const mapDetails: CareerMatchEntry["maps"] = [];
+
+      for (const { map, player } of inMaps) {
+        const rounds = (map.score1 || 0) + (map.score2 || 0);
+        if (rounds <= 0) continue;
+        const r = ratingFor(player, rounds);
+        mKills += player.kills;
+        mDeaths += player.deaths;
+        mAssists += player.assists;
+        mUd += player.ud;
+        mEf += player.ef;
+        mRounds += rounds;
+        mAdrWeighted += player.adr * rounds;
+        mKastWeighted += player.kast * rounds;
+        mapsPlayed++;
+
+        // Per-map aggregate
+        const agg = perMapAgg.get(map.map) || { ratings: [], rounds: 0, kills: 0, adr: [], wins: 0, played: 0 };
+        agg.ratings.push(r);
+        agg.rounds += rounds;
+        agg.kills += player.kills;
+        agg.adr.push(player.adr);
+        agg.played++;
+        const mapWon = isTeam1 ? (map.score1 > map.score2) : (map.score2 > map.score1);
+        if (mapWon) agg.wins++;
+        perMapAgg.set(map.map, agg);
+
+        mapDetails.push({
+          map: map.map,
+          score1: map.score1,
+          score2: map.score2,
+          stats: { ...player, rating: r },
+        });
+
+        // Teammates from this map
+        const ownPlayers = isTeam1 ? map.team1Players : map.team2Players;
+        ownPlayers?.forEach(tp => {
+          if (tp.playerName !== playerName) {
+            teammateCount.set(tp.playerName, (teammateCount.get(tp.playerName) || 0) + 1);
+          }
+        });
+      }
+
+      if (mRounds === 0) continue;
+
+      const matchRating = calculateRating({
+        playerName,
+        team,
+        kills: mKills,
+        deaths: mDeaths,
+        assists: mAssists,
+        adr: Math.round(mAdrWeighted / mRounds),
+        kast: Math.round(mKastWeighted / mRounds),
+        ud: mUd,
+        ef: mEf,
+        rounds: mRounds,
+      });
+      matchRatings.push(matchRating);
+
+      totalKills += mKills;
+      totalDeaths += mDeaths;
+      totalAssists += mAssists;
+      totalUd += mUd;
+      totalEf += mEf;
+      totalRounds += mRounds;
+      totalAdrWeighted += mAdrWeighted;
+      totalKastWeighted += mKastWeighted;
+
+      // Opponent tracking
+      if (opponent && opponent !== "TBD" && opponent !== "BYE") {
+        const oc = opponentCount.get(opponent) || { matches: 0, wins: 0 };
+        oc.matches++;
+        if (won) oc.wins++;
+        opponentCount.set(opponent, oc);
+      }
+
+      matchEntries.push({
+        tournamentId: t.id,
+        tournamentName: t.name,
+        matchId: match.id,
+        team,
+        opponent,
+        ownScore,
+        oppScore,
+        won,
+        bo: (match.bo || 1) as 1 | 3 | 5,
+        kills: mKills,
+        deaths: mDeaths,
+        assists: mAssists,
+        adr: Math.round(mAdrWeighted / mRounds),
+        kast: Math.round(mKastWeighted / mRounds),
+        ud: mUd,
+        ef: mEf,
+        rounds: mRounds,
+        rating: matchRating,
+        maps: mapDetails,
+      });
+    }
+  }
+
+  const matchesPlayed = matchEntries.length;
+  const careerRating = matchesPlayed > 0
+    ? Math.round((matchRatings.reduce((s, r) => s + r, 0) / matchesPlayed) * 100) / 100
+    : 0;
+  const avgAdr = totalRounds > 0 ? Math.round(totalAdrWeighted / totalRounds) : 0;
+  const avgKast = totalRounds > 0 ? Math.round(totalKastWeighted / totalRounds) : 0;
+  const kpr = totalRounds > 0 ? Math.round((totalKills / totalRounds) * 100) / 100 : 0;
+  const dpr = totalRounds > 0 ? Math.round((totalDeaths / totalRounds) * 100) / 100 : 0;
+  const apr = totalRounds > 0 ? Math.round((totalAssists / totalRounds) * 100) / 100 : 0;
+  const kdRatio = totalDeaths > 0 ? Math.round((totalKills / totalDeaths) * 100) / 100 : totalKills;
+
+  const perMap = Array.from(perMapAgg.entries()).map(([map, v]) => ({
+    map,
+    mapsPlayed: v.played,
+    avgRating: Math.round((v.ratings.reduce((s, r) => s + r, 0) / v.ratings.length) * 100) / 100,
+    kpr: v.rounds > 0 ? Math.round((v.kills / v.rounds) * 100) / 100 : 0,
+    adr: v.adr.length > 0 ? Math.round(v.adr.reduce((s, x) => s + x, 0) / v.adr.length) : 0,
+    winRate: v.played > 0 ? Math.round((v.wins / v.played) * 100) : 0,
+  })).sort((a, b) => b.mapsPlayed - a.mapsPlayed);
+
+  const sortedByRating = [...perMap].sort((a, b) => b.avgRating - a.avgRating);
+  const bestMap = sortedByRating[0] ? { map: sortedByRating[0].map, rating: sortedByRating[0].avgRating, mapsPlayed: sortedByRating[0].mapsPlayed } : undefined;
+  const worstMap = sortedByRating.length > 1 ? { map: sortedByRating[sortedByRating.length - 1].map, rating: sortedByRating[sortedByRating.length - 1].avgRating, mapsPlayed: sortedByRating[sortedByRating.length - 1].mapsPlayed } : undefined;
+
+  return {
+    player: playerName,
+    matchesPlayed,
+    mapsPlayed,
+    totalRounds,
+    totalKills,
+    totalDeaths,
+    totalAssists,
+    totalUd,
+    totalEf,
+    avgAdr,
+    avgKast,
+    careerRating,
+    kpr,
+    dpr,
+    apr,
+    kdRatio,
+    bestMap,
+    worstMap,
+    perMap,
+    recentMatches: matchEntries.slice().reverse().slice(0, 20),
+    wins,
+    losses,
+    topOpponents: Array.from(opponentCount.entries())
+      .map(([opponent, v]) => ({ opponent, ...v }))
+      .sort((a, b) => b.matches - a.matches)
+      .slice(0, 5),
+    topTeammates: Array.from(teammateCount.entries())
+      .map(([teammate, matches]) => ({ teammate, matches }))
+      .sort((a, b) => b.matches - a.matches)
+      .slice(0, 4),
+  };
+}
