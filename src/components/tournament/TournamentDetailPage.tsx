@@ -98,7 +98,7 @@ const computeQualifierWinners = (t: TournamentData): Record<string, string[]> =>
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onMoveBracketMatch, onSetStatus, onDelete, onOpenMatch,
+  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onSetStatus, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
