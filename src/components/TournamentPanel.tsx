@@ -204,6 +204,31 @@ const TournamentPanel = () => {
     setShowCreate(false);
   };
 
+  /** Propagate winner/loser of a bracket match into linked next matches (winnerTo / loserTo). */
+  const propagateBracket = (bracket: MatchResult[], sourceId: string): MatchResult[] => {
+    const src = bracket.find(m => m.id === sourceId);
+    if (!src) return bracket;
+    const total = (src.score1 || 0) + (src.score2 || 0);
+    const decided = total > 0 && src.score1 !== src.score2 && !!src.team1 && !!src.team2;
+    const winner = decided ? (src.score1 > src.score2 ? src.team1 : src.team2) : "";
+    const loser = decided ? (src.score1 > src.score2 ? src.team2 : src.team1) : "";
+
+    const placeInto = (target: MatchResult, team: string): MatchResult => {
+      // Choose the first empty / TBD slot; if both filled and neither matches, prefer slot1
+      const slot1Empty = !target.team1 || target.team1.startsWith("TBD") || target.team1 === "BYE";
+      const slot2Empty = !target.team2 || target.team2.startsWith("TBD") || target.team2 === "BYE";
+      if (slot1Empty && target.team2 !== team) return { ...target, team1: team };
+      if (slot2Empty && target.team1 !== team) return { ...target, team2: team };
+      return target;
+    };
+
+    return bracket.map(m => {
+      if (m.id === src.winnerTo && winner) return placeInto(m, winner);
+      if (m.id === src.loserTo && loser) return placeInto(m, loser);
+      return m;
+    });
+  };
+
   const updatePhaseMatch = (
     tournamentId: string,
     phaseId: string,
@@ -227,12 +252,50 @@ const TournamentPanel = () => {
             };
           }
           if (p.bracket) {
-            return {
-              ...p,
-              bracket: p.bracket.map(m => m.id !== matchId ? m : { ...m, ...patch }),
-            };
+            const updated = p.bracket.map(m => m.id !== matchId ? m : { ...m, ...patch });
+            return { ...p, bracket: propagateBracket(updated, matchId) };
           }
           return p;
+        }),
+      };
+    }));
+  };
+
+  /** Manually assign a team to a TBD slot in any phase's first round (or any match) */
+  const assignSeed = (
+    tournamentId: string,
+    phaseId: string,
+    matchId: string,
+    slot: "team1" | "team2",
+    team: string,
+    groupId?: string,
+  ) => {
+    updatePhaseMatch(tournamentId, phaseId, matchId, { [slot]: team } as Partial<MatchResult>, groupId);
+  };
+
+  /** Reseed an entire phase from a list of teams (rebuilds first-round pairings only for bracket; replaces team list for groups). */
+  const reseedPhase = (tournamentId: string, phaseId: string, teams: string[]) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId) return p;
+          // Bracket: assign teams to first-round matches in pairs
+          if (p.bracket && p.bracket.length > 0) {
+            // Identify first round (preserve insertion order)
+            const firstRound = p.bracket[0].round;
+            const firstRoundIds = p.bracket.filter(m => m.round === firstRound).map(m => m.id);
+            const newBracket = p.bracket.map(m => {
+              const idx = firstRoundIds.indexOf(m.id);
+              if (idx === -1) return m;
+              const t1 = teams[idx * 2] ?? "";
+              const t2 = teams[idx * 2 + 1] ?? "";
+              return { ...m, team1: t1, team2: t2, score1: 0, score2: 0 };
+            });
+            return { ...p, teams: [...teams], bracket: newBracket };
+          }
+          return { ...p, teams: [...teams] };
         }),
       };
     }));
@@ -390,6 +453,9 @@ const TournamentPanel = () => {
         }
         onMoveBracketMatch={(phaseId, matchId, dir) =>
           moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
+        }
+        onReseedPhase={(phaseId, teams) =>
+          reseedPhase(selectedTournament.id, phaseId, teams)
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}

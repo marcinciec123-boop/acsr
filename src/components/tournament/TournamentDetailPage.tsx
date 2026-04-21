@@ -2,9 +2,10 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
-  Award, Send,
+  Award, Send, ArrowUp, ArrowDown, Shuffle, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
@@ -25,6 +26,7 @@ interface Props {
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
   onAddBracketMatch: (phaseId: string, round: string) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
+  onReseedPhase?: (phaseId: string, teams: string[]) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
@@ -94,9 +96,138 @@ const computeQualifierWinners = (t: TournamentData): Record<string, string[]> =>
   return result;
 };
 
+/** Inline editor for assigning real teams to a phase's seed list (resets first-round pairings on save). */
+const PhaseSeedingPanel = ({
+  phaseTeams, allTeams, slotCount, onSave,
+}: {
+  phaseTeams: string[];
+  allTeams: string[];
+  slotCount: number;
+  onSave: (teams: string[]) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string[]>(() => {
+    const base = [...phaseTeams];
+    while (base.length < slotCount) base.push("");
+    return base.slice(0, slotCount);
+  });
+  const [search, setSearch] = useState("");
+
+  const move = (idx: number, dir: -1 | 1) => {
+    setDraft(prev => {
+      const next = [...prev];
+      const tgt = idx + dir;
+      if (tgt < 0 || tgt >= next.length) return prev;
+      [next[idx], next[tgt]] = [next[tgt], next[idx]];
+      return next;
+    });
+  };
+
+  const setSlot = (idx: number, team: string) => {
+    setDraft(prev => prev.map((v, i) => i === idx ? team : v));
+  };
+
+  const shuffleDraft = () => {
+    setDraft(prev => {
+      const a = [...prev];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    });
+  };
+
+  const filtered = allTeams.filter(x => x.toLowerCase().includes(search.toLowerCase()));
+
+  if (!open) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 text-[11px] gap-1"
+        onClick={() => setOpen(true)}
+      >
+        <UsersIcon className="w-3 h-3" /> Rozstaw drużyny ({phaseTeams.filter(x => x && !x.startsWith("TBD")).length}/{slotCount})
+      </Button>
+    );
+  }
+
+  return (
+    <div className="bg-secondary/30 border border-primary/30 rounded-md p-3 mt-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-mono uppercase text-primary tracking-wider">
+          Rozstawienie ({slotCount} slotów)
+        </span>
+        <div className="flex gap-1">
+          <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={shuffleDraft}>
+            <Shuffle className="w-3 h-3" /> Losuj
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-[10px] gap-1"
+            onClick={() => { onSave(draft); setOpen(false); }}
+          >
+            <Save className="w-3 h-3" /> Zapisz i zresetuj rundę 1
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setOpen(false)}>
+            Anuluj
+          </Button>
+        </div>
+      </div>
+
+      <Input
+        placeholder="Filtruj drużyny w listach poniżej..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        className="h-7 text-xs"
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[260px] overflow-y-auto pr-1">
+        {draft.map((team, i) => (
+          <div key={i} className="flex items-center gap-1 bg-card border border-border rounded px-1.5 py-1">
+            <span className="text-[10px] font-mono text-primary w-6 shrink-0">#{i + 1}</span>
+            <select
+              value={team}
+              onChange={e => setSlot(i, e.target.value)}
+              className="flex-1 min-w-0 px-1 py-0.5 rounded bg-secondary/50 border border-border text-[11px] font-mono"
+            >
+              <option value="">— TBD —</option>
+              <option value="BYE">BYE</option>
+              {filtered.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => move(i, -1)}
+              disabled={i === 0}
+              className="text-muted-foreground hover:text-primary disabled:opacity-20"
+              title="W górę"
+            >
+              <ArrowUp className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => move(i, 1)}
+              disabled={i === draft.length - 1}
+              className="text-muted-foreground hover:text-primary disabled:opacity-20"
+              title="W dół"
+            >
+              <ArrowDown className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] font-mono text-muted-foreground">
+        💡 Zapisanie nadpisze drużyny w meczach pierwszej rundy tej fazy i wyzeruje wyniki rundy 1.
+      </p>
+    </div>
+  );
+};
+
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onMoveBracketMatch, onSetStatus, onDelete, onOpenMatch,
+  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onSetStatus, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
@@ -316,7 +447,19 @@ export const TournamentDetailPage = ({
                   </span>
                 ) : null}
               </div>
-              <div className="p-4">
+              <div className="p-4 space-y-4">
+                {/* Seeding panel — assign real teams to phase slots (works for any phase, including higher rounds) */}
+                {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
+                  <PhaseSeedingPanel
+                    phaseTeams={phase.teams}
+                    allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
+                    slotCount={Math.max(
+                      phase.teams.length,
+                      (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
+                    )}
+                    onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
+                  />
+                )}
                 {phase.groups && phase.groups.length > 0 && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
