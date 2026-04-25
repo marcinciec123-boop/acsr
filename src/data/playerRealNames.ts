@@ -161,7 +161,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   TaReX: { firstName: "Wojciech", lastName: "Jarzębski" },
   TaZ: { firstName: "Wiktor", lastName: "Wojtas" },
   TeSeS: { firstName: "René", lastName: "Madsen" },
-  Techno4K: { firstName: "Sodbayar", lastName: "Munkhbold" },
+  Techno4k: { firstName: "Sodbayar", lastName: "Munkhbold" },
   ToKsin: { firstName: "Justinas", lastName: "Kreivys" },
   ToraTTi: { firstName: "Michele", lastName: "Toratti" },
   Tr1xie: { firstName: "Ido", lastName: "Vrijlink" },
