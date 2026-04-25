@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Globe, ArrowRightLeft, Trophy, Shield, Target, Skull,
   Activity, Zap, Crosshair, BarChart3, Flame, TrendingUp, MapIcon, Users as UsersIcon,
+  Award, Star, Medal,
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
