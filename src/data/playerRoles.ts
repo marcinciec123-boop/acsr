@@ -209,45 +209,45 @@ export const playerRoles: Record<string, PlayerRole> = {
 
   // Ijsberen eSports
   sefa: "Entry",
-  PCK: "AWPer",
+  PCK: "Anchor",
   MissK8: "Lurker",
-  ElStaK: "Anchor",
-  ZykloN: "IGL",
+  ElStaK: "IGL",
+  ZykloN: "AWPer",
 
   // FlyQuest
   liazz: "Lurker",
-  jks: "IGL",
+  jks: "Entry",
   AZR: "Anchor",
-  USTILO: "Entry",
+  USTILO: "IGL",
   Nifty: "AWPer",
 
   // Amkal
-  hypr: "Entry",
-  v1tal: "AWPer",
-  keshandr: "Lurker",
-  gr1ks: "Anchor",
-  kyousuke: "IGL",
+  hypr: "IGL",
+  v1tal: "Lurker",
+  keshandr: "Anchor",
+  gr1ks: "AWPer",
+  kyousuke: "Entry",
 
   // Pollen Tantrum
   xertz: "Entry",
-  RaZ: "AWPer",
+  RaZ: "Anchor",
   aslan: "Lurker",
-  sterling: "Anchor",
-  nebet: "IGL",
+  sterling: "IGL",
+  nebet: "AWPer",
 
   // Parivision
-  sdy: "Entry",
-  "KaiR0N-": "AWPer",
+  sdy: "IGL",
+  "KaiR0N-": "Entry",
   Neityu: "Lurker",
-  torzsi: "Anchor",
-  Magnojez: "IGL",
+  torzsi: "AWPer",
+  Magnojez: "Anchor",
 
   // x6tence galaxy
   coRoZz: "Entry",
-  spyder: "AWPer",
+  spyder: "Anchor",
   shimari: "Lurker",
-  Polen: "Anchor",
-  LoReN: "IGL",
+  Polen: "IGL",
+  LoReN: "AWPer",
 
   // NiP
   hampus: "Anchor",
@@ -258,17 +258,17 @@ export const playerRoles: Record<string, PlayerRole> = {
 
   // Inner Circle
   saveey: "Entry",
-  jR: "AWPer",
-  NEOFRAG: "IGL",
-  jank0: "Lurker",
-  stressarN: "Anchor",
+  jR: "IGL",
+  NEOFRAG: "Anchor",
+  jank0: "IGL",
+  stressarN: "Lurker",
 
   // IHC eSports
   kabal: "Entry",
-  sk0r: "AWPer",
+  sk0r: "Anchor",
   ANNIHILA: "Lurker",
-  hasteka: "Anchor",
-  "910": "IGL",
+  hasteka: "IGL",
+  "910": "AWPer",
 
   // Splyce
   zOOt: "Entry",
@@ -280,44 +280,44 @@ export const playerRoles: Record<string, PlayerRole> = {
   // 3Dmax
   VirreN: "Entry",
   Ex3rcice: "Lurker",
-  ryL: "AWPer",
-  TrusT: "Anchor",
+  ryL: "Anchor",
+  TrusT: "AWPer",
   Graviti: "IGL",
 
   // Entropiq
-  MariX: "Entry",
+  MariX: "Anchor",
   syco: "Lurker",
-  h0bbit: "Anchor",
-  Krimbo: "AWPer",
-  MaXi: "IGL",
+  h0bbit: "IGL",
+  Krimbo: "Entry",
+  MaXi: "AWPer",
 
   // paiN Gaming
   felps: "Entry",
   cerdaN: "Lurker",
-  biguzera: "AWPer",
+  biguzera: "IGL",
   snow: "Anchor",
-  abone: "IGL",
+  abone: "AWPer",
 
   // Sinister5
   scheeR: "Entry",
-  Chappy: "AWPer",
+  Chappy: "IGL",
   ruben: "Lurker",
   godspeed: "Anchor",
-  tr1ton: "IGL",
+  tr1ton: "AWPer",
 
   // Gamers2
   xeta: "Anchor",
   iKo: "Entry",
-  ryuk: "AWPer",
-  poL1tz: "Lurker",
+  ryuk: "Lurker",
+  poL1tz: "AWPer",
   DD: "IGL",
 
   // Keyd Stars
-  t9rnay: "Entry",
-  abr: "AWPer",
+  t9rnay: "Anchor",
+  abr: "IGL",
   brnz4n: "Lurker",
-  insani: "Anchor",
-  kye: "IGL",
+  insani: "Entry",
+  kye: "AWPer",
 
   // Ancient
   shroud: "Lurker",
@@ -327,11 +327,11 @@ export const playerRoles: Record<string, PlayerRole> = {
   craen: "IGL",
 
   // Syman Gaming
-  erkaSt: "Entry",
-  MagnumZ: "AWPer",
-  lucid: "Lurker",
+  erkaSt: "IGL",
+  MagnumZ: "Lurker",
+  lucid: "AWPer",
   cool4st: "Anchor",
-  laxiee: "IGL",
+  laxiee: "Entry",
 
   // KRU eSports
   Noktse: "Entry",
