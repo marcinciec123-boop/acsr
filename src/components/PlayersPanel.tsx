@@ -277,73 +277,152 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {filtered.map((p, i) => (
-              <motion.button
-                key={`${p.team.name}-${p.name}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.005, 0.4) }}
-                onClick={() => onSelectPlayer(p.name)}
-                className="group bg-card border border-border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 transition-all"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-base shrink-0">{countryFlag(p.country)}</span>
-                    <span className="font-heading font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                      {p.name}
-                    </span>
-                  </div>
-                  {p.role && (
-                    <span className={cn(
-                      "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0",
-                      roleColors[p.role] || "border-border text-muted-foreground",
-                    )}>
-                      {roleIcons[p.role]}
-                    </span>
+            {filtered.map((p, i) => {
+              const isEditingThis = editingFA === p.name;
+              return (
+                <motion.div
+                  key={`${p.team?.name || "FA"}-${p.name}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.005, 0.4) }}
+                  onClick={() => { if (!isEditingThis) onSelectPlayer(p.name); }}
+                  className={cn(
+                    "group bg-card border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 transition-all cursor-pointer",
+                    p.isFA ? "border-amber-500/30" : "border-border",
                   )}
-                </div>
-                {p.realName && (
-                  <p className="text-[10px] text-muted-foreground font-mono truncate mb-1">
-                    {p.realName.firstName} {p.realName.lastName}
-                  </p>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team.name); }}
-                  className="text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
-                  title={p.team.name}
                 >
-                  {countryFlag(p.team.country)} {p.team.name}
-                </button>
-                <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/40">
-                  {p.matches > 0 ? (
-                    <>
-                      <div className="text-center">
-                        <p className="text-[9px] font-mono uppercase text-muted-foreground/60">Rating</p>
-                        <p className={cn("text-sm font-bold tabular-nums leading-tight", getRatingColor(p.rating))}>
-                          {p.rating.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-mono uppercase text-muted-foreground/60">K/D</p>
-                        <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
-                          {p.kdr.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-mono uppercase text-muted-foreground/60">M</p>
-                        <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
-                          {p.matches}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-[10px] font-mono text-muted-foreground/50 italic mx-auto">
-                      Brak meczów
+                  <div className="flex items-start justify-between mb-2 gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {p.country
+                        ? <span className="text-base shrink-0">{countryFlag(p.country)}</span>
+                        : <span className="text-base shrink-0 text-muted-foreground/40">🏳️</span>}
+                      <span className="font-heading font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                        {p.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.isFA && (
+                        <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                          FA
+                        </span>
+                      )}
+                      {p.role && (
+                        <span className={cn(
+                          "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border",
+                          roleColors[p.role] || "border-border text-muted-foreground",
+                        )}>
+                          {roleIcons[p.role]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {p.realName && (
+                    <p className="text-[10px] text-muted-foreground font-mono truncate mb-1">
+                      {p.realName.firstName} {p.realName.lastName}
                     </p>
                   )}
-                </div>
-              </motion.button>
-            ))}
+
+                  {p.isFA ? (
+                    <div className="mb-2">
+                      <p className="text-[11px] font-mono text-amber-400/80 italic flex items-center gap-1">
+                        <UserMinus className="w-3 h-3" /> Wolny agent
+                      </p>
+                      {p.previousTeam && p.previousTeam !== "-" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.previousTeam!); }}
+                          className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                          title={`Poprzednio: ${p.previousTeam}`}
+                        >
+                          ex-{p.previousTeam}
+                        </button>
+                      )}
+                      {/* Inline nationality editor when missing */}
+                      {!p.country && !isEditingThis && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingFA(p.name);
+                            setFaCountryDraft("");
+                          }}
+                          className="mt-1 text-[10px] font-mono text-amber-400 hover:text-amber-300 underline decoration-dotted"
+                        >
+                          + dodaj narodowość
+                        </button>
+                      )}
+                      {isEditingThis && (
+                        <div className="mt-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            autoFocus
+                            placeholder="PL"
+                            maxLength={3}
+                            value={faCountryDraft}
+                            onChange={(e) => setFaCountryDraft(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveFANationality(p.name);
+                              if (e.key === "Escape") { setEditingFA(null); setFaCountryDraft(""); }
+                            }}
+                            className="h-6 w-14 text-[10px] font-mono px-1.5 text-center"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => saveFANationality(p.name)}
+                          >
+                            <Check className="w-3 h-3 text-[hsl(var(--win))]" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => { setEditingFA(null); setFaCountryDraft(""); }}
+                          >
+                            <XIcon className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
+                      className="text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
+                      title={p.team!.name}
+                    >
+                      {countryFlag(p.team!.country)} {p.team!.name}
+                    </button>
+                  )}
+
+                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/40">
+                    {p.matches > 0 ? (
+                      <>
+                        <div className="text-center">
+                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">Rating</p>
+                          <p className={cn("text-sm font-bold tabular-nums leading-tight", getRatingColor(p.rating))}>
+                            {p.rating.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">K/D</p>
+                          <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
+                            {p.kdr.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">M</p>
+                          <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
+                            {p.matches}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-[10px] font-mono text-muted-foreground/50 italic mx-auto">
+                        Brak meczów
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
