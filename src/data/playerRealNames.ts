@@ -73,6 +73,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   KRIMZ: { firstName: "Freddy", lastName: "Johansson" },
   Kaaymos: { firstName: "Jalmari", lastName: "Latvala" },
   KanOx: { firstName: "Marshall", lastName: "Davidson" },
+  "KaiR0N-": { firstName: "Aleksandr", lastName: "Anashkin" },
   KeZi: { firstName: "Jan", lastName: "Lindqvist" },
   Kila: { firstName: "Jens", lastName: "Ulberg" },
   KmZ: { firstName: "Ezekiel", lastName: "Hughes" },
