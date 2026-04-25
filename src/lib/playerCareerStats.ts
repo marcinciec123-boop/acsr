@@ -36,6 +36,14 @@ export interface CareerMatchEntry {
   }[];
 }
 
+export interface PlayerTrophy {
+  tournamentId: string;
+  tournamentName: string;
+  team: string;
+  placement: number;
+  endDate?: string;
+}
+
 export interface CareerStats {
   player: string;
   matchesPlayed: number;
@@ -69,6 +77,12 @@ export interface CareerStats {
   topOpponents: { opponent: string; matches: number; wins: number }[];
   /** Most-used teammates */
   topTeammates: { teammate: string; matches: number }[];
+  /** Tournament placements where this player participated */
+  trophies: PlayerTrophy[];
+  /** Highest single-match rating */
+  bestMatchRating?: { rating: number; opponent: string; matchId: string };
+  /** Highest single-map kills */
+  bestMapKills?: { kills: number; map: string; opponent: string };
 }
 
 const ratingFor = (p: MapPlayerStats, rounds: number): number => {
@@ -266,6 +280,62 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
   const bestMap = sortedByRating[0] ? { map: sortedByRating[0].map, rating: sortedByRating[0].avgRating, mapsPlayed: sortedByRating[0].mapsPlayed } : undefined;
   const worstMap = sortedByRating.length > 1 ? { map: sortedByRating[sortedByRating.length - 1].map, rating: sortedByRating[sortedByRating.length - 1].avgRating, mapsPlayed: sortedByRating[sortedByRating.length - 1].mapsPlayed } : undefined;
 
+  // ===== Trophies: tournaments where player's team finished in top placements =====
+  const trophies: PlayerTrophy[] = [];
+  for (const t of ts) {
+    if (!t.placements || t.placements.length === 0) continue;
+    // Find which team this player was on (most-played in this tournament)
+    const playerTeams = new Map<string, number>();
+    const collect = (matches: MatchResult[] | undefined) => {
+      if (!matches) return;
+      for (const m of matches) {
+        if (!m.maps) continue;
+        for (const mp of m.maps) {
+          if (mp.team1Players?.some(p => p.playerName === playerName)) {
+            playerTeams.set(m.team1, (playerTeams.get(m.team1) || 0) + 1);
+          }
+          if (mp.team2Players?.some(p => p.playerName === playerName)) {
+            playerTeams.set(m.team2, (playerTeams.get(m.team2) || 0) + 1);
+          }
+        }
+      }
+    };
+    for (const phase of t.phases || []) {
+      collect(phase.bracket);
+      if (phase.groups) for (const g of phase.groups) collect(g.matches);
+    }
+    collect(t.matches);
+    if (playerTeams.size === 0) continue;
+    const playerTeam = Array.from(playerTeams.entries()).sort((a, b) => b[1] - a[1])[0][0];
+    const placement = t.placements.find(p => p.team === playerTeam);
+    if (placement && placement.placement <= 4) {
+      trophies.push({
+        tournamentId: t.id,
+        tournamentName: t.name,
+        team: playerTeam,
+        placement: placement.placement,
+        endDate: t.endDate,
+      });
+    }
+  }
+  trophies.sort((a, b) => a.placement - b.placement || (b.endDate || "").localeCompare(a.endDate || ""));
+
+  // ===== Best individual achievements =====
+  let bestMatchRating: CareerStats["bestMatchRating"];
+  matchEntries.forEach(m => {
+    if (!bestMatchRating || m.rating > bestMatchRating.rating) {
+      bestMatchRating = { rating: m.rating, opponent: m.opponent, matchId: m.matchId };
+    }
+  });
+  let bestMapKills: CareerStats["bestMapKills"];
+  matchEntries.forEach(m => {
+    m.maps.forEach(mp => {
+      if (!bestMapKills || mp.stats.kills > bestMapKills.kills) {
+        bestMapKills = { kills: mp.stats.kills, map: mp.map, opponent: m.opponent };
+      }
+    });
+  });
+
   return {
     player: playerName,
     matchesPlayed,
@@ -297,5 +367,8 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
       .map(([teammate, matches]) => ({ teammate, matches }))
       .sort((a, b) => b.matches - a.matches)
       .slice(0, 4),
+    trophies,
+    bestMatchRating,
+    bestMapKills,
   };
 }

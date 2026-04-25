@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Globe, ArrowRightLeft, Trophy, Shield, Target, Skull,
   Activity, Zap, Crosshair, BarChart3, Flame, TrendingUp, MapIcon, Users as UsersIcon,
+  Award, Star, Medal,
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
@@ -163,7 +165,142 @@ const PlayerProfile = ({
               <StatCell icon={Zap} label="EF" value={career.totalEf.toString()} subtitle="enemies flashed" />
             </div>
 
-            {/* === Per-map breakdown + best/worst === */}
+            {/* === Trophies + best individual moments === */}
+            {(career.trophies.length > 0 || career.bestMatchRating || career.bestMapKills) && (
+              <div className="grid lg:grid-cols-3 gap-4 mb-6">
+                {career.trophies.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    className="lg:col-span-2 bg-card border border-border rounded-lg p-4"
+                  >
+                    <h2 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-[hsl(var(--gold))]" /> Osiągnięcia ({career.trophies.length})
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {career.trophies.map(tr => {
+                        const icon = tr.placement === 1 ? "🥇"
+                          : tr.placement === 2 ? "🥈"
+                          : tr.placement <= 4 ? "🥉" : `#${tr.placement}`;
+                        const ringClass = tr.placement === 1 ? "border-[hsl(var(--gold))]/50 bg-[hsl(var(--gold))]/10"
+                          : tr.placement === 2 ? "border-[hsl(var(--silver))]/40 bg-[hsl(var(--silver))]/5"
+                          : "border-[hsl(var(--bronze))]/40 bg-[hsl(var(--bronze))]/5";
+                        return (
+                          <div
+                            key={tr.tournamentId}
+                            className={cn("flex items-center gap-2 px-3 py-1.5 rounded-md border", ringClass)}
+                            title={`${tr.tournamentName} z ${tr.team}`}
+                          >
+                            <span className="text-lg leading-none">{icon}</span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
+                                {tr.tournamentName}
+                              </p>
+                              <p className="text-[10px] font-mono text-muted-foreground truncate">
+                                {tr.team}{tr.endDate ? ` • ${new Date(tr.endDate).getFullYear()}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                  className="space-y-3"
+                >
+                  {career.bestMatchRating && (
+                    <div className="bg-card border border-primary/30 rounded-lg p-3 flex items-center gap-3">
+                      <Star className="w-5 h-5 text-[hsl(var(--gold))] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Najlepszy mecz</p>
+                        <p className={cn("text-lg font-heading font-bold tabular-nums", getRatingColor(career.bestMatchRating.rating))}>
+                          {career.bestMatchRating.rating.toFixed(2)}
+                          <span className="text-xs font-mono text-muted-foreground ml-1.5">vs {career.bestMatchRating.opponent}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {career.bestMapKills && (
+                    <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3">
+                      <Medal className="w-5 h-5 text-[hsl(var(--win))] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Najwięcej killi (mapa)</p>
+                        <p className="text-lg font-heading font-bold tabular-nums text-foreground">
+                          {career.bestMapKills.kills}
+                          <span className="text-xs font-mono text-muted-foreground ml-1.5">
+                            {career.bestMapKills.map} • vs {career.bestMapKills.opponent}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            )}
+
+            {/* === Form chart (last N matches rating) === */}
+            {career.recentMatches.length >= 2 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="bg-card border border-border rounded-lg p-4 mb-6"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" /> Forma — ostatnie {Math.min(career.recentMatches.length, 15)} meczów
+                  </h2>
+                  <p className="text-[10px] font-mono text-muted-foreground">
+                    Średnia: <span className={cn("font-bold", getRatingColor(career.careerRating))}>{career.careerRating.toFixed(2)}</span>
+                  </p>
+                </div>
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={career.recentMatches.slice(0, 15).slice().reverse().map((m, i) => ({
+                        idx: i + 1,
+                        rating: m.rating,
+                        opp: m.opponent,
+                        score: `${m.ownScore}-${m.oppScore}`,
+                        won: m.won,
+                      }))}
+                      margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
+                    >
+                      <XAxis dataKey="idx" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={10}
+                        tickLine={false}
+                        domain={[(dataMin: number) => Math.min(0.5, Math.floor(dataMin * 10) / 10), (dataMax: number) => Math.max(1.5, Math.ceil(dataMax * 10) / 10)]}
+                      />
+                      <ReferenceLine y={1.0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontFamily: "monospace",
+                        }}
+                        formatter={(_v, _n, p) => {
+                          const d = p.payload as { rating: number; opp: string; score: string; won: boolean };
+                          return [`${d.rating.toFixed(2)} • ${d.score} ${d.won ? "W" : "L"} vs ${d.opp}`, "Rating"];
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rating"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: "hsl(var(--primary))" }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
+            )}
+
             <div className="grid lg:grid-cols-3 gap-4 mb-6">
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}

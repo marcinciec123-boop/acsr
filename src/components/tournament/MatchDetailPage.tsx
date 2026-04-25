@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { teamDatabase } from "@/data/tournaments";
+import { simulateMatch } from "@/lib/matchSimulator";
+import { toast } from "@/hooks/use-toast";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -95,6 +97,24 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
     if (activeMapIdx >= maps.length - 1) setActiveMapIdx(Math.max(0, maps.length - 2));
   };
 
+  const handleSimulate = () => {
+    if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD") {
+      toast({ title: "Nie można symulować", description: "Najpierw przypisz obie drużyny.", variant: "destructive" });
+      return;
+    }
+    const result = simulateMatch(match.team1, match.team2, bo);
+    onUpdate({
+      score1: result.score1,
+      score2: result.score2,
+      maps: result.maps,
+    });
+    setActiveMapIdx(0);
+    toast({
+      title: `Symulacja: ${match.team1} ${result.score1}-${result.score2} ${match.team2}`,
+      description: `Wygenerowano ${result.maps.length} map ze statystykami zgodnymi z siłą drużyn.`,
+    });
+  };
+
   const updatePlayer = (
     mapIdx: number,
     side: "team1Players" | "team2Players",
@@ -132,11 +152,23 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-card to-secondary/30 border border-border rounded-xl p-6 mb-6"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Sword className="w-4 h-4 text-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-              {phaseName} • {match.round || "Mecz"} • BO{bo}
-            </span>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Sword className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                {phaseName} • {match.round || "Mecz"} • BO{bo}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSimulate}
+              className="h-7 gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10"
+              title="Wygeneruj wynik i statystyki na podstawie siły obu drużyn"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              {maps.length > 0 ? "Przegeneruj" : "Symuluj mecz"}
+            </Button>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
             <div className={cn("text-right", winner1 && "text-foreground")}>
