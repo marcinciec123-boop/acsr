@@ -74,6 +74,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   KeZi: { firstName: "Jan", lastName: "Lindqvist" },
   Kila: { firstName: "Jens", lastName: "Ulberg" },
   KmZ: { firstName: "Ezekiel", lastName: "Hughes" },
+  KSCERATO: { firstName: "Kaike", lastName: "Cerato" },
   Krabeni: { firstName: "Aulon", lastName: "Fazlija" },
   Krad: { firstName: "Vladislav", lastName: "Kravchenko" },
   Krimbo: { firstName: "Karim", lastName: "Moussa" },
