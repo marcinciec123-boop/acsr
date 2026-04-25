@@ -51,7 +51,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   Gratisfaction: { firstName: "Sean", lastName: "Kaiwai" },
   Graviti: { firstName: "Filip", lastName: "Branković" },
   GriZz: { firstName: "Adam", lastName: "Golden" },
-  gxx-: { firstName: "Genc", lastName: "Kolgeci" },
+  "gxx-": { firstName: "Genc", lastName: "Kolgeci" },
   HSB: { firstName: "Abdul", lastName: "Haseeb" },
   HUNDEN: { firstName: "Nicolai", lastName: "Petersen" },
   HUNDZi: { firstName: "Sandel", lastName: "Ársson" },
