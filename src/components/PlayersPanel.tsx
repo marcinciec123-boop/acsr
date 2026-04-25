@@ -169,12 +169,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     <section className="py-6">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <User className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Gracze</h2>
             <span className="text-xs font-mono text-muted-foreground">
-              ({filtered.length}/{rows.length})
+              ({filtered.length}/{counts.total})
             </span>
+            {counts.fa > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+                <UserMinus className="w-3 h-3" /> {counts.fa} wolnych agentów
+              </span>
+            )}
           </div>
         </div>
 
