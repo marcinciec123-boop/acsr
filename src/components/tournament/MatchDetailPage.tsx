@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { teamDatabase } from "@/data/tournaments";
+import { simulateMatch } from "@/lib/matchSimulator";
+import { toast } from "@/hooks/use-toast";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
