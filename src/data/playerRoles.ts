@@ -35,15 +35,15 @@ export const playerRoles: Record<string, PlayerRole> = {
   // Vitality
   hantZ: "AWPer",
   JACKZ: "IGL",
-  mezii: "Entry",
+  mezii: "Anchor",
   ropz: "Lurker",
-  AcilioN: "Anchor",
+  AcilioN: "Entry",
 
   // LT Twisted Minds
-  ToKsin: "Anchor",
+  ToKsin: "Lurker",
   EspiranTo: "IGL",
   SanTeliS: "Entry",
-  jL: "Lurker",
+  jL: "Anchor",
   Horus: "AWPer",
 
   // FunPlus Phoenix
@@ -56,8 +56,8 @@ export const playerRoles: Record<string, PlayerRole> = {
   // FURIA
   molodoy: "AWPer",
   arT: "Entry",
-  KSCERATO: "Lurker",
-  yuurih: "Anchor",
+  KSCERATO: "Anchor",
+  yuurih: "Lurker",
   FalleN: "IGL",
 
   // Team Liquid
@@ -76,24 +76,24 @@ export const playerRoles: Record<string, PlayerRole> = {
 
   // Vision Gaming
   nats: "Lurker",
-  dennis: "Entry",
-  draken: "AWPer",
-  KeZi: "Anchor",
-  RusTy: "IGL",
+  dennis: "IGL",
+  draken: "Anchor",
+  KeZi: "Entry",
+  RusTy: "AWPer",
 
   // FaZe Clan
   SunPayus: "AWPer",
-  frozen: "IGL",
-  NiKo: "Entry",
-  AcreoN: "Anchor",
-  iM: "Lurker",
+  frozen: "Entry",
+  NiKo: "IGL",
+  AcreoN: "Lurker",
+  iM: "Anchor",
 
   // Movistar Riders
-  MuTiRiS: "Anchor",
-  loWel: "Entry",
-  dav1g: "AWPer",
-  cadmo: "Lurker",
-  iNSTiNCT: "IGL",
+  MuTiRiS: "IGL",
+  loWel: "Anchor",
+  dav1g: "Lurker",
+  cadmo: "AWPer",
+  iNSTiNCT: "Entry",
 
   // NRG eSports
   CeRq: "AWPer",
@@ -103,25 +103,25 @@ export const playerRoles: Record<string, PlayerRole> = {
   KmZ: "Entry",
 
   // North
-  exxon: "Entry",
+  exxon: "Lurker",
   cadiaN: "AWPer",
-  HUNDEN: "Lurker",
-  Magisk: "Anchor",
-  nicoodoz: "IGL",
+  HUNDEN: "Entry",
+  Magisk: "IGL",
+  nicoodoz: "Anchor",
 
   // Sprout
-  dantamax: "Entry",
-  iSt3s: "AWPer",
-  Spiidi: "Lurker",
+  dantamax: "AWPer",
+  iSt3s: "Entry",
+  Spiidi: "IGL",
   teNzki: "Anchor",
-  Tr1xie: "IGL",
+  Tr1xie: "Lurker",
 
   // Grayhound
-  malta: "Entry",
-  Fairlii: "Lurker",
-  angeL: "Anchor",
-  INS: "AWPer",
-  satoshi: "IGL",
+  malta: "Lurker",
+  Fairlii: "Entry",
+  angeL: "AWPer",
+  INS: "IGL",
+  satoshi: "Anchor",
 
   // Team Spirit
   donk: "Entry",
@@ -131,25 +131,25 @@ export const playerRoles: Record<string, PlayerRole> = {
   m0NESY: "AWPer",
 
   // MVP Project
-  xcurrate: "Entry",
-  jBk: "AWPer",
+  xcurrate: "AWPer",
+  jBk: "Anchor",
   henox: "Lurker",
-  derkos: "Anchor",
-  XigN: "IGL",
+  derkos: "IGL",
+  XigN: "Entry",
 
   // Complexity
-  elemeNt: "Entry",
-  sjuush: "Lurker",
-  aproTo: "AWPer",
-  oBo: "IGL",
-  NikkeZ: "Anchor",
+  elemeNt: "AWPer",
+  sjuush: "IGL",
+  aproTo: "Lurker",
+  oBo: "Anchor",
+  NikkeZ: "Entry",
 
   // MOUZ
   kRYSTAL: "Anchor",
   syrsoN: "AWPer",
-  Spinx: "Entry",
+  Spinx: "Lurker",
   huNter: "IGL",
-  REZ: "Lurker",
+  REZ: "Entry",
 
   // Astralis
   jabbi: "Entry",
@@ -159,11 +159,11 @@ export const playerRoles: Record<string, PlayerRole> = {
   HooXi: "IGL",
 
   // Bravado Gaming
-  Bizzy: "Entry",
-  bLiZzard: "AWPer",
+  Bizzy: "IGL",
+  bLiZzard: "Entry",
   arkiN: "Lurker",
   MisteM: "Anchor",
-  EleTrick: "IGL",
+  EleTrick: "AWPer",
 
   // OG eSports
   mantuu: "AWPer",
@@ -173,39 +173,39 @@ export const playerRoles: Record<string, PlayerRole> = {
   dexter: "IGL",
 
   // VOX Eminor
-  dither: "Entry",
+  dither: "Anchor",
   scarra: "Lurker",
-  proSeN: "AWPer",
-  f1nest: "Anchor",
-  Gratisfaction: "IGL",
+  proSeN: "Entry",
+  f1nest: "IGL",
+  Gratisfaction: "AWPer",
 
   // Eternal Fire
-  MAJ3R: "Anchor",
-  Wicadia: "AWPer",
-  Calyx: "Entry",
-  XANTARES: "IGL",
-  w0xic: "Lurker",
+  MAJ3R: "IGL",
+  Wicadia: "Lurker",
+  Calyx: "Anchor",
+  XANTARES: "Entry",
+  w0xic: "AWPer",
 
   // Natus Vincere
-  b1t: "Entry",
+  b1t: "Lurker",
   poizon: "AWPer",
-  Makazze: "Lurker",
+  Makazze: "Anchor",
   electronic: "IGL",
-  malbsMd: "Anchor",
+  malbsMd: "Entry",
 
   // Astana Dragons
   KrizzeN: "Entry",
   qikert: "IGL",
-  griff: "AWPer",
-  frontales: "Lurker",
+  griff: "Lurker",
+  frontales: "AWPer",
   neaLaN: "Anchor",
 
   // ENCE
-  Aleksib: "Anchor",
+  Aleksib: "IGL",
   allu: "AWPer",
   Kaaymos: "Entry",
   xseveN: "Lurker",
-  LETN1: "IGL",
+  LETN1: "Anchor",
 
   // Ijsberen eSports
   sefa: "Entry",
