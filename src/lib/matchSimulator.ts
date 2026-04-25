@@ -171,32 +171,40 @@ const buildMapStats = (
   const t2Skills = skillSpread(5, team2Strength);
 
   // ===== Total kills per team =====
-  // Roughly: round-winners get ~3.5 kills/round, round-losers ~1.4 kills/round.
-  // Plus a small skill-based boost for the stronger team.
+  // Hard invariant: total team deaths must be <= totalRounds (only one player
+  // can die per round on a side — the round ends when 5 are dead, so deaths
+  // <= rounds counted per side).
+  // Therefore total opponent kills <= totalRounds as well.
+  // We model: rounds you win → kills ≈ 4 per round (almost full clear); rounds
+  // you lose → kills ≈ 1.5 per round (trades before dying). Cap to rounds.
   const baseTeamKills = (ownRoundsWon: number, oppRoundsWon: number) =>
-    ownRoundsWon * randRange(3.0, 4.2) + oppRoundsWon * randRange(1.0, 2.0);
+    ownRoundsWon * randRange(0.55, 0.85) + oppRoundsWon * randRange(0.25, 0.55);
 
-  let team1Kills = Math.round(baseTeamKills(team1Rounds, team2Rounds));
-  let team2Kills = Math.round(baseTeamKills(team2Rounds, team1Rounds));
-
-  // Cap: a team can score at most 5 kills per round (5 enemies alive).
-  team1Kills = Math.min(team1Kills, totalRounds * 5);
-  team2Kills = Math.min(team2Kills, totalRounds * 5);
+  let team1KillsRatio = baseTeamKills(team1Rounds, team2Rounds) / Math.max(1, totalRounds);
+  let team2KillsRatio = baseTeamKills(team2Rounds, team1Rounds) / Math.max(1, totalRounds);
+  // Convert to absolute kill counts and cap at totalRounds (== max deaths on
+  // the opposite side).
+  let team1Kills = Math.min(totalRounds, Math.round(team1KillsRatio * totalRounds));
+  let team2Kills = Math.min(totalRounds, Math.round(team2KillsRatio * totalRounds));
+  // Floor to avoid degenerate maps with 0 kills
+  team1Kills = Math.max(Math.min(totalRounds, Math.round(totalRounds * 0.35)), team1Kills);
+  team2Kills = Math.max(Math.min(totalRounds, Math.round(totalRounds * 0.35)), team2Kills);
 
   // ===== Per-player kill split =====
-  // Cap individual kills at 2 * rounds (a single player can't realistically
-  // exceed that — even 2x KPR is rare).
-  const perPlayerKillCap = Math.max(1, Math.round(totalRounds * 2));
+  // Individual kills capped so a single player can't take more than ~half of
+  // the team's kills (and never more than rounds).
+  const perPlayerKillCap = Math.max(1, Math.min(totalRounds, Math.ceil(totalRounds * 0.55)));
   const t1Kills = distributeWeighted(team1Kills, t1Skills, perPlayerKillCap);
   const t2Kills = distributeWeighted(team2Kills, t2Skills, perPlayerKillCap);
 
   // ===== Deaths invariant: team1 deaths == team2 kills, etc. =====
-  // Cap individual deaths at `totalRounds` (a player can only die once/round).
-  // Distribute deaths inversely to skill (weaker players die more).
+  // Per-player death cap: one death per round (since each round you live or
+  // die exactly once). Distribute inversely to skill (weaker players die more).
+  const perPlayerDeathCap = totalRounds;
   const t1DeathWeights = t1Skills.map(s => 1 / Math.max(0.4, s));
   const t2DeathWeights = t2Skills.map(s => 1 / Math.max(0.4, s));
-  const t1Deaths = distributeWeighted(team2Kills, t1DeathWeights, totalRounds);
-  const t2Deaths = distributeWeighted(team1Kills, t2DeathWeights, totalRounds);
+  const t1Deaths = distributeWeighted(team2Kills, t1DeathWeights, perPlayerDeathCap);
+  const t2Deaths = distributeWeighted(team1Kills, t2DeathWeights, perPlayerDeathCap);
 
   // ===== Build per-player rows =====
   const buildRow = (
