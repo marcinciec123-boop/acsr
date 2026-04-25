@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { User, Search, Globe, Trophy, Activity, Filter } from "lucide-react";
+import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
@@ -12,8 +13,9 @@ import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
+import { getFreeAgents, setFreeAgentNationality } from "@/lib/freeAgents";
 
-type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA";
 type SortMode = "rating" | "matches" | "team" | "name";
 
 interface PlayersPanelProps {
@@ -23,7 +25,13 @@ interface PlayersPanelProps {
 
 interface PlayerRow {
   name: string;
-  team: TeamData;
+  /** Undefined for free agents */
+  team?: TeamData;
+  /** "FA" for free agents, otherwise team region */
+  region: string;
+  /** Last team if FA */
+  previousTeam?: string;
+  isFA: boolean;
   country: string;
   realName?: { firstName: string; lastName: string };
   role?: string;
@@ -40,6 +48,10 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
   const [onlyWithStats, setOnlyWithStats] = useState(false);
+  // Bump to force re-read after a nationality edit on a FA card
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editingFA, setEditingFA] = useState<string | null>(null);
+  const [faCountryDraft, setFaCountryDraft] = useState("");
 
   const teams = useMemo(() => {
     const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
@@ -48,12 +60,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
+    const seen = new Set<string>();
     for (const t of teams) {
       for (const p of t.roster) {
+        if (seen.has(p)) continue;
+        seen.add(p);
         const career = computeCareerStats(p);
         out.push({
           name: p,
           team: t,
+          region: t.region,
+          isFA: false,
           country: playerNationalities[p] || t.country,
           realName: playerRealNames[p],
           role: playerRoles[p],
@@ -64,12 +81,34 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
       }
     }
+    // Free agents
+    for (const fa of getFreeAgents()) {
+      if (seen.has(fa.player)) continue;
+      seen.add(fa.player);
+      const career = computeCareerStats(fa.player);
+      out.push({
+        name: fa.player,
+        team: undefined,
+        region: "FA",
+        previousTeam: fa.previousTeam,
+        isFA: true,
+        country: fa.country,
+        realName: fa.realName,
+        role: playerRoles[fa.player],
+        rating: career.careerRating,
+        matches: career.matchesPlayed,
+        kdr: career.kdRatio,
+        adr: career.avgAdr,
+      });
+    }
     return out;
-  }, [teams]);
+  // refreshKey forces recompute after a nationality edit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams, refreshKey]);
 
   const allNationalities = useMemo(() => {
     const set = new Set<string>();
-    rows.forEach(r => set.add(r.country));
+    rows.forEach(r => { if (r.country) set.add(r.country); });
     return Array.from(set).sort();
   }, [rows]);
 
@@ -79,14 +118,21 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     return Array.from(set).sort();
   }, [rows]);
 
+  const counts = useMemo(() => ({
+    total: rows.length,
+    fa: rows.filter(r => r.isFA).length,
+  }), [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = rows.filter(r => {
       if (q) {
         const real = r.realName ? `${r.realName.firstName} ${r.realName.lastName}`.toLowerCase() : "";
-        if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !r.team.name.toLowerCase().includes(q)) return false;
+        const teamName = r.team?.name.toLowerCase() || "";
+        if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !teamName.includes(q)) return false;
       }
-      if (region !== "all" && r.team.region !== region) return false;
+      if (region === "FA") { if (!r.isFA) return false; }
+      else if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
       if (onlyWithStats && r.matches === 0) return false;
@@ -95,18 +141,29 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     list.sort((a, b) => {
       switch (sort) {
         case "rating": {
-          // Players with stats first, then by rating
           if (a.matches === 0 && b.matches > 0) return 1;
           if (b.matches === 0 && a.matches > 0) return -1;
           return b.rating - a.rating;
         }
         case "matches": return b.matches - a.matches;
-        case "team": return a.team.name.localeCompare(b.team.name);
+        case "team": {
+          const at = a.team?.name || "ZZZ-FA";
+          const bt = b.team?.name || "ZZZ-FA";
+          return at.localeCompare(bt);
+        }
         case "name": return a.name.localeCompare(b.name);
       }
     });
     return list;
   }, [rows, search, region, nationality, roleFilter, sort, onlyWithStats]);
+
+  const saveFANationality = (player: string) => {
+    const code = faCountryDraft.trim().toUpperCase().slice(0, 3);
+    if (code) setFreeAgentNationality(player, code);
+    setEditingFA(null);
+    setFaCountryDraft("");
+    setRefreshKey(k => k + 1);
+  };
 
   return (
     <section className="py-6">
