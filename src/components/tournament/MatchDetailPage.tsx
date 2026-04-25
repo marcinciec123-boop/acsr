@@ -97,6 +97,24 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
     if (activeMapIdx >= maps.length - 1) setActiveMapIdx(Math.max(0, maps.length - 2));
   };
 
+  const handleSimulate = () => {
+    if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD") {
+      toast({ title: "Nie można symulować", description: "Najpierw przypisz obie drużyny.", variant: "destructive" });
+      return;
+    }
+    const result = simulateMatch(match.team1, match.team2, bo);
+    onUpdate({
+      score1: result.score1,
+      score2: result.score2,
+      maps: result.maps,
+    });
+    setActiveMapIdx(0);
+    toast({
+      title: `Symulacja: ${match.team1} ${result.score1}-${result.score2} ${match.team2}`,
+      description: `Wygenerowano ${result.maps.length} map ze statystykami zgodnymi z siłą drużyn.`,
+    });
+  };
+
   const updatePlayer = (
     mapIdx: number,
     side: "team1Players" | "team2Players",
