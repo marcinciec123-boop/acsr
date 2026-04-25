@@ -152,11 +152,23 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-card to-secondary/30 border border-border rounded-xl p-6 mb-6"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Sword className="w-4 h-4 text-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-              {phaseName} • {match.round || "Mecz"} • BO{bo}
-            </span>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Sword className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                {phaseName} • {match.round || "Mecz"} • BO{bo}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSimulate}
+              className="h-7 gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10"
+              title="Wygeneruj wynik i statystyki na podstawie siły obu drużyn"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              {maps.length > 0 ? "Przegeneruj" : "Symuluj mecz"}
+            </Button>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
             <div className={cn("text-right", winner1 && "text-foreground")}>
