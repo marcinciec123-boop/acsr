@@ -6,6 +6,7 @@ import TournamentPanel from "@/components/TournamentPanel";
 import TransferPanel from "@/components/TransferPanel";
 import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
+import PlayersPanel from "@/components/PlayersPanel";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
