@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Newspaper, Trophy, Users, ArrowRightLeft, Zap, Menu, X } from "lucide-react";
+import { Newspaper, Trophy, Users, ArrowRightLeft, Zap, Menu, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type Tab = "news" | "rankings" | "tournaments" | "transfers" | "teams";
+export type Tab = "news" | "rankings" | "tournaments" | "transfers" | "teams" | "players";
 
 interface NavBarProps {
   activeTab: Tab;
@@ -13,6 +13,7 @@ interface NavBarProps {
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "news", label: "Aktualności", icon: <Newspaper className="w-4 h-4" /> },
   { id: "rankings", label: "Ranking", icon: <Users className="w-4 h-4" /> },
+  { id: "players", label: "Gracze", icon: <User className="w-4 h-4" /> },
   { id: "tournaments", label: "Turnieje", icon: <Trophy className="w-4 h-4" /> },
   { id: "transfers", label: "Transfery", icon: <ArrowRightLeft className="w-4 h-4" /> },
 ];
