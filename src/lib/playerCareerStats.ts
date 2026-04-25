@@ -36,6 +36,14 @@ export interface CareerMatchEntry {
   }[];
 }
 
+export interface PlayerTrophy {
+  tournamentId: string;
+  tournamentName: string;
+  team: string;
+  placement: number;
+  endDate?: string;
+}
+
 export interface CareerStats {
   player: string;
   matchesPlayed: number;
@@ -69,6 +77,12 @@ export interface CareerStats {
   topOpponents: { opponent: string; matches: number; wins: number }[];
   /** Most-used teammates */
   topTeammates: { teammate: string; matches: number }[];
+  /** Tournament placements where this player participated */
+  trophies: PlayerTrophy[];
+  /** Highest single-match rating */
+  bestMatchRating?: { rating: number; opponent: string; matchId: string };
+  /** Highest single-map kills */
+  bestMapKills?: { kills: number; map: string; opponent: string };
 }
 
 const ratingFor = (p: MapPlayerStats, rounds: number): number => {
