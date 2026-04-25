@@ -67,6 +67,9 @@ const Index = () => {
               onSelectPlayer={handleSelectPlayer}
             />
           )}
+          {activeTab === "players" && (
+            <PlayersPanel onSelectPlayer={handleSelectPlayer} onSelectTeam={handleSelectTeam} />
+          )}
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
         </>
