@@ -267,6 +267,15 @@ export const buildPhase = (
       teams: groupTeams,
       matches: buildGSLGroup(groupTeams, bo),
     }));
+  } else if (format === "gsl-de-groups") {
+    const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 8));
+    const distributed = distributeIntoGroups(teams, groupCount);
+    phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
+      id: uid(),
+      name: `Group ${String.fromCharCode(65 + i)}`,
+      teams: groupTeams,
+      matches: buildGSLDoubleElimGroup(groupTeams, bo),
+    }));
   } else if (format === "swiss") {
     phase.bracket = buildSwissRound1(teams, bo);
     phase.swissRounds = Math.ceil(Math.log2(Math.max(2, teams.length)));
