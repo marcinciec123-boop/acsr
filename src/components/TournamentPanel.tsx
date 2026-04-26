@@ -849,6 +849,15 @@ const TournamentPanel = () => {
                               className={cn("h-8 text-xs", !showGroups && "col-span-1")}
                             />
                           )}
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder={`Rozstawionych (0=wszystkie)`}
+                            value={draft.seededCount}
+                            onChange={e => updatePhaseDraft(idx, { seededCount: parseInt(e.target.value) || 0 })}
+                            className="h-8 text-xs col-span-2"
+                            title="Ile drużyn jest rozstawionych w tej fazie. Reszta slotów to TBD do uzupełnienia później (np. zwycięzcy kwalifikacji)."
+                          />
                         </div>
                       </div>
                     );
