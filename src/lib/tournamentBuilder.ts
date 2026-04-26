@@ -287,6 +287,60 @@ export const buildPhase = (
   return phase;
 };
 
+/**
+ * Auto-propagate winners/losers within an IEM-style 8-team DE group.
+ * Mutates the match list in place by filling team1/team2 of downstream
+ * matches based on bracketSlot wiring.
+ */
+export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
+  const by = (slot: string) => matches.find(m => m.bracketSlot === slot);
+  const winnerOf = (slot: string): string => {
+    const m = by(slot); if (!m) return "";
+    if (!m.team1 || !m.team2) return "";
+    if (m.team1 === "TBD" || m.team2 === "TBD") return "";
+    if (m.score1 + m.score2 === 0) return "";
+    if (m.score1 === m.score2) return "";
+    return m.score1 > m.score2 ? m.team1 : m.team2;
+  };
+  const loserOf = (slot: string): string => {
+    const m = by(slot); if (!m) return "";
+    if (!m.team1 || !m.team2) return "";
+    if (m.team1 === "TBD" || m.team2 === "TBD") return "";
+    if (m.score1 + m.score2 === 0) return "";
+    if (m.score1 === m.score2) return "";
+    return m.score1 > m.score2 ? m.team2 : m.team1;
+  };
+  const setSlot = (slot: string, t1: string, t2: string) => {
+    const m = by(slot); if (!m) return;
+    // Only overwrite if currently empty — keep manual edits
+    if (!m.team1 && t1) m.team1 = t1;
+    if (!m.team2 && t2) m.team2 = t2;
+  };
+
+  // LB R1: losers of OM1 vs OM2, OM3 vs OM4
+  setSlot("IEM-LB-R1-M1", loserOf("IEM-UB-R1-M1"), loserOf("IEM-UB-R1-M2"));
+  setSlot("IEM-LB-R1-M2", loserOf("IEM-UB-R1-M3"), loserOf("IEM-UB-R1-M4"));
+
+  // UB SF: winners of OM1 vs OM2, OM3 vs OM4
+  setSlot("IEM-UB-SF-M1", winnerOf("IEM-UB-R1-M1"), winnerOf("IEM-UB-R1-M2"));
+  setSlot("IEM-UB-SF-M2", winnerOf("IEM-UB-R1-M3"), winnerOf("IEM-UB-R1-M4"));
+
+  // LB R2: loser of UB SF vs winner of LB R1 (cross-bracket)
+  setSlot("IEM-LB-R2-M1", loserOf("IEM-UB-SF-M2"), winnerOf("IEM-LB-R1-M1"));
+  setSlot("IEM-LB-R2-M2", loserOf("IEM-UB-SF-M1"), winnerOf("IEM-LB-R1-M2"));
+
+  // UB Final: winners of UB SFs
+  setSlot("IEM-UB-FINAL", winnerOf("IEM-UB-SF-M1"), winnerOf("IEM-UB-SF-M2"));
+
+  // LB Final: loser of UB Final vs winner of LB R2 (typically winners of both LB R2 play first;
+  // but in classic IEM-DE the structure is: winners of LB R2 play LB Final OR LB R3.
+  // For simplicity here: loser of UB Final faces the winner of LB R2 (highest-surviving).
+  // We pair the two LB-R2 winners against each other first via the LB Final slot.)
+  setSlot("IEM-LB-FINAL", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+
+  return matches;
+};
+
 /** Compute standings for a Round Robin / GSL group based on completed matches */
 export interface GroupStanding {
   team: string;
