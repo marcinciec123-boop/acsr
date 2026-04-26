@@ -79,7 +79,7 @@ const TournamentPanel = () => {
 
   // Phases (custom builder)
   const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>([
-    { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 },
+    { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0 },
   ]);
 
   // Qualifier config
