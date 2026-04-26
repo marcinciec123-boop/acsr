@@ -101,3 +101,6 @@ export const GroupTable = ({ group, onMatchUpdate, onOpenMatch }: Props) => {
           </div>
         );
       })()}
+    </div>
+  );
+};
