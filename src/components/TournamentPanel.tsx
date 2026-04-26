@@ -31,7 +31,8 @@ const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch
   { value: "double-elim", label: "Double Elimination", icon: GitBranch },
   { value: "swiss", label: "Swiss System", icon: Layers },
   { value: "round-robin", label: "Round Robin (Groups)", icon: Grid3x3 },
-  { value: "gsl-groups", label: "GSL Groups", icon: Grid3x3 },
+  { value: "gsl-groups", label: "GSL Groups (4 teams)", icon: Grid3x3 },
+  { value: "gsl-de-groups", label: "IEM-style Groups (8 teams, DE)", icon: Grid3x3 },
   { value: "showmatch", label: "Showmatch", icon: Trophy },
 ];
 
