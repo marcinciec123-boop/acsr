@@ -246,9 +246,14 @@ const TournamentPanel = () => {
           if (groupId && p.groups) {
             return {
               ...p,
-              groups: p.groups.map(g => g.id !== groupId ? g : {
-                ...g,
-                matches: g.matches.map(m => m.id !== matchId ? m : { ...m, ...patch }),
+              groups: p.groups.map(g => {
+                if (g.id !== groupId) return g;
+                let nextMatches = g.matches.map(m => m.id !== matchId ? m : { ...m, ...patch });
+                // Auto-propagate winners/losers within IEM-DE groups
+                if (p.format === "gsl-de-groups") {
+                  nextMatches = propagateGSLDEGroup([...nextMatches]);
+                }
+                return { ...g, matches: nextMatches };
               }),
             };
           }
