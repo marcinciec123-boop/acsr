@@ -101,7 +101,7 @@ const TournamentPanel = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
     setNewLocation(""); setNewTier("A");
     setSelectedTeams([]); setTeamSearch("");
-    setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0 }]);
+    setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0 }]);
     setIsQualifier(false);
     setQualScope("regional");
     setQualRegions(["EU"]);
