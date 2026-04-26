@@ -539,6 +539,91 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             })}
           </div>
         )}
+
+        {/* Add / edit free-agent dialog */}
+        <Dialog open={faDialogOpen} onOpenChange={setFaDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-heading">
+                {editingFANick ? `Edytuj wolnego agenta: ${editingFANick}` : "Dodaj wolnego agenta"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  Nick *
+                </label>
+                <Input
+                  placeholder="np. s1mple"
+                  value={faForm.player}
+                  disabled={!!editingFANick}
+                  onChange={e => setFaForm(f => ({ ...f, player: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Imię
+                  </label>
+                  <Input
+                    placeholder="Aleksandr"
+                    value={faForm.firstName}
+                    onChange={e => setFaForm(f => ({ ...f, firstName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Nazwisko
+                  </label>
+                  <Input
+                    placeholder="Kostyliev"
+                    value={faForm.lastName}
+                    onChange={e => setFaForm(f => ({ ...f, lastName: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Narodowość (kod)
+                  </label>
+                  <Input
+                    placeholder="UA"
+                    maxLength={3}
+                    value={faForm.country}
+                    onChange={e => setFaForm(f => ({ ...f, country: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Rola
+                  </label>
+                  <select
+                    value={faForm.role}
+                    onChange={e => setFaForm(f => ({ ...f, role: e.target.value as PlayerRole | "" }))}
+                    className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm font-mono"
+                  >
+                    <option value="">— brak —</option>
+                    {ROLE_OPTIONS.map(r => (
+                      <option key={r} value={r}>{roleIcons[r]} {r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {faForm.country && (
+                <p className="text-[11px] font-mono text-muted-foreground">
+                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span>
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setFaDialogOpen(false)}>Anuluj</Button>
+              <Button onClick={submitFAForm}>
+                {editingFANick ? "Zapisz zmiany" : "Dodaj wolnego agenta"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
