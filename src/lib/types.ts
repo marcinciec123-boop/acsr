@@ -55,6 +55,7 @@ export type PhaseFormat =
   | "swiss"
   | "round-robin"
   | "gsl-groups"
+  | "gsl-de-groups"
   | "showmatch";
 
 export interface PhaseGroup {
