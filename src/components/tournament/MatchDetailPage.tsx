@@ -77,8 +77,14 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
     onUpdate({ maps: next });
   };
 
+  // For BO3 we play to 2 wins (max 3 maps); BO5 to 3 wins (max 5).
+  // Once a side reaches the required wins we forbid adding more maps.
+  const mapsToWin = bo === 1 ? 1 : bo === 3 ? 2 : 3;
+  const seriesDecided = computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin;
+
   const addMap = () => {
     if (maps.length >= bo) return;
+    if (seriesDecided) return;
     const used = new Set(maps.map(m => m.map));
     const available = MAP_POOL.find(m => !used.has(m)) || MAP_POOL[maps.length % MAP_POOL.length];
     const newMap: MatchMap = {
