@@ -153,20 +153,27 @@ const TournamentPanel = () => {
   const handleCreate = () => {
     if (!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0) return;
 
-    // Build phases sequentially: first phase gets all selected teams,
-    // subsequent phases get `advanceCount` placeholder slots
+    // Build phases sequentially. For each phase we may pre-seed a configurable
+    // number of real teams; remaining slots are filled with TBD placeholders
+    // (which can be assigned later via the seeding panel on the phase).
     const phases: TournamentPhase[] = [];
     let teamsForPhase = [...selectedTeams];
     phaseDrafts.forEach((draft, idx) => {
-      const phase = buildPhase(draft.name, draft.format, teamsForPhase, {
+      // Apply seededCount: keep only first N real teams, fill rest as TBD up to original size.
+      let phaseTeams = [...teamsForPhase];
+      if (draft.seededCount > 0 && draft.seededCount < phaseTeams.length) {
+        const realPart = phaseTeams.slice(0, draft.seededCount);
+        const tbdPart = Array.from({ length: phaseTeams.length - draft.seededCount }, (_, i) => `TBD-P${idx}-${i + 1}`);
+        phaseTeams = [...realPart, ...tbdPart];
+      }
+      const phase = buildPhase(draft.name, draft.format, phaseTeams, {
         bo: draft.bo,
         groupCount: draft.groupCount,
         advanceCount: draft.advanceCount,
       });
       phases.push(phase);
-      // Next phase gets placeholder TBD teams equal to advanceCount
       if (idx < phaseDrafts.length - 1) {
-        const nextCount = draft.advanceCount || teamsForPhase.length;
+        const nextCount = draft.advanceCount || phaseTeams.length;
         teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-${idx}-${i + 1}`);
       }
     });
