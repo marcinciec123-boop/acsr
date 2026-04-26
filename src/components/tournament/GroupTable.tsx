@@ -44,46 +44,63 @@ export const GroupTable = ({ group, onMatchUpdate, onOpenMatch }: Props) => {
         </table>
       </div>
 
-      {/* Matches */}
-      <div className="space-y-1">
-        <h6 className="text-[10px] font-mono uppercase text-muted-foreground">Mecze</h6>
-        {group.matches.map((m: MatchResult) => (
-          <div key={m.id} className="flex items-center gap-1.5 text-xs">
-            <span className={cn("flex-1 text-right truncate", m.score1 > m.score2 ? "text-foreground font-medium" : "text-muted-foreground")}>
-              {m.team1 || "TBD"}
-            </span>
-            <Input
-              type="number"
-              min="0"
-              value={m.score1}
-              onChange={e => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
-              className="w-10 h-6 text-center text-xs px-1"
-            />
-            <span className="text-muted-foreground">:</span>
-            <Input
-              type="number"
-              min="0"
-              value={m.score2}
-              onChange={e => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
-              className="w-10 h-6 text-center text-xs px-1"
-            />
-            <span className={cn("flex-1 truncate", m.score2 > m.score1 ? "text-foreground font-medium" : "text-muted-foreground")}>
-              {m.team2 || "TBD"}
-            </span>
-            {onOpenMatch && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 text-primary hover:text-primary shrink-0"
-                onClick={() => onOpenMatch(m.id)}
-                title="Otwórz szczegóły meczu"
-              >
-                <Maximize2 className="w-3 h-3" />
-              </Button>
-            )}
+      {/* Matches — grouped by round when round labels are present (IEM/GSL) */}
+      {(() => {
+        const byRound = new Map<string, MatchResult[]>();
+        group.matches.forEach(m => {
+          const r = m.round || "Mecze";
+          if (!byRound.has(r)) byRound.set(r, []);
+          byRound.get(r)!.push(m);
+        });
+        const rounds = Array.from(byRound.keys());
+        return (
+          <div className="space-y-2">
+            {rounds.map(roundName => (
+              <div key={roundName} className="space-y-1">
+                <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
+                {byRound.get(roundName)!.map((m: MatchResult) => (
+                  <div key={m.id} className="flex items-center gap-1.5 text-xs">
+                    <span className={cn("flex-1 text-right truncate", m.score1 > m.score2 ? "text-foreground font-medium" : "text-muted-foreground")}>
+                      {m.team1 || "TBD"}
+                    </span>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={m.score1}
+                      onChange={e => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
+                      className="w-10 h-6 text-center text-xs px-1"
+                      disabled={!m.team1 || !m.team2 || m.team1 === "TBD" || m.team2 === "TBD"}
+                    />
+                    <span className="text-muted-foreground">:</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={m.score2}
+                      onChange={e => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
+                      className="w-10 h-6 text-center text-xs px-1"
+                      disabled={!m.team1 || !m.team2 || m.team1 === "TBD" || m.team2 === "TBD"}
+                    />
+                    <span className={cn("flex-1 truncate", m.score2 > m.score1 ? "text-foreground font-medium" : "text-muted-foreground")}>
+                      {m.team2 || "TBD"}
+                    </span>
+                    {onOpenMatch && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-primary hover:text-primary shrink-0"
+                        onClick={() => onOpenMatch(m.id)}
+                        title="Otwórz szczegóły meczu"
+                      >
+                        <Maximize2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
     </div>
   );
 };

@@ -1,24 +1,46 @@
 // ===== Free agents helper =====
 // Free agents = players whose most recent transfer ended at "-" (no team).
 // Pulled from the global transfer log so this matches what HistoryTab shows.
+//
+// Additionally we support MANUALLY added FAs (no transfer history needed).
+// They are persisted under "manual_free_agents" (raw localStorage key handled
+// by storage.ts prefix). Each manual FA may also override its role / real
+// name / nationality which are otherwise read-only static data.
 
 import { getAllTransfers, type Transfer } from "@/data/history";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
+import { playerRoles, type PlayerRole } from "@/data/playerRoles";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
-import { loadFromStorage } from "./storage";
+import { loadFromStorage, saveToStorage } from "./storage";
 
 export interface FreeAgent {
   player: string;
-  /** Last team the player was on (may be "-" if never had one). */
+  /** Last team the player was on (may be "-" if never had one or "" for manual FAs). */
   previousTeam: string;
   /** Inferred country: explicit nationality entry > previous team's country > "". */
   country: string;
   realName?: { firstName: string; lastName: string };
+  role?: PlayerRole;
+  /** True when this FA was created manually via the "+ wolny agent" button. */
+  manual?: boolean;
 }
 
 const FA_NATIONALITY_OVERRIDE_KEY = "fa_nationality_overrides";
+const MANUAL_FA_KEY = "manual_free_agents";
+const FA_ROLE_OVERRIDE_KEY = "fa_role_overrides";
+const FA_REALNAME_OVERRIDE_KEY = "fa_realname_overrides";
+
+interface ManualFA {
+  player: string;
+  country: string;
+  role?: PlayerRole;
+  firstName?: string;
+  lastName?: string;
+}
+
+// ---------- nationality overrides ----------
 
 /** Read user-set nationality overrides for free agents (persisted). */
 export function loadFreeAgentNationalityOverrides(): Record<string, string> {
@@ -30,27 +52,141 @@ export function setFreeAgentNationality(player: string, code: string): void {
   const cur = loadFreeAgentNationalityOverrides();
   if (code) cur[player] = code.toUpperCase();
   else delete cur[player];
-  // Write directly via storage (mirrors saveToStorage in lib/storage.ts).
-  try {
-    localStorage.setItem(FA_NATIONALITY_OVERRIDE_KEY, JSON.stringify(cur));
-  } catch {/* ignore */}
-  // Also patch the in-memory map so other components pick it up immediately.
+  saveToStorage(FA_NATIONALITY_OVERRIDE_KEY, cur);
   if (code) playerNationalities[player] = code.toUpperCase();
 }
 
+// ---------- role / realname overrides ----------
+
+export function loadFreeAgentRoleOverrides(): Record<string, PlayerRole> {
+  return loadFromStorage<Record<string, PlayerRole>>(FA_ROLE_OVERRIDE_KEY, {});
+}
+
+export function setFreeAgentRole(player: string, role: PlayerRole | ""): void {
+  const cur = loadFreeAgentRoleOverrides();
+  if (role) cur[player] = role;
+  else delete cur[player];
+  saveToStorage(FA_ROLE_OVERRIDE_KEY, cur);
+  if (role) playerRoles[player] = role;
+}
+
+export function loadFreeAgentRealNameOverrides(): Record<string, { firstName: string; lastName: string }> {
+  return loadFromStorage<Record<string, { firstName: string; lastName: string }>>(FA_REALNAME_OVERRIDE_KEY, {});
+}
+
+export function setFreeAgentRealName(player: string, firstName: string, lastName: string): void {
+  const cur = loadFreeAgentRealNameOverrides();
+  if (firstName || lastName) cur[player] = { firstName, lastName };
+  else delete cur[player];
+  saveToStorage(FA_REALNAME_OVERRIDE_KEY, cur);
+  if (firstName || lastName) playerRealNames[player] = { firstName, lastName };
+}
+
+// ---------- manual FAs ----------
+
+export function loadManualFreeAgents(): ManualFA[] {
+  return loadFromStorage<ManualFA[]>(MANUAL_FA_KEY, []);
+}
+
+function saveManualFreeAgents(list: ManualFA[]): void {
+  saveToStorage(MANUAL_FA_KEY, list);
+}
+
+export interface AddFreeAgentInput {
+  player: string;
+  firstName?: string;
+  lastName?: string;
+  country?: string;
+  role?: PlayerRole;
+}
+
+/** Add a brand new manual FA. Returns false if nickname already exists. */
+export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
+  const nick = input.player.trim();
+  if (!nick) return false;
+  const list = loadManualFreeAgents();
+  if (list.some(f => f.player.toLowerCase() === nick.toLowerCase())) return false;
+  // Also avoid clashes with rostered / transferred players
+  for (const t of teamDatabase) if (t.roster.includes(nick)) return false;
+
+  const country = (input.country || "").trim().toUpperCase().slice(0, 3);
+  const role = input.role;
+
+  list.push({
+    player: nick,
+    country,
+    role,
+    firstName: input.firstName?.trim(),
+    lastName: input.lastName?.trim(),
+  });
+  saveManualFreeAgents(list);
+
+  if (country) {
+    playerNationalities[nick] = country;
+    setFreeAgentNationality(nick, country);
+  }
+  if (role) {
+    playerRoles[nick] = role;
+    setFreeAgentRole(nick, role);
+  }
+  if (input.firstName || input.lastName) {
+    setFreeAgentRealName(nick, input.firstName?.trim() || "", input.lastName?.trim() || "");
+  }
+  return true;
+}
+
+/** Remove a manual FA entirely (also clears overrides). */
+export function removeManualFreeAgent(player: string): void {
+  const list = loadManualFreeAgents().filter(f => f.player !== player);
+  saveManualFreeAgents(list);
+  setFreeAgentNationality(player, "");
+  setFreeAgentRole(player, "");
+  setFreeAgentRealName(player, "", "");
+}
+
+/** Patch an existing manual FA. */
+export function updateManualFreeAgent(
+  player: string,
+  patch: Partial<Omit<ManualFA, "player">>,
+): void {
+  const list = loadManualFreeAgents();
+  const idx = list.findIndex(f => f.player === player);
+  if (idx === -1) return;
+  list[idx] = { ...list[idx], ...patch };
+  saveManualFreeAgents(list);
+  if (patch.country !== undefined) setFreeAgentNationality(player, patch.country || "");
+  if (patch.role !== undefined) setFreeAgentRole(player, patch.role || "");
+  if (patch.firstName !== undefined || patch.lastName !== undefined) {
+    setFreeAgentRealName(
+      player,
+      (patch.firstName ?? list[idx].firstName ?? ""),
+      (patch.lastName ?? list[idx].lastName ?? ""),
+    );
+  }
+}
+
+// ---------- main FA list ----------
+
 /**
- * Compute the current free-agent list from the transfer log.
+ * Compute the current free-agent list from the transfer log + manual entries.
  *
  * The current ranking source ("ranking_data" in localStorage) wins over the
  * static teamDatabase, so a player promoted onto a roster via the ranking
  * editor is no longer counted as FA.
  */
 export function getFreeAgents(): FreeAgent[] {
-  const overrides = loadFreeAgentNationalityOverrides();
-  // Apply overrides into the in-memory nationalities map so other consumers
-  // (PlayerProfile, RankingPanel search) also see them.
-  Object.entries(overrides).forEach(([p, c]) => {
+  // Hydrate in-memory maps from overrides so other components see them.
+  const natOv = loadFreeAgentNationalityOverrides();
+  Object.entries(natOv).forEach(([p, c]) => {
     if (!playerNationalities[p]) playerNationalities[p] = c;
+  });
+  const roleOv = loadFreeAgentRoleOverrides();
+  Object.entries(roleOv).forEach(([p, r]) => {
+    if (!playerRoles[p]) playerRoles[p] = r;
+  });
+  const nameOv = loadFreeAgentRealNameOverrides();
+  Object.entries(nameOv).forEach(([p, n]) => {
+    if (!playerRealNames[p]) playerRealNames[p] = n;
   });
 
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
@@ -58,20 +194,40 @@ export function getFreeAgents(): FreeAgent[] {
   const onAnyRoster = new Set<string>();
   teams.forEach(t => t.roster.forEach(p => onAnyRoster.add(p)));
 
+  const out: FreeAgent[] = [];
+  const seen = new Set<string>();
+
+  // Manual FAs first (they take precedence so edits stick).
+  for (const m of loadManualFreeAgents()) {
+    if (onAnyRoster.has(m.player)) continue;
+    seen.add(m.player);
+    const country = m.country || playerNationalities[m.player] || "";
+    const realName = (m.firstName || m.lastName)
+      ? { firstName: m.firstName || "", lastName: m.lastName || "" }
+      : playerRealNames[m.player];
+    out.push({
+      player: m.player,
+      previousTeam: "-",
+      country,
+      realName,
+      role: m.role || playerRoles[m.player],
+      manual: true,
+    });
+  }
+
+  // Transfer-derived FAs (last transfer to "-").
   const allTransfers: Transfer[] = getAllTransfers();
   const lastTransfer: Record<string, Transfer> = {};
   for (const t of allTransfers) lastTransfer[t.player] = t;
 
-  const out: FreeAgent[] = [];
   for (const t of Object.values(lastTransfer)) {
     if (t.newTeam !== "-") continue;
-    // If the player has been re-rostered later via another source, skip.
     if (onAnyRoster.has(t.player)) continue;
-    // Country fallback: explicit > override > previous team's country
+    if (seen.has(t.player)) continue;
     const prevTeam = teamDatabase.find(x => x.name === t.oldTeam);
     const country =
       playerNationalities[t.player] ||
-      overrides[t.player] ||
+      natOv[t.player] ||
       prevTeam?.country ||
       "";
     out.push({
@@ -79,6 +235,7 @@ export function getFreeAgents(): FreeAgent[] {
       previousTeam: t.oldTeam,
       country,
       realName: playerRealNames[t.player],
+      role: playerRoles[t.player],
     });
   }
   return out.sort((a, b) => a.player.localeCompare(b.player));

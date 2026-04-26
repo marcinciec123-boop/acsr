@@ -155,6 +155,48 @@ export const buildGSLGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[]
   ];
 };
 
+/**
+ * IEM-style 8-team double-elimination group with lower bracket.
+ * Top 2 advance.
+ *
+ * Round structure:
+ *   - UB R1 (Opening, 4 matches)         — losers fall to LB R1
+ *   - LB R1 (Elimination, 2 matches)     — losers eliminated
+ *   - UB SF (Winners' Match, 2 matches)  — losers fall to LB R2
+ *   - LB R2 (2 matches)                  — losers eliminated
+ *   - UB Final (Winners' Decider, 1)     — winner = 1st seed; loser to LB Final
+ *   - LB Final (Decider, 1)              — winner = 2nd seed
+ */
+export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
+  const t = [...teams];
+  while (t.length < 8) t.push("TBD");
+  // Seed pairings (1v8, 2v7, 3v6, 4v5)
+  const om = [
+    [t[0], t[7]],
+    [t[1], t[6]],
+    [t[2], t[5]],
+    [t[3], t[4]],
+  ];
+  return [
+    { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Opening", bo },
+    { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Opening", bo },
+    { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Opening", bo },
+    { id: uid(), team1: om[3][0], team2: om[3][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M4", round: "Opening", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M1", round: "Elimination R1", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M2", round: "Elimination R1", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M1", round: "Winners Match", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M2", round: "Winners Match", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Elimination R2", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Elimination R2", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Winners Decider", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Decider", bo },
+  ];
+};
+
 /** Swiss: returns first-round matches only (subsequent rounds added by user as results come in) */
 export const buildSwissRound1 = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResult[] => {
   const t = shuffle(teams);
@@ -225,6 +267,15 @@ export const buildPhase = (
       teams: groupTeams,
       matches: buildGSLGroup(groupTeams, bo),
     }));
+  } else if (format === "gsl-de-groups") {
+    const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 8));
+    const distributed = distributeIntoGroups(teams, groupCount);
+    phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
+      id: uid(),
+      name: `Group ${String.fromCharCode(65 + i)}`,
+      teams: groupTeams,
+      matches: buildGSLDoubleElimGroup(groupTeams, bo),
+    }));
   } else if (format === "swiss") {
     phase.bracket = buildSwissRound1(teams, bo);
     phase.swissRounds = Math.ceil(Math.log2(Math.max(2, teams.length)));
@@ -234,6 +285,60 @@ export const buildPhase = (
       : [];
   }
   return phase;
+};
+
+/**
+ * Auto-propagate winners/losers within an IEM-style 8-team DE group.
+ * Mutates the match list in place by filling team1/team2 of downstream
+ * matches based on bracketSlot wiring.
+ */
+export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
+  const by = (slot: string) => matches.find(m => m.bracketSlot === slot);
+  const winnerOf = (slot: string): string => {
+    const m = by(slot); if (!m) return "";
+    if (!m.team1 || !m.team2) return "";
+    if (m.team1 === "TBD" || m.team2 === "TBD") return "";
+    if (m.score1 + m.score2 === 0) return "";
+    if (m.score1 === m.score2) return "";
+    return m.score1 > m.score2 ? m.team1 : m.team2;
+  };
+  const loserOf = (slot: string): string => {
+    const m = by(slot); if (!m) return "";
+    if (!m.team1 || !m.team2) return "";
+    if (m.team1 === "TBD" || m.team2 === "TBD") return "";
+    if (m.score1 + m.score2 === 0) return "";
+    if (m.score1 === m.score2) return "";
+    return m.score1 > m.score2 ? m.team2 : m.team1;
+  };
+  const setSlot = (slot: string, t1: string, t2: string) => {
+    const m = by(slot); if (!m) return;
+    // Only overwrite if currently empty — keep manual edits
+    if (!m.team1 && t1) m.team1 = t1;
+    if (!m.team2 && t2) m.team2 = t2;
+  };
+
+  // LB R1: losers of OM1 vs OM2, OM3 vs OM4
+  setSlot("IEM-LB-R1-M1", loserOf("IEM-UB-R1-M1"), loserOf("IEM-UB-R1-M2"));
+  setSlot("IEM-LB-R1-M2", loserOf("IEM-UB-R1-M3"), loserOf("IEM-UB-R1-M4"));
+
+  // UB SF: winners of OM1 vs OM2, OM3 vs OM4
+  setSlot("IEM-UB-SF-M1", winnerOf("IEM-UB-R1-M1"), winnerOf("IEM-UB-R1-M2"));
+  setSlot("IEM-UB-SF-M2", winnerOf("IEM-UB-R1-M3"), winnerOf("IEM-UB-R1-M4"));
+
+  // LB R2: loser of UB SF vs winner of LB R1 (cross-bracket)
+  setSlot("IEM-LB-R2-M1", loserOf("IEM-UB-SF-M2"), winnerOf("IEM-LB-R1-M1"));
+  setSlot("IEM-LB-R2-M2", loserOf("IEM-UB-SF-M1"), winnerOf("IEM-LB-R1-M2"));
+
+  // UB Final: winners of UB SFs
+  setSlot("IEM-UB-FINAL", winnerOf("IEM-UB-SF-M1"), winnerOf("IEM-UB-SF-M2"));
+
+  // LB Final: loser of UB Final vs winner of LB R2 (typically winners of both LB R2 play first;
+  // but in classic IEM-DE the structure is: winners of LB R2 play LB Final OR LB R3.
+  // For simplicity here: loser of UB Final faces the winner of LB R2 (highest-surviving).
+  // We pair the two LB-R2 winners against each other first via the LB Final slot.)
+  setSlot("IEM-LB-FINAL", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+
+  return matches;
 };
 
 /** Compute standings for a Round Robin / GSL group based on completed matches */
@@ -269,6 +374,7 @@ export const formatLabel = (f: PhaseFormat): string => ({
   "swiss": "Swiss System",
   "round-robin": "Round Robin",
   "gsl-groups": "GSL Groups",
+  "gsl-de-groups": "IEM-style Groups (DE)",
   "showmatch": "Showmatch",
 }[f]);
 

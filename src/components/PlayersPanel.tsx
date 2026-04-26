@@ -1,8 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon } from "lucide-react";
+import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
@@ -10,10 +13,16 @@ import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
-import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
-import { getFreeAgents, setFreeAgentNationality } from "@/lib/freeAgents";
+import {
+  getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
+  removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
+} from "@/lib/freeAgents";
+import { toast } from "@/hooks/use-toast";
+
+const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA";
 type SortMode = "rating" | "matches" | "team" | "name";
@@ -32,6 +41,7 @@ interface PlayerRow {
   /** Last team if FA */
   previousTeam?: string;
   isFA: boolean;
+  isManualFA?: boolean;
   country: string;
   realName?: { firstName: string; lastName: string };
   role?: string;
@@ -40,6 +50,18 @@ interface PlayerRow {
   kdr: number;
   adr: number;
 }
+
+interface FAFormState {
+  player: string;
+  firstName: string;
+  lastName: string;
+  country: string;
+  role: PlayerRole | "";
+}
+
+const emptyFAForm = (): FAFormState => ({
+  player: "", firstName: "", lastName: "", country: "", role: "",
+});
 
 const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [search, setSearch] = useState("");
@@ -52,6 +74,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingFA, setEditingFA] = useState<string | null>(null);
   const [faCountryDraft, setFaCountryDraft] = useState("");
+
+  // Full FA add/edit dialog
+  const [faDialogOpen, setFaDialogOpen] = useState(false);
+  /** When set we're editing an existing manual FA. */
+  const [editingFANick, setEditingFANick] = useState<string | null>(null);
+  const [faForm, setFaForm] = useState<FAFormState>(emptyFAForm());
 
   const teams = useMemo(() => {
     const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
@@ -81,7 +109,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
       }
     }
-    // Free agents
+    // Free agents (manual + transfer-derived)
     for (const fa of getFreeAgents()) {
       if (seen.has(fa.player)) continue;
       seen.add(fa.player);
@@ -92,9 +120,10 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         region: "FA",
         previousTeam: fa.previousTeam,
         isFA: true,
+        isManualFA: fa.manual,
         country: fa.country,
         realName: fa.realName,
-        role: playerRoles[fa.player],
+        role: fa.role || playerRoles[fa.player],
         rating: career.careerRating,
         matches: career.matchesPlayed,
         kdr: career.kdRatio,
@@ -165,6 +194,69 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     setRefreshKey(k => k + 1);
   };
 
+  // ===== Manual FA dialog handlers =====
+  const openCreateFA = () => {
+    setEditingFANick(null);
+    setFaForm(emptyFAForm());
+    setFaDialogOpen(true);
+  };
+  const openEditFA = (nick: string) => {
+    const manual = loadManualFreeAgents().find(f => f.player === nick);
+    const country = manual?.country || playerNationalities[nick] || "";
+    const role = (manual?.role || playerRoles[nick] || "") as PlayerRole | "";
+    const real = playerRealNames[nick];
+    setEditingFANick(nick);
+    setFaForm({
+      player: nick,
+      firstName: manual?.firstName ?? real?.firstName ?? "",
+      lastName: manual?.lastName ?? real?.lastName ?? "",
+      country,
+      role,
+    });
+    setFaDialogOpen(true);
+  };
+  const submitFAForm = () => {
+    const nick = faForm.player.trim();
+    if (!nick) {
+      toast({ title: "Brak nicku", description: "Podaj nick wolnego agenta.", variant: "destructive" });
+      return;
+    }
+    if (editingFANick) {
+      updateManualFreeAgent(editingFANick, {
+        firstName: faForm.firstName.trim(),
+        lastName: faForm.lastName.trim(),
+        country: faForm.country.trim().toUpperCase().slice(0, 3),
+        role: faForm.role || undefined,
+      });
+      toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingFANick}.` });
+    } else {
+      const ok = addManualFreeAgent({
+        player: nick,
+        firstName: faForm.firstName.trim() || undefined,
+        lastName: faForm.lastName.trim() || undefined,
+        country: faForm.country.trim() || undefined,
+        role: faForm.role || undefined,
+      });
+      if (!ok) {
+        toast({
+          title: "Nick zajęty",
+          description: `Gracz ${nick} już istnieje (na rosterze lub jako FA).`,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Dodano FA", description: `${nick} dołączył do wolnych agentów.` });
+    }
+    setFaDialogOpen(false);
+    setRefreshKey(k => k + 1);
+  };
+  const deleteManualFA = (nick: string) => {
+    if (!confirm(`Usunąć wolnego agenta ${nick}?`)) return;
+    removeManualFreeAgent(nick);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
@@ -181,6 +273,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               </span>
             )}
           </div>
+          <Button size="sm" onClick={openCreateFA} className="gap-1.5">
+            <UserPlus className="w-4 h-4" /> Dodaj wolnego agenta
+          </Button>
         </div>
 
         {/* Search + filters */}
@@ -381,6 +476,25 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           </Button>
                         </div>
                       )}
+                      {/* Edit / delete (always available for FAs) */}
+                      <div className="mt-1.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => openEditFA(p.name)}
+                          className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+                          title="Edytuj profil"
+                        >
+                          <Pencil className="w-2.5 h-2.5" /> edytuj
+                        </button>
+                        {p.isManualFA && (
+                          <button
+                            onClick={() => deleteManualFA(p.name)}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-destructive transition-colors ml-2"
+                            title="Usuń wolnego agenta"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" /> usuń
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -425,6 +539,91 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             })}
           </div>
         )}
+
+        {/* Add / edit free-agent dialog */}
+        <Dialog open={faDialogOpen} onOpenChange={setFaDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-heading">
+                {editingFANick ? `Edytuj wolnego agenta: ${editingFANick}` : "Dodaj wolnego agenta"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  Nick *
+                </label>
+                <Input
+                  placeholder="np. s1mple"
+                  value={faForm.player}
+                  disabled={!!editingFANick}
+                  onChange={e => setFaForm(f => ({ ...f, player: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Imię
+                  </label>
+                  <Input
+                    placeholder="Aleksandr"
+                    value={faForm.firstName}
+                    onChange={e => setFaForm(f => ({ ...f, firstName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Nazwisko
+                  </label>
+                  <Input
+                    placeholder="Kostyliev"
+                    value={faForm.lastName}
+                    onChange={e => setFaForm(f => ({ ...f, lastName: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Narodowość (kod)
+                  </label>
+                  <Input
+                    placeholder="UA"
+                    maxLength={3}
+                    value={faForm.country}
+                    onChange={e => setFaForm(f => ({ ...f, country: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    Rola
+                  </label>
+                  <select
+                    value={faForm.role}
+                    onChange={e => setFaForm(f => ({ ...f, role: e.target.value as PlayerRole | "" }))}
+                    className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm font-mono"
+                  >
+                    <option value="">— brak —</option>
+                    {ROLE_OPTIONS.map(r => (
+                      <option key={r} value={r}>{roleIcons[r]} {r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {faForm.country && (
+                <p className="text-[11px] font-mono text-muted-foreground">
+                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span>
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setFaDialogOpen(false)}>Anuluj</Button>
+              <Button onClick={submitFAForm}>
+                {editingFANick ? "Zapisz zmiany" : "Dodaj wolnego agenta"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );

@@ -77,8 +77,14 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
     onUpdate({ maps: next });
   };
 
+  // For BO3 we play to 2 wins (max 3 maps); BO5 to 3 wins (max 5).
+  // Once a side reaches the required wins we forbid adding more maps.
+  const mapsToWin = bo === 1 ? 1 : bo === 3 ? 2 : 3;
+  const seriesDecided = computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin;
+
   const addMap = () => {
     if (maps.length >= bo) return;
+    if (seriesDecided) return;
     const used = new Set(maps.map(m => m.map));
     const available = MAP_POOL.find(m => !used.has(m)) || MAP_POOL[maps.length % MAP_POOL.length];
     const newMap: MatchMap = {
@@ -276,11 +282,18 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
                 variant="outline"
                 className="h-8 gap-1"
                 onClick={addMap}
-                disabled={maps.length >= bo}
+                disabled={maps.length >= bo || seriesDecided}
+                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : undefined}
               >
                 <Plus className="w-3 h-3" /> Dodaj mapę
               </Button>
             </div>
+
+            {seriesDecided && maps.length < bo && (
+              <p className="text-[11px] font-mono text-[hsl(var(--win))] -mt-1">
+                ✓ BO{bo} rozstrzygnięte ({computedScore.s1}:{computedScore.s2}) — gramy do {mapsToWin} wygranych map.
+              </p>
+            )}
 
             {maps.length === 0 && (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
