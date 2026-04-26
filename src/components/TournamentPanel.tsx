@@ -51,6 +51,9 @@ interface PhaseDraft {
   bo: 1 | 3 | 5;
   groupCount: number;
   advanceCount: number;
+  /** How many teams are pre-seeded into this phase (rest are TBD).
+   *  0 means: use the previous phase's advanceCount (or all participants for phase 1). */
+  seededCount: number;
 }
 
 const TournamentPanel = () => {
