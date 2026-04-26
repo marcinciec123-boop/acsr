@@ -194,6 +194,69 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     setRefreshKey(k => k + 1);
   };
 
+  // ===== Manual FA dialog handlers =====
+  const openCreateFA = () => {
+    setEditingFANick(null);
+    setFaForm(emptyFAForm());
+    setFaDialogOpen(true);
+  };
+  const openEditFA = (nick: string) => {
+    const manual = loadManualFreeAgents().find(f => f.player === nick);
+    const country = manual?.country || playerNationalities[nick] || "";
+    const role = (manual?.role || playerRoles[nick] || "") as PlayerRole | "";
+    const real = playerRealNames[nick];
+    setEditingFANick(nick);
+    setFaForm({
+      player: nick,
+      firstName: manual?.firstName ?? real?.firstName ?? "",
+      lastName: manual?.lastName ?? real?.lastName ?? "",
+      country,
+      role,
+    });
+    setFaDialogOpen(true);
+  };
+  const submitFAForm = () => {
+    const nick = faForm.player.trim();
+    if (!nick) {
+      toast({ title: "Brak nicku", description: "Podaj nick wolnego agenta.", variant: "destructive" });
+      return;
+    }
+    if (editingFANick) {
+      updateManualFreeAgent(editingFANick, {
+        firstName: faForm.firstName.trim(),
+        lastName: faForm.lastName.trim(),
+        country: faForm.country.trim().toUpperCase().slice(0, 3),
+        role: faForm.role || undefined,
+      });
+      toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingFANick}.` });
+    } else {
+      const ok = addManualFreeAgent({
+        player: nick,
+        firstName: faForm.firstName.trim() || undefined,
+        lastName: faForm.lastName.trim() || undefined,
+        country: faForm.country.trim() || undefined,
+        role: faForm.role || undefined,
+      });
+      if (!ok) {
+        toast({
+          title: "Nick zajęty",
+          description: `Gracz ${nick} już istnieje (na rosterze lub jako FA).`,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Dodano FA", description: `${nick} dołączył do wolnych agentów.` });
+    }
+    setFaDialogOpen(false);
+    setRefreshKey(k => k + 1);
+  };
+  const deleteManualFA = (nick: string) => {
+    if (!confirm(`Usunąć wolnego agenta ${nick}?`)) return;
+    removeManualFreeAgent(nick);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
@@ -210,6 +273,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               </span>
             )}
           </div>
+          <Button size="sm" onClick={openCreateFA} className="gap-1.5">
+            <UserPlus className="w-4 h-4" /> Dodaj wolnego agenta
+          </Button>
         </div>
 
         {/* Search + filters */}
