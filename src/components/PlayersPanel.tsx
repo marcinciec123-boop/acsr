@@ -109,7 +109,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
       }
     }
-    // Free agents
+    // Free agents (manual + transfer-derived)
     for (const fa of getFreeAgents()) {
       if (seen.has(fa.player)) continue;
       seen.add(fa.player);
@@ -120,9 +120,10 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         region: "FA",
         previousTeam: fa.previousTeam,
         isFA: true,
+        isManualFA: fa.manual,
         country: fa.country,
         realName: fa.realName,
-        role: playerRoles[fa.player],
+        role: fa.role || playerRoles[fa.player],
         rating: career.careerRating,
         matches: career.matchesPlayed,
         kdr: career.kdRatio,
