@@ -777,7 +777,7 @@ const TournamentPanel = () => {
                 </div>
                 <div className="space-y-2">
                   {phaseDrafts.map((draft, idx) => {
-                    const showGroups = draft.format === "round-robin" || draft.format === "gsl-groups";
+                    const showGroups = draft.format === "round-robin" || draft.format === "gsl-groups" || draft.format === "gsl-de-groups";
                     const showAdvance = idx < phaseDrafts.length - 1;
                     return (
                       <div key={idx} className="bg-secondary/30 border border-border rounded-md p-3 space-y-2">
