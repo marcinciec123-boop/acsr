@@ -41,6 +41,7 @@ interface PlayerRow {
   /** Last team if FA */
   previousTeam?: string;
   isFA: boolean;
+  isManualFA?: boolean;
   country: string;
   realName?: { firstName: string; lastName: string };
   role?: string;
@@ -49,6 +50,18 @@ interface PlayerRow {
   kdr: number;
   adr: number;
 }
+
+interface FAFormState {
+  player: string;
+  firstName: string;
+  lastName: string;
+  country: string;
+  role: PlayerRole | "";
+}
+
+const emptyFAForm = (): FAFormState => ({
+  player: "", firstName: "", lastName: "", country: "", role: "",
+});
 
 const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [search, setSearch] = useState("");
@@ -61,6 +74,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingFA, setEditingFA] = useState<string | null>(null);
   const [faCountryDraft, setFaCountryDraft] = useState("");
+
+  // Full FA add/edit dialog
+  const [faDialogOpen, setFaDialogOpen] = useState(false);
+  /** When set we're editing an existing manual FA. */
+  const [editingFANick, setEditingFANick] = useState<string | null>(null);
+  const [faForm, setFaForm] = useState<FAFormState>(emptyFAForm());
 
   const teams = useMemo(() => {
     const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
