@@ -320,6 +320,7 @@ export const formatLabel = (f: PhaseFormat): string => ({
   "swiss": "Swiss System",
   "round-robin": "Round Robin",
   "gsl-groups": "GSL Groups",
+  "gsl-de-groups": "IEM-style Groups (DE)",
   "showmatch": "Showmatch",
 }[f]);
 
