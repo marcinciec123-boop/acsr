@@ -282,11 +282,18 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
                 variant="outline"
                 className="h-8 gap-1"
                 onClick={addMap}
-                disabled={maps.length >= bo}
+                disabled={maps.length >= bo || seriesDecided}
+                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : undefined}
               >
                 <Plus className="w-3 h-3" /> Dodaj mapę
               </Button>
             </div>
+
+            {seriesDecided && maps.length < bo && (
+              <p className="text-[11px] font-mono text-[hsl(var(--win))] -mt-1">
+                ✓ BO{bo} rozstrzygnięte ({computedScore.s1}:{computedScore.s2}) — gramy do {mapsToWin} wygranych map.
+              </p>
+            )}
 
             {maps.length === 0 && (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
