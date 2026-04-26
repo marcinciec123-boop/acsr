@@ -1,8 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon } from "lucide-react";
+import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
@@ -10,10 +13,16 @@ import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
-import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
-import { getFreeAgents, setFreeAgentNationality } from "@/lib/freeAgents";
+import {
+  getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
+  removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
+} from "@/lib/freeAgents";
+import { toast } from "@/hooks/use-toast";
+
+const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA";
 type SortMode = "rating" | "matches" | "team" | "name";
