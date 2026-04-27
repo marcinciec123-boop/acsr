@@ -73,7 +73,15 @@ const PlayerProfile = ({
   const career = useMemo(() => computeCareerStats(playerName), [playerName]);
 
   const avatarGradient = getAvatarColor(playerName);
-  const role = playerRoles[playerName];
+  const [role, setRoleState] = useState<PlayerRole | "">((playerRoles[playerName] || "") as PlayerRole | "");
+  const [editingRole, setEditingRole] = useState(false);
+
+  const handleRoleChange = (next: PlayerRole | "") => {
+    setPlayerRole(playerName, next);
+    setRoleState(next);
+    setEditingRole(false);
+    toast({ title: "Rola zaktualizowana", description: `${playerName}: ${next || "—"}` });
+  };
 
   return (
     <section className="py-6">
