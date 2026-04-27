@@ -628,13 +628,24 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
-                    Narodowość (kod)
+                    Narodowość (2-literowy kod ISO, np. PL, DE)
                   </label>
                   <Input
-                    placeholder="UA"
-                    maxLength={3}
+                    placeholder="PL"
+                    maxLength={2}
                     value={faForm.country}
-                    onChange={e => setFaForm(f => ({ ...f, country: e.target.value.toUpperCase() }))}
+                    onChange={e => {
+                      const next = e.target.value.toUpperCase().slice(0, 2);
+                      setFaForm(f => ({ ...f, country: next }));
+                      // Live-persist for existing FAs the moment we have a complete code
+                      if (editingFANick && next.length === 2) {
+                        const before = captureSnapshot();
+                        const old = playerNationalities[editingFANick] || "—";
+                        updateManualFreeAgent(editingFANick, { country: next });
+                        recordChange("nationality", `Narodowość: ${editingFANick} ${old} → ${next}`, before);
+                      }
+                    }}
+                    className="uppercase"
                   />
                 </div>
                 <div>
@@ -643,7 +654,15 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   </label>
                   <select
                     value={faForm.role}
-                    onChange={e => setFaForm(f => ({ ...f, role: e.target.value as PlayerRole | "" }))}
+                    onChange={e => {
+                      const next = e.target.value as PlayerRole | "";
+                      setFaForm(f => ({ ...f, role: next }));
+                      // Live-persist role for existing FAs too
+                      if (editingFANick) {
+                        setPlayerRole(editingFANick, next);
+                        setRefreshKey(k => k + 1);
+                      }
+                    }}
                     className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm font-mono"
                   >
                     <option value="">— brak —</option>
@@ -653,9 +672,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   </select>
                 </div>
               </div>
-              {faForm.country && (
+              {faForm.country.length === 2 && (
                 <p className="text-[11px] font-mono text-muted-foreground">
-                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span>
+                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span> {faForm.country}
                 </p>
               )}
             </div>
