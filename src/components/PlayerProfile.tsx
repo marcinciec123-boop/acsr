@@ -1,20 +1,24 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Globe, ArrowRightLeft, Trophy, Shield, Target, Skull,
   Activity, Zap, Crosshair, BarChart3, Flame, TrendingUp, MapIcon, Users as UsersIcon,
-  Award, Star, Medal,
+  Award, Star, Medal, Pencil,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
-import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
+import { setPlayerRole } from "@/lib/changeLog";
+import { toast } from "@/hooks/use-toast";
+
+const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
 interface PlayerProfileProps {
   playerName: string;
