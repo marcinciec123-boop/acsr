@@ -189,7 +189,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
   const saveFANationality = (player: string) => {
     const code = faCountryDraft.trim().toUpperCase().slice(0, 3);
-    if (code) setFreeAgentNationality(player, code);
+    if (code) {
+      const before = captureSnapshot();
+      const old = playerNationalities[player] || "—";
+      setFreeAgentNationality(player, code);
+      recordChange("nationality", `Narodowość: ${player} ${old} → ${code}`, before);
+    }
     setEditingFA(null);
     setFaCountryDraft("");
     setRefreshKey(k => k + 1);
@@ -222,6 +227,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       toast({ title: "Brak nicku", description: "Podaj nick wolnego agenta.", variant: "destructive" });
       return;
     }
+    const before = captureSnapshot();
     if (editingFANick) {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
@@ -229,6 +235,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         country: faForm.country.trim().toUpperCase().slice(0, 3),
         role: faForm.role || undefined,
       });
+      recordChange("fa-edit", `Edytowano FA: ${editingFANick}`, before);
       toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingFANick}.` });
     } else {
       const ok = addManualFreeAgent({
@@ -246,6 +253,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
         return;
       }
+      recordChange("fa-add", `Dodano FA: ${nick}`, before);
       toast({ title: "Dodano FA", description: `${nick} dołączył do wolnych agentów.` });
     }
     setFaDialogOpen(false);
@@ -253,9 +261,20 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   };
   const deleteManualFA = (nick: string) => {
     if (!confirm(`Usunąć wolnego agenta ${nick}?`)) return;
+    const before = captureSnapshot();
     removeManualFreeAgent(nick);
+    recordChange("fa-remove", `Usunięto FA: ${nick}`, before);
     setRefreshKey(k => k + 1);
     toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
+  // Role editor (works for any player — rostered or FA)
+  const [roleEditFor, setRoleEditFor] = useState<string | null>(null);
+  const handleSetRole = (player: string, role: PlayerRole | "") => {
+    setPlayerRole(player, role);
+    setRoleEditFor(null);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Rola zaktualizowana", description: `${player}: ${role || "—"}` });
   };
 
   return (
