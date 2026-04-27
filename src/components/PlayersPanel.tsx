@@ -415,19 +415,44 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         {p.name}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {p.isFA && (
                         <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
                           FA
                         </span>
                       )}
-                      {p.role && (
-                        <span className={cn(
-                          "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border",
-                          roleColors[p.role] || "border-border text-muted-foreground",
-                        )}>
+                      {roleEditFor === p.name ? (
+                        <select
+                          autoFocus
+                          value={p.role || ""}
+                          onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
+                          onBlur={() => setRoleEditFor(null)}
+                          className="text-[9px] font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
+                        >
+                          <option value="">—</option>
+                          {ROLE_OPTIONS.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      ) : p.role ? (
+                        <button
+                          onClick={() => setRoleEditFor(p.name)}
+                          title="Kliknij aby zmienić rolę"
+                          className={cn(
+                            "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
+                            roleColors[p.role] || "border-border text-muted-foreground",
+                          )}
+                        >
                           {roleIcons[p.role]}
-                        </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setRoleEditFor(p.name)}
+                          title="Dodaj rolę"
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                        >
+                          + rola
+                        </button>
                       )}
                     </div>
                   </div>
