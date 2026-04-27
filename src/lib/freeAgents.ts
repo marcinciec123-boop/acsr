@@ -109,7 +109,7 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   // Also avoid clashes with rostered / transferred players
   for (const t of teamDatabase) if (t.roster.includes(nick)) return false;
 
-  const country = (input.country || "").trim().toUpperCase().slice(0, 3);
+  const country = (input.country || "").trim().toUpperCase().slice(0, 2);
   const role = input.role;
 
   list.push({
