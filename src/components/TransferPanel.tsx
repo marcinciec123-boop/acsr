@@ -92,6 +92,10 @@ const TransferPanel = () => {
     return result;
   }, [search, teamFilter, reversed, typeFilter, transfers]);
 
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>(() => loadChangeLog());
+
+  const refreshChangeLog = () => setChangeLog(loadChangeLog());
+
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
     const t: Transfer = {
@@ -101,6 +105,9 @@ const TransferPanel = () => {
       newTeam: transferTo,
       date: new Date().toISOString(),
     };
+
+    // Snapshot BEFORE applying any mutation, for the change log.
+    const before = captureSnapshot();
 
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
@@ -112,7 +119,13 @@ const TransferPanel = () => {
       if (toTeam && !toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
     }
 
-    // Persist roster changes to ranking data in localStorage
+    // Mirror the transfer into the global FA log so PlayersPanel/profile stay in sync.
+    const raw: RawTransfer = { player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam };
+    customTransfersGlobal.push(raw);
+    saveToStorage("custom_transfers", customTransfersGlobal);
+
+    // Persist roster changes everywhere they need to live.
+    persistCurrentRosters();
     const RANKING_KEY = "ranking_data";
     const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
     if (rankingData) {
@@ -129,8 +142,49 @@ const TransferPanel = () => {
     }
 
     setTransfers(prev => [t, ...prev]);
+    recordChange(
+      "transfer",
+      `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
+      before,
+    );
+    refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
     setShowDialog(false);
+  };
+
+  const handleRevert = (id: string, label: string) => {
+    if (!confirm(`Cofnąć zmianę?\n\n"${label}"\n\nTo również usunie wszystkie późniejsze zmiany.`)) return;
+    const ok = revertTo(id);
+    if (ok) {
+      // Re-sync the local transfers list with persisted custom transfers
+      // by rebuilding from seed + customTransfersGlobal.
+      const rebuilt: Transfer[] = [
+        ...customTransfersGlobal.map((ct, i) => ({
+          id: `live-${i}`,
+          player: ct.player,
+          oldTeam: ct.oldTeam,
+          newTeam: ct.newTeam,
+          date: new Date().toISOString(),
+        })),
+        ...seedTransfers.map((s, i) => ({
+          id: `seed-${i}`,
+          player: s.player,
+          oldTeam: s.oldTeam,
+          newTeam: s.newTeam,
+          date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+        })),
+      ];
+      setTransfers(rebuilt);
+      saveToStorage(TRANSFERS_KEY, rebuilt);
+      refreshChangeLog();
+      toast({ title: "Cofnięto zmianę", description: label });
+    }
+  };
+
+  const handleClearLog = () => {
+    if (!confirm("Wyczyścić całą historię zmian? Aktualny stan bazy zostanie zachowany, ale nie będzie można już cofnąć poprzednich zmian.")) return;
+    clearChangeLog();
+    refreshChangeLog();
   };
 
   return (
