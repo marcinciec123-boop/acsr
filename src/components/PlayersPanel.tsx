@@ -232,7 +232,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
         lastName: faForm.lastName.trim(),
-        country: faForm.country.trim().toUpperCase().slice(0, 3),
+        country: faForm.country.trim().toUpperCase().slice(0, 2),
         role: faForm.role || undefined,
       });
       recordChange("fa-edit", `Edytowano FA: ${editingFANick}`, before);
