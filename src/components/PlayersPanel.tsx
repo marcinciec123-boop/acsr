@@ -187,17 +187,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     return list;
   }, [rows, search, region, nationality, roleFilter, sort, onlyWithStats]);
 
-  const saveFANationality = (player: string) => {
-    const code = faCountryDraft.trim().toUpperCase().slice(0, 3);
-    if (code) {
+  const saveFANationality = (player: string, codeOverride?: string) => {
+    const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
+    if (raw.length === 2) {
       const before = captureSnapshot();
       const old = playerNationalities[player] || "—";
-      setFreeAgentNationality(player, code);
-      recordChange("nationality", `Narodowość: ${player} ${old} → ${code}`, before);
+      setFreeAgentNationality(player, raw);
+      recordChange("nationality", `Narodowość: ${player} ${old} → ${raw}`, before);
+      setEditingFA(null);
+      setFaCountryDraft("");
+      setRefreshKey(k => k + 1);
     }
-    setEditingFA(null);
-    setFaCountryDraft("");
-    setRefreshKey(k => k + 1);
   };
 
   // ===== Manual FA dialog handlers =====
@@ -232,7 +232,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
         lastName: faForm.lastName.trim(),
-        country: faForm.country.trim().toUpperCase().slice(0, 3),
+        country: faForm.country.trim().toUpperCase().slice(0, 2),
         role: faForm.role || undefined,
       });
       recordChange("fa-edit", `Edytowano FA: ${editingFANick}`, before);
@@ -494,23 +494,21 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           <Input
                             autoFocus
                             placeholder="PL"
-                            maxLength={3}
+                            maxLength={2}
                             value={faCountryDraft}
-                            onChange={(e) => setFaCountryDraft(e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                              const next = e.target.value.toUpperCase().slice(0, 2);
+                              setFaCountryDraft(next);
+                              // Auto-save the moment we have a full 2-letter code
+                              if (next.length === 2) saveFANationality(p.name, next);
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") saveFANationality(p.name);
                               if (e.key === "Escape") { setEditingFA(null); setFaCountryDraft(""); }
                             }}
-                            className="h-6 w-14 text-[10px] font-mono px-1.5 text-center"
+                            className="h-6 w-12 text-[10px] font-mono px-1.5 text-center uppercase"
                           />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => saveFANationality(p.name)}
-                          >
-                            <Check className="w-3 h-3 text-[hsl(var(--win))]" />
-                          </Button>
+                          <span className="text-base">{faCountryDraft.length === 2 ? countryFlag(faCountryDraft) : ""}</span>
                           <Button
                             size="icon"
                             variant="ghost"
@@ -630,13 +628,24 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
-                    Narodowość (kod)
+                    Narodowość (2-literowy kod ISO, np. PL, DE)
                   </label>
                   <Input
-                    placeholder="UA"
-                    maxLength={3}
+                    placeholder="PL"
+                    maxLength={2}
                     value={faForm.country}
-                    onChange={e => setFaForm(f => ({ ...f, country: e.target.value.toUpperCase() }))}
+                    onChange={e => {
+                      const next = e.target.value.toUpperCase().slice(0, 2);
+                      setFaForm(f => ({ ...f, country: next }));
+                      // Live-persist for existing FAs the moment we have a complete code
+                      if (editingFANick && next.length === 2) {
+                        const before = captureSnapshot();
+                        const old = playerNationalities[editingFANick] || "—";
+                        updateManualFreeAgent(editingFANick, { country: next });
+                        recordChange("nationality", `Narodowość: ${editingFANick} ${old} → ${next}`, before);
+                      }
+                    }}
+                    className="uppercase"
                   />
                 </div>
                 <div>
@@ -645,7 +654,15 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   </label>
                   <select
                     value={faForm.role}
-                    onChange={e => setFaForm(f => ({ ...f, role: e.target.value as PlayerRole | "" }))}
+                    onChange={e => {
+                      const next = e.target.value as PlayerRole | "";
+                      setFaForm(f => ({ ...f, role: next }));
+                      // Live-persist role for existing FAs too
+                      if (editingFANick) {
+                        setPlayerRole(editingFANick, next);
+                        setRefreshKey(k => k + 1);
+                      }
+                    }}
                     className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm font-mono"
                   >
                     <option value="">— brak —</option>
@@ -655,9 +672,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   </select>
                 </div>
               </div>
-              {faForm.country && (
+              {faForm.country.length === 2 && (
                 <p className="text-[11px] font-mono text-muted-foreground">
-                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span>
+                  Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span> {faForm.country}
                 </p>
               )}
             </div>

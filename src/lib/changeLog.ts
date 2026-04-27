@@ -243,7 +243,7 @@ export function setPlayerNationality(player: string, code: string): void {
   const before = captureSnapshot();
   const cur = loadPlayerNatOverrides();
   const oldCode = playerNationalities[player] || "—";
-  const c = code.trim().toUpperCase().slice(0, 3);
+  const c = code.trim().toUpperCase().slice(0, 2);
   if (c) {
     cur[player] = c;
     playerNationalities[player] = c;
