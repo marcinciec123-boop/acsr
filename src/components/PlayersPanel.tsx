@@ -187,17 +187,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     return list;
   }, [rows, search, region, nationality, roleFilter, sort, onlyWithStats]);
 
-  const saveFANationality = (player: string) => {
-    const code = faCountryDraft.trim().toUpperCase().slice(0, 3);
-    if (code) {
+  const saveFANationality = (player: string, codeOverride?: string) => {
+    const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
+    if (raw.length === 2) {
       const before = captureSnapshot();
       const old = playerNationalities[player] || "—";
-      setFreeAgentNationality(player, code);
-      recordChange("nationality", `Narodowość: ${player} ${old} → ${code}`, before);
+      setFreeAgentNationality(player, raw);
+      recordChange("nationality", `Narodowość: ${player} ${old} → ${raw}`, before);
+      setEditingFA(null);
+      setFaCountryDraft("");
+      setRefreshKey(k => k + 1);
     }
-    setEditingFA(null);
-    setFaCountryDraft("");
-    setRefreshKey(k => k + 1);
   };
 
   // ===== Manual FA dialog handlers =====
