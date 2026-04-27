@@ -269,6 +269,16 @@ const TransferPanel = () => {
             <UserMinus className="w-3.5 h-3.5" /> Wolni agenci
             <span className="font-mono text-xs opacity-70">({freeAgents.length})</span>
           </button>
+          <button
+            onClick={() => { refreshChangeLog(); setSection("changes"); }}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md font-heading font-semibold text-sm border transition-colors",
+              section === "changes" ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            <History className="w-3.5 h-3.5" /> Historia zmian
+            <span className="font-mono text-xs opacity-70">({changeLog.length})</span>
+          </button>
         </div>
 
         {section === "transfers" && (
