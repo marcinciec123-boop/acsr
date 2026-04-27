@@ -388,6 +388,64 @@ const TransferPanel = () => {
             ))}
           </div>
         )}
+
+        {section === "changes" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground font-mono">
+                Każda edycja bazy (transfer, FA, rola, narodowość) zostaje tu zapisana. Cofnięcie wybranego punktu przywróci stan sprzed niego — wszystkie późniejsze zmiany zostaną usunięte.
+              </p>
+              {changeLog.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleClearLog}>
+                  <Trash2 className="w-3.5 h-3.5" /> Wyczyść log
+                </Button>
+              )}
+            </div>
+            {changeLog.length === 0 ? (
+              <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
+                <History className="w-10 h-10 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm font-mono text-muted-foreground">Brak zarejestrowanych zmian.</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-secondary/50 text-xs font-mono text-muted-foreground uppercase">
+                  <div className="col-span-2">Kiedy</div>
+                  <div className="col-span-2">Typ</div>
+                  <div className="col-span-6">Opis</div>
+                  <div className="col-span-2 text-right">Akcja</div>
+                </div>
+                {[...changeLog].reverse().map(entry => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="grid grid-cols-12 gap-2 px-4 py-2.5 border-t border-border/50 items-center text-sm hover:bg-secondary/30"
+                  >
+                    <div className="col-span-2 font-mono text-xs text-muted-foreground">
+                      {new Date(entry.ts).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/10">
+                        {entry.kind}
+                      </span>
+                    </div>
+                    <div className="col-span-6 text-foreground text-sm">{entry.description}</div>
+                    <div className="col-span-2 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-7"
+                        onClick={() => handleRevert(entry.id, entry.description)}
+                      >
+                        <Undo2 className="w-3 h-3" /> Cofnij do tego punktu
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
