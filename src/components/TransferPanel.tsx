@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserPlus, UserMinus, X } from "lucide-react";
+import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2 } from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
@@ -10,10 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Transfer, TeamData } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
-import { transfers as seedTransfers } from "@/data/history";
+import { transfers as seedTransfers, customTransfersGlobal, type Transfer as RawTransfer } from "@/data/history";
+import {
+  captureSnapshot, recordChange, loadChangeLog, revertTo, clearChangeLog,
+  persistCurrentRosters, type ChangeLogEntry,
+} from "@/lib/changeLog";
+import { toast } from "@/hooks/use-toast";
 
 type TransferType = "all" | "join" | "leave" | "move";
-type Section = "transfers" | "freeAgents";
+type Section = "transfers" | "freeAgents" | "changes";
 
 const TRANSFERS_KEY = "transfers_data";
 
@@ -87,6 +92,10 @@ const TransferPanel = () => {
     return result;
   }, [search, teamFilter, reversed, typeFilter, transfers]);
 
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>(() => loadChangeLog());
+
+  const refreshChangeLog = () => setChangeLog(loadChangeLog());
+
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
     const t: Transfer = {
@@ -96,6 +105,9 @@ const TransferPanel = () => {
       newTeam: transferTo,
       date: new Date().toISOString(),
     };
+
+    // Snapshot BEFORE applying any mutation, for the change log.
+    const before = captureSnapshot();
 
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
@@ -107,7 +119,13 @@ const TransferPanel = () => {
       if (toTeam && !toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
     }
 
-    // Persist roster changes to ranking data in localStorage
+    // Mirror the transfer into the global FA log so PlayersPanel/profile stay in sync.
+    const raw: RawTransfer = { player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam };
+    customTransfersGlobal.push(raw);
+    saveToStorage("custom_transfers", customTransfersGlobal);
+
+    // Persist roster changes everywhere they need to live.
+    persistCurrentRosters();
     const RANKING_KEY = "ranking_data";
     const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
     if (rankingData) {
@@ -124,8 +142,49 @@ const TransferPanel = () => {
     }
 
     setTransfers(prev => [t, ...prev]);
+    recordChange(
+      "transfer",
+      `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
+      before,
+    );
+    refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
     setShowDialog(false);
+  };
+
+  const handleRevert = (id: string, label: string) => {
+    if (!confirm(`Cofnąć zmianę?\n\n"${label}"\n\nTo również usunie wszystkie późniejsze zmiany.`)) return;
+    const ok = revertTo(id);
+    if (ok) {
+      // Re-sync the local transfers list with persisted custom transfers
+      // by rebuilding from seed + customTransfersGlobal.
+      const rebuilt: Transfer[] = [
+        ...customTransfersGlobal.map((ct, i) => ({
+          id: `live-${i}`,
+          player: ct.player,
+          oldTeam: ct.oldTeam,
+          newTeam: ct.newTeam,
+          date: new Date().toISOString(),
+        })),
+        ...seedTransfers.map((s, i) => ({
+          id: `seed-${i}`,
+          player: s.player,
+          oldTeam: s.oldTeam,
+          newTeam: s.newTeam,
+          date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+        })),
+      ];
+      setTransfers(rebuilt);
+      saveToStorage(TRANSFERS_KEY, rebuilt);
+      refreshChangeLog();
+      toast({ title: "Cofnięto zmianę", description: label });
+    }
+  };
+
+  const handleClearLog = () => {
+    if (!confirm("Wyczyścić całą historię zmian? Aktualny stan bazy zostanie zachowany, ale nie będzie można już cofnąć poprzednich zmian.")) return;
+    clearChangeLog();
+    refreshChangeLog();
   };
 
   return (
@@ -209,6 +268,16 @@ const TransferPanel = () => {
           >
             <UserMinus className="w-3.5 h-3.5" /> Wolni agenci
             <span className="font-mono text-xs opacity-70">({freeAgents.length})</span>
+          </button>
+          <button
+            onClick={() => { refreshChangeLog(); setSection("changes"); }}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md font-heading font-semibold text-sm border transition-colors",
+              section === "changes" ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            <History className="w-3.5 h-3.5" /> Historia zmian
+            <span className="font-mono text-xs opacity-70">({changeLog.length})</span>
           </button>
         </div>
 
@@ -317,6 +386,64 @@ const TransferPanel = () => {
                 <div className="col-span-6 text-muted-foreground text-xs font-mono">{fa.previousTeam}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {section === "changes" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground font-mono">
+                Każda edycja bazy (transfer, FA, rola, narodowość) zostaje tu zapisana. Cofnięcie wybranego punktu przywróci stan sprzed niego — wszystkie późniejsze zmiany zostaną usunięte.
+              </p>
+              {changeLog.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleClearLog}>
+                  <Trash2 className="w-3.5 h-3.5" /> Wyczyść log
+                </Button>
+              )}
+            </div>
+            {changeLog.length === 0 ? (
+              <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
+                <History className="w-10 h-10 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm font-mono text-muted-foreground">Brak zarejestrowanych zmian.</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-secondary/50 text-xs font-mono text-muted-foreground uppercase">
+                  <div className="col-span-2">Kiedy</div>
+                  <div className="col-span-2">Typ</div>
+                  <div className="col-span-6">Opis</div>
+                  <div className="col-span-2 text-right">Akcja</div>
+                </div>
+                {[...changeLog].reverse().map(entry => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="grid grid-cols-12 gap-2 px-4 py-2.5 border-t border-border/50 items-center text-sm hover:bg-secondary/30"
+                  >
+                    <div className="col-span-2 font-mono text-xs text-muted-foreground">
+                      {new Date(entry.ts).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/10">
+                        {entry.kind}
+                      </span>
+                    </div>
+                    <div className="col-span-6 text-foreground text-sm">{entry.description}</div>
+                    <div className="col-span-2 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-7"
+                        onClick={() => handleRevert(entry.id, entry.description)}
+                      >
+                        <Undo2 className="w-3 h-3" /> Cofnij do tego punktu
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,20 +1,24 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Globe, ArrowRightLeft, Trophy, Shield, Target, Skull,
   Activity, Zap, Crosshair, BarChart3, Flame, TrendingUp, MapIcon, Users as UsersIcon,
-  Award, Star, Medal,
+  Award, Star, Medal, Pencil,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { teamDatabase, type SeasonTeamStanding, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
-import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { getAllTransfers } from "@/data/history";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
+import { setPlayerRole } from "@/lib/changeLog";
+import { toast } from "@/hooks/use-toast";
+
+const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
 interface PlayerProfileProps {
   playerName: string;
@@ -69,7 +73,15 @@ const PlayerProfile = ({
   const career = useMemo(() => computeCareerStats(playerName), [playerName]);
 
   const avatarGradient = getAvatarColor(playerName);
-  const role = playerRoles[playerName];
+  const [role, setRoleState] = useState<PlayerRole | "">((playerRoles[playerName] || "") as PlayerRole | "");
+  const [editingRole, setEditingRole] = useState(false);
+
+  const handleRoleChange = (next: PlayerRole | "") => {
+    setPlayerRole(playerName, next);
+    setRoleState(next);
+    setEditingRole(false);
+    toast({ title: "Rola zaktualizowana", description: `${playerName}: ${next || "—"}` });
+  };
 
   return (
     <section className="py-6">
@@ -95,13 +107,38 @@ const PlayerProfile = ({
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-4xl font-heading font-bold text-foreground tracking-tight">{playerName}</h1>
                 <span className="text-2xl">{countryFlag(country)}</span>
-                {role && (
-                  <span className={cn(
-                    "inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border",
-                    roleColors[role],
-                  )}>
+                {editingRole ? (
+                  <select
+                    autoFocus
+                    value={role}
+                    onChange={(e) => handleRoleChange(e.target.value as PlayerRole | "")}
+                    onBlur={() => setEditingRole(false)}
+                    className="text-xs font-mono px-2 py-1 rounded-full border border-primary/40 bg-card text-foreground"
+                  >
+                    <option value="">— brak roli —</option>
+                    {ROLE_OPTIONS.map(r => (
+                      <option key={r} value={r}>{roleIcons[r]} {r}</option>
+                    ))}
+                  </select>
+                ) : role ? (
+                  <button
+                    onClick={() => setEditingRole(true)}
+                    title="Kliknij aby zmienić rolę"
+                    className={cn(
+                      "inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border hover:opacity-80 transition-opacity",
+                      roleColors[role],
+                    )}
+                  >
                     {roleIcons[role]} {role}
-                  </span>
+                    <Pencil className="w-2.5 h-2.5 ml-1 opacity-60" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setEditingRole(true)}
+                    className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-0.5 rounded-full border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" /> Dodaj rolę
+                  </button>
                 )}
               </div>
               {realName && (

@@ -20,6 +20,7 @@ import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
   removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
 } from "@/lib/freeAgents";
+import { captureSnapshot, recordChange, setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
@@ -188,7 +189,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
   const saveFANationality = (player: string) => {
     const code = faCountryDraft.trim().toUpperCase().slice(0, 3);
-    if (code) setFreeAgentNationality(player, code);
+    if (code) {
+      const before = captureSnapshot();
+      const old = playerNationalities[player] || "—";
+      setFreeAgentNationality(player, code);
+      recordChange("nationality", `Narodowość: ${player} ${old} → ${code}`, before);
+    }
     setEditingFA(null);
     setFaCountryDraft("");
     setRefreshKey(k => k + 1);
@@ -221,6 +227,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       toast({ title: "Brak nicku", description: "Podaj nick wolnego agenta.", variant: "destructive" });
       return;
     }
+    const before = captureSnapshot();
     if (editingFANick) {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
@@ -228,6 +235,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         country: faForm.country.trim().toUpperCase().slice(0, 3),
         role: faForm.role || undefined,
       });
+      recordChange("fa-edit", `Edytowano FA: ${editingFANick}`, before);
       toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingFANick}.` });
     } else {
       const ok = addManualFreeAgent({
@@ -245,6 +253,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
         return;
       }
+      recordChange("fa-add", `Dodano FA: ${nick}`, before);
       toast({ title: "Dodano FA", description: `${nick} dołączył do wolnych agentów.` });
     }
     setFaDialogOpen(false);
@@ -252,9 +261,20 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   };
   const deleteManualFA = (nick: string) => {
     if (!confirm(`Usunąć wolnego agenta ${nick}?`)) return;
+    const before = captureSnapshot();
     removeManualFreeAgent(nick);
+    recordChange("fa-remove", `Usunięto FA: ${nick}`, before);
     setRefreshKey(k => k + 1);
     toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
+  // Role editor (works for any player — rostered or FA)
+  const [roleEditFor, setRoleEditFor] = useState<string | null>(null);
+  const handleSetRole = (player: string, role: PlayerRole | "") => {
+    setPlayerRole(player, role);
+    setRoleEditFor(null);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Rola zaktualizowana", description: `${player}: ${role || "—"}` });
   };
 
   return (
@@ -395,19 +415,44 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         {p.name}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {p.isFA && (
                         <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
                           FA
                         </span>
                       )}
-                      {p.role && (
-                        <span className={cn(
-                          "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border",
-                          roleColors[p.role] || "border-border text-muted-foreground",
-                        )}>
+                      {roleEditFor === p.name ? (
+                        <select
+                          autoFocus
+                          value={p.role || ""}
+                          onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
+                          onBlur={() => setRoleEditFor(null)}
+                          className="text-[9px] font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
+                        >
+                          <option value="">—</option>
+                          {ROLE_OPTIONS.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      ) : p.role ? (
+                        <button
+                          onClick={() => setRoleEditFor(p.name)}
+                          title="Kliknij aby zmienić rolę"
+                          className={cn(
+                            "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
+                            roleColors[p.role] || "border-border text-muted-foreground",
+                          )}
+                        >
                           {roleIcons[p.role]}
-                        </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setRoleEditFor(p.name)}
+                          title="Dodaj rolę"
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                        >
+                          + rola
+                        </button>
                       )}
                     </div>
                   </div>
