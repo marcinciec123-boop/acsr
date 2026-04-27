@@ -494,23 +494,21 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           <Input
                             autoFocus
                             placeholder="PL"
-                            maxLength={3}
+                            maxLength={2}
                             value={faCountryDraft}
-                            onChange={(e) => setFaCountryDraft(e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                              const next = e.target.value.toUpperCase().slice(0, 2);
+                              setFaCountryDraft(next);
+                              // Auto-save the moment we have a full 2-letter code
+                              if (next.length === 2) saveFANationality(p.name, next);
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") saveFANationality(p.name);
                               if (e.key === "Escape") { setEditingFA(null); setFaCountryDraft(""); }
                             }}
-                            className="h-6 w-14 text-[10px] font-mono px-1.5 text-center"
+                            className="h-6 w-12 text-[10px] font-mono px-1.5 text-center uppercase"
                           />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => saveFANationality(p.name)}
-                          >
-                            <Check className="w-3 h-3 text-[hsl(var(--win))]" />
-                          </Button>
+                          <span className="text-base">{faCountryDraft.length === 2 ? countryFlag(faCountryDraft) : ""}</span>
                           <Button
                             size="icon"
                             variant="ghost"
