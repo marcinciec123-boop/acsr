@@ -354,18 +354,18 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   setSlot("IEM-UB-SF-M1", winnerOf("IEM-UB-R1-M1"), winnerOf("IEM-UB-R1-M2"));
   setSlot("IEM-UB-SF-M2", winnerOf("IEM-UB-R1-M3"), winnerOf("IEM-UB-R1-M4"));
 
-  // LB R2: loser of UB SF vs winner of LB R1 (cross-bracket)
-  setSlot("IEM-LB-R2-M1", loserOf("IEM-UB-SF-M2"), winnerOf("IEM-LB-R1-M1"));
-  setSlot("IEM-LB-R2-M2", loserOf("IEM-UB-SF-M1"), winnerOf("IEM-LB-R1-M2"));
+  // LB R2 (cross-bracket): winner of LB R1 vs loser of UB SF (opposite side)
+  setSlot("IEM-LB-R2-M1", winnerOf("IEM-LB-R1-M1"), loserOf("IEM-UB-SF-M2"));
+  setSlot("IEM-LB-R2-M2", winnerOf("IEM-LB-R1-M2"), loserOf("IEM-UB-SF-M1"));
 
-  // UB Final: winners of UB SFs
+  // UB Final: winners of UB SFs (winner = 1st seed)
   setSlot("IEM-UB-FINAL", winnerOf("IEM-UB-SF-M1"), winnerOf("IEM-UB-SF-M2"));
 
-  // LB Final: loser of UB Final vs winner of LB R2 (typically winners of both LB R2 play first;
-  // but in classic IEM-DE the structure is: winners of LB R2 play LB Final OR LB R3.
-  // For simplicity here: loser of UB Final faces the winner of LB R2 (highest-surviving).
-  // We pair the two LB-R2 winners against each other first via the LB Final slot.)
-  setSlot("IEM-LB-FINAL", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+  // LB R3: winners of both LB R2 matches
+  setSlot("IEM-LB-R3", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+
+  // LB Final: loser of UB Final vs winner of LB R3 (winner = 2nd seed)
+  setSlot("IEM-LB-FINAL", loserOf("IEM-UB-FINAL"), winnerOf("IEM-LB-R3"));
 
   return matches;
 };
