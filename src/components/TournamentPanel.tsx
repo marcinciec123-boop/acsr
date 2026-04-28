@@ -320,6 +320,57 @@ const TournamentPanel = () => {
     }));
   };
 
+  /** Manually assign teams to specific groups in a phase. Rebuilds each group's matches. */
+  const assignGroups = (
+    tournamentId: string,
+    phaseId: string,
+    assignment: Record<string, string[]>,
+  ) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId || !p.groups) return p;
+          return {
+            ...p,
+            groups: p.groups.map(g => {
+              const newTeams = assignment[g.id] ?? g.teams;
+              return {
+                ...g,
+                teams: [...newTeams],
+                matches: rebuildGroupMatches(p.format, newTeams, p.bo),
+              };
+            }),
+          };
+        }),
+      };
+    }));
+  };
+
+  /** Random snake-seed shuffle of all participants across this phase's groups. */
+  const shuffleGroups = (tournamentId: string, phaseId: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId || !p.groups) return p;
+          const pool = shuffle(p.teams.length > 0 ? [...p.teams] : [...t.participants]);
+          const distributed = distributeIntoGroups(pool, p.groups.length);
+          return {
+            ...p,
+            groups: p.groups.map((g, i) => ({
+              ...g,
+              teams: distributed[i],
+              matches: rebuildGroupMatches(p.format, distributed[i], p.bo),
+            })),
+          };
+        }),
+      };
+    }));
+  };
+
   const deleteBracketMatch = (tournamentId: string, phaseId: string, matchId: string) => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== tournamentId) return t;
