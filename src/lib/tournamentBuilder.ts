@@ -156,16 +156,17 @@ export const buildGSLGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[]
 };
 
 /**
- * IEM-style 8-team double-elimination group with lower bracket.
+ * IEM-style 8-team double-elimination group with full lower bracket.
  * Top 2 advance.
  *
- * Round structure:
+ * Round structure (13 matches total):
  *   - UB R1 (Opening, 4 matches)         — losers fall to LB R1
- *   - LB R1 (Elimination, 2 matches)     — losers eliminated
+ *   - LB R1 (Elimination R1, 2 matches)  — losers eliminated
  *   - UB SF (Winners' Match, 2 matches)  — losers fall to LB R2
- *   - LB R2 (2 matches)                  — losers eliminated
+ *   - LB R2 (Elimination R2, 2 matches)  — winners of LB R1 vs losers of UB SF
  *   - UB Final (Winners' Decider, 1)     — winner = 1st seed; loser to LB Final
- *   - LB Final (Decider, 1)              — winner = 2nd seed
+ *   - LB R3 (Elimination R3, 1 match)    — winners of LB R2 face off
+ *   - LB Final (Decider, 1)              — loser of UB Final vs winner of LB R3 → winner = 2nd seed
  */
 export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const t = [...teams];
@@ -178,22 +179,24 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): Mat
     [t[3], t[4]],
   ];
   return [
-    { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Opening", bo },
-    { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Opening", bo },
-    { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Opening", bo },
-    { id: uid(), team1: om[3][0], team2: om[3][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M4", round: "Opening", bo },
+    { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[3][0], team2: om[3][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M4", round: "Upper Bracket — Opening", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M1", round: "Elimination R1", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M2", round: "Elimination R1", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M1", round: "Lower Bracket — Elimination R1", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M2", round: "Lower Bracket — Elimination R1", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M1", round: "Winners Match", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M2", round: "Winners Match", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M1", round: "Upper Bracket — Winners Match", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M2", round: "Upper Bracket — Winners Match", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Elimination R2", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Elimination R2", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Lower Bracket — Elimination R2", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Lower Bracket — Elimination R2", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Winners Decider", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Decider", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Upper Bracket — Decider (1st seed)", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R3", round: "Lower Bracket — Elimination R3", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (2nd seed)", bo },
   ];
 };
 
