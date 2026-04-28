@@ -464,6 +464,14 @@ export const TournamentDetailPage = ({
                     onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
                   />
                 )}
+                {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (
+                  <GroupAssignmentPanel
+                    phase={phase}
+                    availableTeams={Array.from(new Set(t.participants)).sort()}
+                    onSave={(assignment) => onAssignGroups(phase.id, assignment)}
+                    onShuffle={() => onShuffleGroups(phase.id)}
+                  />
+                )}
                 {phase.groups && phase.groups.length > 0 && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
