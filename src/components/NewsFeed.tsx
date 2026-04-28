@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock } from "lucide-react";
+import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { NewsPost } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { saveImage, loadImage, deleteImage } from "@/lib/storage";
+import { generateAIRumors, type WorldSnapshot } from "@/lib/autoNews";
+import { teamDatabase } from "@/data/tournaments";
+import { getAllTransfers } from "@/data/history";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "news_posts";
 
