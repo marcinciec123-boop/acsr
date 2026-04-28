@@ -527,6 +527,12 @@ const TournamentPanel = () => {
         onReseedPhase={(phaseId, teams) =>
           reseedPhase(selectedTournament.id, phaseId, teams)
         }
+        onAssignGroups={(phaseId, assignment) =>
+          assignGroups(selectedTournament.id, phaseId, assignment)
+        }
+        onShuffleGroups={(phaseId) =>
+          shuffleGroups(selectedTournament.id, phaseId)
+        }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
