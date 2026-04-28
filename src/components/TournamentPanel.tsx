@@ -426,7 +426,32 @@ const TournamentPanel = () => {
   };
 
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
-    setTournaments(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      // Auto-news on status transition
+      if (t.status !== status) {
+        import("@/lib/autoNews").then(m => {
+          if (status === "live") m.announceTournamentStarted(t.name, t.tier, t.teams);
+          if (status === "completed") {
+            // Try to find winner from final bracket match
+            let winner: string | null = null;
+            let runnerUp: string | null = null;
+            for (const phase of t.phases) {
+              if (phase.bracket && phase.bracket.length > 0) {
+                const finals = phase.bracket.filter(x => (x.round || "").toLowerCase().includes("final") && !(x.round || "").toLowerCase().includes("lower"));
+                const last = finals[finals.length - 1] || phase.bracket[phase.bracket.length - 1];
+                if (last && last.score1 + last.score2 > 0) {
+                  winner = last.score1 > last.score2 ? last.team1 : last.team2;
+                  runnerUp = last.score1 > last.score2 ? last.team2 : last.team1;
+                }
+              }
+            }
+            m.announceTournamentFinished(t.name, t.tier, winner, runnerUp);
+          }
+        });
+      }
+      return { ...t, status };
+    }));
   };
 
   const handleDelete = (id: string) => {
