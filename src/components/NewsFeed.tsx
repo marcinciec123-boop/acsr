@@ -20,7 +20,43 @@ const NewsFeed = () => {
   const [newContent, setNewContent] = useState("");
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Re-read storage when auto-news writes to it (interval poll — cheap)
+  useEffect(() => {
+    const i = setInterval(() => {
+      const fresh = loadFromStorage<NewsPost[]>(STORAGE_KEY, []);
+      if (fresh.length !== posts.length) setPosts(fresh);
+    }, 1500);
+    return () => clearInterval(i);
+  }, [posts.length]);
+
+  const handleAIGenerate = async () => {
+    setAiLoading(true);
+    try {
+      const transfers = getAllTransfers().slice(-15).reverse();
+      const snapshot: WorldSnapshot = {
+        topTeams: [...teamDatabase]
+          .sort((a, b) => (b.points || 0) - (a.points || 0))
+          .slice(0, 10)
+          .map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
+        recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
+        tournaments: loadFromStorage<{ name: string; status: string; tier: string; teams: number }[]>("tournaments_data", [])
+          .map(t => ({ name: t.name, status: t.status, tier: t.tier, teams: t.teams })),
+      };
+      const res = await generateAIRumors(snapshot, 5);
+      if (!res.ok) {
+        toast.error(res.error || "Nie udało się wygenerować newsów");
+      } else {
+        toast.success(`Wygenerowano ${res.posted} nowych postów`);
+        setPosts(loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
 
   useEffect(() => { saveToStorage(STORAGE_KEY, posts); }, [posts]);
 
