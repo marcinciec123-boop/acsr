@@ -12,6 +12,7 @@ import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
+import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 
 interface Props {
   tournament: TournamentData;
@@ -27,6 +28,8 @@ interface Props {
   onAddBracketMatch: (phaseId: string, round: string) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
   onReseedPhase?: (phaseId: string, teams: string[]) => void;
+  onAssignGroups?: (phaseId: string, assignment: Record<string, string[]>) => void;
+  onShuffleGroups?: (phaseId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
