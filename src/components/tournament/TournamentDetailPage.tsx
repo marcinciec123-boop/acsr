@@ -476,6 +476,7 @@ export const TournamentDetailPage = ({
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
                       <GroupTable
+                        format={phase.format}
                         key={g.id}
                         group={g}
                         onMatchUpdate={(mid, s1, s2) =>
