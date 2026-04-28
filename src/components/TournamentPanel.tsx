@@ -54,6 +54,8 @@ interface PhaseDraft {
   /** How many teams are pre-seeded into this phase (rest are TBD).
    *  0 means: use the previous phase's advanceCount (or all participants for phase 1). */
   seededCount: number;
+  /** How to assign teams to groups: random snake-seed (default) or manual after creation. */
+  groupAssignment?: "random" | "manual";
 }
 
 const TournamentPanel = () => {
