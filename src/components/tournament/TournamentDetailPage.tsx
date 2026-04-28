@@ -230,7 +230,8 @@ const PhaseSeedingPanel = ({
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onSetStatus, onDelete, onOpenMatch,
+  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
+  onSetStatus, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
