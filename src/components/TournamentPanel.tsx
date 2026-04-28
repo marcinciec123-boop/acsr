@@ -790,16 +790,20 @@ const TournamentPanel = () => {
                     <Plus className="w-3 h-3" /> Dodaj fazę
                   </Button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {phaseDrafts.map((draft, idx) => {
                     const showGroups = draft.format === "round-robin" || draft.format === "gsl-groups" || draft.format === "gsl-de-groups";
                     const showAdvance = idx < phaseDrafts.length - 1;
+                    const isGSL4 = draft.format === "gsl-groups";
+                    const isGSL8 = draft.format === "gsl-de-groups";
+                    const teamsPerGroup = isGSL4 ? 4 : isGSL8 ? 8 : null;
+                    const recommendedGroups = teamsPerGroup ? Math.max(1, Math.ceil(selectedTeams.length / teamsPerGroup)) : null;
                     return (
-                      <div key={idx} className="bg-secondary/30 border border-border rounded-md p-3 space-y-2">
+                      <div key={idx} className="bg-secondary/30 border border-border rounded-md p-3 space-y-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono text-muted-foreground shrink-0">FAZA {idx + 1}</span>
                           <Input
-                            placeholder="Nazwa fazy..."
+                            placeholder="Nazwa fazy (np. Group Stage, Playoffs)..."
                             value={draft.name}
                             onChange={e => updatePhaseDraft(idx, { name: e.target.value })}
                             className="h-8 text-sm flex-1"
@@ -810,55 +814,128 @@ const TournamentPanel = () => {
                             </Button>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <select
-                            value={draft.format}
-                            onChange={e => updatePhaseDraft(idx, { format: e.target.value as PhaseFormat })}
-                            className="px-2 py-1.5 rounded bg-card border border-border text-xs font-mono col-span-2"
-                          >
-                            {PHASE_FORMATS.map(f => (
-                              <option key={f.value} value={f.value}>{f.label}</option>
-                            ))}
-                          </select>
-                          <select
-                            value={draft.bo}
-                            onChange={e => updatePhaseDraft(idx, { bo: parseInt(e.target.value) as 1 | 3 | 5 })}
-                            className="px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
-                          >
-                            <option value={1}>BO1</option>
-                            <option value={3}>BO3</option>
-                            <option value={5}>BO5</option>
-                          </select>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              Format rozgrywki
+                            </label>
+                            <select
+                              value={draft.format}
+                              onChange={e => updatePhaseDraft(idx, { format: e.target.value as PhaseFormat })}
+                              className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono h-8"
+                            >
+                              {PHASE_FORMATS.map(f => (
+                                <option key={f.value} value={f.value}>{f.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              Best-of (długość serii)
+                            </label>
+                            <select
+                              value={draft.bo}
+                              onChange={e => updatePhaseDraft(idx, { bo: parseInt(e.target.value) as 1 | 3 | 5 })}
+                              className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono h-8"
+                            >
+                              <option value={1}>BO1 — 1 mapa</option>
+                              <option value={3}>BO3 — do 2 wygranych map</option>
+                              <option value={5}>BO5 — do 3 wygranych map</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           {showGroups && (
-                            <Input
-                              type="number"
-                              min="1"
-                              placeholder="Liczba grup"
-                              value={draft.groupCount}
-                              onChange={e => updatePhaseDraft(idx, { groupCount: parseInt(e.target.value) || 1 })}
-                              className="h-8 text-xs"
-                            />
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                                Liczba grup {teamsPerGroup && <span className="opacity-60">({teamsPerGroup} dr./grupę)</span>}
+                              </label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={draft.groupCount}
+                                onChange={e => updatePhaseDraft(idx, { groupCount: parseInt(e.target.value) || 1 })}
+                                className="h-8 text-xs"
+                              />
+                              {recommendedGroups && (
+                                <p className="text-[9px] font-mono text-muted-foreground">
+                                  Sugerowane przy {selectedTeams.length} drużynach: {recommendedGroups}
+                                </p>
+                              )}
+                            </div>
                           )}
                           {showAdvance && (
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                                Awans do następnej fazy
+                              </label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={draft.advanceCount}
+                                onChange={e => updatePhaseDraft(idx, { advanceCount: parseInt(e.target.value) || 0 })}
+                                className="h-8 text-xs"
+                                title="Ile drużyn z tej fazy przechodzi dalej"
+                              />
+                              <p className="text-[9px] font-mono text-muted-foreground">Liczba drużyn awansujących</p>
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              Pre-seedy (0 = wszystkie)
+                            </label>
                             <Input
                               type="number"
-                              min="1"
-                              placeholder="Awansuje X drużyn"
-                              value={draft.advanceCount}
-                              onChange={e => updatePhaseDraft(idx, { advanceCount: parseInt(e.target.value) || 0 })}
-                              className={cn("h-8 text-xs", !showGroups && "col-span-1")}
+                              min="0"
+                              value={draft.seededCount}
+                              onChange={e => updatePhaseDraft(idx, { seededCount: parseInt(e.target.value) || 0 })}
+                              className="h-8 text-xs"
+                              title="Ile drużyn jest już znanych w tej fazie. Reszta = TBD (np. zwycięzcy kwalifikacji)"
                             />
-                          )}
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder={`Rozstawionych (0=wszystkie)`}
-                            value={draft.seededCount}
-                            onChange={e => updatePhaseDraft(idx, { seededCount: parseInt(e.target.value) || 0 })}
-                            className="h-8 text-xs col-span-2"
-                            title="Ile drużyn jest rozstawionych w tej fazie. Reszta slotów to TBD do uzupełnienia później (np. zwycięzcy kwalifikacji)."
-                          />
+                            <p className="text-[9px] font-mono text-muted-foreground">Znanych drużyn (reszta TBD)</p>
+                          </div>
                         </div>
+
+                        {showGroups && (
+                          <div className="space-y-1 pt-1 border-t border-border/40">
+                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              Przypisanie drużyn do grup
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updatePhaseDraft(idx, { groupAssignment: "random" })}
+                                className={cn(
+                                  "flex-1 px-2 py-1.5 rounded text-[11px] font-mono border transition-colors",
+                                  (draft.groupAssignment ?? "random") === "random"
+                                    ? "bg-primary/15 text-primary border-primary/40"
+                                    : "bg-card text-muted-foreground border-border hover:text-foreground"
+                                )}
+                              >
+                                🎲 Losowo (snake seed)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePhaseDraft(idx, { groupAssignment: "manual" })}
+                                className={cn(
+                                  "flex-1 px-2 py-1.5 rounded text-[11px] font-mono border transition-colors",
+                                  draft.groupAssignment === "manual"
+                                    ? "bg-primary/15 text-primary border-primary/40"
+                                    : "bg-card text-muted-foreground border-border hover:text-foreground"
+                                )}
+                              >
+                                ✋ Manualnie (po utworzeniu)
+                              </button>
+                            </div>
+                            <p className="text-[9px] font-mono text-muted-foreground">
+                              {draft.groupAssignment === "manual"
+                                ? "Po utworzeniu turnieju przypiszesz drużyny do konkretnych grup."
+                                : "Drużyny zostaną podzielone po seedingu (1 do A, 2 do B, 3 do A...)."}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
