@@ -172,6 +172,7 @@ const TournamentPanel = () => {
         bo: draft.bo,
         groupCount: draft.groupCount,
         advanceCount: draft.advanceCount,
+        groupAssignment: draft.groupAssignment ?? "random",
       });
       phases.push(phase);
       if (idx < phaseDrafts.length - 1) {
