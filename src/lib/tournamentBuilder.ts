@@ -232,7 +232,13 @@ export const buildPhase = (
   name: string,
   format: PhaseFormat,
   teams: string[],
-  opts: { bo?: 1 | 3 | 5; groupCount?: number; advanceCount?: number } = {}
+  opts: {
+    bo?: 1 | 3 | 5;
+    groupCount?: number;
+    advanceCount?: number;
+    /** "manual" leaves groups empty so user can drag/select teams in detail page. */
+    groupAssignment?: "random" | "manual";
+  } = {}
 ): TournamentPhase => {
   const bo = opts.bo ?? 3;
   const phase: TournamentPhase = {
@@ -245,13 +251,17 @@ export const buildPhase = (
     groupCount: opts.groupCount,
   };
 
+  const manual = opts.groupAssignment === "manual";
+
   if (format === "single-elim") {
     phase.bracket = buildSingleElim(teams, bo);
   } else if (format === "double-elim") {
     phase.bracket = buildDoubleElim(teams, bo);
   } else if (format === "round-robin") {
     const groupCount = opts.groupCount ?? 1;
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
@@ -260,7 +270,9 @@ export const buildPhase = (
     }));
   } else if (format === "gsl-groups") {
     const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 4));
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
@@ -269,7 +281,9 @@ export const buildPhase = (
     }));
   } else if (format === "gsl-de-groups") {
     const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 8));
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
