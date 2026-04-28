@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock } from "lucide-react";
+import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { NewsPost } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { saveImage, loadImage, deleteImage } from "@/lib/storage";
+import { generateAIRumors, type WorldSnapshot } from "@/lib/autoNews";
+import { teamDatabase } from "@/data/tournaments";
+import { getAllTransfers } from "@/data/history";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "news_posts";
 
@@ -16,7 +20,43 @@ const NewsFeed = () => {
   const [newContent, setNewContent] = useState("");
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Re-read storage when auto-news writes to it (interval poll — cheap)
+  useEffect(() => {
+    const i = setInterval(() => {
+      const fresh = loadFromStorage<NewsPost[]>(STORAGE_KEY, []);
+      if (fresh.length !== posts.length) setPosts(fresh);
+    }, 1500);
+    return () => clearInterval(i);
+  }, [posts.length]);
+
+  const handleAIGenerate = async () => {
+    setAiLoading(true);
+    try {
+      const transfers = getAllTransfers().slice(-15).reverse();
+      const snapshot: WorldSnapshot = {
+        topTeams: [...teamDatabase]
+          .sort((a, b) => (b.points || 0) - (a.points || 0))
+          .slice(0, 10)
+          .map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
+        recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
+        tournaments: loadFromStorage<{ name: string; status: string; tier: string; teams: number }[]>("tournaments_data", [])
+          .map(t => ({ name: t.name, status: t.status, tier: t.tier, teams: t.teams })),
+      };
+      const res = await generateAIRumors(snapshot, 5);
+      if (!res.ok) {
+        toast.error(res.error || "Nie udało się wygenerować newsów");
+      } else {
+        toast.success(`Wygenerowano ${res.posted} nowych postów`);
+        setPosts(loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
 
   useEffect(() => { saveToStorage(STORAGE_KEY, posts); }, [posts]);
 
@@ -95,9 +135,15 @@ const NewsFeed = () => {
             <Newspaper className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Aktualności</h2>
           </div>
-          <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nowy post
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleAIGenerate} disabled={aiLoading} className="gap-1.5">
+              {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
+              {aiLoading ? "Generuję..." : "AI plotki"}
+            </Button>
+            <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
+              <Plus className="w-4 h-4" /> Nowy post
+            </Button>
+          </div>
         </div>
 
         {/* New post form */}

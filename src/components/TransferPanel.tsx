@@ -124,6 +124,9 @@ const TransferPanel = () => {
     customTransfersGlobal.push(raw);
     saveToStorage("custom_transfers", customTransfersGlobal);
 
+    // Auto-publish a news post about the transfer.
+    import("@/lib/autoNews").then(m => m.announceTransfer(t.player, t.oldTeam, t.newTeam));
+
     // Persist roster changes everywhere they need to live.
     persistCurrentRosters();
     const RANKING_KEY = "ranking_data";

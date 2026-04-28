@@ -12,6 +12,7 @@ import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
+import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 
 interface Props {
   tournament: TournamentData;
@@ -27,6 +28,8 @@ interface Props {
   onAddBracketMatch: (phaseId: string, round: string) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
   onReseedPhase?: (phaseId: string, teams: string[]) => void;
+  onAssignGroups?: (phaseId: string, assignment: Record<string, string[]>) => void;
+  onShuffleGroups?: (phaseId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
@@ -227,7 +230,8 @@ const PhaseSeedingPanel = ({
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onSetStatus, onDelete, onOpenMatch,
+  onAddBracketMatch, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
+  onSetStatus, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
@@ -460,10 +464,19 @@ export const TournamentDetailPage = ({
                     onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
                   />
                 )}
+                {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (
+                  <GroupAssignmentPanel
+                    phase={phase}
+                    availableTeams={Array.from(new Set(t.participants)).sort()}
+                    onSave={(assignment) => onAssignGroups(phase.id, assignment)}
+                    onShuffle={() => onShuffleGroups(phase.id)}
+                  />
+                )}
                 {phase.groups && phase.groups.length > 0 && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
                       <GroupTable
+                        format={phase.format}
                         key={g.id}
                         group={g}
                         onMatchUpdate={(mid, s1, s2) =>

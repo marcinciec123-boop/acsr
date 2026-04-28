@@ -156,16 +156,17 @@ export const buildGSLGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[]
 };
 
 /**
- * IEM-style 8-team double-elimination group with lower bracket.
+ * IEM-style 8-team double-elimination group with full lower bracket.
  * Top 2 advance.
  *
- * Round structure:
+ * Round structure (13 matches total):
  *   - UB R1 (Opening, 4 matches)         — losers fall to LB R1
- *   - LB R1 (Elimination, 2 matches)     — losers eliminated
+ *   - LB R1 (Elimination R1, 2 matches)  — losers eliminated
  *   - UB SF (Winners' Match, 2 matches)  — losers fall to LB R2
- *   - LB R2 (2 matches)                  — losers eliminated
+ *   - LB R2 (Elimination R2, 2 matches)  — winners of LB R1 vs losers of UB SF
  *   - UB Final (Winners' Decider, 1)     — winner = 1st seed; loser to LB Final
- *   - LB Final (Decider, 1)              — winner = 2nd seed
+ *   - LB R3 (Elimination R3, 1 match)    — winners of LB R2 face off
+ *   - LB Final (Decider, 1)              — loser of UB Final vs winner of LB R3 → winner = 2nd seed
  */
 export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const t = [...teams];
@@ -178,22 +179,24 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): Mat
     [t[3], t[4]],
   ];
   return [
-    { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Opening", bo },
-    { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Opening", bo },
-    { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Opening", bo },
-    { id: uid(), team1: om[3][0], team2: om[3][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M4", round: "Opening", bo },
+    { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Upper Bracket — Opening", bo },
+    { id: uid(), team1: om[3][0], team2: om[3][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M4", round: "Upper Bracket — Opening", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M1", round: "Elimination R1", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M2", round: "Elimination R1", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M1", round: "Lower Bracket — Elimination R1", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R1-M2", round: "Lower Bracket — Elimination R1", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M1", round: "Winners Match", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M2", round: "Winners Match", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M1", round: "Upper Bracket — Winners Match", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-SF-M2", round: "Upper Bracket — Winners Match", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Elimination R2", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Elimination R2", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Lower Bracket — Elimination R2", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Lower Bracket — Elimination R2", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Winners Decider", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Decider", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Upper Bracket — Decider (1st seed)", bo },
+
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R3", round: "Lower Bracket — Elimination R3", bo },
+    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (2nd seed)", bo },
   ];
 };
 
@@ -227,12 +230,30 @@ export const distributeIntoGroups = (teams: string[], groupCount: number): strin
   return groups;
 };
 
+/** Rebuild a group's match list from its current teams + format. */
+export const rebuildGroupMatches = (
+  format: PhaseFormat,
+  teams: string[],
+  bo: 1 | 3 | 5,
+): MatchResult[] => {
+  if (format === "round-robin") return buildRoundRobin(teams, bo);
+  if (format === "gsl-groups") return buildGSLGroup(teams, bo);
+  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo);
+  return [];
+};
+
 /** Build a phase from format + teams */
 export const buildPhase = (
   name: string,
   format: PhaseFormat,
   teams: string[],
-  opts: { bo?: 1 | 3 | 5; groupCount?: number; advanceCount?: number } = {}
+  opts: {
+    bo?: 1 | 3 | 5;
+    groupCount?: number;
+    advanceCount?: number;
+    /** "manual" leaves groups empty so user can drag/select teams in detail page. */
+    groupAssignment?: "random" | "manual";
+  } = {}
 ): TournamentPhase => {
   const bo = opts.bo ?? 3;
   const phase: TournamentPhase = {
@@ -245,13 +266,17 @@ export const buildPhase = (
     groupCount: opts.groupCount,
   };
 
+  const manual = opts.groupAssignment === "manual";
+
   if (format === "single-elim") {
     phase.bracket = buildSingleElim(teams, bo);
   } else if (format === "double-elim") {
     phase.bracket = buildDoubleElim(teams, bo);
   } else if (format === "round-robin") {
     const groupCount = opts.groupCount ?? 1;
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
@@ -260,7 +285,9 @@ export const buildPhase = (
     }));
   } else if (format === "gsl-groups") {
     const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 4));
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
@@ -269,7 +296,9 @@ export const buildPhase = (
     }));
   } else if (format === "gsl-de-groups") {
     const groupCount = opts.groupCount ?? Math.max(1, Math.floor(teams.length / 8));
-    const distributed = distributeIntoGroups(teams, groupCount);
+    const distributed = manual
+      ? Array.from({ length: groupCount }, () => [] as string[])
+      : distributeIntoGroups(teams, groupCount);
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
@@ -325,18 +354,18 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   setSlot("IEM-UB-SF-M1", winnerOf("IEM-UB-R1-M1"), winnerOf("IEM-UB-R1-M2"));
   setSlot("IEM-UB-SF-M2", winnerOf("IEM-UB-R1-M3"), winnerOf("IEM-UB-R1-M4"));
 
-  // LB R2: loser of UB SF vs winner of LB R1 (cross-bracket)
-  setSlot("IEM-LB-R2-M1", loserOf("IEM-UB-SF-M2"), winnerOf("IEM-LB-R1-M1"));
-  setSlot("IEM-LB-R2-M2", loserOf("IEM-UB-SF-M1"), winnerOf("IEM-LB-R1-M2"));
+  // LB R2 (cross-bracket): winner of LB R1 vs loser of UB SF (opposite side)
+  setSlot("IEM-LB-R2-M1", winnerOf("IEM-LB-R1-M1"), loserOf("IEM-UB-SF-M2"));
+  setSlot("IEM-LB-R2-M2", winnerOf("IEM-LB-R1-M2"), loserOf("IEM-UB-SF-M1"));
 
-  // UB Final: winners of UB SFs
+  // UB Final: winners of UB SFs (winner = 1st seed)
   setSlot("IEM-UB-FINAL", winnerOf("IEM-UB-SF-M1"), winnerOf("IEM-UB-SF-M2"));
 
-  // LB Final: loser of UB Final vs winner of LB R2 (typically winners of both LB R2 play first;
-  // but in classic IEM-DE the structure is: winners of LB R2 play LB Final OR LB R3.
-  // For simplicity here: loser of UB Final faces the winner of LB R2 (highest-surviving).
-  // We pair the two LB-R2 winners against each other first via the LB Final slot.)
-  setSlot("IEM-LB-FINAL", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+  // LB R3: winners of both LB R2 matches
+  setSlot("IEM-LB-R3", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
+
+  // LB Final: loser of UB Final vs winner of LB R3 (winner = 2nd seed)
+  setSlot("IEM-LB-FINAL", loserOf("IEM-UB-FINAL"), winnerOf("IEM-LB-R3"));
 
   return matches;
 };
