@@ -227,6 +227,18 @@ export const distributeIntoGroups = (teams: string[], groupCount: number): strin
   return groups;
 };
 
+/** Rebuild a group's match list from its current teams + format. */
+export const rebuildGroupMatches = (
+  format: PhaseFormat,
+  teams: string[],
+  bo: 1 | 3 | 5,
+): MatchResult[] => {
+  if (format === "round-robin") return buildRoundRobin(teams, bo);
+  if (format === "gsl-groups") return buildGSLGroup(teams, bo);
+  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo);
+  return [];
+};
+
 /** Build a phase from format + teams */
 export const buildPhase = (
   name: string,
