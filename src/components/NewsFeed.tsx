@@ -135,9 +135,15 @@ const NewsFeed = () => {
             <Newspaper className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Aktualności</h2>
           </div>
-          <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nowy post
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleAIGenerate} disabled={aiLoading} className="gap-1.5">
+              {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
+              {aiLoading ? "Generuję..." : "AI plotki"}
+            </Button>
+            <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
+              <Plus className="w-4 h-4" /> Nowy post
+            </Button>
+          </div>
         </div>
 
         {/* New post form */}
