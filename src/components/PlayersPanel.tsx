@@ -122,7 +122,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         previousTeam: fa.previousTeam,
         isFA: true,
         isManualFA: fa.manual,
-        country: fa.country,
+        country: normalizeCountry(fa.country),
         realName: fa.realName,
         role: fa.role || playerRoles[fa.player],
         rating: career.careerRating,
