@@ -226,11 +226,12 @@ export function getFreeAgents(): FreeAgent[] {
     if (onAnyRoster.has(t.player)) continue;
     if (seen.has(t.player)) continue;
     const prevTeam = teamDatabase.find(x => x.name === t.oldTeam);
-    const country =
+    const country = normalizeCountry(
       playerNationalities[t.player] ||
       natOv[t.player] ||
       prevTeam?.country ||
-      "";
+      "",
+    );
     out.push({
       player: t.player,
       previousTeam: t.oldTeam,
