@@ -10,6 +10,7 @@ import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 import PlayoffBracket from "@/components/PlayoffBracket";
+import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -61,6 +62,7 @@ interface TournamentProgress {
 function saveProgress(tournamentId: string, progress: TournamentProgress) {
   try {
     localStorage.setItem(`tournament_progress_${tournamentId}`, JSON.stringify(progress));
+    scheduleDeviceBackup();
   } catch (e) { /* ignore quota errors */ }
 }
 
@@ -73,6 +75,7 @@ function loadProgress(tournamentId: string): TournamentProgress | null {
 
 function clearProgress(tournamentId: string) {
   localStorage.removeItem(`tournament_progress_${tournamentId}`);
+  scheduleDeviceBackup();
 }
 
 function hasSameParticipants(savedParticipants: string[] | undefined, currentParticipants: string[]): boolean {
