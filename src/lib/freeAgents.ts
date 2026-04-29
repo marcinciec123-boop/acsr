@@ -202,7 +202,7 @@ export function getFreeAgents(): FreeAgent[] {
   for (const m of loadManualFreeAgents()) {
     if (onAnyRoster.has(m.player)) continue;
     seen.add(m.player);
-    const country = m.country || playerNationalities[m.player] || "";
+    const country = normalizeCountry(m.country || playerNationalities[m.player] || "");
     const realName = (m.firstName || m.lastName)
       ? { firstName: m.firstName || "", lastName: m.lastName || "" }
       : playerRealNames[m.player];
