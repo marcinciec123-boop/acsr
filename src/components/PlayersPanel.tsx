@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
-import { countryFlag } from "@/lib/flags";
+import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
@@ -100,7 +100,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           team: t,
           region: t.region,
           isFA: false,
-          country: playerNationalities[p] || t.country,
+          country: normalizeCountry(playerNationalities[p] || t.country),
           realName: playerRealNames[p],
           role: playerRoles[p],
           rating: career.careerRating,
@@ -122,7 +122,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         previousTeam: fa.previousTeam,
         isFA: true,
         isManualFA: fa.manual,
-        country: fa.country,
+        country: normalizeCountry(fa.country),
         realName: fa.realName,
         role: fa.role || playerRoles[fa.player],
         rating: career.careerRating,

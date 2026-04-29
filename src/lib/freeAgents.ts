@@ -14,6 +14,7 @@ import { playerRoles, type PlayerRole } from "@/data/playerRoles";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
+import { normalizeCountry } from "./flags";
 
 export interface FreeAgent {
   player: string;
@@ -201,7 +202,7 @@ export function getFreeAgents(): FreeAgent[] {
   for (const m of loadManualFreeAgents()) {
     if (onAnyRoster.has(m.player)) continue;
     seen.add(m.player);
-    const country = m.country || playerNationalities[m.player] || "";
+    const country = normalizeCountry(m.country || playerNationalities[m.player] || "");
     const realName = (m.firstName || m.lastName)
       ? { firstName: m.firstName || "", lastName: m.lastName || "" }
       : playerRealNames[m.player];
@@ -225,11 +226,12 @@ export function getFreeAgents(): FreeAgent[] {
     if (onAnyRoster.has(t.player)) continue;
     if (seen.has(t.player)) continue;
     const prevTeam = teamDatabase.find(x => x.name === t.oldTeam);
-    const country =
+    const country = normalizeCountry(
       playerNationalities[t.player] ||
       natOv[t.player] ||
       prevTeam?.country ||
-      "";
+      "",
+    );
     out.push({
       player: t.player,
       previousTeam: t.oldTeam,
