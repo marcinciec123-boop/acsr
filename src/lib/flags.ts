@@ -11,6 +11,15 @@ const countryToISO: Record<string, string> = {
   "KGY": "KG", "IND": "IN", "THA": "TH", "AZE": "AZ", "FJI": "FJ",
 };
 
+/** Always return a 2-letter ISO code (or "" if unknown). */
+export function normalizeCountry(code: string | undefined | null): string {
+  if (!code) return "";
+  const up = code.toUpperCase().trim();
+  if (countryToISO[up]) return countryToISO[up];
+  if (up.length === 2) return up;
+  return "";
+}
+
 export function countryFlag(countryCode: string): string {
   const iso = countryToISO[countryCode] || countryCode;
   if (!iso || iso.length !== 2) return "🏳️";
