@@ -1,3 +1,5 @@
+import { scheduleDeviceBackup } from "./deviceBackup";
+
 // ===== Persistence Layer =====
 // localStorage for text data, IndexedDB for images
 
@@ -7,6 +9,7 @@ const STORAGE_PREFIX = "csgo_hub_";
 export function saveToStorage<T>(key: string, data: T): void {
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data));
+    scheduleDeviceBackup();
   } catch (e) {
     console.error("Failed to save to localStorage:", key, e);
   }
@@ -24,6 +27,7 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
 
 export function removeFromStorage(key: string): void {
   localStorage.removeItem(STORAGE_PREFIX + key);
+  scheduleDeviceBackup();
 }
 
 // --- IndexedDB for images ---
