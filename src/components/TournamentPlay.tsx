@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap, Play, SkipForward, Edit3, Check, Save, ExternalLink, Keyboard } from "lucide-react";
-import { type Tournament, type TournamentSimulation, type MatchResult, type SwissResult, type SwissStanding, type SwissRound, type GroupResult, type GroupStanding, type KnockoutResult, type KnockoutRound, type MajorStage, simulateMatch, derivePlacements, teamDatabase } from "@/data/tournaments";
+import { type Tournament, type TournamentSimulation, type TournamentFormat, type MatchResult, type SwissResult, type SwissStanding, type SwissRound, type GroupResult, type GroupStanding, type KnockoutResult, type KnockoutRound, type MajorStage, simulateMatch, derivePlacements, teamDatabase } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
@@ -10,6 +10,7 @@ import TournamentRoster from "@/components/TournamentRoster";
 import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 import PlayoffBracket from "@/components/PlayoffBracket";
+import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -61,6 +62,7 @@ interface TournamentProgress {
 function saveProgress(tournamentId: string, progress: TournamentProgress) {
   try {
     localStorage.setItem(`tournament_progress_${tournamentId}`, JSON.stringify(progress));
+    scheduleDeviceBackup();
   } catch (e) { /* ignore quota errors */ }
 }
 
@@ -73,6 +75,7 @@ function loadProgress(tournamentId: string): TournamentProgress | null {
 
 function clearProgress(tournamentId: string) {
   localStorage.removeItem(`tournament_progress_${tournamentId}`);
+  scheduleDeviceBackup();
 }
 
 function hasSameParticipants(savedParticipants: string[] | undefined, currentParticipants: string[]): boolean {
@@ -806,7 +809,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
     if (format === "knockout") {
       sim = { tournamentId: tournament.id, format: "knockout", knockout: kr, winner: kr.winner, placements: [] };
     } else if (format === "swiss+knockout" || format === "league") {
-      sim = { tournamentId: tournament.id, format: format as any, swiss: swissResult!, knockout: kr, winner: kr.winner, placements: [] };
+      sim = { tournamentId: tournament.id, format: format as TournamentFormat, swiss: swissResult!, knockout: kr, winner: kr.winner, placements: [] };
     } else if (format === "groups+knockout") {
       sim = { tournamentId: tournament.id, format: "groups+knockout", groups: groupsResult!, knockout: kr, winner: kr.winner, placements: [] };
     } else if (format === "major") {
@@ -841,7 +844,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
     if (allMatches.length === 0) return;
     const liveSim: TournamentSimulation = {
       tournamentId: tournament.id,
-      format: format as any,
+      format: format as TournamentFormat,
       winner: "",
       placements: [],
       knockout: { rounds: [{ name: "live", matches: allMatches }], winner: "" },

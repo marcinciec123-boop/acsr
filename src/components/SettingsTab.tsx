@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Settings, RotateCcw, Save, Download, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tournament, TournamentSimulation } from "@/data/tournaments";
+import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 
 interface SaveSlot {
   label: string;
@@ -45,6 +46,7 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
       savedAt: new Date().toLocaleString("pl-PL"),
     };
     localStorage.setItem(SLOT_KEYS[index], JSON.stringify(slot));
+    scheduleDeviceBackup();
     setSlots(prev => {
       const next = [...prev];
       next[index] = slot;
@@ -60,6 +62,7 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
 
   const deleteSlot = (index: number) => {
     localStorage.removeItem(SLOT_KEYS[index]);
+    scheduleDeviceBackup();
     setSlots(prev => {
       const next = [...prev];
       next[index] = null;
