@@ -14,6 +14,7 @@ import { playerRoles, type PlayerRole } from "@/data/playerRoles";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
+import { normalizeCountry } from "./flags";
 
 export interface FreeAgent {
   player: string;
