@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
-import { countryFlag } from "@/lib/flags";
+import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
