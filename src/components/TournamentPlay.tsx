@@ -587,15 +587,18 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
     for (let i = 0; i < paddedTeams.length; i += 2) {
       const t1 = paddedTeams[i];
       const t2 = paddedTeams[i + 1];
+      const bo = totalRounds <= 1 ? 5 : startBo;
+      const winsNeeded = Math.ceil(bo / 2);
       if (t2 === "BYE") {
-        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: startBo });
+        matches.push({ team1: t1, team2: "BYE", score1: winsNeeded, score2: 0, winner: t1, bo });
+      } else if (t1 === "BYE") {
+        matches.push({ team1: "BYE", team2: t2, score1: 0, score2: winsNeeded, winner: t2, bo });
       } else {
-        const bo = totalRounds <= 1 ? 5 : startBo;
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo });
       }
     }
     setCurrentMatches(matches);
-    setResolved(matches.map(m => m.team2 === "BYE"));
+    setResolved(matches.map(m => m.team2 === "BYE" || m.team1 === "BYE"));
   }, [paddedTeams, totalRounds, startBo, initial]);
 
   const updateMatch = useCallback((idx: number, match: MatchResult) => {
@@ -649,11 +652,12 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
     const isSemi = nextRoundIdx >= totalRounds - 2;
     const bo = isFinal ? 5 : isSemi ? 3 : startBo;
     const matches: MatchResult[] = [];
+    const winsNeeded = Math.ceil(bo / 2);
     for (let i = 0; i < winners.length; i += 2) {
       const t1 = winners[i];
       const t2 = winners[i + 1] || "BYE";
       if (t2 === "BYE") {
-        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo });
+        matches.push({ team1: t1, team2: "BYE", score1: winsNeeded, score2: 0, winner: t1, bo });
       } else {
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo });
       }
