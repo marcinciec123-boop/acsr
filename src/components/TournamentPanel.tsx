@@ -17,6 +17,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
+import { TournamentPortal } from "./tournament/TournamentPortal";
 
 interface SelectedMatchRef {
   phaseId: string;
