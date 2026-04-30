@@ -456,6 +456,34 @@ const TournamentPanel = () => {
     }));
   };
 
+  /** Bulk-add bracket matches with given teams (used for Swiss next-round generation). */
+  const addBracketMatches = (
+    tournamentId: string,
+    phaseId: string,
+    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
+  ) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId) return p;
+          const created: MatchResult[] = matches.map((m, i) => ({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + i,
+            team1: m.team1,
+            team2: m.team2,
+            score1: 0,
+            score2: 0,
+            round: m.round,
+            bo: m.bo,
+          }));
+          return { ...p, bracket: [...(p.bracket || []), ...created] };
+        }),
+      };
+    }));
+  };
+
+
   const moveBracketMatch = (tournamentId: string, phaseId: string, matchId: string, dir: -1 | 1) => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== tournamentId) return t;
