@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
 import {
-  Trophy, Plus, Trash2, ChevronRight,
-  Calendar, MapPin, DollarSign, Users as UsersIcon,
+  Trophy, Plus, Trash2,
   Layers, GitBranch, Grid3x3, Shuffle, ArrowUp, ArrowDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
