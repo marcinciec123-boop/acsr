@@ -35,7 +35,7 @@ const roundLabel = (totalRounds: number, roundIdx: number) => {
   return `Round ${roundIdx + 1}`;
 };
 
-/** Build a single elimination bracket (with BYEs for non-pow2) */
+/** Build a single elimination bracket (with BYEs for non-pow2). Auto-advances BYE matches. */
 export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const size = nextPow2(Math.max(2, teams.length));
   const seeded: (string | null)[] = [...teams];
@@ -57,12 +57,19 @@ export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
         team1 = seeded[m * 2] ?? "BYE";
         team2 = seeded[m * 2 + 1] ?? "BYE";
       }
+      const winsNeeded = Math.ceil(bo / 2);
+      // Auto-resolve BYE matchups in round 1
+      let score1 = 0, score2 = 0;
+      if (r === 0) {
+        if (team1 !== "BYE" && team2 === "BYE") { score1 = winsNeeded; }
+        else if (team2 !== "BYE" && team1 === "BYE") { score2 = winsNeeded; }
+      }
       const match: MatchResult = {
         id,
         team1,
         team2,
-        score1: 0,
-        score2: 0,
+        score1,
+        score2,
         bracketSlot: `UB-R${r + 1}-M${m + 1}`,
         round: roundLabel(totalRounds, r),
         bo,
@@ -80,6 +87,19 @@ export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
     }
     prevRoundIds = currentRoundIds;
   }
+
+  // Propagate BYE winners forward into round 2 (so seeds with BYE auto-advance)
+  matches.forEach(m => {
+    if (!m.winnerTo) return;
+    if (m.score1 + m.score2 === 0) return;
+    const winner = m.score1 > m.score2 ? m.team1 : m.team2;
+    if (!winner || winner === "BYE") return;
+    const tgt = matches.find(x => x.id === m.winnerTo);
+    if (!tgt) return;
+    if (!tgt.team1) tgt.team1 = winner;
+    else if (!tgt.team2) tgt.team2 = winner;
+  });
+
   return matches;
 };
 
