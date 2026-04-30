@@ -2,13 +2,14 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
-  Award, Send, ArrowUp, ArrowDown, Shuffle, Save,
+  Award, Send, ArrowUp, ArrowDown, Shuffle, Save, Radio, CheckCircle2, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
+import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
