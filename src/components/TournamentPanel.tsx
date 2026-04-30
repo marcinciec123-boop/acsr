@@ -616,77 +616,13 @@ const TournamentPanel = () => {
         onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />
     ) : (
-    <section className="py-6">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-heading font-bold text-foreground">Turnieje</h2>
-          </div>
-          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nowy turniej
-          </Button>
-        </div>
-
-        {/* Tournament list */}
-        {tournaments.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-mono text-sm">Brak turniejów. Utwórz pierwszy!</p>
-          </div>
-        )}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {tournaments.map(t => {
-            const totalMatches = t.phases.reduce((sum, p) =>
-              sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
-            );
-            return (
-              <motion.button
-                key={t.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => setSelectedId(t.id)}
-                className="group bg-card border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:bg-secondary/20 transition-all"
-              >
-                <div className="flex items-start justify-between mb-2 gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                    <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>
-                      {t.tier}
-                    </span>
-                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0", statusBadge(t.status))}>
-                      {statusLabel(t.status)}
-                    </span>
-                    {t.kind === "qualifier" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] font-mono font-bold shrink-0">
-                        QUAL {t.qualifierConfig?.scope === "global" ? "GLOBAL" : (t.qualifierConfig?.regions || []).join("+")}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
-                </div>
-                <h3 className="font-heading font-bold text-foreground text-base mb-1 truncate">{t.name}</h3>
-                {t.organizer && (
-                  <p className="text-xs text-muted-foreground mb-3 truncate">{t.organizer}</p>
-                )}
-                <div className="space-y-1 text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-2">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3" /> {t.startDate || "—"} → {t.endDate || "—"}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3" /> {t.location || "—"}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3 text-primary" />
-                    <span className="text-primary">{t.prizePool}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <UsersIcon className="w-3 h-3" /> {t.teams} drużyn • {t.phases.length} faz • {totalMatches} mecz(ów)
-                  </div>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
+    <section>
+      <div className="container mx-auto">
+        <TournamentPortal
+          tournaments={tournaments}
+          onSelect={(id) => setSelectedId(id)}
+          onCreate={() => setShowCreate(true)}
+        />
 
         {/* CREATE DIALOG */}
         <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) resetForm(); }}>
