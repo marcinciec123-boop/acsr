@@ -1,9 +1,10 @@
-import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil } from "lucide-react";
+import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import type { MatchResult } from "@/lib/types";
+import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 
 interface Props {
   matches: MatchResult[];
@@ -15,7 +16,38 @@ interface Props {
   allTeams?: string[];
 }
 
-/** Groups matches by round for column-style bracket display */
+const TeamRow = ({
+  name, score, isWinner, isFinal,
+}: { name: string; score: number; isWinner: boolean; isFinal: boolean }) => {
+  const placeholder = isPlaceholder(name);
+  const flag = !placeholder ? getTeamFlag(name) : "";
+  return (
+    <div className={cn(
+      "flex justify-between items-center px-2.5 py-1.5 transition-colors",
+      isWinner && "bg-[hsl(var(--win))]/15",
+      !isWinner && score >= 0 && "bg-card",
+    )}>
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        {isWinner && isFinal && <Crown className="w-3 h-3 text-[hsl(var(--gold))] shrink-0" />}
+        {flag && <span className="text-sm leading-none shrink-0">{flag}</span>}
+        <span className={cn(
+          "truncate text-xs",
+          isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/80"
+        )}>
+          {name || "TBD"}
+        </span>
+      </div>
+      <span className={cn(
+        "font-mono font-bold ml-2 text-sm tabular-nums",
+        isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground"
+      )}>
+        {score}
+      </span>
+    </div>
+  );
+};
+
+/** Liquipedia-style bracket with SVG connectors between rounds */
 export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
@@ -42,173 +74,204 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
     );
   }
 
+  const isFinalRound = (idx: number) => idx === rounds.length - 1;
+  const isLowerRound = (round: string) => /lower|low|losers/i.test(round);
+
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4 min-w-fit">
-          {rounds.map(round => (
-            <div key={round} className="flex flex-col gap-2 min-w-[240px]">
-              <div className="flex items-center justify-between gap-1">
-                <h5 className="text-[10px] font-mono uppercase text-primary font-bold tracking-wider truncate">
-                  {round}
-                </h5>
-                {onAdd && (
-                  <button
-                    onClick={() => onAdd(round)}
-                    className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
-                    title="Dodaj mecz w tej rundzie"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 justify-around flex-1">
-                {grouped[round].map(m => {
-                  const isEditing = editingId === m.id;
-                  const winner1 = m.score1 > m.score2 && (m.score1 + m.score2 > 0);
-                  const winner2 = m.score2 > m.score1 && (m.score1 + m.score2 > 0);
-                  const editingRound = editingRoundFor === m.id;
-                  return (
-                    <div
-                      key={m.id}
-                      className="bg-secondary/40 border border-border rounded-md overflow-hidden text-xs"
-                    >
-                      {isEditing ? (
-                        <div className="p-2 space-y-1.5">
-                          {editingRound ? (
-                            <div className="flex gap-1 items-center">
-                              <Input
-                                defaultValue={m.round || ""}
-                                placeholder="Nazwa rundy..."
-                                onBlur={e => {
-                                  onUpdate(m.id, m.score1, m.score2, undefined, undefined, e.target.value || "Match");
-                                  setEditingRoundFor(null);
-                                }}
-                                onKeyDown={e => {
-                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                                }}
-                                autoFocus
-                                className="h-7 text-[11px] font-mono"
-                              />
+        <div className="flex items-stretch min-w-fit">
+          {rounds.map((round, ri) => {
+            const matchesInRound = grouped[round];
+            const isLast = isFinalRound(ri);
+            const lower = isLowerRound(round);
+            return (
+              <div key={round} className="flex items-stretch">
+                {/* Round column */}
+                <div className="flex flex-col gap-3 min-w-[230px] px-1">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <h5 className={cn(
+                      "text-[10px] font-mono uppercase font-bold tracking-wider truncate",
+                      isLast ? "text-[hsl(var(--gold))]" : lower ? "text-destructive/80" : "text-primary"
+                    )}>
+                      {isLast && "★ "}{round}
+                    </h5>
+                    {onAdd && (
+                      <button
+                        onClick={() => onAdd(round)}
+                        className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                        title="Dodaj mecz w tej rundzie"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-3 justify-around flex-1">
+                    {matchesInRound.map(m => {
+                      const isEditing = editingId === m.id;
+                      const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+                      const winner1 = decided && m.score1 > m.score2;
+                      const winner2 = decided && m.score2 > m.score1;
+                      const editingRound = editingRoundFor === m.id;
+                      return (
+                        <div
+                          key={m.id}
+                          className={cn(
+                            "border rounded-md overflow-hidden text-xs shadow-sm",
+                            isLast ? "border-[hsl(var(--gold))]/40 shadow-[0_0_12px_hsl(var(--gold)/0.15)]" : "border-border",
+                            decided && !isLast && "border-primary/30"
+                          )}
+                        >
+                          {/* Round/BO label strip */}
+                          <div className={cn(
+                            "px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider flex items-center justify-between border-b border-border/50",
+                            isLast ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]" : "bg-secondary/60 text-muted-foreground"
+                          )}>
+                            <span>BO{m.bo || 3}</span>
+                            {decided && <span className="text-[hsl(var(--win))]">✓</span>}
+                          </div>
+
+                          {isEditing ? (
+                            <div className="p-2 space-y-1.5 bg-card">
+                              {editingRound ? (
+                                <div className="flex gap-1 items-center">
+                                  <Input
+                                    defaultValue={m.round || ""}
+                                    placeholder="Nazwa rundy..."
+                                    onBlur={e => {
+                                      onUpdate(m.id, m.score1, m.score2, undefined, undefined, e.target.value || "Match");
+                                      setEditingRoundFor(null);
+                                    }}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                    }}
+                                    autoFocus
+                                    className="h-7 text-[11px] font-mono"
+                                  />
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingRoundFor(m.id)}
+                                  className="text-[10px] font-mono text-muted-foreground hover:text-primary flex items-center gap-1 w-full"
+                                >
+                                  <Pencil className="w-2.5 h-2.5" /> Runda: {m.round || "Match"}
+                                </button>
+                              )}
+                              <div className="flex gap-1 items-center">
+                                <select
+                                  value={m.team1}
+                                  onChange={e => onUpdate(m.id, m.score1, m.score2, e.target.value, m.team2)}
+                                  className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
+                                >
+                                  <option value="">—</option>
+                                  <option value="BYE">BYE</option>
+                                  {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={m.score1}
+                                  onChange={e => onUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
+                                  className="w-12 h-7 text-center text-xs"
+                                />
+                              </div>
+                              <div className="flex gap-1 items-center">
+                                <select
+                                  value={m.team2}
+                                  onChange={e => onUpdate(m.id, m.score1, m.score2, m.team1, e.target.value)}
+                                  className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
+                                >
+                                  <option value="">—</option>
+                                  <option value="BYE">BYE</option>
+                                  {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={m.score2}
+                                  onChange={e => onUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
+                                  className="w-12 h-7 text-center text-xs"
+                                />
+                              </div>
+                              <div className="flex gap-1 justify-end items-center flex-wrap">
+                                {onMove && (
+                                  <>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onMove(m.id, -1)} title="W górę">
+                                      <ArrowUp className="w-3 h-3" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onMove(m.id, 1)} title="W dół">
+                                      <ArrowDown className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
+                                {onOpenMatch && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 px-2 text-[10px] text-primary hover:text-primary"
+                                    onClick={() => onOpenMatch(m.id)}
+                                  >
+                                    <Maximize2 className="w-3 h-3 mr-1" /> Otwórz
+                                  </Button>
+                                )}
+                                {onDelete && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    onClick={() => onDelete(m.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-[10px]"
+                                  onClick={() => { setEditingId(null); setEditingRoundFor(null); }}
+                                >
+                                  OK
+                                </Button>
+                              </div>
                             </div>
                           ) : (
                             <button
-                              onClick={() => setEditingRoundFor(m.id)}
-                              className="text-[10px] font-mono text-muted-foreground hover:text-primary flex items-center gap-1 w-full"
+                              onClick={() => onOpenMatch ? onOpenMatch(m.id) : setEditingId(m.id)}
+                              onContextMenu={(e) => { e.preventDefault(); setEditingId(m.id); }}
+                              title={onOpenMatch ? "Klik: szczegóły meczu • PPM: szybka edycja" : "Klik: edytuj"}
+                              className="w-full text-left hover:brightness-110 transition-all"
                             >
-                              <Pencil className="w-2.5 h-2.5" /> Runda: {m.round || "Match"}
+                              <TeamRow name={m.team1} score={m.score1} isWinner={winner1} isFinal={isLast} />
+                              <div className="h-px bg-border" />
+                              <TeamRow name={m.team2} score={m.score2} isWinner={winner2} isFinal={isLast} />
                             </button>
                           )}
-                          <div className="flex gap-1 items-center">
-                            <select
-                              value={m.team1}
-                              onChange={e => onUpdate(m.id, m.score1, m.score2, e.target.value, m.team2)}
-                              className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
-                            >
-                              <option value="">—</option>
-                              <option value="BYE">BYE</option>
-                              {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={m.score1}
-                              onChange={e => onUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
-                              className="w-12 h-7 text-center text-xs"
-                            />
-                          </div>
-                          <div className="flex gap-1 items-center">
-                            <select
-                              value={m.team2}
-                              onChange={e => onUpdate(m.id, m.score1, m.score2, m.team1, e.target.value)}
-                              className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
-                            >
-                              <option value="">—</option>
-                              <option value="BYE">BYE</option>
-                              {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={m.score2}
-                              onChange={e => onUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
-                              className="w-12 h-7 text-center text-xs"
-                            />
-                          </div>
-                          <div className="flex gap-1 justify-end items-center flex-wrap">
-                            {onMove && (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onMove(m.id, -1)} title="W górę">
-                                  <ArrowUp className="w-3 h-3" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onMove(m.id, 1)} title="W dół">
-                                  <ArrowDown className="w-3 h-3" />
-                                </Button>
-                              </>
-                            )}
-                            {onOpenMatch && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 px-2 text-[10px] text-primary hover:text-primary"
-                                onClick={() => onOpenMatch(m.id)}
-                              >
-                                <Maximize2 className="w-3 h-3 mr-1" /> Otwórz
-                              </Button>
-                            )}
-                            {onDelete && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-destructive"
-                                onClick={() => onDelete(m.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-[10px]"
-                              onClick={() => { setEditingId(null); setEditingRoundFor(null); }}
-                            >
-                              OK
-                            </Button>
-                          </div>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => onOpenMatch ? onOpenMatch(m.id) : setEditingId(m.id)}
-                          onContextMenu={(e) => { e.preventDefault(); setEditingId(m.id); }}
-                          title={onOpenMatch ? "Klik: szczegóły meczu • PPM: szybka edycja" : "Klik: edytuj"}
-                          className="w-full text-left hover:bg-secondary/60 transition-colors"
-                        >
-                          <div className={cn(
-                            "flex justify-between items-center px-2 py-1 border-b border-border/40",
-                            winner1 && "bg-[hsl(var(--win))]/10"
-                          )}>
-                            <span className={cn("truncate", winner1 ? "font-bold text-foreground" : "text-muted-foreground")}>
-                              {m.team1 || "TBD"}
-                            </span>
-                            <span className="font-mono font-bold ml-2">{m.score1}</span>
-                          </div>
-                          <div className={cn(
-                            "flex justify-between items-center px-2 py-1",
-                            winner2 && "bg-[hsl(var(--win))]/10"
-                          )}>
-                            <span className={cn("truncate", winner2 ? "font-bold text-foreground" : "text-muted-foreground")}>
-                              {m.team2 || "TBD"}
-                            </span>
-                            <span className="font-mono font-bold ml-2">{m.score2}</span>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* SVG connector to next round */}
+                {ri < rounds.length - 1 && (
+                  <div className="flex items-stretch w-6 self-stretch py-6">
+                    <svg
+                      viewBox="0 0 20 100"
+                      preserveAspectRatio="none"
+                      className="w-full h-full text-border"
+                    >
+                      <path
+                        d="M 0 25 L 10 25 L 10 75 L 20 75 M 0 75 L 10 75"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       {onAdd && (

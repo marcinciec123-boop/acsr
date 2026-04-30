@@ -2,13 +2,14 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
-  Award, Send, ArrowUp, ArrowDown, Shuffle, Save,
+  Award, Send, ArrowUp, ArrowDown, Shuffle, Save, Radio, CheckCircle2, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
+import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
@@ -258,79 +259,112 @@ export const TournamentDetailPage = ({
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do listy
         </Button>
 
-        {/* Hero header */}
+        {/* Hero header — Liquipedia-style banner */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-card to-secondary/30 border border-border rounded-xl p-6 mb-6"
+          className="relative bg-gradient-to-br from-primary/10 via-card to-card border border-border rounded-xl overflow-hidden mb-6"
         >
-          <div className="flex flex-wrap items-start gap-3 mb-3">
-            <span className={cn("text-xs font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>
-              TIER {t.tier}
-            </span>
-            <span className={cn("text-xs px-2 py-1 rounded border font-mono", statusBadge(t.status))}>
-              {statusLabel(t.status)}
-            </span>
-            <span className="text-xs px-2 py-1 rounded border border-border bg-secondary/50 font-mono text-muted-foreground">
-              {t.phases.length} faz • {totalMatches} mecz(ów)
-            </span>
-          </div>
-          <div className="flex items-center gap-3 mb-2">
-            <Trophy className="w-7 h-7 text-primary shrink-0" />
-            <h1 className="text-3xl font-heading font-bold text-foreground">{t.name}</h1>
-          </div>
-          {t.organizer && (
-            <p className="text-sm text-muted-foreground mb-4">organizowany przez <span className="text-foreground">{t.organizer}</span></p>
-          )}
+          {/* Tier accent bar */}
+          <div className={cn(
+            "h-1.5 w-full",
+            t.tier === "S" ? "bg-gradient-to-r from-[hsl(var(--gold))] via-[hsl(var(--accent))] to-[hsl(var(--gold))]" :
+            t.tier === "A" ? "bg-gradient-to-r from-primary via-[hsl(190_100%_45%)] to-primary" :
+            t.tier === "B" ? "bg-gradient-to-r from-[hsl(var(--silver))] via-muted to-[hsl(var(--silver))]" :
+            "bg-gradient-to-r from-muted to-secondary"
+          )} />
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <Calendar className="w-3 h-3" /> Daty
-              </div>
-              <p className="text-sm font-mono text-foreground">{t.startDate || "—"}<br/>{t.endDate || "—"}</p>
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className={cn("text-xs font-mono font-bold px-2.5 py-1 rounded border", tierColor(t.tier))}>
+                {t.tier}-TIER
+              </span>
+              <span className={cn(
+                "text-xs px-2.5 py-1 rounded border font-mono inline-flex items-center gap-1.5",
+                statusBadge(t.status)
+              )}>
+                {t.status === "live" && <Radio className="w-3 h-3 animate-pulse" />}
+                {t.status === "completed" && <CheckCircle2 className="w-3 h-3" />}
+                {t.status === "upcoming" && <Clock className="w-3 h-3" />}
+                {statusLabel(t.status)}
+              </span>
+              <span className="text-xs px-2.5 py-1 rounded border border-border bg-secondary/50 font-mono text-muted-foreground">
+                {t.phases.length} {t.phases.length === 1 ? "faza" : "faz"} • {totalMatches} {totalMatches === 1 ? "mecz" : "meczów"}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <MapPin className="w-3 h-3" /> Lokalizacja
-              </div>
-              <p className="text-sm font-mono text-foreground">{t.location || "—"}</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <DollarSign className="w-3 h-3" /> Pula nagród
-              </div>
-              <p className="text-sm font-mono text-primary font-bold">{t.prizePool}</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <UsersIcon className="w-3 h-3" /> Drużyny
-              </div>
-              <p className="text-sm font-mono text-foreground">{t.teams}</p>
-            </div>
-          </div>
 
-          <div className="mt-4 pt-4 border-t border-border/50">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Format</div>
-            <p className="text-sm font-mono text-foreground">{t.format}</p>
+            <div className="flex items-start gap-4 mb-2">
+              <div className="hidden sm:flex w-14 h-14 rounded-lg bg-primary/15 border border-primary/30 items-center justify-center shrink-0">
+                <Trophy className="w-7 h-7 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-4xl font-heading font-bold text-foreground leading-tight">{t.name}</h1>
+                {t.organizer && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    organizowany przez <span className="text-foreground font-medium">{t.organizer}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-border/50">
+              <div className="bg-card/40 border border-border/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                  <Calendar className="w-3 h-3" /> Daty
+                </div>
+                <p className="text-sm font-mono text-foreground leading-tight">
+                  {t.startDate || "—"}<br/>
+                  <span className="text-muted-foreground">→</span> {t.endDate || "—"}
+                </p>
+              </div>
+              <div className="bg-card/40 border border-border/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                  <MapPin className="w-3 h-3" /> Lokalizacja
+                </div>
+                <p className="text-sm font-mono text-foreground">{t.location || "—"}</p>
+              </div>
+              <div className="bg-[hsl(var(--gold))]/5 border border-[hsl(var(--gold))]/30 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[hsl(var(--gold))]/80 mb-1">
+                  <DollarSign className="w-3 h-3" /> Pula nagród
+                </div>
+                <p className="text-base font-heading font-bold text-[hsl(var(--gold))]">{t.prizePool}</p>
+              </div>
+              <div className="bg-card/40 border border-border/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                  <UsersIcon className="w-3 h-3" /> Drużyny
+                </div>
+                <p className="text-base font-heading font-bold text-foreground">{t.teams}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Format</div>
+              <p className="text-sm font-mono text-foreground">{t.format}</p>
+            </div>
           </div>
         </motion.div>
 
-        {/* Participants */}
+        {/* Participants — with flags */}
         {t.participants.length > 0 && (
           <div className="bg-card border border-border rounded-lg p-4 mb-6">
-            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3">
+            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3 flex items-center gap-2">
+              <UsersIcon className="w-3.5 h-3.5" />
               Uczestnicy ({t.participants.length})
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              {t.participants.map((p, i) => (
-                <span
-                  key={p}
-                  className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground"
-                >
-                  <span className="text-muted-foreground mr-1">#{i + 1}</span>{p}
-                </span>
-              ))}
+              {t.participants.map((p, i) => {
+                const flag = !isPlaceholder(p) ? getTeamFlag(p) : "";
+                return (
+                  <span
+                    key={p}
+                    className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
+                  >
+                    <span className="text-muted-foreground">#{i + 1}</span>
+                    {flag && <span>{flag}</span>}
+                    {p}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
