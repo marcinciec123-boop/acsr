@@ -532,7 +532,32 @@ export const TournamentDetailPage = ({
                   </div>
                   );
                 })()}
-                {phase.bracket && phase.bracket.length > 0 && (
+                {phase.bracket && phase.bracket.length > 0 && phase.format === "swiss" && (
+                  <SwissView
+                    phaseTeams={phase.teams}
+                    matches={phase.bracket}
+                    bo={phase.bo}
+                    advanceCount={phase.advanceCount}
+                    onUpdate={(mid, s1, s2, t1, t2) =>
+                      onUpdateMatch(phase.id, mid, {
+                        score1: s1, score2: s2,
+                        ...(t1 !== undefined && { team1: t1 }),
+                        ...(t2 !== undefined && { team2: t2 }),
+                      })
+                    }
+                    onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+                    onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
+                    onGenerateNextRound={(pairings) => {
+                      if (onAddBracketMatches) {
+                        onAddBracketMatches(phase.id, pairings);
+                      } else {
+                        // fallback: add one by one (won't carry teams; older API)
+                        pairings.forEach(p => onAddBracketMatch(phase.id, p.round));
+                      }
+                    }}
+                  />
+                )}
+                {phase.bracket && phase.bracket.length > 0 && phase.format !== "swiss" && (
                   <BracketView
                     matches={phase.bracket}
                     allTeams={[...t.participants, ...allTeams]}
