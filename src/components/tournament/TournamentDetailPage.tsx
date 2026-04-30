@@ -14,6 +14,7 @@ import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
 import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
+import { SwissView } from "./SwissView";
 
 interface Props {
   tournament: TournamentData;
@@ -27,6 +28,10 @@ interface Props {
   ) => void;
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
   onAddBracketMatch: (phaseId: string, round: string) => void;
+  onAddBracketMatches?: (
+    phaseId: string,
+    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
+  ) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
   onReseedPhase?: (phaseId: string, teams: string[]) => void;
   onAssignGroups?: (phaseId: string, assignment: Record<string, string[]>) => void;
