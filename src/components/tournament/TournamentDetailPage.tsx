@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
   Award, Send, ArrowUp, ArrowDown, Shuffle, Save, Radio, CheckCircle2, Clock,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
