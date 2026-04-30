@@ -142,7 +142,7 @@ const TournamentPanel = () => {
   const addPhaseDraft = () => {
     setPhaseDrafts(prev => [
       ...prev,
-      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4, seededCount: 0 },
+      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4, seededCount: 0, teamCount: 0 },
     ]);
   };
 
