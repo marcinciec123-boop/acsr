@@ -218,28 +218,71 @@ const TournamentPanel = () => {
     setShowCreate(false);
   };
 
-  /** Propagate winner/loser of a bracket match into linked next matches (winnerTo / loserTo). */
-  const propagateBracket = (bracket: MatchResult[], sourceId: string): MatchResult[] => {
-    const src = bracket.find(m => m.id === sourceId);
-    if (!src) return bracket;
-    const total = (src.score1 || 0) + (src.score2 || 0);
-    const decided = total > 0 && src.score1 !== src.score2 && !!src.team1 && !!src.team2;
-    const winner = decided ? (src.score1 > src.score2 ? src.team1 : src.team2) : "";
-    const loser = decided ? (src.score1 > src.score2 ? src.team2 : src.team1) : "";
+  /**
+   * Resync downstream bracket matches based on every source's current winner/loser.
+   * Each downstream slot is "owned" by the upstream that feeds it (winnerTo / loserTo).
+   * If upstream is decided → write its winner/loser into the slot it owns.
+   * If upstream is undecided (no score / draw) → clear the owned slot + reset its scores.
+   * This prevents the "stale team in semifinal after fixing the quarterfinal" bug.
+   */
+  const propagateBracket = (bracket: MatchResult[]): MatchResult[] => {
+    // Build map: targetMatchId → array of { ownerSlot: "team1"|"team2", source }
+    // We don't know which slot in the target each source feeds, so we assign them
+    // deterministically: among all sources targeting one match, the first goes to
+    // team1, the second to team2 (insertion-order stable).
+    const winnerInputs: Record<string, MatchResult[]> = {};
+    const loserInputs: Record<string, MatchResult[]> = {};
+    bracket.forEach(src => {
+      if (src.winnerTo) {
+        if (!winnerInputs[src.winnerTo]) winnerInputs[src.winnerTo] = [];
+        winnerInputs[src.winnerTo].push(src);
+      }
+      if (src.loserTo) {
+        if (!loserInputs[src.loserTo]) loserInputs[src.loserTo] = [];
+        loserInputs[src.loserTo].push(src);
+      }
+    });
 
-    const placeInto = (target: MatchResult, team: string): MatchResult => {
-      // Choose the first empty / TBD slot; if both filled and neither matches, prefer slot1
-      const slot1Empty = !target.team1 || target.team1.startsWith("TBD") || target.team1 === "BYE";
-      const slot2Empty = !target.team2 || target.team2.startsWith("TBD") || target.team2 === "BYE";
-      if (slot1Empty && target.team2 !== team) return { ...target, team1: team };
-      if (slot2Empty && target.team1 !== team) return { ...target, team2: team };
-      return target;
+    const decidedWinner = (m: MatchResult): string | null => {
+      if (!m.team1 || !m.team2) return null;
+      if (m.team1 === "BYE") return m.team2 && m.team2 !== "BYE" ? m.team2 : null;
+      if (m.team2 === "BYE") return m.team1 !== "BYE" ? m.team1 : null;
+      const tot = (m.score1 || 0) + (m.score2 || 0);
+      if (tot === 0 || m.score1 === m.score2) return null;
+      return m.score1 > m.score2 ? m.team1 : m.team2;
+    };
+    const decidedLoser = (m: MatchResult): string | null => {
+      if (!m.team1 || !m.team2) return null;
+      if (m.team1 === "BYE" || m.team2 === "BYE") return null;
+      const tot = (m.score1 || 0) + (m.score2 || 0);
+      if (tot === 0 || m.score1 === m.score2) return null;
+      return m.score1 > m.score2 ? m.team2 : m.team1;
     };
 
-    return bracket.map(m => {
-      if (m.id === src.winnerTo && winner) return placeInto(m, winner);
-      if (m.id === src.loserTo && loser) return placeInto(m, loser);
-      return m;
+    return bracket.map(target => {
+      const wIn = winnerInputs[target.id] || [];
+      const lIn = loserInputs[target.id] || [];
+      // No upstream feed → leave as-is (manual seeding / first round)
+      if (wIn.length === 0 && lIn.length === 0) return target;
+
+      const slots: (string | "")[] = [];
+      wIn.forEach(s => slots.push(decidedWinner(s) || ""));
+      lIn.forEach(s => slots.push(decidedLoser(s) || ""));
+
+      // Pad to 2 slots
+      while (slots.length < 2) slots.push("");
+
+      const next = { ...target };
+      const newT1 = slots[0];
+      const newT2 = slots[1];
+      // Only mutate if changed; if changed, reset scores
+      if (next.team1 !== newT1 || next.team2 !== newT2) {
+        next.team1 = newT1;
+        next.team2 = newT2;
+        next.score1 = 0;
+        next.score2 = 0;
+      }
+      return next;
     });
   };
 
@@ -272,7 +315,14 @@ const TournamentPanel = () => {
           }
           if (p.bracket) {
             const updated = p.bracket.map(m => m.id !== matchId ? m : { ...m, ...patch });
-            return { ...p, bracket: propagateBracket(updated, matchId) };
+            // Run propagation to convergence (a fix in R1 may cascade through R2, R3...)
+            let curr = updated;
+            for (let i = 0; i < 10; i++) {
+              const next = propagateBracket(curr);
+              if (JSON.stringify(next) === JSON.stringify(curr)) break;
+              curr = next;
+            }
+            return { ...p, bracket: curr };
           }
           return p;
         }),
