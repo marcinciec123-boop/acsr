@@ -472,11 +472,16 @@ export const TournamentDetailPage = ({
                     onShuffle={() => onShuffleGroups(phase.id)}
                   />
                 )}
-                {phase.groups && phase.groups.length > 0 && (
+                {phase.groups && phase.groups.length > 0 && (() => {
+                  const perGroup = phase.advanceCount && phase.groups.length > 0
+                    ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
+                    : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);
+                  return (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {phase.groups.map(g => (
                       <GroupTable
                         format={phase.format}
+                        advancePerGroup={perGroup}
                         key={g.id}
                         group={g}
                         onMatchUpdate={(mid, s1, s2) =>
@@ -486,7 +491,8 @@ export const TournamentDetailPage = ({
                       />
                     ))}
                   </div>
-                )}
+                  );
+                })()}
                 {phase.bracket && phase.bracket.length > 0 && (
                   <BracketView
                     matches={phase.bracket}

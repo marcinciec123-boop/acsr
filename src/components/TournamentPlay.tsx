@@ -416,28 +416,45 @@ function useSwissPlay(teams: string[], initial?: TournamentProgress["swissState"
       return bw - aw;
     });
 
+    // Build set of past pairings to avoid Swiss rematches
+    const pastKey = (a: string, b: string) => [a, b].sort().join("|");
+    const pastPairings = new Set<string>();
+    rounds.forEach(rd => rd.matches.forEach(m => {
+      if (m.team1 && m.team2) pastPairings.add(pastKey(m.team1, m.team2));
+    }));
+
     const matches: MatchResult[] = [];
     const paired = new Set<string>();
     let unpaired: SwissStanding[] = [];
 
+    // Fisher-Yates shuffle (unbiased)
+    const shuf = <T,>(arr: T[]): T[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
     for (const record of records) {
-      const pool = [...unpaired, ...byRecord[record]].sort(() => Math.random() - 0.5);
+      const pool = shuf([...unpaired, ...byRecord[record]]);
       unpaired = [];
-      for (let i = 0; i < pool.length - 1; i += 2) {
-        if (paired.has(pool[i].team) || paired.has(pool[i + 1].team)) {
-          if (!paired.has(pool[i].team)) unpaired.push(pool[i]);
-          if (!paired.has(pool[i + 1].team)) unpaired.push(pool[i + 1]);
-          continue;
-        }
-        const isDecider = pool[i].wins === winsToQ - 1 || pool[i].losses === lossesToE - 1;
+      const remaining = pool.filter(p => !paired.has(p.team));
+      // Greedy match: for each team, pick first opponent we haven't faced before
+      while (remaining.length >= 2) {
+        const a = remaining.shift()!;
+        let oppIdx = remaining.findIndex(b => !pastPairings.has(pastKey(a.team, b.team)));
+        if (oppIdx === -1) oppIdx = 0; // forced rematch (shouldn't happen often)
+        const b = remaining.splice(oppIdx, 1)[0];
+        const isDecider = a.wins === winsToQ - 1 || a.losses === lossesToE - 1
+          || b.wins === winsToQ - 1 || b.losses === lossesToE - 1;
         const bo = isDecider ? 3 : 1;
-        matches.push({ team1: pool[i].team, team2: pool[i + 1].team, score1: 0, score2: 0, winner: "", bo });
-        paired.add(pool[i].team);
-        paired.add(pool[i + 1].team);
+        matches.push({ team1: a.team, team2: b.team, score1: 0, score2: 0, winner: "", bo });
+        paired.add(a.team);
+        paired.add(b.team);
       }
-      if (pool.length % 2 === 1 && !paired.has(pool[pool.length - 1].team)) {
-        unpaired.push(pool[pool.length - 1]);
-      }
+      if (remaining.length === 1) unpaired.push(remaining[0]);
     }
 
     if (matches.length === 0) {
@@ -447,7 +464,7 @@ function useSwissPlay(teams: string[], initial?: TournamentProgress["swissState"
 
     setCurrentMatches(matches);
     setResolved(new Array(matches.length).fill(false));
-  }, []);
+  }, [rounds]);
 
   const start = useCallback(() => {
     setStarted(true);
@@ -570,15 +587,18 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
     for (let i = 0; i < paddedTeams.length; i += 2) {
       const t1 = paddedTeams[i];
       const t2 = paddedTeams[i + 1];
+      const bo = totalRounds <= 1 ? 5 : startBo;
+      const winsNeeded = Math.ceil(bo / 2);
       if (t2 === "BYE") {
-        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo: startBo });
+        matches.push({ team1: t1, team2: "BYE", score1: winsNeeded, score2: 0, winner: t1, bo });
+      } else if (t1 === "BYE") {
+        matches.push({ team1: "BYE", team2: t2, score1: 0, score2: winsNeeded, winner: t2, bo });
       } else {
-        const bo = totalRounds <= 1 ? 5 : startBo;
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo });
       }
     }
     setCurrentMatches(matches);
-    setResolved(matches.map(m => m.team2 === "BYE"));
+    setResolved(matches.map(m => m.team2 === "BYE" || m.team1 === "BYE"));
   }, [paddedTeams, totalRounds, startBo, initial]);
 
   const updateMatch = useCallback((idx: number, match: MatchResult) => {
@@ -632,11 +652,12 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
     const isSemi = nextRoundIdx >= totalRounds - 2;
     const bo = isFinal ? 5 : isSemi ? 3 : startBo;
     const matches: MatchResult[] = [];
+    const winsNeeded = Math.ceil(bo / 2);
     for (let i = 0; i < winners.length; i += 2) {
       const t1 = winners[i];
       const t2 = winners[i + 1] || "BYE";
       if (t2 === "BYE") {
-        matches.push({ team1: t1, team2: "BYE", score1: 2, score2: 0, winner: t1, bo });
+        matches.push({ team1: t1, team2: "BYE", score1: winsNeeded, score2: 0, winner: t1, bo });
       } else {
         matches.push({ team1: t1, team2: t2, score1: 0, score2: 0, winner: "", bo });
       }
