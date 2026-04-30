@@ -253,6 +253,25 @@ export const TournamentDetailPage = ({
   const allWinners = Object.values(winnersByRegion).flat();
   const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
 
+  // Active phase tab — defaults to first phase, persists across re-renders for this tournament
+  const [activePhaseId, setActivePhaseId] = useState<string>(() => t.phases[0]?.id || "");
+  useEffect(() => {
+    if (!t.phases.find(p => p.id === activePhaseId) && t.phases[0]) {
+      setActivePhaseId(t.phases[0].id);
+    }
+  }, [t.phases, activePhaseId]);
+
+  // Phase progress helper for tab badges
+  const phaseProgress = (phase: typeof t.phases[number]) => {
+    const bracketDone = phase.bracket?.filter(m => m.score1 + m.score2 > 0).length || 0;
+    const bracketTotal = phase.bracket?.length || 0;
+    const groupDone = phase.groups?.reduce((s, g) => s + g.matches.filter(m => m.score1 + m.score2 > 0).length, 0) || 0;
+    const groupTotal = phase.groups?.reduce((s, g) => s + g.matches.length, 0) || 0;
+    const done = bracketDone + groupDone;
+    const total = bracketTotal + groupTotal;
+    return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+  };
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-[1400px]">
