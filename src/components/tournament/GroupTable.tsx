@@ -4,72 +4,81 @@ import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
+import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 
 interface Props {
   group: PhaseGroup;
-  /** Phase format — affects whether we render UB/LB columns (gsl-de-groups). */
   format?: PhaseFormat;
-  /** How many teams advance from this group (per group, not total). Defaults: 2 for groups, 1 for SE-like. */
   advancePerGroup?: number;
   onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
   onOpenMatch?: (matchId: string) => void;
 }
 
+const teamLabel = (name: string) => {
+  if (isPlaceholder(name)) return <span className="text-muted-foreground italic">{name || "TBD"}</span>;
+  const flag = getTeamFlag(name);
+  return (
+    <span className="inline-flex items-center gap-1.5 min-w-0">
+      {flag && <span className="text-sm leading-none shrink-0">{flag}</span>}
+      <span className="truncate">{name}</span>
+    </span>
+  );
+};
+
 const renderMatchRow = (
   m: MatchResult,
   onMatchUpdate: Props["onMatchUpdate"],
   onOpenMatch: Props["onOpenMatch"],
-) => (
-  <div key={m.id} className="flex items-center gap-1.5 text-xs">
-    <span className={cn(
-      "flex-1 text-right truncate",
-      m.score1 > m.score2 ? "text-foreground font-medium" : "text-muted-foreground"
-    )}>
-      {m.team1 || "TBD"}
-    </span>
-    <Input
-      type="number"
-      min="0"
-      value={m.score1}
-      onChange={e => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
-      className="w-10 h-6 text-center text-xs px-1"
-      disabled={!m.team1 || !m.team2 || m.team1 === "TBD" || m.team2 === "TBD"}
-    />
-    <span className="text-muted-foreground">:</span>
-    <Input
-      type="number"
-      min="0"
-      value={m.score2}
-      onChange={e => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
-      className="w-10 h-6 text-center text-xs px-1"
-      disabled={!m.team1 || !m.team2 || m.team1 === "TBD" || m.team2 === "TBD"}
-    />
-    <span className={cn(
-      "flex-1 truncate",
-      m.score2 > m.score1 ? "text-foreground font-medium" : "text-muted-foreground"
-    )}>
-      {m.team2 || "TBD"}
-    </span>
-    {onOpenMatch && (
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-6 w-6 text-primary hover:text-primary shrink-0"
-        onClick={() => onOpenMatch(m.id)}
-        title="Otwórz szczegóły meczu"
-      >
-        <Maximize2 className="w-3 h-3" />
-      </Button>
-    )}
-  </div>
-);
+) => {
+  const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+  const w1 = decided && m.score1 > m.score2;
+  const w2 = decided && m.score2 > m.score1;
+  return (
+    <div key={m.id} className="flex items-center gap-1.5 text-xs bg-card/50 rounded px-1.5 py-1 border border-border/40 hover:border-border transition-colors">
+      <span className={cn("flex-1 text-right truncate min-w-0", w1 ? "text-foreground font-bold" : "text-muted-foreground")}>
+        {teamLabel(m.team1)}
+      </span>
+      <Input
+        type="number"
+        min="0"
+        value={m.score1}
+        onChange={e => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
+        className={cn("w-9 h-6 text-center text-xs px-1 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
+        disabled={isPlaceholder(m.team1) || isPlaceholder(m.team2)}
+      />
+      <span className="text-muted-foreground">:</span>
+      <Input
+        type="number"
+        min="0"
+        value={m.score2}
+        onChange={e => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
+        className={cn("w-9 h-6 text-center text-xs px-1 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
+        disabled={isPlaceholder(m.team1) || isPlaceholder(m.team2)}
+      />
+      <span className={cn("flex-1 truncate min-w-0", w2 ? "text-foreground font-bold" : "text-muted-foreground")}>
+        {teamLabel(m.team2)}
+      </span>
+      {onOpenMatch && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-6 w-6 text-primary hover:text-primary shrink-0"
+          onClick={() => onOpenMatch(m.id)}
+          title="Otwórz szczegóły meczu"
+        >
+          <Maximize2 className="w-3 h-3" />
+        </Button>
+      )}
+    </div>
+  );
+};
 
 export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch }: Props) => {
   const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
   const advN = advancePerGroup ?? (isGSLDE ? 2 : format === "gsl-groups" ? 2 : 2);
 
-  // For IEM/GSL-DE: split matches into Upper / Lower bracket columns based on bracketSlot prefix
+  // For IEM/GSL-DE: split matches into Upper / Lower bracket columns
   const ubMatches = isGSLDE
     ? group.matches.filter(m => (m.bracketSlot || "").startsWith("IEM-UB"))
     : [];
@@ -88,76 +97,142 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
   };
 
   return (
-    <div className="bg-secondary/30 border border-border rounded-md p-3 space-y-3">
-      <h5 className="text-xs font-heading font-bold text-primary">{group.name}</h5>
-
-      {/* Standings */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border/50">
-              <th className="text-left py-1">#</th>
-              <th className="text-left py-1">Team</th>
-              <th className="text-center py-1">W-L</th>
-              <th className="text-center py-1">Diff</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s, i) => {
-              const advances = i < advN;
-              return (
-              <tr key={s.team} className={cn("border-b border-border/20", advances && "bg-[hsl(var(--win))]/5")}>
-                <td className={cn("py-1 text-muted-foreground", advances && "text-[hsl(var(--win))] font-bold")}>{i + 1}</td>
-                <td className={cn("py-1", advances && "font-bold text-[hsl(var(--win))]")}>{s.team}</td>
-                <td className="text-center py-1 font-mono">{s.wins}-{s.losses}</td>
-                <td className={cn("text-center py-1 font-mono", s.mapDiff > 0 && "text-[hsl(var(--win))]", s.mapDiff < 0 && "text-destructive")}>
-                  {s.mapDiff > 0 ? `+${s.mapDiff}` : s.mapDiff}
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <div className="bg-gradient-to-br from-card to-secondary/20 border border-border rounded-lg overflow-hidden">
+      {/* Group header */}
+      <div className="bg-secondary/60 px-3 py-2 flex items-center justify-between border-b border-border">
+        <h5 className="text-xs font-heading font-bold text-foreground uppercase tracking-wider">{group.name}</h5>
+        <span className="text-[10px] font-mono text-muted-foreground">{group.teams.length} drużyn</span>
       </div>
 
-      {isGSLDE ? (
-        /* UB / LB column layout for IEM-style DE groups */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <h6 className="text-[10px] font-mono uppercase text-[hsl(var(--win))] font-bold border-b border-[hsl(var(--win))]/30 pb-1">
-              ↑ Upper Bracket
-            </h6>
-            {Array.from(groupByRound(ubMatches).entries()).map(([roundName, ms]) => (
-              <div key={roundName} className="space-y-1">
-                <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
-                {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <h6 className="text-[10px] font-mono uppercase text-destructive font-bold border-b border-destructive/30 pb-1">
-              ↓ Lower Bracket
-            </h6>
-            {Array.from(groupByRound(lbMatches).entries()).map(([roundName, ms]) => (
-              <div key={roundName} className="space-y-1">
-                <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
-                {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
-              </div>
-            ))}
+      <div className="p-3 space-y-3">
+        {/* Liquipedia-style standings table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border">
+                <th className="text-left py-1.5 px-1 w-6">#</th>
+                <th className="text-left py-1.5">Drużyna</th>
+                <th className="text-center py-1.5 px-1.5" title="Mecze">M</th>
+                <th className="text-center py-1.5 px-1.5 text-[hsl(var(--win))]" title="Wygrane">W</th>
+                <th className="text-center py-1.5 px-1.5 text-destructive" title="Porażki">L</th>
+                <th className="text-center py-1.5 px-1.5" title="Bilans map">RD</th>
+                <th className="text-center py-1.5 px-1 w-8" title="Status"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((s, i) => {
+                const advances = i < advN;
+                const eliminated = isGSLDE && i >= advN; // GSL-DE: bottom 2 eliminated
+                return (
+                  <tr
+                    key={s.team}
+                    className={cn(
+                      "border-b border-border/30 hover:bg-secondary/30 transition-colors",
+                      advances && "bg-[hsl(var(--win))]/5",
+                      eliminated && "opacity-60"
+                    )}
+                  >
+                    {/* Position with color bar */}
+                    <td className="py-1.5 px-1 relative">
+                      <div className={cn(
+                        "absolute left-0 top-0 bottom-0 w-1",
+                        advances ? "bg-[hsl(var(--win))]" : eliminated ? "bg-destructive" : "bg-transparent"
+                      )} />
+                      <span className={cn(
+                        "font-mono font-bold pl-1.5",
+                        advances ? "text-[hsl(var(--win))]" : "text-muted-foreground"
+                      )}>
+                        {i + 1}
+                      </span>
+                    </td>
+                    <td className={cn("py-1.5", advances && "font-bold text-foreground")}>
+                      {teamLabel(s.team)}
+                    </td>
+                    <td className="text-center py-1.5 px-1.5 font-mono tabular-nums text-muted-foreground">
+                      {s.wins + s.losses}
+                    </td>
+                    <td className="text-center py-1.5 px-1.5 font-mono tabular-nums text-[hsl(var(--win))] font-bold">
+                      {s.wins}
+                    </td>
+                    <td className="text-center py-1.5 px-1.5 font-mono tabular-nums text-destructive">
+                      {s.losses}
+                    </td>
+                    <td className={cn(
+                      "text-center py-1.5 px-1.5 font-mono tabular-nums",
+                      s.mapDiff > 0 && "text-[hsl(var(--win))]",
+                      s.mapDiff < 0 && "text-destructive",
+                      s.mapDiff === 0 && "text-muted-foreground"
+                    )}>
+                      {s.mapDiff > 0 ? `+${s.mapDiff}` : s.mapDiff}
+                    </td>
+                    <td className="text-center py-1.5 px-1">
+                      {advances && (
+                        <span className="text-[9px] font-mono font-bold text-[hsl(var(--win))] bg-[hsl(var(--win))]/15 border border-[hsl(var(--win))]/30 rounded px-1 py-0.5">
+                          AWA
+                        </span>
+                      )}
+                      {eliminated && (
+                        <span className="text-[9px] font-mono font-bold text-destructive bg-destructive/15 border border-destructive/30 rounded px-1 py-0.5">
+                          ELI
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {/* Legend */}
+          <div className="flex items-center gap-3 mt-2 text-[9px] font-mono text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-[hsl(var(--win))] rounded-sm" /> awansuje
+            </span>
+            {isGSLDE && (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-destructive rounded-sm" /> eliminacja
+              </span>
+            )}
           </div>
         </div>
-      ) : (
-        /* Default: matches grouped by round name (RR / GSL-4) */
-        <div className="space-y-2">
-          {Array.from(groupByRound(group.matches).entries()).map(([roundName, ms]) => (
-            <div key={roundName} className="space-y-1">
-              <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
-              {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
+
+        {isGSLDE ? (
+          /* UB / LB column layout for IEM-style DE groups */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/40">
+            <div className="space-y-2">
+              <h6 className="text-[10px] font-mono uppercase text-[hsl(var(--win))] font-bold border-b border-[hsl(var(--win))]/30 pb-1">
+                ↑ Upper Bracket
+              </h6>
+              {Array.from(groupByRound(ubMatches).entries()).map(([roundName, ms]) => (
+                <div key={roundName} className="space-y-1">
+                  <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
+                  {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="space-y-2">
+              <h6 className="text-[10px] font-mono uppercase text-destructive font-bold border-b border-destructive/30 pb-1">
+                ↓ Lower Bracket
+              </h6>
+              {Array.from(groupByRound(lbMatches).entries()).map(([roundName, ms]) => (
+                <div key={roundName} className="space-y-1">
+                  <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
+                  {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Default: matches grouped by round */
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            {Array.from(groupByRound(group.matches).entries()).map(([roundName, ms]) => (
+              <div key={roundName} className="space-y-1">
+                <h6 className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">{roundName}</h6>
+                {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-
