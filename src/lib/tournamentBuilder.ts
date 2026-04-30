@@ -84,17 +84,41 @@ export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
 };
 
 /** Double elim: upper bracket + lower bracket + grand final.
- *  Simplified: builds UB like SE; LB has 2*(rounds-1) rounds. We do not auto-fill teams, only structure. */
+ *  Pattern (size = nextPow2 of teams):
+ *    - UB rounds: log2(size). Last UB round is "Upper Final".
+ *    - LB rounds: 2*(ubRounds-1). Pattern of matches per LB round:
+ *        round 1: size/4 (losers of UB R1 paired)
+ *        round 2: size/4 (winners of LB R1 vs losers of UB R2)
+ *        round 3: size/8
+ *        round 4: size/8
+ *        ...
+ *        last two: 1, 1
+ */
 export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
-  const ub = buildSingleElim(teams, bo).map(m => ({ ...m })); // UB
+  const ub = buildSingleElim(teams, bo).map(m => {
+    // Re-label UB rounds: last one is "Upper Final"
+    if (m.round === "Final") return { ...m, round: "Upper Final" };
+    return m;
+  });
+  // Re-tag bracket slots from "UB-..." (already done in buildSingleElim).
+
   const size = nextPow2(Math.max(2, teams.length));
   const ubRounds = Math.log2(size);
   const lbRoundCount = Math.max(0, (ubRounds - 1) * 2);
 
   const lb: MatchResult[] = [];
-  // matches per LB round pattern: size/4, size/4, size/8, size/8 ... 1, 1
-  let matchesInRound = size / 4;
+  // Correct DE LB pattern: pairs of equal sizes that halve every 2 rounds.
+  // size=8 → ubRounds=3, lbRounds=4, pattern: 2,2,1,1
+  // size=16 → ubRounds=4, lbRounds=6, pattern: 4,4,2,2,1,1
   for (let r = 0; r < lbRoundCount; r++) {
+    const halvings = Math.floor(r / 2); // 0,0,1,1,2,2...
+    const matchesInRound = Math.max(1, size / Math.pow(2, 2 + halvings));
+    const isLast = r === lbRoundCount - 1;
+    const roundLabelLB = isLast
+      ? "Lower Final"
+      : r === lbRoundCount - 2
+      ? "Lower Semifinal"
+      : `Lower R${r + 1}`;
     for (let m = 0; m < matchesInRound; m++) {
       lb.push({
         id: uid(),
@@ -103,11 +127,10 @@ export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
         score1: 0,
         score2: 0,
         bracketSlot: `LB-R${r + 1}-M${m + 1}`,
-        round: `Lower R${r + 1}`,
+        round: roundLabelLB,
         bo,
       });
     }
-    if (r % 2 === 1) matchesInRound = Math.max(1, matchesInRound / 2);
   }
   // Grand Final
   const gf: MatchResult = {
@@ -341,9 +364,16 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   };
   const setSlot = (slot: string, t1: string, t2: string) => {
     const m = by(slot); if (!m) return;
-    // Only overwrite if currently empty — keep manual edits
-    if (!m.team1 && t1) m.team1 = t1;
-    if (!m.team2 && t2) m.team2 = t2;
+    // Always sync with upstream results. If upstream isn't decided yet (empty string),
+    // we leave the existing team in place so user-entered manual data is preserved.
+    let changed = false;
+    if (t1 && m.team1 !== t1) { m.team1 = t1; changed = true; }
+    if (t2 && m.team2 !== t2) { m.team2 = t2; changed = true; }
+    // Reset scores if downstream pairings changed (stale results no longer apply)
+    if (changed) {
+      m.score1 = 0;
+      m.score2 = 0;
+    }
   };
 
   // LB R1: losers of OM1 vs OM2, OM3 vs OM4
@@ -380,21 +410,39 @@ export interface GroupStanding {
 
 export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
   const standings = new Map<string, GroupStanding>();
-  group.teams.forEach(t => standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0 }));
+  group.teams.forEach(t => {
+    if (!t || t === "TBD" || t === "BYE") return;
+    standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0 });
+  });
+  // head-to-head wins record: h2h[A][B] = mecze A wygrane vs B
+  const h2h: Record<string, Record<string, number>> = {};
+  const bumpH2H = (a: string, b: string) => {
+    if (!h2h[a]) h2h[a] = {};
+    h2h[a][b] = (h2h[a][b] || 0) + 1;
+  };
   group.matches.forEach(m => {
-    if (!m.team1 || !m.team2 || m.team1 === "BYE" || m.team2 === "BYE") return;
+    if (!m.team1 || !m.team2) return;
+    if (m.team1 === "BYE" || m.team2 === "BYE") return;
+    if (m.team1 === "TBD" || m.team2 === "TBD") return;
     if (m.score1 === 0 && m.score2 === 0) return;
+    if (m.score1 === m.score2) return; // brak rozstrzygnięcia (nie powinno wystąpić w CS)
     const s1 = standings.get(m.team1);
     const s2 = standings.get(m.team2);
     if (!s1 || !s2) return;
-    if (m.score1 > m.score2) { s1.wins++; s2.losses++; }
-    else if (m.score2 > m.score1) { s2.wins++; s1.losses++; }
+    if (m.score1 > m.score2) { s1.wins++; s2.losses++; bumpH2H(m.team1, m.team2); }
+    else                     { s2.wins++; s1.losses++; bumpH2H(m.team2, m.team1); }
     s1.mapDiff += m.score1 - m.score2;
     s2.mapDiff += m.score2 - m.score1;
   });
-  return Array.from(standings.values()).sort((a, b) =>
-    b.wins - a.wins || b.mapDiff - a.mapDiff
-  );
+  return Array.from(standings.values()).sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    // Head-to-head: jeśli A wygrał z B, A wyżej
+    const aOverB = h2h[a.team]?.[b.team] || 0;
+    const bOverA = h2h[b.team]?.[a.team] || 0;
+    if (aOverB !== bOverA) return bOverA - aOverB;
+    if (b.mapDiff !== a.mapDiff) return b.mapDiff - a.mapDiff;
+    return a.team.localeCompare(b.team);
+  });
 };
 
 export const formatLabel = (f: PhaseFormat): string => ({
