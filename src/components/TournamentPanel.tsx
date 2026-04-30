@@ -163,13 +163,25 @@ const TournamentPanel = () => {
     const phases: TournamentPhase[] = [];
     let teamsForPhase = [...selectedTeams];
     phaseDrafts.forEach((draft, idx) => {
-      // Apply seededCount: keep only first N real teams, fill rest as TBD up to original size.
-      let phaseTeams = [...teamsForPhase];
-      if (draft.seededCount > 0 && draft.seededCount < phaseTeams.length) {
-        const realPart = phaseTeams.slice(0, draft.seededCount);
-        const tbdPart = Array.from({ length: phaseTeams.length - draft.seededCount }, (_, i) => `TBD-P${idx}-${i + 1}`);
-        phaseTeams = [...realPart, ...tbdPart];
-      }
+      // Determine the size of this phase.
+      // Default = number of incoming teams (selectedTeams for phase 0, or previous advanceCount).
+      const incomingSize = teamsForPhase.length;
+      const phaseSize = draft.teamCount > 0 ? draft.teamCount : incomingSize;
+
+      // Number of "real" (known) teams that go into this phase. The rest are TBD.
+      // - If seededCount is set, use it (capped to phaseSize).
+      // - Otherwise, use as many incoming teams as fit.
+      const realCount = draft.seededCount > 0
+        ? Math.min(draft.seededCount, phaseSize, incomingSize)
+        : Math.min(incomingSize, phaseSize);
+
+      const realPart = teamsForPhase.slice(0, realCount);
+      const tbdPart = Array.from(
+        { length: Math.max(0, phaseSize - realCount) },
+        (_, i) => `TBD-P${idx}-${i + 1}`,
+      );
+      const phaseTeams = [...realPart, ...tbdPart];
+
       const phase = buildPhase(draft.name, draft.format, phaseTeams, {
         bo: draft.bo,
         groupCount: draft.groupCount,
