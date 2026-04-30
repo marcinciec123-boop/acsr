@@ -255,7 +255,7 @@ export const TournamentDetailPage = ({
 
   return (
     <section className="py-6">
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto px-4 max-w-[1400px]">
         <Button
           variant="ghost"
           size="sm"
