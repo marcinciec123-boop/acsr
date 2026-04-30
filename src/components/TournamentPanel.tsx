@@ -654,6 +654,9 @@ const TournamentPanel = () => {
         onAddBracketMatch={(phaseId, round) =>
           addBracketMatch(selectedTournament.id, phaseId, round)
         }
+        onAddBracketMatches={(phaseId, matches) =>
+          addBracketMatches(selectedTournament.id, phaseId, matches)
+        }
         onMoveBracketMatch={(phaseId, matchId, dir) =>
           moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
         }
