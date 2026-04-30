@@ -53,6 +53,9 @@ interface PhaseDraft {
   /** How many teams are pre-seeded into this phase (rest are TBD).
    *  0 means: use the previous phase's advanceCount (or all participants for phase 1). */
   seededCount: number;
+  /** Total number of teams in this phase. 0 = use incoming team count (default).
+   *  Useful for Swiss where e.g. 8 seeded + 8 TBD = 16-team Swiss stage. */
+  teamCount: number;
   /** How to assign teams to groups: random snake-seed (default) or manual after creation. */
   groupAssignment?: "random" | "manual";
 }
@@ -80,7 +83,7 @@ const TournamentPanel = () => {
 
   // Phases (custom builder)
   const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>([
-    { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0 },
+    { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 },
   ]);
 
   // Qualifier config
@@ -102,7 +105,7 @@ const TournamentPanel = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
     setNewLocation(""); setNewTier("A");
     setSelectedTeams([]); setTeamSearch("");
-    setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0 }]);
+    setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
     setQualScope("regional");
     setQualRegions(["EU"]);
@@ -139,7 +142,7 @@ const TournamentPanel = () => {
   const addPhaseDraft = () => {
     setPhaseDrafts(prev => [
       ...prev,
-      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4, seededCount: 0 },
+      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4, seededCount: 0, teamCount: 0 },
     ]);
   };
 
@@ -160,13 +163,25 @@ const TournamentPanel = () => {
     const phases: TournamentPhase[] = [];
     let teamsForPhase = [...selectedTeams];
     phaseDrafts.forEach((draft, idx) => {
-      // Apply seededCount: keep only first N real teams, fill rest as TBD up to original size.
-      let phaseTeams = [...teamsForPhase];
-      if (draft.seededCount > 0 && draft.seededCount < phaseTeams.length) {
-        const realPart = phaseTeams.slice(0, draft.seededCount);
-        const tbdPart = Array.from({ length: phaseTeams.length - draft.seededCount }, (_, i) => `TBD-P${idx}-${i + 1}`);
-        phaseTeams = [...realPart, ...tbdPart];
-      }
+      // Determine the size of this phase.
+      // Default = number of incoming teams (selectedTeams for phase 0, or previous advanceCount).
+      const incomingSize = teamsForPhase.length;
+      const phaseSize = draft.teamCount > 0 ? draft.teamCount : incomingSize;
+
+      // Number of "real" (known) teams that go into this phase. The rest are TBD.
+      // - If seededCount is set, use it (capped to phaseSize).
+      // - Otherwise, use as many incoming teams as fit.
+      const realCount = draft.seededCount > 0
+        ? Math.min(draft.seededCount, phaseSize, incomingSize)
+        : Math.min(incomingSize, phaseSize);
+
+      const realPart = teamsForPhase.slice(0, realCount);
+      const tbdPart = Array.from(
+        { length: Math.max(0, phaseSize - realCount) },
+        (_, i) => `TBD-P${idx}-${i + 1}`,
+      );
+      const phaseTeams = [...realPart, ...tbdPart];
+
       const phase = buildPhase(draft.name, draft.format, phaseTeams, {
         bo: draft.bo,
         groupCount: draft.groupCount,
@@ -1028,6 +1043,25 @@ const TournamentPanel = () => {
                             />
                             <p className="text-[9px] font-mono text-muted-foreground">Znanych drużyn (reszta TBD)</p>
                           </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            Rozmiar fazy (0 = auto)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={draft.teamCount}
+                            onChange={e => updatePhaseDraft(idx, { teamCount: parseInt(e.target.value) || 0 })}
+                            className="h-8 text-xs"
+                            title="Łączna liczba slotów w tej fazie. Np. Swiss 16 drużyn = 8 rozstawionych + 8 z kwalifikacji."
+                          />
+                          <p className="text-[9px] font-mono text-muted-foreground">
+                            {draft.format === "swiss"
+                              ? `Łącznie drużyn w Swiss (np. 16 = ${Math.max(0, draft.teamCount - draft.seededCount)} TBD + ${draft.seededCount} rozstawionych)`
+                              : "Łączna liczba slotów (puste = liczba uczestników)"}
+                          </p>
                         </div>
 
                         {showGroups && (
