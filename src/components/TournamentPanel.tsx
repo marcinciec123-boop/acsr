@@ -1045,6 +1045,25 @@ const TournamentPanel = () => {
                           </div>
                         </div>
 
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            Rozmiar fazy (0 = auto)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={draft.teamCount}
+                            onChange={e => updatePhaseDraft(idx, { teamCount: parseInt(e.target.value) || 0 })}
+                            className="h-8 text-xs"
+                            title="Łączna liczba slotów w tej fazie. Np. Swiss 16 drużyn = 8 rozstawionych + 8 z kwalifikacji."
+                          />
+                          <p className="text-[9px] font-mono text-muted-foreground">
+                            {draft.format === "swiss"
+                              ? `Łącznie drużyn w Swiss (np. 16 = ${Math.max(0, draft.teamCount - draft.seededCount)} TBD + ${draft.seededCount} rozstawionych)`
+                              : "Łączna liczba slotów (puste = liczba uczestników)"}
+                          </p>
+                        </div>
+
                         {showGroups && (
                           <div className="space-y-1 pt-1 border-t border-border/40">
                             <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
