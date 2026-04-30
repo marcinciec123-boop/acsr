@@ -486,133 +486,220 @@ export const TournamentDetailPage = ({
           </div>
         )}
 
-        {/* Phases */}
-        <div className="space-y-4">
-          {t.phases.map((phase, idx) => (
-            <motion.div
-              key={phase.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="bg-card border border-border rounded-lg overflow-hidden"
-            >
-              <div className="bg-secondary/40 px-4 py-3 flex items-center justify-between border-b border-border/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-muted-foreground">FAZA {idx + 1}</span>
-                  <h4 className="text-base font-heading font-bold text-foreground">{phase.name}</h4>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
-                    {formatLabel(phase.format)} • BO{phase.bo}
-                  </span>
-                </div>
-                {phase.advanceCount ? (
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    Awansuje: {phase.advanceCount}
-                  </span>
-                ) : null}
+        {/* Phases — tabbed: each phase gets its own dedicated panel */}
+        {t.phases.length > 0 && (
+          <div className="space-y-4">
+            {/* Phase tab navigation */}
+            <div className="bg-card border border-border rounded-lg p-2">
+              <div className="flex items-center gap-1.5 mb-2 px-2 pt-1">
+                <Layers className="w-3.5 h-3.5 text-primary" />
+                <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                  Fazy turnieju ({t.phases.length})
+                </h3>
               </div>
-              <div className="p-4 space-y-4">
-                {/* Seeding panel — assign real teams to phase slots (works for any phase, including higher rounds) */}
-                {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
-                  <PhaseSeedingPanel
-                    phaseTeams={phase.teams}
-                    allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
-                    slotCount={Math.max(
-                      phase.teams.length,
-                      (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
-                    )}
-                    onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
-                  />
-                )}
-                {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (
-                  <GroupAssignmentPanel
-                    phase={phase}
-                    availableTeams={Array.from(new Set(t.participants)).sort()}
-                    onSave={(assignment) => onAssignGroups(phase.id, assignment)}
-                    onShuffle={() => onShuffleGroups(phase.id)}
-                  />
-                )}
-                {phase.groups && phase.groups.length > 0 && (() => {
-                  const perGroup = phase.advanceCount && phase.groups.length > 0
-                    ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
-                    : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);
+              <div className="flex flex-wrap gap-1.5">
+                {t.phases.map((phase, idx) => {
+                  const { done, total, pct } = phaseProgress(phase);
+                  const isActive = phase.id === activePhaseId;
+                  const isDone = total > 0 && done === total;
                   return (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {phase.groups.map(g => (
-                      <GroupTable
-                        format={phase.format}
-                        advancePerGroup={perGroup}
-                        key={g.id}
-                        group={g}
-                        onMatchUpdate={(mid, s1, s2) =>
-                          onUpdateMatch(phase.id, mid, { score1: s1, score2: s2 }, g.id)
-                        }
-                        onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
-                      />
-                    ))}
-                  </div>
-                  );
-                })()}
-                {phase.bracket && phase.bracket.length > 0 && phase.format === "swiss" && (
-                  <SwissView
-                    phaseTeams={phase.teams}
-                    matches={phase.bracket}
-                    bo={phase.bo}
-                    advanceCount={phase.advanceCount}
-                    onUpdate={(mid, s1, s2, t1, t2) =>
-                      onUpdateMatch(phase.id, mid, {
-                        score1: s1, score2: s2,
-                        ...(t1 !== undefined && { team1: t1 }),
-                        ...(t2 !== undefined && { team2: t2 }),
-                      })
-                    }
-                    onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
-                    onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
-                    onGenerateNextRound={(pairings) => {
-                      if (onAddBracketMatches) {
-                        onAddBracketMatches(phase.id, pairings);
-                      } else {
-                        // fallback: add one by one (won't carry teams; older API)
-                        pairings.forEach(p => onAddBracketMatch(phase.id, p.round));
-                      }
-                    }}
-                  />
-                )}
-                {phase.bracket && phase.bracket.length > 0 && phase.format !== "swiss" && (
-                  <BracketView
-                    matches={phase.bracket}
-                    allTeams={[...t.participants, ...allTeams]}
-                    onUpdate={(mid, s1, s2, t1, t2, round) =>
-                      onUpdateMatch(phase.id, mid, {
-                        score1: s1, score2: s2,
-                        ...(t1 !== undefined && { team1: t1 }),
-                        ...(t2 !== undefined && { team2: t2 }),
-                        ...(round !== undefined && { round }),
-                      })
-                    }
-                    onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
-                    onMove={(mid, dir) => onMoveBracketMatch(phase.id, mid, dir)}
-                    onAdd={(round) => onAddBracketMatch(phase.id, round)}
-                    onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
-                  />
-                )}
-                {(!phase.groups || phase.groups.length === 0) && (!phase.bracket || phase.bracket.length === 0) && (
-                  <div className="text-center py-4">
-                    <p className="text-xs text-muted-foreground font-mono mb-3">
-                      Brak meczów w tej fazie.
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAddBracketMatch(phase.id, "Round 1")}
+                    <button
+                      key={phase.id}
+                      onClick={() => setActivePhaseId(phase.id)}
+                      className={cn(
+                        "group relative flex-1 min-w-[180px] text-left px-3 py-2.5 rounded-md border transition-all",
+                        isActive
+                          ? "bg-primary/10 border-primary text-foreground shadow-sm"
+                          : "bg-secondary/30 border-border hover:border-primary/40 hover:bg-secondary/50 text-muted-foreground"
+                      )}
                     >
-                      + Dodaj pierwszy mecz
-                    </Button>
-                  </div>
-                )}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className={cn(
+                          "text-[10px] font-mono tracking-wider",
+                          isActive ? "text-primary" : "text-muted-foreground"
+                        )}>
+                          FAZA {idx + 1}
+                        </span>
+                        {isDone && <CheckCircle2 className="w-3 h-3 text-[hsl(var(--win))]" />}
+                      </div>
+                      <div className={cn(
+                        "text-sm font-heading font-bold leading-tight mb-1.5 truncate",
+                        isActive ? "text-foreground" : "text-foreground/80"
+                      )}>
+                        {phase.name}
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-muted-foreground truncate">
+                          {formatLabel(phase.format)} • BO{phase.bo}
+                        </span>
+                        {total > 0 && (
+                          <span className={cn(
+                            "text-[10px] font-mono tabular-nums shrink-0",
+                            isDone ? "text-[hsl(var(--win))]" : isActive ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {done}/{total}
+                          </span>
+                        )}
+                      </div>
+                      {/* Progress bar */}
+                      {total > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border/50 rounded-b-md overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full transition-all",
+                              isDone ? "bg-[hsl(var(--win))]" : "bg-primary"
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+
+            {/* Active phase panel — full width, breathing room */}
+            {t.phases.map((phase, idx) => {
+              if (phase.id !== activePhaseId) return null;
+              return (
+                <motion.div
+                  key={phase.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-card border border-border rounded-lg overflow-hidden"
+                >
+                  <div className="bg-gradient-to-r from-primary/10 via-secondary/40 to-secondary/40 px-5 py-4 flex items-center justify-between border-b border-border/50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-md bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-heading font-bold text-primary">{idx + 1}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-lg font-heading font-bold text-foreground leading-tight truncate">{phase.name}</h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                            {formatLabel(phase.format)}
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground">BO{phase.bo}</span>
+                          {phase.advanceCount ? (
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              • Awansuje: <span className="text-foreground">{phase.advanceCount}</span>
+                            </span>
+                          ) : null}
+                          {phase.teams.length > 0 && (
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              • {phase.teams.filter(x => x && !x.startsWith("TBD")).length}/{phase.teams.length} drużyn
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 sm:p-6 space-y-5">
+                    {/* Seeding panel */}
+                    {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
+                      <PhaseSeedingPanel
+                        phaseTeams={phase.teams}
+                        allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
+                        slotCount={Math.max(
+                          phase.teams.length,
+                          (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
+                        )}
+                        onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
+                      />
+                    )}
+                    {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (
+                      <GroupAssignmentPanel
+                        phase={phase}
+                        availableTeams={Array.from(new Set(t.participants)).sort()}
+                        onSave={(assignment) => onAssignGroups(phase.id, assignment)}
+                        onShuffle={() => onShuffleGroups(phase.id)}
+                      />
+                    )}
+                    {phase.groups && phase.groups.length > 0 && (() => {
+                      const perGroup = phase.advanceCount && phase.groups.length > 0
+                        ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
+                        : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);
+                      return (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {phase.groups.map(g => (
+                            <GroupTable
+                              format={phase.format}
+                              advancePerGroup={perGroup}
+                              key={g.id}
+                              group={g}
+                              onMatchUpdate={(mid, s1, s2) =>
+                                onUpdateMatch(phase.id, mid, { score1: s1, score2: s2 }, g.id)
+                              }
+                              onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    {phase.bracket && phase.bracket.length > 0 && phase.format === "swiss" && (
+                      <SwissView
+                        phaseTeams={phase.teams}
+                        matches={phase.bracket}
+                        bo={phase.bo}
+                        advanceCount={phase.advanceCount}
+                        onUpdate={(mid, s1, s2, t1, t2) =>
+                          onUpdateMatch(phase.id, mid, {
+                            score1: s1, score2: s2,
+                            ...(t1 !== undefined && { team1: t1 }),
+                            ...(t2 !== undefined && { team2: t2 }),
+                          })
+                        }
+                        onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+                        onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
+                        onGenerateNextRound={(pairings) => {
+                          if (onAddBracketMatches) {
+                            onAddBracketMatches(phase.id, pairings);
+                          } else {
+                            pairings.forEach(p => onAddBracketMatch(phase.id, p.round));
+                          }
+                        }}
+                      />
+                    )}
+                    {phase.bracket && phase.bracket.length > 0 && phase.format !== "swiss" && (
+                      <BracketView
+                        matches={phase.bracket}
+                        allTeams={[...t.participants, ...allTeams]}
+                        onUpdate={(mid, s1, s2, t1, t2, round) =>
+                          onUpdateMatch(phase.id, mid, {
+                            score1: s1, score2: s2,
+                            ...(t1 !== undefined && { team1: t1 }),
+                            ...(t2 !== undefined && { team2: t2 }),
+                            ...(round !== undefined && { round }),
+                          })
+                        }
+                        onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+                        onMove={(mid, dir) => onMoveBracketMatch(phase.id, mid, dir)}
+                        onAdd={(round) => onAddBracketMatch(phase.id, round)}
+                        onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
+                      />
+                    )}
+                    {(!phase.groups || phase.groups.length === 0) && (!phase.bracket || phase.bracket.length === 0) && (
+                      <div className="text-center py-8">
+                        <p className="text-xs text-muted-foreground font-mono mb-3">
+                          Brak meczów w tej fazie.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAddBracketMatch(phase.id, "Round 1")}
+                        >
+                          + Dodaj pierwszy mecz
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border/50">
