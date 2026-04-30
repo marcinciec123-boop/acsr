@@ -9,6 +9,8 @@ interface Props {
   group: PhaseGroup;
   /** Phase format — affects whether we render UB/LB columns (gsl-de-groups). */
   format?: PhaseFormat;
+  /** How many teams advance from this group (per group, not total). Defaults: 2 for groups, 1 for SE-like. */
+  advancePerGroup?: number;
   onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
   onOpenMatch?: (matchId: string) => void;
 }
@@ -62,9 +64,10 @@ const renderMatchRow = (
   </div>
 );
 
-export const GroupTable = ({ group, format, onMatchUpdate, onOpenMatch }: Props) => {
+export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch }: Props) => {
   const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
+  const advN = advancePerGroup ?? (isGSLDE ? 2 : format === "gsl-groups" ? 2 : 2);
 
   // For IEM/GSL-DE: split matches into Upper / Lower bracket columns based on bracketSlot prefix
   const ubMatches = isGSLDE
@@ -100,16 +103,19 @@ export const GroupTable = ({ group, format, onMatchUpdate, onOpenMatch }: Props)
             </tr>
           </thead>
           <tbody>
-            {standings.map((s, i) => (
-              <tr key={s.team} className="border-b border-border/20">
-                <td className="py-1 text-muted-foreground">{i + 1}</td>
-                <td className={cn("py-1", i === 0 && "font-bold text-[hsl(var(--win))]", i === 1 && isGSLDE && "font-bold text-[hsl(var(--win))]")}>{s.team}</td>
+            {standings.map((s, i) => {
+              const advances = i < advN;
+              return (
+              <tr key={s.team} className={cn("border-b border-border/20", advances && "bg-[hsl(var(--win))]/5")}>
+                <td className={cn("py-1 text-muted-foreground", advances && "text-[hsl(var(--win))] font-bold")}>{i + 1}</td>
+                <td className={cn("py-1", advances && "font-bold text-[hsl(var(--win))]")}>{s.team}</td>
                 <td className="text-center py-1 font-mono">{s.wins}-{s.losses}</td>
                 <td className={cn("text-center py-1 font-mono", s.mapDiff > 0 && "text-[hsl(var(--win))]", s.mapDiff < 0 && "text-destructive")}>
                   {s.mapDiff > 0 ? `+${s.mapDiff}` : s.mapDiff}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
