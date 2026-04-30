@@ -479,7 +479,7 @@ const TournamentPanel = () => {
       if (t.id !== id) return t;
       // Auto-news on status transition
       if (t.status !== status) {
-        import("@/lib/autoNews").then(m => {
+        import("@/lib/autoNews").then(async (m) => {
           if (status === "live") m.announceTournamentStarted(t.name, t.tier, t.teams);
           if (status === "completed") {
             // Try to find winner from final bracket match
@@ -496,8 +496,39 @@ const TournamentPanel = () => {
               }
             }
             m.announceTournamentFinished(t.name, t.tier, winner, runnerUp);
+            // Auto AI recap pack (recap + MVP + power-ranking + hot-take)
+            try {
+              const { teamDatabase } = await import("@/data/tournaments");
+              const { getAllTransfers } = await import("@/data/history");
+              const { playerRoles } = await import("@/data/playerRoles");
+              const { computeCareerStats } = await import("@/lib/playerCareerStats");
+              const topTeams = [...teamDatabase].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
+              const topPlayers: { player: string; team: string; rating: number; role?: string }[] = [];
+              for (const team of topTeams.slice(0, 8)) {
+                let best: { player: string; rating: number } | null = null;
+                for (const p of team.roster || []) {
+                  try {
+                    const cs = computeCareerStats(p);
+                    if (cs.matchesPlayed > 0 && (!best || cs.careerRating > best.rating)) {
+                      best = { player: p, rating: cs.careerRating };
+                    }
+                  } catch { /* ignore */ }
+                }
+                if (best) topPlayers.push({ player: best.player, team: team.name, rating: best.rating, role: playerRoles[best.player] });
+              }
+              const transfers = getAllTransfers().slice(-15).reverse();
+              await m.generateTournamentRecap(t.name, t.tier, winner, runnerUp, {
+                topTeams: topTeams.map(tt => ({ name: tt.name, points: tt.points || 0, country: tt.country })),
+                recentTransfers: transfers.map(tr => ({ player: tr.player, oldTeam: tr.oldTeam, newTeam: tr.newTeam })),
+                tournaments: [{ name: t.name, status: "completed", tier: t.tier, teams: t.teams, winner, runnerUp }],
+                topPlayers,
+              });
+            } catch (e) {
+              console.warn("Auto recap failed:", e);
+            }
           }
         });
+
       }
       return { ...t, status };
     }));

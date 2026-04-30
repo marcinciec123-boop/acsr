@@ -113,28 +113,46 @@ export function announceRankingChange(team: string, oldRank: number, newRank: nu
 
 // ----------------- AI rumor batch -----------------
 
+export type AIPostMode =
+  | "mixed"
+  | "memes"
+  | "mvp"
+  | "power-ranking"
+  | "beef"
+  | "hot-take"
+  | "fun-fact"
+  | "recap"
+  | "preview";
+
 export interface WorldSnapshot {
   topTeams: { name: string; points: number; country: string }[];
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
-  tournaments: { name: string; status: string; tier: string; teams: number }[];
-  topPlayers?: { player: string; team: string; rating: number }[];
+  tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null }[];
+  topPlayers?: { player: string; team: string; rating: number; role?: string }[];
 }
 
-export async function generateAIRumors(snapshot: WorldSnapshot, count = 5): Promise<{
-  ok: boolean;
-  posted?: number;
-  error?: string;
-}> {
+export async function generateAIRumors(
+  snapshot: WorldSnapshot,
+  count = 6,
+  options?: { mode?: AIPostMode; context?: string; eventKeyPrefix?: string },
+): Promise<{ ok: boolean; posted?: number; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("generate-news", {
-      body: { ...snapshot, count },
+      body: {
+        ...snapshot,
+        count,
+        mode: options?.mode || "mixed",
+        context: options?.context,
+      },
     });
     if (error) return { ok: false, error: error.message };
     if (data?.error) return { ok: false, error: data.error };
     const posts: { category: string; content: string }[] = data?.posts || [];
+    const prefix = options?.eventKeyPrefix || "ai";
+    const stamp = Date.now();
     let n = 0;
     posts.forEach((p, i) => {
-      const key = `ai:${Date.now()}:${i}`;
+      const key = `${prefix}:${stamp}:${i}`;
       if (appendPost(key, p.content, p.category)) n++;
     });
     return { ok: true, posted: n };
@@ -142,3 +160,28 @@ export async function generateAIRumors(snapshot: WorldSnapshot, count = 5): Prom
     return { ok: false, error: e instanceof Error ? e.message : "Unknown" };
   }
 }
+
+// ----------------- post-tournament AI recap -----------------
+
+/** Triggered when a tournament finishes — generates AI recap + MVP + power-ranking shift posts. */
+export async function generateTournamentRecap(
+  tournamentName: string,
+  tier: string,
+  winner: string | null,
+  runnerUp: string | null,
+  snapshot: WorldSnapshot,
+): Promise<void> {
+  const ctx = `Turniej "${tournamentName}" (Tier ${tier}) właśnie się zakończył. \
+Zwycięzca: ${winner || "nieznany"}. Drugie miejsce: ${runnerUp || "nieznane"}. \
+Napisz 4 posty: (1) recap turnieju z najważniejszymi momentami, \
+(2) sylwetka MVP (wybierz gracza ze zwycięskiej drużyny z top playersów), \
+(3) power-ranking top 5 po turnieju z krótkim komentarzem, \
+(4) hot-take lub mem o przegranym finaliście / zaskoczeniu turnieju.`;
+
+  await generateAIRumors(snapshot, 4, {
+    mode: "recap",
+    context: ctx,
+    eventKeyPrefix: `recap:${tournamentName}`,
+  });
+}
+
