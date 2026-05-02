@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown, ChevronDown, Layers } from "lucide-react";
 import { type Tournament, type TournamentSimulation, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
@@ -114,6 +114,151 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
         </div>
       </div>
     </motion.button>
+  );
+};
+
+// Helper: derive region label from qualifier name
+const regionLabel = (name: string) => {
+  const m = name.match(/[—-]\s*([^—-]+?)(?:\s+Elimination|\s+Qualifier)?$/i);
+  return (m?.[1] || name).trim();
+};
+
+const QualifierBundleCard = ({
+  bundleKey,
+  tournaments,
+  index,
+  simResults,
+  onOpen,
+}: {
+  bundleKey: string;
+  tournaments: Tournament[];
+  index: number;
+  simResults: Record<string, TournamentSimulation>;
+  onOpen: (id: string) => void;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const tier = first.tier;
+  const completed = sorted.filter((t) => t.status === "completed").length;
+  const total = sorted.length;
+  const live = sorted.some((t) => t.status === "live");
+  const allDone = completed === total;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
+      className={cn(
+        "group relative bg-card border border-border rounded-lg overflow-hidden md:col-span-2 lg:col-span-3",
+        live && "border-destructive/30 neon-border",
+        allDone && "border-win/20"
+      )}
+    >
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left p-5 hover:bg-muted/20 transition-colors"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={cn("font-heading font-bold text-lg", tierColors[tier])}>{tier}</span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                Kwalifikacje
+              </span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                {total} {total === 1 ? "region" : "regiony"}
+              </span>
+              {allDone && (
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-win/30 bg-win/10 text-win flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Zakończone
+                </span>
+              )}
+            </div>
+            <h3 className="font-heading text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+              {bundleKey} — Kwalifikacje
+            </h3>
+            <p className="text-muted-foreground text-sm">{first.organizer}</p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "w-5 h-5 text-muted-foreground transition-transform mt-1 shrink-0",
+              expanded && "rotate-180"
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            <span className="font-mono text-foreground">{completed}/{total}</span>
+            <span>rozegranych</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="w-3.5 h-3.5" />
+            <span>{sorted.reduce((s, t) => s + (t.teams || 0), 0)} drużyn</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Online</span>
+          </div>
+          <div className="text-muted-foreground font-mono">
+            {new Date(first.startDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+            {" – "}
+            {new Date(last.endDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+          </div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="border-t border-border overflow-hidden"
+          >
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {sorted.map((t) => {
+                const status = statusConfig[t.status];
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onOpen(t.id)}
+                    className="flex items-center justify-between gap-2 p-3 rounded-md border border-border bg-background/40 hover:border-primary/40 hover:bg-muted/20 transition-colors text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded border", status.className)}>
+                          {status.label}
+                        </span>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {t.teams} dr.
+                        </span>
+                      </div>
+                      <div className="font-heading text-sm font-semibold text-foreground truncate">
+                        {regionLabel(t.name)}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {new Date(t.startDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+                        {" – "}
+                        {new Date(t.endDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -264,30 +409,77 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
         </div>
 
         {/* Tournament list */}
-        {Object.entries(grouped).map(([month, monthTournaments]) => (
-          <div key={month} className="mb-8">
-            <h3 className="font-heading text-lg font-bold text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">
-              {month}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {monthTournaments.map((t, i) => (
-                  <TournamentCard
-                    key={t.id}
-                    tournament={t}
-                    index={i}
-                    hasResult={!!simResults[t.id]}
-                    onClick={() => {
-                      if (simResults[t.id]) {
-                        setSelectedId(t.id);
-                      } else if (t.status === "upcoming") {
-                        onPlayTournament(t.id);
-                      }
-                    }}
-                  />
-                ))}
+        {Object.entries(grouped).map(([month, monthTournaments]) => {
+          // Group qualifiers under their parent major
+          const isQualifier = (t: Tournament) => /elimination|qualifier|open\s*qual|closed\s*qual/i.test(t.name);
+          const qualKey = (t: Tournament) => {
+            // Strip "— XYZ Elimination/Qualifier" suffix to get parent group key
+            return t.name.replace(/\s*[—-]\s*.*?(elimination|qualifier).*$/i, "").trim();
+          };
+
+          const qualifiers = monthTournaments.filter(isQualifier);
+          const nonQualifiers = monthTournaments.filter((t) => !isQualifier(t));
+
+          // Bundle qualifiers by parent key
+          const qualBundles = qualifiers.reduce<Record<string, Tournament[]>>((acc, t) => {
+            const key = qualKey(t);
+            (acc[key] ??= []).push(t);
+            return acc;
+          }, {});
+
+          // Build display items: non-qualifiers as cards + bundles as grouped cards
+          type Item =
+            | { kind: "card"; t: Tournament }
+            | { kind: "bundle"; key: string; tournaments: Tournament[] };
+
+          const items: Item[] = [
+            ...nonQualifiers.map((t) => ({ kind: "card" as const, t })),
+            ...Object.entries(qualBundles).map(([key, ts]) => ({ kind: "bundle" as const, key, tournaments: ts })),
+          ];
+
+          return (
+            <div key={month} className="mb-8">
+              <h3 className="font-heading text-lg font-bold text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">
+                {month}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((item, i) =>
+                  item.kind === "card" ? (
+                    <TournamentCard
+                      key={item.t.id}
+                      tournament={item.t}
+                      index={i}
+                      hasResult={!!simResults[item.t.id]}
+                      onClick={() => {
+                        if (simResults[item.t.id]) {
+                          setSelectedId(item.t.id);
+                        } else if (item.t.status === "upcoming") {
+                          onPlayTournament(item.t.id);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <QualifierBundleCard
+                      key={item.key}
+                      bundleKey={item.key}
+                      tournaments={item.tournaments}
+                      index={i}
+                      simResults={simResults}
+                      onOpen={(id) => {
+                        if (simResults[id]) {
+                          setSelectedId(id);
+                        } else {
+                          const tt = tournaments.find((x) => x.id === id);
+                          if (tt?.status === "upcoming") onPlayTournament(id);
+                        }
+                      }}
+                    />
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 && (
           <p className="text-muted-foreground text-center py-12 font-mono">Brak turniejów spełniających kryteria.</p>
