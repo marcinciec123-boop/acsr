@@ -3,8 +3,9 @@ import { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
   Award, Send, ArrowUp, ArrowDown, Shuffle, Save, Radio, CheckCircle2, Clock,
-  Layers,
+  Layers, ArrowRight,
 } from "lucide-react";
+import { computePhaseWinners, getPhaseFinishStatus } from "@/lib/phaseWinners";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -601,6 +602,60 @@ export const TournamentDetailPage = ({
                     </div>
                   </div>
                   <div className="p-5 sm:p-6 space-y-5">
+                    {/* Promote winners → next phase */}
+                    {(() => {
+                      const nextPhase = t.phases[idx + 1];
+                      if (!nextPhase || !onReseedPhase) return null;
+                      const status = getPhaseFinishStatus(phase);
+                      const winners = computePhaseWinners(phase);
+                      const expected = nextPhase.teams.length || winners.length;
+                      const alreadySeeded = nextPhase.teams.filter(x => x && !x.startsWith("TBD")).length;
+                      const allSeeded = alreadySeeded >= expected && expected > 0
+                        && winners.every(w => nextPhase.teams.includes(w));
+                      if (allSeeded) return null;
+                      return (
+                        <div className={cn(
+                          "flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-md border",
+                          status.finished
+                            ? "bg-[hsl(var(--win))]/10 border-[hsl(var(--win))]/40"
+                            : "bg-secondary/40 border-border"
+                        )}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ArrowRight className={cn(
+                              "w-4 h-4 shrink-0",
+                              status.finished ? "text-[hsl(var(--win))]" : "text-muted-foreground"
+                            )} />
+                            <div className="min-w-0">
+                              <div className="text-xs font-heading font-bold">
+                                {status.finished
+                                  ? `Faza zakończona — gotowe do awansu (${winners.length} drużyn)`
+                                  : `Awansuje do: ${nextPhase.name}`}
+                              </div>
+                              <div className="text-[10px] font-mono text-muted-foreground truncate">
+                                {winners.length > 0
+                                  ? winners.join(" • ")
+                                  : "Brak rozstrzygniętych zwycięzców."}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={winners.length === 0}
+                            onClick={() => {
+                              const padded = [...winners];
+                              while (padded.length < expected) padded.push(`TBD-P${idx + 1}-${padded.length + 1}`);
+                              onReseedPhase(nextPhase.id, padded);
+                              setActivePhaseId(nextPhase.id);
+                            }}
+                            className="gap-1.5 h-8"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Awansuj do {nextPhase.name}
+                          </Button>
+                        </div>
+                      );
+                    })()}
+
                     {/* Seeding panel */}
                     {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
                       <PhaseSeedingPanel
