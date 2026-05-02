@@ -40,10 +40,22 @@ const getTeamStrength = (teamName: string): number => {
   return Math.max(100, t?.points ?? 800);
 };
 
-const getRoster = (teamName: string): string[] => {
+const getRoster = (teamName: string, tournamentId?: string): string[] => {
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const src = stored && stored.length > 0 ? stored : teamDatabase;
   const t = src.find(x => x.name === teamName);
+
+  // 1) Tournament-specific lineup wins if set.
+  if (tournamentId) {
+    const explicit = getTournamentLineup(tournamentId, teamName);
+    if (explicit.length > 0) {
+      const roster = explicit.slice(0, 5);
+      while (roster.length < 5) roster.push(`Player ${roster.length + 1}`);
+      return roster;
+    }
+  }
+
+  // 2) Otherwise: full roster minus benched players.
   const benched = new Set(getBenchedFor(teamName));
   const active = (t?.roster || []).filter(p => !benched.has(p));
   const roster = active.slice(0, 5);
