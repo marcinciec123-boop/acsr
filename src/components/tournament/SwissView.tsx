@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, X, Layers, Maximize2, Pencil, Sparkles, AlertCircle, Trash2 } from "lucide-react";
+import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MatchResult } from "@/lib/types";
 import {
@@ -97,11 +96,10 @@ const OpponentCell = ({
   );
 };
 
-/** Inline-editable match card used in per-round sections. */
+/** Match card – click anywhere to open the full match panel. */
 const RoundMatchCard = ({
   match,
   decisive,
-  onUpdate,
   onOpenMatch,
   onDelete,
 }: {
@@ -111,38 +109,32 @@ const RoundMatchCard = ({
   onOpenMatch?: (id: string) => void;
   onDelete?: (id: string) => void;
 }) => {
-  const [s1, setS1] = useState(String(match.score1 || ""));
-  const [s2, setS2] = useState(String(match.score2 || ""));
-  const [editing, setEditing] = useState(false);
   const played = match.score1 + match.score2 > 0;
+  const inProgress = (match.maps?.length || 0) > 0 && !played;
   const winner: 1 | 2 | 0 = !played ? 0 : match.score1 > match.score2 ? 1 : 2;
 
-  const commit = () => {
-    const a = parseInt(s1, 10) || 0;
-    const b = parseInt(s2, 10) || 0;
-    if (a !== match.score1 || b !== match.score2) onUpdate(match.id, a, b);
-    setEditing(false);
-  };
+  const handleOpen = () => onOpenMatch?.(match.id);
 
   return (
-    <div className={cn(
-      "border rounded-md overflow-hidden bg-card text-xs",
-      decisive ? "border-[hsl(var(--gold))]/40 shadow-[0_0_0_1px_hsl(var(--gold)/0.15)]" : "border-border",
-    )}>
+    <div
+      onClick={handleOpen}
+      className={cn(
+        "border rounded-md overflow-hidden bg-card text-xs transition-colors",
+        onOpenMatch && "cursor-pointer hover:border-primary/60 hover:bg-card/80",
+        decisive ? "border-[hsl(var(--gold))]/40 shadow-[0_0_0_1px_hsl(var(--gold)/0.15)]" : "border-border",
+      )}
+      title={onOpenMatch ? "Otwórz panel meczu" : undefined}
+    >
       <div className="flex items-center justify-between px-2 py-1 bg-secondary/40 border-b border-border/50">
         <span className="text-[9px] font-mono text-muted-foreground tracking-wider">
           BO{match.bo || 1}
           {decisive && <span className="ml-1.5 text-[hsl(var(--gold))]">★ KLUCZOWY</span>}
+          {inProgress && <span className="ml-1.5 text-primary">● W TRAKCIE</span>}
         </span>
-        <div className="flex gap-0.5">
-          {onOpenMatch && played && (
-            <button onClick={() => onOpenMatch(match.id)} className="p-0.5 hover:bg-secondary rounded" title="Szczegóły">
+        <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+          {onOpenMatch && (
+            <button onClick={handleOpen} className="p-0.5 hover:bg-secondary rounded" title="Otwórz panel meczu">
               <Maximize2 className="w-2.5 h-2.5" />
-            </button>
-          )}
-          {!editing && (
-            <button onClick={() => setEditing(true)} className="p-0.5 hover:bg-secondary rounded" title="Edytuj wynik">
-              <Pencil className="w-2.5 h-2.5" />
             </button>
           )}
           {onDelete && (
@@ -162,23 +154,12 @@ const RoundMatchCard = ({
             isWinner && "bg-[hsl(var(--win))]/10",
           )}>
             <TeamCell name={name} />
-            {editing ? (
-              <Input
-                value={slot === 1 ? s1 : s2}
-                onChange={(e) => slot === 1 ? setS1(e.target.value) : setS2(e.target.value)}
-                onBlur={commit}
-                onKeyDown={(e) => e.key === "Enter" && commit()}
-                className="h-6 w-10 px-1 text-center font-mono text-xs ml-2"
-                autoFocus={slot === 1}
-              />
-            ) : (
-              <span className={cn(
-                "font-mono font-bold tabular-nums text-sm ml-2",
-                isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground",
-              )}>
-                {score}
-              </span>
-            )}
+            <span className={cn(
+              "font-mono font-bold tabular-nums text-sm ml-2",
+              isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground",
+            )}>
+              {score}
+            </span>
           </div>
         );
       })}
