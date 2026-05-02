@@ -59,15 +59,24 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
 
   const maps: MatchMap[] = useMemo(() => match.maps || [], [match.maps]);
 
+  const isMapDecided = (m: MatchMap) => {
+    const max = Math.max(m.score1, m.score2);
+    const diff = Math.abs(m.score1 - m.score2);
+    // CS2 MR12: first to 13 with 2-round lead. Overtime increments by 3 (16, 19, 22, …).
+    return max >= 13 && diff >= 2;
+  };
+
   const computedScore = useMemo(() => {
     if (maps.length === 0) return { s1: match.score1, s2: match.score2 };
     let s1 = 0, s2 = 0;
     maps.forEach(m => {
+      if (!isMapDecided(m)) return;
       if (m.score1 > m.score2) s1++;
       else if (m.score2 > m.score1) s2++;
     });
     return { s1, s2 };
   }, [maps, match.score1, match.score2]);
+
 
   useEffect(() => {
     if (maps.length === 0) return;
