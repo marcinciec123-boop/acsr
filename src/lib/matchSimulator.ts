@@ -118,6 +118,9 @@ export interface SimulateOptions {
   maps?: string[];
   /** Force a specific score (e.g. 2-1). If omitted derived from strength. */
   forcedScore?: { score1: number; score2: number };
+  /** Tournament context: if set and a per-tournament lineup exists for either
+   *  team, that lineup is used instead of the team's active roster. */
+  tournamentId?: string;
 }
 
 /**
