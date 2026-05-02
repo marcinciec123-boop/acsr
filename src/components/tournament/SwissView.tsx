@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, X, Layers, Maximize2, Pencil, Sparkles, AlertCircle, Trash2 } from "lucide-react";
+import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MatchResult } from "@/lib/types";
 import {
