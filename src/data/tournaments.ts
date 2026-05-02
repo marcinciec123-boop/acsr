@@ -607,7 +607,7 @@ export const teamDatabase: TeamData[] = [
   { name: "Pollen Tantrum", points: 475, country: "NZL", region: "OCE", roster: ["xertz", "RaZ", "aslan", "sterling", "nebet"] },
   { name: "Parivision", points: 460, country: "SRB", region: "EU", roster: ["sdy", "KaiR0N-", "Neityu", "torzsi", "Magnojez"] },
   { name: "x6tence galaxy", points: 455, country: "SWE", region: "EU", roster: ["coRoZz", "spyder", "shimari", "Polen", "LoReN"] },
-  { name: "NiP", points: 455, country: "SWE", region: "EU", roster: ["hampus", "Lekr0", "ZyTre", "KRIMZ", "Benzn"] },
+  { name: "Ninjas in Pyjamas", points: 455, country: "SWE", region: "EU", roster: ["hampus", "Lekr0", "ZyTre", "KRIMZ", "Benzn"] },
   { name: "Inner Circle", points: 445, country: "SVN", region: "EU", roster: ["saveey", "jR", "NEOFRAG", "jank0", "stressarN"] },
   { name: "IHC eSports", points: 430, country: "MNG", region: "ASIA", roster: ["kabal", "sk0r", "ANNIHILA", "hasteka", "910"] },
   { name: "Splyce", points: 430, country: "USA", region: "US", roster: ["zOOt", "deficit", "Kila", "primaL", "RFX"] },
