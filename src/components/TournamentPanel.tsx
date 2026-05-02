@@ -566,8 +566,8 @@ const TournamentPanel = () => {
     const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
     const next = tournaments.map(t => t.id === id ? finalized : t);
     const saved = saveToStorage(STORAGE_KEY, next);
-    setTournaments(next);
     if (saved) {
+      setTournaments(next);
       const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
       const placements = finalized.placements || [];
       saveToStorage("ranking_data", ranking.map(team => {
