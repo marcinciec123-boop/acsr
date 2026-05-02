@@ -264,30 +264,77 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
         </div>
 
         {/* Tournament list */}
-        {Object.entries(grouped).map(([month, monthTournaments]) => (
-          <div key={month} className="mb-8">
-            <h3 className="font-heading text-lg font-bold text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">
-              {month}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {monthTournaments.map((t, i) => (
-                  <TournamentCard
-                    key={t.id}
-                    tournament={t}
-                    index={i}
-                    hasResult={!!simResults[t.id]}
-                    onClick={() => {
-                      if (simResults[t.id]) {
-                        setSelectedId(t.id);
-                      } else if (t.status === "upcoming") {
-                        onPlayTournament(t.id);
-                      }
-                    }}
-                  />
-                ))}
+        {Object.entries(grouped).map(([month, monthTournaments]) => {
+          // Group qualifiers under their parent major
+          const isQualifier = (t: Tournament) => /elimination|qualifier|open\s*qual|closed\s*qual/i.test(t.name);
+          const qualKey = (t: Tournament) => {
+            // Strip "— XYZ Elimination/Qualifier" suffix to get parent group key
+            return t.name.replace(/\s*[—-]\s*.*?(elimination|qualifier).*$/i, "").trim();
+          };
+
+          const qualifiers = monthTournaments.filter(isQualifier);
+          const nonQualifiers = monthTournaments.filter((t) => !isQualifier(t));
+
+          // Bundle qualifiers by parent key
+          const qualBundles = qualifiers.reduce<Record<string, Tournament[]>>((acc, t) => {
+            const key = qualKey(t);
+            (acc[key] ??= []).push(t);
+            return acc;
+          }, {});
+
+          // Build display items: non-qualifiers as cards + bundles as grouped cards
+          type Item =
+            | { kind: "card"; t: Tournament }
+            | { kind: "bundle"; key: string; tournaments: Tournament[] };
+
+          const items: Item[] = [
+            ...nonQualifiers.map((t) => ({ kind: "card" as const, t })),
+            ...Object.entries(qualBundles).map(([key, ts]) => ({ kind: "bundle" as const, key, tournaments: ts })),
+          ];
+
+          return (
+            <div key={month} className="mb-8">
+              <h3 className="font-heading text-lg font-bold text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">
+                {month}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((item, i) =>
+                  item.kind === "card" ? (
+                    <TournamentCard
+                      key={item.t.id}
+                      tournament={item.t}
+                      index={i}
+                      hasResult={!!simResults[item.t.id]}
+                      onClick={() => {
+                        if (simResults[item.t.id]) {
+                          setSelectedId(item.t.id);
+                        } else if (item.t.status === "upcoming") {
+                          onPlayTournament(item.t.id);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <QualifierBundleCard
+                      key={item.key}
+                      bundleKey={item.key}
+                      tournaments={item.tournaments}
+                      index={i}
+                      simResults={simResults}
+                      onOpen={(id) => {
+                        if (simResults[id]) {
+                          setSelectedId(id);
+                        } else {
+                          const tt = tournaments.find((x) => x.id === id);
+                          if (tt?.status === "upcoming") onPlayTournament(id);
+                        }
+                      }}
+                    />
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 && (
           <p className="text-muted-foreground text-center py-12 font-mono">Brak turniejów spełniających kryteria.</p>
