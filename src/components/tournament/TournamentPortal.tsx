@@ -557,12 +557,32 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate }: Props) => 
           </div>
         )}
 
-        {/* Grid of cards */}
+        {/* Grid of cards — qualifiers from the same parent are bundled together */}
         <AnimatePresence mode="popLayout">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {restList.map(t => (
-              <TournamentCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
-            ))}
+            {(() => {
+              const quals = restList.filter(isQualifierName);
+              const singles = restList.filter(t => !isQualifierName(t));
+              const bundles = quals.reduce<Record<string, TournamentData[]>>((acc, t) => {
+                const key = qualifierBundleKey(t);
+                (acc[key] ??= []).push(t);
+                return acc;
+              }, {});
+              const nodes: JSX.Element[] = [];
+              singles.forEach(t => {
+                nodes.push(<TournamentCard key={t.id} t={t} onClick={() => onSelect(t.id)} />);
+              });
+              Object.entries(bundles).forEach(([key, ts]) => {
+                if (ts.length === 1) {
+                  nodes.push(<TournamentCard key={ts[0].id} t={ts[0]} onClick={() => onSelect(ts[0].id)} />);
+                } else {
+                  nodes.push(
+                    <QualifierBundleCard key={`bundle-${key}`} bundleKey={key} tournaments={ts} onSelect={onSelect} />
+                  );
+                }
+              });
+              return nodes;
+            })()}
           </div>
         </AnimatePresence>
       </div>
