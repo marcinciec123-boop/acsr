@@ -499,7 +499,7 @@ export const playerRealNames: Record<string, { firstName: string; lastName: stri
   zehN: { firstName: "Jesse", lastName: "Linjala" },
   zhoKing: { firstName: "Zhong", lastName: "Weijie" },
   zont1x: { firstName: "Myroslav", lastName: "Plakhotia" },
-  z00t: { firstName: "Arnold", lastName: "Hebert" },
+  zOOt: { firstName: "Arnold", lastName: "Hebert" },
   ztr: { firstName: "Erik", lastName: "Gustafsson" },
   zyoN: { firstName: "Fabian", lastName: "Haynes" },
 };
