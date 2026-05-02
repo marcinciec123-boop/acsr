@@ -11,13 +11,14 @@ import {
 import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
-import { teamDatabase } from "@/data/tournaments";
+import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
+import { toast } from "@/hooks/use-toast";
 
 interface SelectedMatchRef {
   phaseId: string;
@@ -45,6 +46,18 @@ const REGIONS: { code: string; label: string }[] = [
   { code: "OCE", label: "Oceania" },
   { code: "AFR", label: "Afryka" },
 ];
+
+const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
+const matchWinner = (m: MatchResult) => {
+  if (m.team2 === "BYE" && isRealTeam(m.team1)) return m.team1;
+  if (m.team1 === "BYE" && isRealTeam(m.team2)) return m.team2;
+  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  return m.score1 > m.score2 ? m.team1 : m.team2;
+};
+const matchLoser = (m: MatchResult) => {
+  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  return m.score1 > m.score2 ? m.team2 : m.team1;
+};
 
 interface PhaseDraft {
   name: string;
