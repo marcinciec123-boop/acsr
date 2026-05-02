@@ -16,7 +16,25 @@ export interface DeviceBackupSnapshot {
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
 const isManagedKey = (key: string) =>
-  key.startsWith("csgo_hub_") || key.startsWith("tournament_progress_");
+  (key.startsWith("csgo_hub_") || key.startsWith("tournament_progress_"))
+    && key !== AUTO_BACKUP_FLAG_KEY;
+
+// ===== Autozapis on/off =====
+const AUTO_BACKUP_FLAG_KEY = "csgo_hub_auto_backup_disabled";
+
+export const isAutoBackupEnabled = (): boolean => {
+  if (typeof localStorage === "undefined") return true;
+  return localStorage.getItem(AUTO_BACKUP_FLAG_KEY) !== "1";
+};
+
+export const setAutoBackupEnabled = (enabled: boolean): void => {
+  if (typeof localStorage === "undefined") return;
+  if (enabled) localStorage.removeItem(AUTO_BACKUP_FLAG_KEY);
+  else localStorage.setItem(AUTO_BACKUP_FLAG_KEY, "1");
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("csgo-hub-auto-backup-toggle"));
+  }
+};
 
 const openBackupDb = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
   if (!isBrowser()) return reject(new Error("Brak dostępu do zapisu urządzenia"));
@@ -115,10 +133,60 @@ export const createDeviceBackup = async (
 let backupTimer: number | undefined;
 export const scheduleDeviceBackup = (reason: DeviceBackupSnapshot["reason"] = "auto") => {
   if (!isBrowser()) return;
+  // Skip auto-saves entirely when the user disabled them. Manual/import always pass through.
+  if (reason === "auto" && !isAutoBackupEnabled()) return;
   window.clearTimeout(backupTimer);
   backupTimer = window.setTimeout(() => {
     void createDeviceBackup(reason).catch(error => console.error("Device backup failed:", error));
   }, 1000);
+};
+
+export const deleteDeviceBackup = async (id: string): Promise<void> => {
+  const db = await openBackupDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BACKUP_STORE, "readwrite");
+    const req = tx.objectStore(BACKUP_STORE).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("csgo-hub-device-backup"));
+  }
+};
+
+export const deleteDeviceBackupsByReason = async (
+  reason: DeviceBackupSnapshot["reason"],
+): Promise<number> => {
+  const all = await listDeviceBackups();
+  const matches = all.filter(b => b.reason === reason);
+  if (matches.length === 0) return 0;
+  const db = await openBackupDb();
+  await Promise.all(matches.map(b => new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BACKUP_STORE, "readwrite");
+    const req = tx.objectStore(BACKUP_STORE).delete(b.id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  })));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("csgo-hub-device-backup"));
+  }
+  return matches.length;
+};
+
+export const deleteAllDeviceBackups = async (): Promise<number> => {
+  const all = await listDeviceBackups();
+  if (all.length === 0) return 0;
+  const db = await openBackupDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BACKUP_STORE, "readwrite");
+    const req = tx.objectStore(BACKUP_STORE).clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("csgo-hub-device-backup"));
+  }
+  return all.length;
 };
 
 export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnapshot> => {
