@@ -17,6 +17,7 @@ import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import { setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
+import TeamLogo from "@/components/TeamLogo";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
@@ -97,12 +98,22 @@ const PlayerProfile = ({
           className="bg-gradient-to-br from-card via-card to-secondary/30 border border-border rounded-xl overflow-hidden mb-6"
         >
           <div className="p-6 flex flex-wrap items-center gap-6">
-            <div className={cn(
-              "w-24 h-24 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-xl shrink-0 ring-4 ring-background/50",
-              avatarGradient,
-            )}>
-              <User className="w-12 h-12" />
-            </div>
+            {currentTeam ? (
+              <button
+                onClick={() => onSelectTeam(currentTeam.name)}
+                title={`Przejdź do ${currentTeam.name}`}
+                className="shrink-0 ring-4 ring-background/50 rounded-2xl shadow-xl hover:ring-primary/40 transition-all"
+              >
+                <TeamLogo teamName={currentTeam.name} size={96} rounded="xl" />
+              </button>
+            ) : (
+              <div className={cn(
+                "w-24 h-24 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-xl shrink-0 ring-4 ring-background/50",
+                avatarGradient,
+              )}>
+                <User className="w-12 h-12" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-4xl font-heading font-bold text-foreground tracking-tight">{playerName}</h1>
