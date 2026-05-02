@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, HardDrive, RotateCcw, Save, Upload } from "lucide-react";
+import { Download, HardDrive, RotateCcw, Save, Trash2, Upload, Power, PowerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   createDeviceBackup,
+  deleteAllDeviceBackups,
+  deleteDeviceBackup,
+  deleteDeviceBackupsByReason,
   importDeviceBackup,
+  isAutoBackupEnabled,
   listDeviceBackups,
   restoreDeviceBackup,
+  setAutoBackupEnabled,
   type DeviceBackupSnapshot,
 } from "@/lib/deviceBackup";
 
@@ -16,18 +22,28 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
+const reasonLabel = (r: DeviceBackupSnapshot["reason"]) =>
+  r === "manual" ? "ręczny" : r === "import" ? "import" : "auto";
+
 const DeviceBackupPanel = () => {
   const [backups, setBackups] = useState<DeviceBackupSnapshot[]>([]);
   const [busy, setBusy] = useState(false);
+  const [autoOn, setAutoOn] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => setBackups(await listDeviceBackups());
 
   useEffect(() => {
     void refresh();
+    setAutoOn(isAutoBackupEnabled());
     const listener = () => void refresh();
+    const toggleListener = () => setAutoOn(isAutoBackupEnabled());
     window.addEventListener("csgo-hub-device-backup", listener);
-    return () => window.removeEventListener("csgo-hub-device-backup", listener);
+    window.addEventListener("csgo-hub-auto-backup-toggle", toggleListener);
+    return () => {
+      window.removeEventListener("csgo-hub-device-backup", listener);
+      window.removeEventListener("csgo-hub-auto-backup-toggle", toggleListener);
+    };
   }, []);
 
   const handleManualSave = async () => {
@@ -65,6 +81,47 @@ const DeviceBackupPanel = () => {
     toast({ title: "Zaimportowano zapis", description: imported.label });
   };
 
+  const handleDelete = async (backup: DeviceBackupSnapshot) => {
+    if (!confirm(`Usunąć zapis z ${new Date(backup.createdAt).toLocaleString("pl-PL")}? Tej operacji nie można cofnąć.`)) return;
+    await deleteDeviceBackup(backup.id);
+    await refresh();
+    toast({ title: "Zapis usunięty" });
+  };
+
+  const handleDeleteAllAuto = async () => {
+    const autos = backups.filter(b => b.reason === "auto").length;
+    if (autos === 0) {
+      toast({ title: "Brak auto-zapisów" });
+      return;
+    }
+    if (!confirm(`Usunąć ${autos} auto-zapisy? Ręczne i importowane zostaną zachowane.`)) return;
+    const removed = await deleteDeviceBackupsByReason("auto");
+    await refresh();
+    toast({ title: `Usunięto ${removed} auto-zapisy` });
+  };
+
+  const handleDeleteAll = async () => {
+    if (backups.length === 0) return;
+    if (!confirm(`Usunąć WSZYSTKIE ${backups.length} zapisów (również ręczne)? Tej operacji nie można cofnąć.`)) return;
+    const removed = await deleteAllDeviceBackups();
+    await refresh();
+    toast({ title: `Usunięto ${removed} zapisów` });
+  };
+
+  const handleToggleAuto = () => {
+    const next = !autoOn;
+    setAutoBackupEnabled(next);
+    setAutoOn(next);
+    toast({
+      title: next ? "Autozapis włączony" : "Autozapis wyłączony",
+      description: next
+        ? "Aplikacja będzie zapisywać zmiany automatycznie."
+        : "Pamiętaj o ręcznym zapisywaniu zmian.",
+    });
+  };
+
+  const autoCount = backups.filter(b => b.reason === "auto").length;
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -78,9 +135,42 @@ const DeviceBackupPanel = () => {
           </Button>
         </div>
 
+        {/* Autozapis toggle */}
+        <div className={cn(
+          "border rounded-lg p-4 mb-4 flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row",
+          autoOn ? "border-border bg-card" : "border-destructive/40 bg-destructive/5",
+        )}>
+          <div className="flex items-start gap-3">
+            <div className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+              autoOn ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive",
+            )}>
+              {autoOn ? <Power className="w-5 h-5" /> : <PowerOff className="w-5 h-5" />}
+            </div>
+            <div>
+              <p className="font-heading font-bold text-foreground">
+                Autozapis: {autoOn ? "WŁĄCZONY" : "WYŁĄCZONY"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                {autoOn
+                  ? "Snapshot powstaje automatycznie po każdej zmianie w świecie."
+                  : "Auto-snapshoty są wyłączone. Zapisuj ręcznie przyciskiem „Zapisz teraz”."}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant={autoOn ? "outline" : "default"}
+            onClick={handleToggleAuto}
+            className="gap-2 shrink-0"
+          >
+            {autoOn ? <><PowerOff className="w-4 h-4" /> Wyłącz autozapis</> : <><Power className="w-4 h-4" /> Włącz autozapis</>}
+          </Button>
+        </div>
+
         <div className="border border-border bg-card rounded-lg p-4 mb-5">
           <p className="text-sm text-muted-foreground">
-            Aplikacja robi automatyczny snapshot po zmianach w świecie. Zapis trzymany jest w pamięci tego urządzenia, a wybrany snapshot możesz też pobrać jako plik JSON.
+            Zapisy trzymane są w pamięci tego urządzenia. Wybrany snapshot możesz pobrać jako plik JSON i zaimportować na innym urządzeniu.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <input
@@ -93,6 +183,24 @@ const DeviceBackupPanel = () => {
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
               <Upload className="w-4 h-4" /> Importuj plik zapisu
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteAllAuto}
+              disabled={autoCount === 0}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Usuń auto-zapisy ({autoCount})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteAll}
+              disabled={backups.length === 0}
+              className="gap-2 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" /> Usuń wszystkie
+            </Button>
           </div>
         </div>
 
@@ -102,15 +210,24 @@ const DeviceBackupPanel = () => {
               <div>
                 <div className="font-heading font-bold text-foreground">{backup.label}</div>
                 <div className="text-xs font-mono text-muted-foreground">
-                  {new Date(backup.createdAt).toLocaleString("pl-PL")} · {backup.reason === "manual" ? "ręczny" : backup.reason === "import" ? "import" : "auto"} · {formatBytes(backup.size)}
+                  {new Date(backup.createdAt).toLocaleString("pl-PL")} · {reasonLabel(backup.reason)} · {formatBytes(backup.size)}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleExport(backup)} className="gap-1.5">
                   <Download className="w-3.5 h-3.5" /> Pobierz
                 </Button>
                 <Button size="sm" onClick={() => void handleRestore(backup)} className="gap-1.5">
                   <RotateCcw className="w-3.5 h-3.5" /> Przywróć
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDelete(backup)}
+                  className="gap-1.5 text-destructive hover:text-destructive"
+                  aria-label="Usuń zapis"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
