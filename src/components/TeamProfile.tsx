@@ -507,11 +507,8 @@ const RosterGrid = ({ team, compact, onSelectPlayer }: { team: TeamData; compact
             onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50 hover:-translate-y-0.5 cursor-pointer",
           )}
         >
-          <div className={cn(
-            "w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white bg-gradient-to-br shadow-lg",
-            avatar,
-          )}>
-            <User className="w-5 h-5" />
+          <div className="mx-auto mb-2 w-fit">
+            <TeamLogo teamName={team.name} size={48} rounded="full" />
           </div>
           <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
           {realName && (
