@@ -15,6 +15,7 @@ import {
   captureSnapshot, recordChange, loadChangeLog, revertTo, clearChangeLog,
   persistCurrentRosters, type ChangeLogEntry,
 } from "@/lib/changeLog";
+import { removeFromAllBenches } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
 
 type TransferType = "all" | "join" | "leave" | "move";
