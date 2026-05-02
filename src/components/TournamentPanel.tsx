@@ -61,9 +61,13 @@ interface PhaseDraft {
 }
 
 const TournamentPanel = () => {
-  const [tournaments, setTournaments] = useState<TournamentData[]>(() =>
-    loadFromStorage<TournamentData[]>(STORAGE_KEY, [])
-  );
+  const [tournaments, setTournaments] = useState<TournamentData[]>(() => {
+    const stored = loadFromStorage<TournamentData[]>(STORAGE_KEY, []);
+    // Seed StarLadder Berlin Major 2025 once (idempotent — marker in localStorage)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { seedMajorBerlin2025 } = require("@/lib/majorBerlin2025Seeder");
+    return seedMajorBerlin2025(stored);
+  });
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
