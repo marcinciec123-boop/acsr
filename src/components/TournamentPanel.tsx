@@ -534,6 +534,54 @@ const TournamentPanel = () => {
     }));
   };
 
+  const deriveFinalPlacements = (t: TournamentData) => {
+    const placements: TournamentData["placements"] = [];
+    const placed = new Set<string>();
+    const add = (team: string, placement: number) => {
+      if (!isRealTeam(team) || placed.has(team)) return;
+      placements.push({
+        team,
+        placement,
+        points: getPointsForPlacement(t.tier, placement, t.format.toLowerCase().includes("league") ? "league" : "knockout"),
+      });
+      placed.add(team);
+    };
+    const bracket = [...(t.phases[t.phases.length - 1]?.bracket || [])];
+    const rounds = Array.from(new Set(bracket.map(m => m.round || "Match")));
+    const finalRound = rounds.find(r => /grand\s*final/i.test(r)) || rounds.find(r => /^final$/i.test(r)) || rounds.find(r => /final/i.test(r)) || rounds[rounds.length - 1];
+    bracket.filter(m => (m.round || "Match") === finalRound).forEach(m => { add(matchWinner(m), 1); add(matchLoser(m), 2); });
+    const semiRound = rounds.find(r => /semi/i.test(r));
+    if (semiRound) bracket.filter(m => m.round === semiRound).forEach(m => add(matchLoser(m), 3));
+    for (let i = rounds.length - 1; i >= 0; i--) {
+      bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => add(matchLoser(m), placements.length + 1));
+    }
+    t.participants.forEach(team => add(team, placements.length + 1));
+    return placements.sort((a, b) => a.placement - b.placement);
+  };
+
+  const confirmTournamentResults = (id: string) => {
+    let finalized: TournamentData | null = null;
+    setTournaments(prev => {
+      const next = prev.map(t => {
+        if (t.id !== id) return t;
+        const placements = t.placements?.length ? t.placements : deriveFinalPlacements(t);
+        finalized = { ...t, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
+        return finalized;
+      });
+      saveToStorage(STORAGE_KEY, next);
+      return next;
+    });
+    if (finalized) {
+      const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
+      const placements = finalized.placements || [];
+      saveToStorage("ranking_data", ranking.map(team => {
+        const earned = placements.find(p => p.team === team.name)?.points || 0;
+        return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
+      }));
+      toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
+    }
+  };
+
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== id) return t;
