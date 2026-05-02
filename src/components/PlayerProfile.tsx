@@ -17,6 +17,7 @@ import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import { setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
+import TeamLogo from "@/components/TeamLogo";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
