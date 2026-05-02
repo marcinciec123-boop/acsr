@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy, Plus, Calendar, MapPin, DollarSign, Users as UsersIcon,
-  Radio, Clock, CheckCircle2, ChevronRight, Filter,
+  Radio, Clock, CheckCircle2, ChevronRight, Filter, Layers, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
