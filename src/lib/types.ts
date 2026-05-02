@@ -120,6 +120,9 @@ export interface TournamentData {
   /** Legacy flat match list — kept for backward compatibility */
   matches?: MatchResult[];
   placements: { team: string; placement: number; points: number }[];
+  /** Ostateczne wyniki zatwierdzone przez użytkownika i przeniesione do profili/rankingu */
+  resultsConfirmed?: boolean;
+  finalizedAt?: string;
   /** Czy to turniej główny czy kwalifikacja */
   kind?: TournamentKind;
   /** Konfiguracja kwalifikacji (gdy kind === "qualifier") */

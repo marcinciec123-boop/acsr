@@ -6,12 +6,14 @@ import { scheduleDeviceBackup } from "./deviceBackup";
 const STORAGE_PREFIX = "csgo_hub_";
 
 // --- localStorage helpers ---
-export function saveToStorage<T>(key: string, data: T): void {
+export function saveToStorage<T>(key: string, data: T): boolean {
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data));
     scheduleDeviceBackup();
+    return true;
   } catch (e) {
     console.error("Failed to save to localStorage:", key, e);
+    return false;
   }
 }
 

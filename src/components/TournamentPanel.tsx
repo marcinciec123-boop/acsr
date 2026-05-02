@@ -11,13 +11,14 @@ import {
 import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
-import { teamDatabase } from "@/data/tournaments";
+import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
+import { toast } from "@/hooks/use-toast";
 
 interface SelectedMatchRef {
   phaseId: string;
@@ -45,6 +46,18 @@ const REGIONS: { code: string; label: string }[] = [
   { code: "OCE", label: "Oceania" },
   { code: "AFR", label: "Afryka" },
 ];
+
+const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
+const matchWinner = (m: MatchResult) => {
+  if (m.team2 === "BYE" && isRealTeam(m.team1)) return m.team1;
+  if (m.team1 === "BYE" && isRealTeam(m.team2)) return m.team2;
+  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  return m.score1 > m.score2 ? m.team1 : m.team2;
+};
+const matchLoser = (m: MatchResult) => {
+  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  return m.score1 > m.score2 ? m.team2 : m.team1;
+};
 
 interface PhaseDraft {
   name: string;
@@ -521,6 +534,52 @@ const TournamentPanel = () => {
     }));
   };
 
+  const deriveFinalPlacements = (t: TournamentData) => {
+    const placements: TournamentData["placements"] = [];
+    const placed = new Set<string>();
+    const add = (team: string, placement: number) => {
+      if (!isRealTeam(team) || placed.has(team)) return;
+      placements.push({
+        team,
+        placement,
+        points: getPointsForPlacement(t.tier, placement, t.format.toLowerCase().includes("league") ? "league" : "knockout"),
+      });
+      placed.add(team);
+    };
+    const bracket = [...(t.phases[t.phases.length - 1]?.bracket || [])];
+    const rounds = Array.from(new Set(bracket.map(m => m.round || "Match")));
+    const finalRound = rounds.find(r => /grand\s*final/i.test(r)) || rounds.find(r => /^final$/i.test(r)) || rounds.find(r => /final/i.test(r)) || rounds[rounds.length - 1];
+    bracket.filter(m => (m.round || "Match") === finalRound).forEach(m => { add(matchWinner(m), 1); add(matchLoser(m), 2); });
+    const semiRound = rounds.find(r => /semi/i.test(r));
+    if (semiRound) bracket.filter(m => m.round === semiRound).forEach(m => add(matchLoser(m), 3));
+    for (let i = rounds.length - 1; i >= 0; i--) {
+      bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => add(matchLoser(m), placements.length + 1));
+    }
+    t.participants.forEach(team => add(team, placements.length + 1));
+    return placements.sort((a, b) => a.placement - b.placement);
+  };
+
+  const confirmTournamentResults = (id: string) => {
+    const source = tournaments.find(t => t.id === id);
+    if (!source || source.resultsConfirmed) return;
+    const placements = source.placements?.length ? source.placements : deriveFinalPlacements(source);
+    const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
+    const next = tournaments.map(t => t.id === id ? finalized : t);
+    const saved = saveToStorage(STORAGE_KEY, next);
+    if (saved) {
+      setTournaments(next);
+      const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
+      const placements = finalized.placements || [];
+      saveToStorage("ranking_data", ranking.map(team => {
+        const earned = placements.find(p => p.team === team.name)?.points || 0;
+        return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
+      }));
+      toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
+    } else {
+      toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
+    }
+  };
+
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== id) return t;
@@ -690,6 +749,7 @@ const TournamentPanel = () => {
           shuffleGroups(selectedTournament.id, phaseId)
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
+        onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
         mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
