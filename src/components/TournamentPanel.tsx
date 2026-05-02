@@ -749,6 +749,7 @@ const TournamentPanel = () => {
           shuffleGroups(selectedTournament.id, phaseId)
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
+        onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
         mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
