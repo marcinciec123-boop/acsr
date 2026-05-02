@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { teamDatabase } from "@/data/tournaments";
+import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 
