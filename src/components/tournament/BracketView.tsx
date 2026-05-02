@@ -259,9 +259,9 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
             const matchesInRound = grouped[round];
             const isLast = isFinalRound(ri);
             const lower = isLowerRound(round);
-            const gap = gapForRound(ri);
-            const offset = offsetForRound(ri);
-            const showConnector = ri > 0 && grouped[rounds[ri - 1]].length === matchesInRound.length * 2;
+            const { depth, showConnector } = roundLayout[round];
+            const gap = gapForDepth(depth);
+            const offset = offsetForDepth(depth);
 
             return (
               <div key={round} className="flex items-start">
@@ -269,19 +269,19 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                 {showConnector && (
                   <div
                     className="flex flex-col w-7 shrink-0"
-                    style={{ paddingTop: offsetForRound(ri - 1) + 32 + MATCH_H / 2, gap: `${MATCH_H + gapForRound(ri - 1)}px` }}
+                    style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
                   >
                     {Array.from({ length: matchesInRound.length }).map((_, i) => {
                       // Each connector spans from match (2i) center to match (2i+1) center in previous round
-                      const span = MATCH_H + gapForRound(ri - 1);
+                      const span = MATCH_H + gapForDepth(depth - 1);
                       return (
                         <div
                           key={i}
                           style={{ height: span }}
-                          className="border-l-2 border-t-2 border-b-2 border-border/60 rounded-l-sm relative"
+                          className="border-l border-t border-b border-border/70 rounded-l-sm relative"
                         >
                           {/* horizontal stub into next match */}
-                          <div className="absolute top-1/2 -right-0 w-[14px] h-[2px] bg-border/60 -translate-y-1/2" />
+                          <div className="absolute top-1/2 -right-0 w-[14px] h-px bg-border/70 -translate-y-1/2" />
                         </div>
                       );
                     })}
@@ -302,15 +302,15 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
             );
           })}
 
-          {/* 3rd place — separate side panel */}
+          {/* 3rd place — separate side panel, intentionally not part of the bracket flow */}
           {thirdPlaceRounds.length > 0 && (
-            <div className="flex items-start ml-6 pl-6 border-l border-border/30">
+            <div className="flex items-start ml-8 pl-8 border-l border-border/40">
               {thirdPlaceRounds.map((round) => (
                 <div key={round} className="flex flex-col w-[260px] shrink-0">
                   {renderRoundHeader(round, false, false)}
                   <div
                     className="flex flex-col"
-                    style={{ paddingTop: offsetForRound(Math.max(0, rounds.length - 2)), gap: `${BASE_GAP}px` }}
+                    style={{ gap: `${BASE_GAP}px` }}
                   >
                     {grouped[round].map(m => renderMatchCard(m, false))}
                   </div>
