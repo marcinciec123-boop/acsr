@@ -18,6 +18,7 @@ interface Props {
   match: MatchResult;
   phaseName: string;
   bo: 1 | 3 | 5;
+  tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
 }
@@ -34,13 +35,15 @@ const blankPlayer = (name: string, team: string): MapPlayerStats => ({
   ef: 0,
 });
 
-const getRoster = (teamName: string): string[] => {
+const getRoster = (teamName: string, tournamentId?: string): string[] => {
+  const lineup = resolveLineup(tournamentId, teamName);
+  if (lineup.length > 0) return lineup.slice(0, 5);
   const team = teamDatabase.find(t => t.name === teamName);
   return (team?.roster || []).slice(0, 5);
 };
 
-const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string): MapPlayerStats[] => {
-  const roster = getRoster(teamName);
+const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string, tournamentId?: string): MapPlayerStats[] => {
+  const roster = getRoster(teamName, tournamentId);
   const base = roster.length === 5
     ? roster.map(n => blankPlayer(n, teamName))
     : Array.from({ length: 5 }, (_, i) => blankPlayer(roster[i] || `Player ${i + 1}`, teamName));
@@ -50,7 +53,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string)
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
