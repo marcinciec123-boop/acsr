@@ -1,14 +1,23 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Users, Globe, TrendingUp, Medal, MapPin, User, ArrowRightLeft } from "lucide-react";
+import {
+  ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
+  Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
+} from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
-import type { TeamData, Transfer } from "@/lib/types";
+import type { TeamData, Transfer, TournamentData, MatchResult } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
+import {
+  loadTeamLogo, saveTeamLogo, deleteTeamLogo, fileToLogoDataUrl,
+} from "@/lib/teamLogos";
+import TeamLogo from "@/components/TeamLogo";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface TeamProfileProps {
   teamName: string;
@@ -17,37 +26,140 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-const getAvatarColor = (name: string): string => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const colors = [
-    "from-blue-500 to-blue-700",
-    "from-emerald-500 to-emerald-700",
-    "from-purple-500 to-purple-700",
-    "from-amber-500 to-amber-700",
-    "from-rose-500 to-rose-700",
-    "from-cyan-500 to-cyan-700",
-    "from-indigo-500 to-indigo-700",
-    "from-teal-500 to-teal-700",
-  ];
-  return colors[Math.abs(hash) % colors.length];
-};
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers";
+
+const placementColor = (p: number) =>
+  p === 1 ? "text-accent border-accent/40 bg-accent/10"
+  : p === 2 ? "text-[hsl(var(--silver))] border-[hsl(var(--silver))]/40 bg-[hsl(var(--silver))]/10"
+  : p === 3 ? "text-[hsl(25,80%,55%)] border-[hsl(25,80%,55%)]/40 bg-[hsl(25,80%,55%)]/10"
+  : "text-muted-foreground border-border bg-secondary/30";
+
+const placementLabel = (p: number) =>
+  p === 1 ? "🥇 1st" : p === 2 ? "🥈 2nd" : p === 3 ? "🥉 3rd" : `#${p}`;
 
 const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfileProps) => {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [hasLogo, setHasLogo] = useState(false);
+
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
-  const sorted = [...rankingSource].sort((a, b) => b.points - a.points);
+  const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
   const team = sorted.find((t) => t.name === teamName);
   const globalRank = team ? sorted.indexOf(team) + 1 : 0;
   const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
   const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
 
-  // Load transfers from storage
+  // Refresh logo presence flag
+  useEffect(() => {
+    let active = true;
+    loadTeamLogo(teamName).then(url => { if (active) setHasLogo(!!url); });
+    const onUpdate = () => loadTeamLogo(teamName).then(url => { if (active) setHasLogo(!!url); });
+    window.addEventListener("teamlogo:update", onUpdate);
+    return () => { active = false; window.removeEventListener("teamlogo:update", onUpdate); };
+  }, [teamName]);
+
+  // Transfers
   const teamTransfers = useMemo(() => {
     const transfers = loadFromStorage<Transfer[]>("transfers_data", []);
     return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
   }, [teamName]);
+
+  // Tournaments / matches / trophies aggregated from saved data
+  const { trophies, recentMatches, totals } = useMemo(() => {
+    const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
+    const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
+    const matches: {
+      id: string; tournamentId: string; tournamentName: string; date: string;
+      opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
+    }[] = [];
+    let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
+
+    for (const t of tournaments) {
+      const placement = t.placements?.find(p => p.team === teamName);
+      if (placement) {
+        trophies.push({
+          id: t.id, name: t.name,
+          placement: placement.placement, points: placement.points,
+          endDate: t.endDate, tier: t.tier,
+        });
+      }
+      const all: MatchResult[] = [];
+      for (const phase of t.phases || []) {
+        if (phase.bracket) all.push(...phase.bracket);
+        if (phase.groups) for (const g of phase.groups) all.push(...g.matches);
+      }
+      if (t.matches) all.push(...t.matches);
+
+      for (const m of all) {
+        const isT1 = m.team1 === teamName;
+        const isT2 = m.team2 === teamName;
+        if (!isT1 && !isT2) continue;
+        const ownScore = isT1 ? m.score1 : m.score2;
+        const oppScore = isT1 ? m.score2 : m.score1;
+        if (ownScore + oppScore <= 0) continue;
+        const won = ownScore > oppScore;
+        if (won) wins++; else losses++;
+        if (m.maps?.length) {
+          for (const mp of m.maps) {
+            const o = isT1 ? mp.score1 : mp.score2;
+            const d = isT1 ? mp.score2 : mp.score1;
+            if (o + d <= 0) continue;
+            if (o > d) mapsW++; else mapsL++;
+          }
+        }
+        matches.push({
+          id: m.id,
+          tournamentId: t.id,
+          tournamentName: t.name,
+          date: t.endDate,
+          opponent: isT1 ? m.team2 : m.team1,
+          ownScore, oppScore, won,
+          bo: m.bo, round: m.round,
+        });
+      }
+    }
+
+    trophies.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
+    matches.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    const totalMatches = wins + losses;
+    const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+    return {
+      trophies,
+      recentMatches: matches,
+      totals: {
+        wins, losses, totalMatches, winRate,
+        mapsW, mapsL,
+        firsts: trophies.filter(t => t.placement === 1).length,
+        podiums: trophies.filter(t => t.placement <= 3).length,
+        events: trophies.length,
+        prizePoints: trophies.reduce((s, t) => s + (t.points || 0), 0),
+      },
+    };
+  }, [teamName]);
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast({ title: "Plik za duży", description: "Maksymalnie 4 MB.", variant: "destructive" });
+      return;
+    }
+    try {
+      const dataUrl = await fileToLogoDataUrl(file, 256);
+      await saveTeamLogo(teamName, dataUrl);
+      toast({ title: "Logo zaktualizowane", description: teamName });
+    } catch {
+      toast({ title: "Nie udało się wczytać obrazu", variant: "destructive" });
+    }
+  };
+  const handleRemoveLogo = async () => {
+    await deleteTeamLogo(teamName);
+    toast({ title: "Logo usunięte" });
+  };
 
   if (!team) {
     return (
@@ -62,162 +174,394 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     );
   }
 
+  const tabs: { id: TabId; label: string; icon: typeof Users; count?: number }[] = [
+    { id: "overview", label: "Przegląd", icon: TrendingUp },
+    { id: "roster", label: "Skład", icon: Users, count: team.roster.length },
+    { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
+    { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
+    { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
+  ];
+
   return (
     <section className="py-6">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <button onClick={onBack} className="flex items-center gap-2 text-primary mb-6 hover:underline font-mono text-sm">
+      <div className="container mx-auto px-4 max-w-[1200px]">
+        <button onClick={onBack} className="flex items-center gap-2 text-primary mb-4 hover:underline font-mono text-sm">
           <ArrowLeft className="w-4 h-4" /> Powrót do rankingu
         </button>
 
-        {/* Header */}
+        {/* Hero header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-lg p-6 mb-6"
+          className="relative overflow-hidden bg-gradient-to-br from-card via-card to-secondary/30 border border-border rounded-xl p-6 mb-4"
         >
-          <div className="flex items-start gap-4 sm:gap-6">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-secondary/50 border border-border flex items-center justify-center text-3xl sm:text-4xl shrink-0">
-              {countryFlag(team.country)}
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
+               style={{ backgroundImage: "radial-gradient(circle at 20% 20%, hsl(var(--primary)) 0%, transparent 50%)" }} />
+
+          <div className="relative flex flex-col md:flex-row items-start gap-6">
+            {/* Logo + upload */}
+            <div className="relative group">
+              <TeamLogo teamName={team.name} size={112} rounded="xl" className="shadow-xl" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={handleLogoChange}
+                className="hidden"
+              />
+              <div className="absolute inset-0 rounded-xl bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  className="text-[10px] font-mono uppercase text-foreground bg-primary/90 hover:bg-primary text-primary-foreground px-2 py-1 rounded flex items-center gap-1"
+                >
+                  <Upload className="w-3 h-3" /> Logo
+                </button>
+                {hasLogo && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="text-[10px] font-mono uppercase text-destructive bg-destructive/10 hover:bg-destructive/20 px-2 py-1 rounded flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> Usuń
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Identity */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground">{team.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <h1 className="text-3xl md:text-4xl font-heading font-black text-foreground tracking-tight">{team.name}</h1>
                 <span className={cn("text-xs font-heading font-bold px-2 py-0.5 rounded border", tierColor,
                   globalRank <= 10 ? "border-accent/40 bg-accent/10" : globalRank <= 30 ? "border-primary/40 bg-primary/10" : "border-border bg-muted"
                 )}>
                   {tier}
                 </span>
               </div>
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Globe className="w-3.5 h-3.5" /> {team.region}
+              <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> {team.region}</span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="text-base">{countryFlag(team.country)}</span> {team.country}
                 </span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" /> {countryFlag(team.country)} {team.country}
-                </span>
+                <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {team.roster.length} graczy</span>
+                {!hasLogo && (
+                  <button
+                    onClick={handleUploadClick}
+                    className="flex items-center gap-1.5 text-primary hover:underline text-xs font-mono"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Dodaj logo
+                  </button>
+                )}
+              </div>
+
+              {/* Stat strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <StatCell label="Mecze" value={`${totals.wins}-${totals.losses}`} accent={totals.winRate >= 50 ? "win" : "loss"} sub={`${totals.winRate}% WR`} />
+                <StatCell label="Mapy" value={`${totals.mapsW}-${totals.mapsL}`} sub="W-L" />
+                <StatCell label="Trofea" value={`${totals.firsts}🥇 ${totals.podiums}🏅`} sub={`${totals.events} eventów`} />
+                <StatCell label="Punkty" value={team.points.toLocaleString()} sub="ranking ACS" accent="primary" />
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-xs font-mono text-muted-foreground uppercase">Ranking</p>
-              <p className={cn("text-3xl sm:text-4xl font-heading font-bold", globalRank <= 3 ? "text-accent" : "text-primary")}>#{globalRank}</p>
-              <p className="font-mono text-primary font-bold text-sm sm:text-lg">{team.points.toLocaleString()} pkt</p>
+
+            {/* Rank badge */}
+            <div className="text-right shrink-0 w-full md:w-auto">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">World Rank</p>
+              <p className={cn("text-5xl font-heading font-black", globalRank <= 3 ? "text-accent" : globalRank <= 10 ? "text-primary" : "text-foreground")}>
+                #{globalRank}
+              </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Roster */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-6"
-        >
-          <h2 className="text-lg font-heading font-bold text-foreground mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" /> Roster ({team.roster.length})
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {team.roster.map((player, i) => {
-              const playerCountry = playerNationalities[player] || team.country;
-              const realName = playerRealNames[player];
-              const avatarGradient = getAvatarColor(player);
-              return (
-                <motion.button
-                  key={player}
-                  type="button"
-                  onClick={() => onSelectPlayer?.(player)}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.15 + i * 0.05 }}
-                  className={cn(
-                    "bg-secondary/30 border border-border rounded-lg p-3 sm:p-4 text-center transition-all",
-                    onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50 hover:-translate-y-0.5 cursor-pointer",
-                  )}
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white bg-gradient-to-br shadow-lg",
-                    avatarGradient
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-4 border-b border-border overflow-x-auto">
+          {tabs.map(t => {
+            const Icon = t.icon;
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 text-sm font-heading font-bold whitespace-nowrap border-b-2 transition-colors",
+                  active
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+                {typeof t.count === "number" && t.count > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-mono px-1.5 py-0.5 rounded-full",
+                    active ? "bg-primary/20 text-primary" : "bg-secondary/50 text-muted-foreground"
                   )}>
-                    <User className="w-5 h-5" />
-                  </div>
-                  <p className="font-heading font-bold text-foreground text-xs sm:text-sm">{player}</p>
-                  {realName && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                      {realName.firstName} {realName.lastName}
-                    </p>
-                  )}
-                  {playerRoles[player] && (
-                    <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
-                      {roleIcons[playerRoles[player]]} {playerRoles[player]}
-                    </span>
-                  )}
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                    <span>{countryFlag(playerCountry)}</span>
-                    <span>{playerCountry}</span>
-                  </p>
-                </motion.button>
-              );
-            })}
-          </div>
-        </motion.div>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Transfer History */}
-        {teamTransfers.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card border border-border rounded-lg p-4 sm:p-6"
-          >
-            <h2 className="text-lg font-heading font-bold text-foreground mb-4 flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 text-primary" /> Ruchy kadrowe
-            </h2>
-            <div className="space-y-2">
-              {teamTransfers.map((t) => {
-                const isJoin = t.newTeam === teamName;
-                return (
-                  <div key={t.id} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg border border-border/50">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                      isJoin ? "bg-[hsl(var(--win))]/20 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/20 text-[hsl(var(--loss))]"
-                    )}>
-                      {isJoin ? "+" : "−"}
+        {/* Content */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === "overview" && (
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2 space-y-4">
+                <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
+                  <RosterGrid team={team} compact onSelectPlayer={onSelectPlayer} />
+                </Card>
+                <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
+                  {recentMatches.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych meczów.</p>
+                  ) : (
+                    <MatchList matches={recentMatches.slice(0, 6)} teamName={teamName} />
+                  )}
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card title="Ostatnie osiągnięcia" icon={<Award className="w-4 h-4 text-accent" />}>
+                  {trophies.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Brak trofeów.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {trophies.slice(0, 6).map(tr => (
+                        <li key={tr.id} className="flex items-center gap-3 p-2 rounded-md bg-secondary/30 border border-border/50">
+                          <span className={cn("text-xs font-heading font-bold px-2 py-0.5 rounded border shrink-0", placementColor(tr.placement))}>
+                            {placementLabel(tr.placement)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-heading text-foreground truncate">{tr.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              {tr.endDate || "—"} {tr.tier ? `• Tier ${tr.tier}` : ""}
+                            </p>
+                          </div>
+                          <span className="text-xs font-mono text-primary shrink-0">+{tr.points}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+                <Card title="Region" icon={<Globe className="w-4 h-4 text-primary" />}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{countryFlag(team.country)}</span>
+                    <div>
+                      <p className="font-heading text-foreground">{team.country}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{team.region}</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => onSelectPlayer?.(t.player)}
-                        className={cn(
-                          "font-heading font-bold text-foreground text-sm text-left",
-                          onSelectPlayer && "hover:text-primary transition-colors",
-                        )}
-                      >
-                        {playerNationalities[t.player] && (
-                          <span className="mr-1">{countryFlag(playerNationalities[t.player])}</span>
-                        )}
-                        {t.player}
-                      </button>
-                      <p className="text-xs text-muted-foreground">
-                        {isJoin
-                          ? t.oldTeam === "-" ? "Free Agent → Dołączył" : `z ${t.oldTeam}`
-                          : t.newTeam === "-" ? "Odszedł → Free Agent" : `do ${t.newTeam}`
-                        }
-                      </p>
-                    </div>
-                    <span className={cn(
-                      "text-xs font-mono font-bold px-2 py-0.5 rounded",
-                      isJoin ? "bg-[hsl(var(--win))]/10 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/10 text-[hsl(var(--loss))]"
-                    )}>
-                      {isJoin ? "IN" : "OUT"}
-                    </span>
                   </div>
-                );
-              })}
+                </Card>
+              </div>
             </div>
-          </motion.div>
-        )}
+          )}
+
+          {activeTab === "roster" && (
+            <Card title={`Roster (${team.roster.length})`} icon={<Users className="w-4 h-4 text-primary" />}>
+              <RosterGrid team={team} onSelectPlayer={onSelectPlayer} />
+            </Card>
+          )}
+
+          {activeTab === "matches" && (
+            <Card title={`Wszystkie mecze (${recentMatches.length})`} icon={<Swords className="w-4 h-4 text-primary" />}>
+              {recentMatches.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Brak rozegranych meczów.</p>
+              ) : (
+                <MatchList matches={recentMatches} teamName={teamName} />
+              )}
+            </Card>
+          )}
+
+          {activeTab === "trophies" && (
+            <Card title={`Trofea i osiągnięcia (${totals.events})`} icon={<Trophy className="w-4 h-4 text-accent" />}>
+              {trophies.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Brak trofeów.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {trophies.map(tr => (
+                    <div key={tr.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50 hover:border-primary/40 transition-colors">
+                      <span className={cn("text-xs font-heading font-bold px-2.5 py-1 rounded border shrink-0", placementColor(tr.placement))}>
+                        {placementLabel(tr.placement)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-heading text-foreground text-sm truncate">{tr.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
+                          <Calendar className="w-3 h-3" />{tr.endDate || "—"}
+                          {tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
+                        </p>
+                      </div>
+                      <span className="text-sm font-mono font-bold text-primary shrink-0">+{tr.points}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {activeTab === "transfers" && (
+            <Card title={`Ruchy kadrowe (${teamTransfers.length})`} icon={<ArrowRightLeft className="w-4 h-4 text-primary" />}>
+              {teamTransfers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Brak transferów.</p>
+              ) : (
+                <div className="space-y-2">
+                  {teamTransfers.map(t => {
+                    const isJoin = t.newTeam === teamName;
+                    return (
+                      <div key={t.id} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg border border-border/50">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                          isJoin ? "bg-[hsl(var(--win))]/20 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/20 text-[hsl(var(--loss))]"
+                        )}>{isJoin ? "+" : "−"}</div>
+                        <div className="flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => onSelectPlayer?.(t.player)}
+                            className={cn("font-heading font-bold text-foreground text-sm text-left",
+                              onSelectPlayer && "hover:text-primary transition-colors")}
+                          >
+                            {playerNationalities[t.player] && (
+                              <span className="mr-1">{countryFlag(playerNationalities[t.player])}</span>
+                            )}
+                            {t.player}
+                          </button>
+                          <p className="text-xs text-muted-foreground">
+                            {isJoin
+                              ? t.oldTeam === "-" ? "Free Agent → Dołączył" : `z ${t.oldTeam}`
+                              : t.newTeam === "-" ? "Odszedł → Free Agent" : `do ${t.newTeam}`}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono text-muted-foreground">{t.date}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          )}
+        </motion.div>
       </div>
     </section>
   );
 };
+
+/* ----- subcomponents ----- */
+
+const StatCell = ({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: "win" | "loss" | "primary" }) => (
+  <div className="bg-secondary/40 border border-border/50 rounded-lg px-3 py-2">
+    <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className={cn(
+      "text-lg font-heading font-bold",
+      accent === "win" && "text-[hsl(var(--win))]",
+      accent === "loss" && "text-[hsl(var(--loss))]",
+      accent === "primary" && "text-primary",
+      !accent && "text-foreground",
+    )}>{value}</p>
+    {sub && <p className="text-[10px] font-mono text-muted-foreground">{sub}</p>}
+  </div>
+);
+
+const Card = ({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) => (
+  <div className="bg-card border border-border rounded-lg p-4">
+    <h3 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide">
+      {icon}{title}
+    </h3>
+    {children}
+  </div>
+);
+
+const getAvatarColor = (name: string): string => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const colors = [
+    "from-blue-500 to-blue-700", "from-emerald-500 to-emerald-700",
+    "from-purple-500 to-purple-700", "from-amber-500 to-amber-700",
+    "from-rose-500 to-rose-700", "from-cyan-500 to-cyan-700",
+    "from-indigo-500 to-indigo-700", "from-teal-500 to-teal-700",
+  ];
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const RosterGrid = ({ team, compact, onSelectPlayer }: { team: TeamData; compact?: boolean; onSelectPlayer?: (p: string) => void }) => (
+  <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
+    {team.roster.map((player, i) => {
+      const playerCountry = playerNationalities[player] || team.country;
+      const realName = playerRealNames[player];
+      const avatar = getAvatarColor(player);
+      return (
+        <motion.button
+          key={player}
+          type="button"
+          onClick={() => onSelectPlayer?.(player)}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.04 }}
+          className={cn(
+            "bg-secondary/30 border border-border rounded-lg p-3 text-center transition-all",
+            onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50 hover:-translate-y-0.5 cursor-pointer",
+          )}
+        >
+          <div className={cn(
+            "w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white bg-gradient-to-br shadow-lg",
+            avatar,
+          )}>
+            <User className="w-5 h-5" />
+          </div>
+          <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
+          {realName && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              {realName.firstName} {realName.lastName}
+            </p>
+          )}
+          {playerRoles[player] && (
+            <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+              {roleIcons[playerRoles[player]]} {playerRoles[player]}
+            </span>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+            <span>{countryFlag(playerCountry)}</span>
+            <span className="truncate">{playerCountry}</span>
+          </p>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const MatchList = ({
+  matches, teamName,
+}: {
+  matches: { id: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string }[];
+  teamName: string;
+}) => (
+  <ul className="divide-y divide-border/60">
+    {matches.map(m => (
+      <li key={m.id} className="py-2 flex items-center gap-3">
+        <span className={cn(
+          "w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0",
+          m.won ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
+        )}>{m.won ? "W" : "L"}</span>
+        <TeamLogo teamName={teamName} size={22} rounded="md" />
+        <span className="font-mono text-xs text-muted-foreground">vs</span>
+        <TeamLogo teamName={m.opponent} size={22} rounded="md" />
+        <span className="text-sm font-heading text-foreground truncate flex-1">{m.opponent}</span>
+        <span className={cn(
+          "text-sm font-mono font-bold tabular-nums shrink-0",
+          m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
+        )}>{m.ownScore}–{m.oppScore}</span>
+        {m.bo && (
+          <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
+        )}
+        <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
+      </li>
+    ))}
+  </ul>
+);
 
 export default TeamProfile;
