@@ -19,6 +19,7 @@ import { calculateRating } from "./playerStats";
 import { teamDatabase } from "@/data/tournaments";
 import { loadFromStorage } from "./storage";
 import type { TeamData } from "./types";
+import { getBenchedFor } from "./benchedPlayers";
 
 export const SIM_MAP_POOL = [
   "Anubis", "Ancient", "Dust II", "Inferno",
@@ -42,7 +43,9 @@ const getRoster = (teamName: string): string[] => {
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const src = stored && stored.length > 0 ? stored : teamDatabase;
   const t = src.find(x => x.name === teamName);
-  const roster = (t?.roster || []).slice(0, 5);
+  const benched = new Set(getBenchedFor(teamName));
+  const active = (t?.roster || []).filter(p => !benched.has(p));
+  const roster = active.slice(0, 5);
   while (roster.length < 5) roster.push(`Player ${roster.length + 1}`);
   return roster;
 };

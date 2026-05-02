@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
+  ArrowDownCircle, ArrowUpCircle, Armchair,
 } from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
@@ -15,6 +16,9 @@ import { loadFromStorage } from "@/lib/storage";
 import {
   loadTeamLogo, saveTeamLogo, deleteTeamLogo, fileToLogoDataUrl,
 } from "@/lib/teamLogos";
+import {
+  splitRoster, benchPlayer, activatePlayer,
+} from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +46,13 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [hasLogo, setHasLogo] = useState(false);
+  const [benchTick, setBenchTick] = useState(0);
+
+  useEffect(() => {
+    const onBench = () => setBenchTick(t => t + 1);
+    window.addEventListener("bench:update", onBench);
+    return () => window.removeEventListener("bench:update", onBench);
+  }, []);
 
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
   const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
@@ -317,7 +328,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-4">
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
-                  <RosterGrid team={team} compact onSelectPlayer={onSelectPlayer} />
+                  <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
@@ -364,9 +375,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           )}
 
           {activeTab === "roster" && (
-            <Card title={`Roster (${team.roster.length})`} icon={<Users className="w-4 h-4 text-primary" />}>
-              <RosterGrid team={team} onSelectPlayer={onSelectPlayer} />
-            </Card>
+            <RosterTabContent team={team} onSelectPlayer={onSelectPlayer} />
           )}
 
           {activeTab === "matches" && (
@@ -488,48 +497,149 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const RosterGrid = ({ team, compact, onSelectPlayer }: { team: TeamData; compact?: boolean; onSelectPlayer?: (p: string) => void }) => (
-  <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
-    {team.roster.map((player, i) => {
-      const playerCountry = playerNationalities[player] || team.country;
-      const realName = playerRealNames[player];
-      const avatar = getAvatarColor(player);
-      return (
-        <motion.button
-          key={player}
-          type="button"
-          onClick={() => onSelectPlayer?.(player)}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.04 }}
-          className={cn(
-            "bg-secondary/30 border border-border rounded-lg p-3 text-center transition-all",
-            onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50 hover:-translate-y-0.5 cursor-pointer",
-          )}
-        >
-          <div className="mx-auto mb-2 w-fit">
-            <TeamLogo teamName={team.name} size={48} rounded="full" />
-          </div>
-          <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
-          {realName && (
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              {realName.firstName} {realName.lastName}
-            </p>
-          )}
-          {playerRoles[player] && (
-            <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
-              {roleIcons[playerRoles[player]]} {playerRoles[player]}
-            </span>
-          )}
-          <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
-            <span>{countryFlag(playerCountry)}</span>
-            <span className="truncate">{playerCountry}</span>
-          </p>
-        </motion.button>
-      );
-    })}
-  </div>
-);
+const RosterGrid = ({
+  team, compact, onSelectPlayer, players, benched, onBench, onActivate, canBench,
+}: {
+  team: TeamData;
+  compact?: boolean;
+  onSelectPlayer?: (p: string) => void;
+  players?: string[];
+  benched?: boolean;
+  onBench?: (p: string) => void;
+  onActivate?: (p: string) => void;
+  /** When provided, hides the bench button if it would drop active below 5. */
+  canBench?: boolean;
+}) => {
+  const list = players ?? team.roster;
+  return (
+    <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
+      {list.map((player, i) => {
+        const playerCountry = playerNationalities[player] || team.country;
+        const realName = playerRealNames[player];
+        return (
+          <motion.div
+            key={player}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04 }}
+            className={cn(
+              "relative bg-secondary/30 border border-border rounded-lg p-3 text-center transition-all",
+              benched && "opacity-70 border-dashed",
+              onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50",
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => onSelectPlayer?.(player)}
+              className={cn("w-full", onSelectPlayer && "cursor-pointer")}
+            >
+              <div className="mx-auto mb-2 w-fit relative">
+                <TeamLogo teamName={team.name} size={48} rounded="full" />
+                {benched && (
+                  <span className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground border border-border rounded-full p-0.5">
+                    <Armchair className="w-3 h-3" />
+                  </span>
+                )}
+              </div>
+              <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
+              {realName && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  {realName.firstName} {realName.lastName}
+                </p>
+              )}
+              {playerRoles[player] && (
+                <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+                  {roleIcons[playerRoles[player]]} {playerRoles[player]}
+                </span>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <span>{countryFlag(playerCountry)}</span>
+                <span className="truncate">{playerCountry}</span>
+              </p>
+            </button>
+            {onBench && !benched && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onBench(player); }}
+                disabled={canBench === false}
+                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1 rounded border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title={canBench === false ? "Skład musi mieć min. 1 aktywnego gracza" : "Wyślij na ławkę"}
+              >
+                <ArrowDownCircle className="w-3 h-3" /> Na ławkę
+              </button>
+            )}
+            {onActivate && benched && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onActivate(player); }}
+                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1 rounded border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+              >
+                <ArrowUpCircle className="w-3 h-3" /> Wstaw do składu
+              </button>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
+const RosterTabContent = ({
+  team, onSelectPlayer,
+}: { team: TeamData; onSelectPlayer?: (p: string) => void }) => {
+  const { active, bench } = splitRoster(team);
+  const { toast } = useToast();
+
+  const handleBench = (p: string) => {
+    if (active.length <= 1) {
+      toast({ title: "Nie można wysłać na ławkę", description: "Drużyna musi mieć min. 1 aktywnego gracza." });
+      return;
+    }
+    benchPlayer(team.name, p);
+    toast({ title: "Gracz na ławce", description: `${p} został przeniesiony na ławkę.` });
+  };
+  const handleActivate = (p: string) => {
+    activatePlayer(team.name, p);
+    toast({ title: "Gracz w składzie", description: `${p} wraca do aktywnej piątki.` });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card
+        title={`Aktywny skład (${active.length}/5)`}
+        icon={<Users className="w-4 h-4 text-primary" />}
+      >
+        {active.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Brak aktywnych graczy.</p>
+        ) : (
+          <RosterGrid
+            team={team}
+            players={active}
+            onSelectPlayer={onSelectPlayer}
+            onBench={handleBench}
+            canBench={active.length > 1}
+          />
+        )}
+      </Card>
+      <Card
+        title={`Ławka (${bench.length})`}
+        icon={<Armchair className="w-4 h-4 text-muted-foreground" />}
+      >
+        {bench.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Brak graczy na ławce. Użyj przycisku „Na ławkę" przy aktywnym graczu, aby go odsunąć od składu.</p>
+        ) : (
+          <RosterGrid
+            team={team}
+            players={bench}
+            benched
+            onSelectPlayer={onSelectPlayer}
+            onActivate={handleActivate}
+          />
+        )}
+      </Card>
+    </div>
+  );
+};
 
 const MatchList = ({
   matches, teamName,
