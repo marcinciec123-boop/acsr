@@ -253,7 +253,7 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                 {showConnector && (
                   <div
                     className="flex flex-col w-7 shrink-0"
-                    style={{ paddingTop: offsetForRound(ri - 1) + 32 + MATCH_H / 2, gap: `${gapForRound(ri - 1)}px` }}
+                    style={{ paddingTop: offsetForRound(ri - 1) + 32 + MATCH_H / 2, gap: `${MATCH_H + gapForRound(ri - 1)}px` }}
                   >
                     {Array.from({ length: matchesInRound.length }).map((_, i) => {
                       // Each connector spans from match (2i) center to match (2i+1) center in previous round
