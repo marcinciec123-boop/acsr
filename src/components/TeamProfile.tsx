@@ -375,9 +375,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           )}
 
           {activeTab === "roster" && (
-            <Card title={`Roster (${team.roster.length})`} icon={<Users className="w-4 h-4 text-primary" />}>
-              <RosterGrid team={team} onSelectPlayer={onSelectPlayer} />
-            </Card>
+            <RosterTabContent team={team} onSelectPlayer={onSelectPlayer} />
           )}
 
           {activeTab === "matches" && (
