@@ -99,16 +99,25 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
   const gapForDepth = (depth: number) => BASE_GAP + (Math.pow(2, depth) - 1) * (MATCH_H + BASE_GAP);
   const offsetForDepth = (depth: number) => depth === 0 ? 0 : (Math.pow(2, depth - 1) * (MATCH_H + BASE_GAP)) - BASE_GAP / 2 - MATCH_H / 2;
 
-  const feedsDirectlyIntoRound = (prevRound: MatchResult[], nextRound: MatchResult[]) => {
+  const looksLikePlayoffRound = (round: string, roundMatches: MatchResult[]) => {
+    const lower = round.toLowerCase();
+    return lower.includes("quarter")
+      || lower.includes("semi")
+      || lower === "final"
+      || lower.includes("grand final")
+      || roundMatches.every(m => /^UB-R\d+-M\d+$/i.test(m.bracketSlot || ""));
+  };
+
+  const feedsDirectlyIntoRound = (prevName: string, nextName: string, prevRound: MatchResult[], nextRound: MatchResult[]) => {
     if (prevRound.length !== nextRound.length * 2) return false;
     const nextIds = new Set(nextRound.map(m => m.id));
     const feedCount = prevRound.filter(m => (m.winnerTo && nextIds.has(m.winnerTo)) || (m.loserTo && nextIds.has(m.loserTo))).length;
-    return feedCount === prevRound.length;
+    return feedCount === prevRound.length || (feedCount === 0 && looksLikePlayoffRound(prevName, prevRound) && looksLikePlayoffRound(nextName, nextRound));
   };
 
   const roundLayout = rounds.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
     const prevRound = idx > 0 ? rounds[idx - 1] : undefined;
-    const showConnector = !!prevRound && feedsDirectlyIntoRound(grouped[prevRound], grouped[round]);
+    const showConnector = !!prevRound && feedsDirectlyIntoRound(prevRound, round, grouped[prevRound], grouped[round]);
     acc[round] = {
       depth: showConnector ? acc[prevRound!].depth + 1 : 0,
       showConnector,
