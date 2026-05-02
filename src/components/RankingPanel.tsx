@@ -160,23 +160,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-10 w-72 h-72 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-mono uppercase tracking-widest border border-primary/30">
-                  Live ranking
-                </div>
-                <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                  ACSR World Index
-                </div>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-black text-foreground tracking-tight">
-                Ranking <span className="text-primary">Drużyn</span>
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Punkty zdobywane są w turniejach głównych i kwalifikacjach. Pozycje aktualizują się automatycznie.
-              </p>
-            </div>
+          <div className="relative flex flex-wrap items-start justify-end gap-4 mb-6">
 
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
