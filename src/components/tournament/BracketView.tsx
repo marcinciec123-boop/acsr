@@ -53,13 +53,19 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
   // Group by round name preserving insertion order
-  const grouped = matches.reduce<Record<string, MatchResult[]>>((acc, m) => {
+  const groupedAll = matches.reduce<Record<string, MatchResult[]>>((acc, m) => {
     const key = m.round || "Match";
     if (!acc[key]) acc[key] = [];
     acc[key].push(m);
     return acc;
   }, {});
-  const rounds = Object.keys(grouped);
+  const allRoundNames = Object.keys(groupedAll);
+
+  // Separate "3rd place" / "third place" rounds — they don't belong in the main bracket flow
+  const isThirdPlace = (round: string) => /3rd\s*place|third\s*place|bronze/i.test(round);
+  const thirdPlaceRounds = allRoundNames.filter(isThirdPlace);
+  const rounds = allRoundNames.filter(r => !isThirdPlace(r));
+  const grouped = groupedAll;
 
   if (matches.length === 0) {
     return (
