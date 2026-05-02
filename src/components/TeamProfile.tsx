@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
+  ArrowDownCircle, ArrowUpCircle, Armchair,
 } from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
@@ -15,6 +16,9 @@ import { loadFromStorage } from "@/lib/storage";
 import {
   loadTeamLogo, saveTeamLogo, deleteTeamLogo, fileToLogoDataUrl,
 } from "@/lib/teamLogos";
+import {
+  splitRoster, benchPlayer, activatePlayer, isBenched,
+} from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
