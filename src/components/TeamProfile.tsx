@@ -328,7 +328,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-4">
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
-                  <RosterGrid team={team} compact onSelectPlayer={onSelectPlayer} />
+                  <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
