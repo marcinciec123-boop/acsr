@@ -183,17 +183,11 @@ export function updateManualFreeAgent(
 export function getFreeAgents(): FreeAgent[] {
   // Hydrate in-memory maps from overrides so other components see them.
   const natOv = loadFreeAgentNationalityOverrides();
-  Object.entries(natOv).forEach(([p, c]) => {
-    if (!playerNationalities[p]) playerNationalities[p] = c;
-  });
+  Object.entries(natOv).forEach(([p, c]) => { playerNationalities[p] = c; });
   const roleOv = loadFreeAgentRoleOverrides();
-  Object.entries(roleOv).forEach(([p, r]) => {
-    if (!playerRoles[p]) playerRoles[p] = r;
-  });
+  Object.entries(roleOv).forEach(([p, r]) => { playerRoles[p] = r; });
   const nameOv = loadFreeAgentRealNameOverrides();
-  Object.entries(nameOv).forEach(([p, n]) => {
-    if (!playerRealNames[p]) playerRealNames[p] = n;
-  });
+  Object.entries(nameOv).forEach(([p, n]) => { playerRealNames[p] = n; });
 
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const teams = stored && stored.length > 0 ? stored : teamDatabase;
