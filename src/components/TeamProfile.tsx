@@ -46,6 +46,13 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [hasLogo, setHasLogo] = useState(false);
+  const [benchTick, setBenchTick] = useState(0);
+
+  useEffect(() => {
+    const onBench = () => setBenchTick(t => t + 1);
+    window.addEventListener("bench:update", onBench);
+    return () => window.removeEventListener("bench:update", onBench);
+  }, []);
 
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
   const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
