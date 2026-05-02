@@ -117,6 +117,151 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
   );
 };
 
+// Helper: derive region label from qualifier name
+const regionLabel = (name: string) => {
+  const m = name.match(/[—-]\s*([^—-]+?)(?:\s+Elimination|\s+Qualifier)?$/i);
+  return (m?.[1] || name).trim();
+};
+
+const QualifierBundleCard = ({
+  bundleKey,
+  tournaments,
+  index,
+  simResults,
+  onOpen,
+}: {
+  bundleKey: string;
+  tournaments: Tournament[];
+  index: number;
+  simResults: Record<string, TournamentSimulation>;
+  onOpen: (id: string) => void;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const tier = first.tier;
+  const completed = sorted.filter((t) => t.status === "completed").length;
+  const total = sorted.length;
+  const live = sorted.some((t) => t.status === "live");
+  const allDone = completed === total;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
+      className={cn(
+        "group relative bg-card border border-border rounded-lg overflow-hidden md:col-span-2 lg:col-span-3",
+        live && "border-destructive/30 neon-border",
+        allDone && "border-win/20"
+      )}
+    >
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left p-5 hover:bg-muted/20 transition-colors"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={cn("font-heading font-bold text-lg", tierColors[tier])}>{tier}</span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                Kwalifikacje
+              </span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                {total} {total === 1 ? "region" : "regiony"}
+              </span>
+              {allDone && (
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-win/30 bg-win/10 text-win flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Zakończone
+                </span>
+              )}
+            </div>
+            <h3 className="font-heading text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+              {bundleKey} — Kwalifikacje
+            </h3>
+            <p className="text-muted-foreground text-sm">{first.organizer}</p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "w-5 h-5 text-muted-foreground transition-transform mt-1 shrink-0",
+              expanded && "rotate-180"
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            <span className="font-mono text-foreground">{completed}/{total}</span>
+            <span>rozegranych</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="w-3.5 h-3.5" />
+            <span>{sorted.reduce((s, t) => s + (t.teams || 0), 0)} drużyn</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Online</span>
+          </div>
+          <div className="text-muted-foreground font-mono">
+            {new Date(first.startDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+            {" – "}
+            {new Date(last.endDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+          </div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="border-t border-border overflow-hidden"
+          >
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {sorted.map((t) => {
+                const status = statusConfig[t.status];
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onOpen(t.id)}
+                    className="flex items-center justify-between gap-2 p-3 rounded-md border border-border bg-background/40 hover:border-primary/40 hover:bg-muted/20 transition-colors text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded border", status.className)}>
+                          {status.label}
+                        </span>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {t.teams} dr.
+                        </span>
+                      </div>
+                      <div className="font-heading text-sm font-semibold text-foreground truncate">
+                        {regionLabel(t.name)}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {new Date(t.startDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+                        {" – "}
+                        {new Date(t.endDate).toLocaleDateString("pl-PL", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 type TierFilter = "all" | "S" | "A" | "B" | "C";
 type StatusFilter = "all" | "live" | "upcoming" | "completed";
 
