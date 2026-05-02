@@ -95,8 +95,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
       map: available,
       score1: 0,
       score2: 0,
-      team1Players: ensurePlayers(undefined, match.team1),
-      team2Players: ensurePlayers(undefined, match.team2),
+      team1Players: ensurePlayers(undefined, match.team1, tournamentId),
+      team2Players: ensurePlayers(undefined, match.team2, tournamentId),
     };
     onUpdate({ maps: [...maps, newMap] });
     setActiveMapIdx(maps.length);
@@ -112,7 +112,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
       toast({ title: "Nie można symulować", description: "Najpierw przypisz obie drużyny.", variant: "destructive" });
       return;
     }
-    const result = simulateMatch(match.team1, match.team2, bo);
+    const result = simulateMatch(match.team1, match.team2, bo, { tournamentId });
     onUpdate({
       score1: result.score1,
       score2: result.score2,
@@ -373,7 +373,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
                 const m = maps[activeMapIdx];
                 if (!m) return;
                 if (!m.team1Players || m.team1Players.length < 5) {
-                  updateMap(activeMapIdx, { team1Players: ensurePlayers(m.team1Players, match.team1) });
+                  updateMap(activeMapIdx, { team1Players: ensurePlayers(m.team1Players, match.team1, tournamentId) });
                 }
               }}
               onUpdatePlayer={(pi, patch) => updatePlayer(activeMapIdx, "team1Players", pi, patch)}
@@ -391,7 +391,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
                 const m = maps[activeMapIdx];
                 if (!m) return;
                 if (!m.team2Players || m.team2Players.length < 5) {
-                  updateMap(activeMapIdx, { team2Players: ensurePlayers(m.team2Players, match.team2) });
+                  updateMap(activeMapIdx, { team2Players: ensurePlayers(m.team2Players, match.team2, tournamentId) });
                 }
               }}
               onUpdatePlayer={(pi, patch) => updatePlayer(activeMapIdx, "team2Players", pi, patch)}
