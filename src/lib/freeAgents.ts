@@ -145,23 +145,28 @@ export function removeManualFreeAgent(player: string): void {
   setFreeAgentRealName(player, "", "");
 }
 
-/** Patch an existing manual FA. */
+/** Patch an existing FA. Works for both manual entries and transfer-derived FAs
+ *  (in the latter case only the override stores are updated). */
 export function updateManualFreeAgent(
   player: string,
   patch: Partial<Omit<ManualFA, "player">>,
 ): void {
   const list = loadManualFreeAgents();
   const idx = list.findIndex(f => f.player === player);
-  if (idx === -1) return;
-  list[idx] = { ...list[idx], ...patch };
-  saveManualFreeAgents(list);
+
+  if (idx !== -1) {
+    list[idx] = { ...list[idx], ...patch };
+    saveManualFreeAgents(list);
+  }
+
   if (patch.country !== undefined) setFreeAgentNationality(player, patch.country || "");
   if (patch.role !== undefined) setFreeAgentRole(player, patch.role || "");
   if (patch.firstName !== undefined || patch.lastName !== undefined) {
+    const base = idx !== -1 ? list[idx] : { firstName: "", lastName: "" };
     setFreeAgentRealName(
       player,
-      (patch.firstName ?? list[idx].firstName ?? ""),
-      (patch.lastName ?? list[idx].lastName ?? ""),
+      (patch.firstName ?? base.firstName ?? ""),
+      (patch.lastName ?? base.lastName ?? ""),
     );
   }
 }
@@ -178,17 +183,11 @@ export function updateManualFreeAgent(
 export function getFreeAgents(): FreeAgent[] {
   // Hydrate in-memory maps from overrides so other components see them.
   const natOv = loadFreeAgentNationalityOverrides();
-  Object.entries(natOv).forEach(([p, c]) => {
-    if (!playerNationalities[p]) playerNationalities[p] = c;
-  });
+  Object.entries(natOv).forEach(([p, c]) => { playerNationalities[p] = c; });
   const roleOv = loadFreeAgentRoleOverrides();
-  Object.entries(roleOv).forEach(([p, r]) => {
-    if (!playerRoles[p]) playerRoles[p] = r;
-  });
+  Object.entries(roleOv).forEach(([p, r]) => { playerRoles[p] = r; });
   const nameOv = loadFreeAgentRealNameOverrides();
-  Object.entries(nameOv).forEach(([p, n]) => {
-    if (!playerRealNames[p]) playerRealNames[p] = n;
-  });
+  Object.entries(nameOv).forEach(([p, n]) => { playerRealNames[p] = n; });
 
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const teams = stored && stored.length > 0 ? stored : teamDatabase;
