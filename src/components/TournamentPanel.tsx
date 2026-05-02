@@ -560,18 +560,14 @@ const TournamentPanel = () => {
   };
 
   const confirmTournamentResults = (id: string) => {
-    let finalized: TournamentData | null = null;
-    setTournaments(prev => {
-      const next = prev.map(t => {
-        if (t.id !== id) return t;
-        const placements = t.placements?.length ? t.placements : deriveFinalPlacements(t);
-        finalized = { ...t, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
-        return finalized;
-      });
-      saveToStorage(STORAGE_KEY, next);
-      return next;
-    });
-    if (finalized) {
+    const source = tournaments.find(t => t.id === id);
+    if (!source || source.resultsConfirmed) return;
+    const placements = source.placements?.length ? source.placements : deriveFinalPlacements(source);
+    const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
+    const next = tournaments.map(t => t.id === id ? finalized : t);
+    const saved = saveToStorage(STORAGE_KEY, next);
+    setTournaments(next);
+    if (saved) {
       const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
       const placements = finalized.placements || [];
       saveToStorage("ranking_data", ranking.map(team => {
@@ -579,6 +575,8 @@ const TournamentPanel = () => {
         return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
       }));
       toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
+    } else {
+      toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
     }
   };
 
