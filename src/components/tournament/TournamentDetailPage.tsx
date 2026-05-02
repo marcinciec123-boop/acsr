@@ -16,6 +16,7 @@ import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
 import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 import { SwissView } from "./SwissView";
+import { TournamentLineupPanel } from "./TournamentLineupPanel";
 
 interface Props {
   tournament: TournamentData;
