@@ -9,6 +9,7 @@ const countryToISO: Record<string, string> = {
   "ROU": "RO", "EST": "EE", "CAN": "CA", "UK": "GB", "ISL": "IS",
   "MEX": "MX", "PAK": "PK", "EGY": "EG", "KOS": "XK", "MYS": "MY",
   "KGY": "KG", "IND": "IN", "THA": "TH", "AZE": "AZ", "FJI": "FJ",
+  "IDN": "ID",
 };
 
 /** Always return a 2-letter ISO code (or "" if unknown). */
