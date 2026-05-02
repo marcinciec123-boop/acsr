@@ -672,6 +672,16 @@ export const teamDatabase: TeamData[] = [
   { name: "Lynn Vision", points: 220, country: "CHN", region: "ASIA", roster: ["EmiliaQaQ", "Su3", "z4kr", "Starry", "westmelon"] },
   { name: "InSilio", points: 220, country: "AZE", region: "ASIA", roster: ["sugaR", "t0rick", "veslaR", "tokuzo", "zanxxX"] },
   { name: "Sharks", points: 220, country: "BRA", region: "LATAM", roster: ["chay", "drg", "Gafolo", "rdnzao", "n1ssim"] },
+  // Added from MAJOR Berlin 2025 import
+  { name: "100Thieves", points: 0, country: "AUS", region: "OCE", roster: ["jks", "USTILO", "liazz", "AZR", "Nifty"] },
+  { name: "BHOP eSports", points: 0, country: "USA", region: "US", roster: ["Pengu1n", "gonzo", "feral", "andrew", "mst"] },
+  { name: "Gameroids", points: 0, country: "EU", region: "EU", roster: ["syco", "h0bbit", "ANDROID", "MaXi", "Krimbo"] },
+  { name: "Immuna Gaming", points: 0, country: "EU", region: "EU", roster: ["rena", "zY", "soma", "jank0", "eJay"] },
+  { name: "ORDER", points: 0, country: "AUS", region: "OCE", roster: ["NiGhtFuRy", "JerrY", "2ndacc", "BrinkB", "versten"] },
+  { name: "Revenant eSports", points: 0, country: "ASIA", region: "ASIA", roster: ["kaze", "fluckZ", "3nable", "argenT", "GFi"] },
+  { name: "Risk eSports", points: 0, country: "USA", region: "US", roster: ["wonder", "moose", "Relyks", "Shao", "dazzLe"] },
+  { name: "Vectorial", points: 0, country: "BRA", region: "LATAM", roster: ["malbsMd", "carbine", "meyern", "kinho", "yeL"] },
+  { name: "Warzone Gaming", points: 0, country: "EU", region: "EU", roster: ["enlai", "nJta", "killjoy", "heretic", "abiLo"] },
 ];
 
 // Tier helpers
