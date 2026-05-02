@@ -23,23 +23,23 @@ const TeamRow = ({
   const flag = !placeholder ? getTeamFlag(name) : "";
   return (
     <div className={cn(
-      "flex justify-between items-center px-2.5 py-1.5 transition-colors",
-      isWinner && "bg-[hsl(var(--win))]/15",
-      !isWinner && score >= 0 && "bg-card",
+      "flex justify-between items-center px-3 py-2 transition-colors",
+      isWinner && "bg-[hsl(var(--win))]/12",
+      !isWinner && score >= 0 && "bg-card/60",
     )}>
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        {isWinner && isFinal && <Crown className="w-3 h-3 text-[hsl(var(--gold))] shrink-0" />}
-        {flag && <span className="text-sm leading-none shrink-0">{flag}</span>}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {isWinner && isFinal && <Crown className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />}
+        {flag && <span className="text-base leading-none shrink-0">{flag}</span>}
         <span className={cn(
-          "truncate text-xs",
-          isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/80"
+          "truncate text-[13px]",
+          isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
         )}>
           {name || "TBD"}
         </span>
       </div>
       <span className={cn(
         "font-mono font-bold ml-2 text-sm tabular-nums",
-        isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground"
+        isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground/70"
       )}>
         {score}
       </span>
@@ -79,19 +79,49 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto pb-2">
-        <div className="flex items-stretch min-w-fit">
+      <div className="overflow-x-auto pb-3 px-1">
+        <div className="flex items-stretch min-w-fit gap-0">
           {rounds.map((round, ri) => {
             const matchesInRound = grouped[round];
             const isLast = isFinalRound(ri);
             const lower = isLowerRound(round);
+            const prevCount = ri > 0 ? grouped[rounds[ri - 1]].length : 0;
+            const currCount = matchesInRound.length;
+            // True bracket round (each match in this round is fed by 2 from previous)
+            const isBracketProgression = ri > 0 && prevCount === currCount * 2;
+
             return (
               <div key={round} className="flex items-stretch">
+                {/* Connector column to PREVIOUS round */}
+                {ri > 0 && (
+                  <div className="flex flex-col w-8 shrink-0 pt-7 pb-1">
+                    {isBracketProgression ? (
+                      <div className="flex flex-col flex-1 justify-around gap-3">
+                        {Array.from({ length: currCount }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 border-l-2 border-t-2 border-b-2 border-border/60 rounded-l-md -ml-px relative"
+                          >
+                            {/* horizontal stub into next match */}
+                            <div className="absolute top-1/2 -right-0 w-3 h-px bg-border/60" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col flex-1 justify-around gap-3">
+                        <div className="flex-1 flex items-center">
+                          <div className="w-full h-px bg-border/40" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Round column */}
-                <div className="flex flex-col gap-3 min-w-[230px] px-1">
-                  <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex flex-col gap-3 w-[260px] shrink-0">
+                  <div className="flex items-center justify-between gap-1 px-1 h-6">
                     <h5 className={cn(
-                      "text-[10px] font-mono uppercase font-bold tracking-wider truncate",
+                      "text-[10px] font-mono uppercase font-bold tracking-[0.15em] truncate",
                       isLast ? "text-[hsl(var(--gold))]" : lower ? "text-destructive/80" : "text-primary"
                     )}>
                       {isLast && "★ "}{round}
@@ -99,7 +129,7 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                     {onAdd && (
                       <button
                         onClick={() => onAdd(round)}
-                        className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                        className="text-muted-foreground hover:text-primary transition-colors p-0.5 rounded hover:bg-secondary/50"
                         title="Dodaj mecz w tej rundzie"
                       >
                         <Plus className="w-3 h-3" />
@@ -117,15 +147,20 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                         <div
                           key={m.id}
                           className={cn(
-                            "border rounded-md overflow-hidden text-xs shadow-sm",
-                            isLast ? "border-[hsl(var(--gold))]/40 shadow-[0_0_12px_hsl(var(--gold)/0.15)]" : "border-border",
-                            decided && !isLast && "border-primary/30"
+                            "border rounded-md overflow-hidden text-xs shadow-md bg-card/40 backdrop-blur-sm",
+                            isLast
+                              ? "border-[hsl(var(--gold))]/50 shadow-[0_0_16px_hsl(var(--gold)/0.18)]"
+                              : decided
+                                ? "border-primary/40"
+                                : "border-border/70"
                           )}
                         >
                           {/* Round/BO label strip */}
                           <div className={cn(
-                            "px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider flex items-center justify-between border-b border-border/50",
-                            isLast ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]" : "bg-secondary/60 text-muted-foreground"
+                            "px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] flex items-center justify-between border-b",
+                            isLast
+                              ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
+                              : "bg-secondary/40 text-muted-foreground border-border/50"
                           )}>
                             <span>BO{m.bo || 3}</span>
                             {decided && <span className="text-[hsl(var(--win))]">✓</span>}
@@ -242,7 +277,7 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                               className="w-full text-left hover:brightness-110 transition-all"
                             >
                               <TeamRow name={m.team1} score={m.score1} isWinner={winner1} isFinal={isLast} />
-                              <div className="h-px bg-border" />
+                              <div className="h-px bg-border/60" />
                               <TeamRow name={m.team2} score={m.score2} isWinner={winner2} isFinal={isLast} />
                             </button>
                           )}
@@ -251,24 +286,6 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                     })}
                   </div>
                 </div>
-
-                {/* SVG connector to next round */}
-                {ri < rounds.length - 1 && (
-                  <div className="flex items-stretch w-6 self-stretch py-6">
-                    <svg
-                      viewBox="0 0 20 100"
-                      preserveAspectRatio="none"
-                      className="w-full h-full text-border"
-                    >
-                      <path
-                        d="M 0 25 L 10 25 L 10 75 L 20 75 M 0 75 L 10 75"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        fill="none"
-                      />
-                    </svg>
-                  </div>
-                )}
               </div>
             );
           })}
