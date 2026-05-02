@@ -667,7 +667,7 @@ export const teamDatabase: TeamData[] = [
   { name: "Renevant eSports", points: 230, country: "MYS", region: "ASIA", roster: ["3nable", "argenT", "fluckZ", "GFi", "kaZe"] },
   { name: "9Pandas", points: 230, country: "CHN", region: "ASIA", roster: ["r3salt", "d1Ledez", "zhoKing", "Krad", "s1kura"] },
   { name: "Tengri", points: 225, country: "KGY", region: "ASIA", roster: ["SNk", "ProjeksT", "Ramz1k", "enzero", "yaqK"] },
-  { name: "Rare Atom", points: 225, country: "IND", region: "ASIA", roster: ["nJta", "baLi", "enlai", "kaito", "abiLo"] },
+  { name: "Rare Atom", points: 225, country: "IDN", region: "ASIA", roster: ["nJta", "baLi", "enlai", "kaito", "abiLo"] },
   { name: "ZIGMA", points: 225, country: "THA", region: "ASIA", roster: ["RoLEX", "NIFFY", "GeniusSs", "j9", "hxskxth"] },
   { name: "Lynn Vision", points: 220, country: "CHN", region: "ASIA", roster: ["EmiliaQaQ", "Su3", "z4kr", "Starry", "westmelon"] },
   { name: "InSilio", points: 220, country: "AZE", region: "ASIA", roster: ["sugaR", "t0rick", "veslaR", "tokuzo", "zanxxX"] },
