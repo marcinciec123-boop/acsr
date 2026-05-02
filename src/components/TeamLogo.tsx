@@ -1,0 +1,76 @@
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import { loadTeamLogo } from "@/lib/teamLogos";
+import { teamTag } from "@/lib/teamHelpers";
+
+interface TeamLogoProps {
+  teamName: string;
+  size?: number;
+  className?: string;
+  rounded?: "md" | "lg" | "xl" | "full";
+}
+
+const gradientFor = (name: string): string => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const palette = [
+    "from-blue-500 to-indigo-700",
+    "from-emerald-500 to-teal-700",
+    "from-purple-500 to-fuchsia-700",
+    "from-amber-500 to-orange-700",
+    "from-rose-500 to-red-700",
+    "from-cyan-500 to-sky-700",
+    "from-lime-500 to-green-700",
+    "from-pink-500 to-rose-700",
+  ];
+  return palette[Math.abs(hash) % palette.length];
+};
+
+const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoProps) => {
+  const [logo, setLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadTeamLogo(teamName).then(url => { if (active) setLogo(url); });
+    const onUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { teamName?: string };
+      if (!detail?.teamName || detail.teamName === teamName) {
+        loadTeamLogo(teamName).then(url => { if (active) setLogo(url); });
+      }
+    };
+    window.addEventListener("teamlogo:update", onUpdate);
+    return () => { active = false; window.removeEventListener("teamlogo:update", onUpdate); };
+  }, [teamName]);
+
+  const radius =
+    rounded === "full" ? "rounded-full" :
+    rounded === "xl" ? "rounded-xl" :
+    rounded === "lg" ? "rounded-lg" : "rounded-md";
+
+  if (logo) {
+    return (
+      <div
+        style={{ width: size, height: size }}
+        className={cn("bg-secondary/40 border border-border flex items-center justify-center overflow-hidden shrink-0", radius, className)}
+      >
+        <img src={logo} alt={`${teamName} logo`} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.32)) }}
+      className={cn(
+        "bg-gradient-to-br text-white font-heading font-black flex items-center justify-center shrink-0 shadow-md",
+        gradientFor(teamName),
+        radius,
+        className,
+      )}
+    >
+      {teamTag(teamName)}
+    </div>
+  );
+};
+
+export default TeamLogo;
