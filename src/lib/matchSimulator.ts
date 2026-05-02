@@ -307,8 +307,8 @@ export function simulateMatch(
   bo: 1 | 3 | 5,
   options: SimulateOptions = {},
 ): SimulationResult {
-  const team1Roster = getRoster(team1);
-  const team2Roster = getRoster(team2);
+  const team1Roster = getRoster(team1, options.tournamentId);
+  const team2Roster = getRoster(team2, options.tournamentId);
   const s1 = getTeamStrength(team1);
   const s2 = getTeamStrength(team2);
 
