@@ -361,7 +361,7 @@ const TransferPanel = () => {
                     )}
                   </div>
                   <div className="col-span-2 text-xs text-muted-foreground font-mono">
-                    {new Date(t.date).toLocaleDateString("pl-PL", { day: "numeric", month: "short" })}
+                    {new Date(t.date).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" })}
                   </div>
                 </motion.div>
               ))}
