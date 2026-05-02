@@ -17,7 +17,7 @@ import {
   loadTeamLogo, saveTeamLogo, deleteTeamLogo, fileToLogoDataUrl,
 } from "@/lib/teamLogos";
 import {
-  splitRoster, benchPlayer, activatePlayer, isBenched,
+  splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
 import { Button } from "@/components/ui/button";
