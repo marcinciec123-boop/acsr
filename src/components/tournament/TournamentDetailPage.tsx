@@ -40,6 +40,7 @@ interface Props {
   onAssignGroups?: (phaseId: string, assignment: Record<string, string[]>) => void;
   onShuffleGroups?: (phaseId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
+  onConfirmResults?: () => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
   mainTournaments?: TournamentData[];
@@ -240,7 +241,7 @@ const PhaseSeedingPanel = ({
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
   onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
-  onSetStatus, onDelete, onOpenMatch,
+  onSetStatus, onConfirmResults, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
@@ -771,6 +772,16 @@ export const TournamentDetailPage = ({
             <Button size="sm" variant="outline" onClick={() => onSetStatus("completed")}>
               Zakończ
             </Button>
+          )}
+          {t.status === "completed" && !t.resultsConfirmed && onConfirmResults && (
+            <Button size="sm" onClick={onConfirmResults} className="gap-1.5">
+              <CheckCircle2 className="w-4 h-4" /> Zatwierdź ostateczne wyniki
+            </Button>
+          )}
+          {t.resultsConfirmed && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[hsl(var(--win))]/40 bg-[hsl(var(--win))]/10 text-[hsl(var(--win))] text-xs font-mono">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Wyniki zatwierdzone
+            </span>
           )}
           {t.status === "completed" && (
             <Button size="sm" variant="outline" onClick={() => onSetStatus("upcoming")}>
