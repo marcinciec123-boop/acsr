@@ -395,6 +395,9 @@ export const TournamentDetailPage = ({
           </div>
         )}
 
+        {/* Lineup picker — substitutions per tournament */}
+        <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
+
         {/* Qualifier panel */}
         {isQualifier && (
           <div className="bg-gradient-to-br from-[hsl(var(--gold))]/5 to-card border border-[hsl(var(--gold))]/30 rounded-lg p-4 mb-6">
