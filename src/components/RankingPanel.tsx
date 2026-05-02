@@ -155,85 +155,48 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
-        {/* === HERO HEADER === */}
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card to-secondary/40 p-6 mb-6">
-          <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-10 w-72 h-72 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative flex flex-wrap items-start justify-end gap-4 mb-6">
-
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
-                <Activity className="w-3.5 h-3.5" />
-                Zapisz migawkę
+        {/* === ACTION BAR === */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
+            <Activity className="w-3.5 h-3.5" />
+            Zapisz migawkę
+          </Button>
+          <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5">
+                <Plus className="w-4 h-4" /> Korekta punktów
               </Button>
-              <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5">
-                    <Plus className="w-4 h-4" /> Korekta punktów
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Zmień punkty drużyny</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Drużyna</label>
-                      <select
-                        value={adjTeam}
-                        onChange={e => setAdjTeam(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
-                      >
-                        <option value="">Wybierz drużynę...</option>
-                        {sorted.map(t => <option key={t.name} value={t.name}>{t.name} ({t.points} pkt)</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-mono text-muted-foreground mb-1 block">
-                        Punkty (+ dodaj, - odejmij)
-                      </label>
-                      <Input type="number" placeholder="+100 lub -50" value={adjPoints} onChange={e => setAdjPoints(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Powód (opcjonalnie)</label>
-                      <Input placeholder="np. Wygrana turnieju, kara..." value={adjReason} onChange={e => setAdjReason(e.target.value)} />
-                    </div>
-                    <Button onClick={handleAdjust} className="w-full">Zastosuj zmianę</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* === STATS GRID === */}
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard
-              icon={<Users className="w-4 h-4" />}
-              label="Drużyn w rankingu"
-              value={sorted.length.toString()}
-              hint={`${stats.totalPlayers} graczy`}
-            />
-            <StatCard
-              icon={<Crown className="w-4 h-4 text-accent" />}
-              label="Lider"
-              value={stats.top?.name || "—"}
-              hint={`${stats.top?.points.toLocaleString() || 0} pkt`}
-              accent
-            />
-            <StatCard
-              icon={<BarChart3 className="w-4 h-4" />}
-              label="Średnia punktów"
-              value={stats.avgPoints.toLocaleString()}
-              hint={`Max: ${maxPoints.toLocaleString()}`}
-            />
-            <StatCard
-              icon={<Globe className="w-4 h-4" />}
-              label="Dominujący region"
-              value={stats.dominantRegion?.[0] || "—"}
-              hint={`${stats.dominantRegion?.[1] || 0} drużyn`}
-            />
-          </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Zmień punkty drużyny</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Drużyna</label>
+                  <select
+                    value={adjTeam}
+                    onChange={e => setAdjTeam(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+                  >
+                    <option value="">Wybierz drużynę...</option>
+                    {sorted.map(t => <option key={t.name} value={t.name}>{t.name} ({t.points} pkt)</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-mono text-muted-foreground mb-1 block">
+                    Punkty (+ dodaj, - odejmij)
+                  </label>
+                  <Input type="number" placeholder="+100 lub -50" value={adjPoints} onChange={e => setAdjPoints(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Powód (opcjonalnie)</label>
+                  <Input placeholder="np. Wygrana turnieju, kara..." value={adjReason} onChange={e => setAdjReason(e.target.value)} />
+                </div>
+                <Button onClick={handleAdjust} className="w-full">Zastosuj zmianę</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* === PODIUM TOP 3 === */}
