@@ -19,6 +19,7 @@ import { calculateRating } from "./playerStats";
 import { teamDatabase } from "@/data/tournaments";
 import { loadFromStorage } from "./storage";
 import type { TeamData } from "./types";
+import { getBenchedFor } from "./benchedPlayers";
 
 export const SIM_MAP_POOL = [
   "Anubis", "Ancient", "Dust II", "Inferno",
