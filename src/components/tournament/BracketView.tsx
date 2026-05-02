@@ -52,9 +52,18 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
-  // Group by round name preserving insertion order
+  const displayRoundName = (round?: string) => {
+    const clean = (round || "Match").trim();
+    return clean
+      .replace(/\s+[—-]?\s*M(?:atch)?\s*\d+$/i, "")
+      .replace(/\s+#\d+$/i, "")
+      .trim() || "Match";
+  };
+
+  // Group by display round name preserving insertion order. Seeded imports may store
+  // every match as "1ST ROUND M1", "1ST ROUND M2" etc.; visually that is one round.
   const groupedAll = matches.reduce<Record<string, MatchResult[]>>((acc, m) => {
-    const key = m.round || "Match";
+    const key = displayRoundName(m.round);
     if (!acc[key]) acc[key] = [];
     acc[key].push(m);
     return acc;
@@ -83,13 +92,38 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
   const isFinalRound = (idx: number) => idx === rounds.length - 1;
   const isLowerRound = (round: string) => /lower|low|losers/i.test(round);
 
-  // Fixed dimensions so connectors line up perfectly
-  const MATCH_H = 78;       // px — height of a single match card
-  const BASE_GAP = 16;      // px — gap between matches in round 0
-  // gap in round i = BASE_GAP + (2^i - 1) * (MATCH_H + BASE_GAP)
-  const gapForRound = (i: number) => BASE_GAP + (Math.pow(2, i) - 1) * (MATCH_H + BASE_GAP);
-  // top offset (padding-top) for round i so first match aligns with center of first pair below
-  const offsetForRound = (i: number) => i === 0 ? 0 : (Math.pow(2, i - 1) * (MATCH_H + BASE_GAP)) - BASE_GAP / 2 - MATCH_H / 2;
+  // Fixed dimensions so cards never clip and connector math stays stable.
+  const MATCH_H = 92;
+  const BASE_GAP = 14;
+  const HEADER_H = 32;
+  const gapForDepth = (depth: number) => BASE_GAP + (Math.pow(2, depth) - 1) * (MATCH_H + BASE_GAP);
+  const offsetForDepth = (depth: number) => depth === 0 ? 0 : (Math.pow(2, depth - 1) * (MATCH_H + BASE_GAP)) - BASE_GAP / 2 - MATCH_H / 2;
+
+  const looksLikePlayoffRound = (round: string, roundMatches: MatchResult[]) => {
+    const lower = round.toLowerCase();
+    return lower.includes("quarter")
+      || lower.includes("semi")
+      || lower === "final"
+      || lower.includes("grand final")
+      || roundMatches.every(m => /^UB-R\d+-M\d+$/i.test(m.bracketSlot || ""));
+  };
+
+  const feedsDirectlyIntoRound = (prevName: string, nextName: string, prevRound: MatchResult[], nextRound: MatchResult[]) => {
+    if (prevRound.length !== nextRound.length * 2) return false;
+    const nextIds = new Set(nextRound.map(m => m.id));
+    const feedCount = prevRound.filter(m => (m.winnerTo && nextIds.has(m.winnerTo)) || (m.loserTo && nextIds.has(m.loserTo))).length;
+    return feedCount === prevRound.length || (feedCount === 0 && looksLikePlayoffRound(prevName, prevRound) && looksLikePlayoffRound(nextName, nextRound));
+  };
+
+  const roundLayout = rounds.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
+    const prevRound = idx > 0 ? rounds[idx - 1] : undefined;
+    const showConnector = !!prevRound && feedsDirectlyIntoRound(prevRound, round, grouped[prevRound], grouped[round]);
+    acc[round] = {
+      depth: showConnector ? acc[prevRound!].depth + 1 : 0,
+      showConnector,
+    };
+    return acc;
+  }, {});
 
   const renderMatchCard = (m: MatchResult, isLast: boolean) => {
     const isEditing = editingId === m.id;
@@ -120,7 +154,7 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
           {decided && <span className="text-[hsl(var(--win))]">✓</span>}
         </div>
         {isEditing ? (
-          <div className="p-2 space-y-1.5 bg-card">
+          <div className="p-2 space-y-1.5 bg-card min-h-[128px]">
             {editingRound ? (
               <div className="flex gap-1 items-center">
                 <Input
@@ -204,7 +238,7 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
             onClick={() => onOpenMatch ? onOpenMatch(m.id) : setEditingId(m.id)}
             onContextMenu={(e) => { e.preventDefault(); setEditingId(m.id); }}
             title={onOpenMatch ? "Klik: szczegóły meczu • PPM: szybka edycja" : "Klik: edytuj"}
-            className="w-full text-left hover:brightness-110 transition-all flex-1 flex flex-col"
+            className="w-full text-left hover:brightness-110 transition-all flex-1 flex flex-col min-h-0"
           >
             <div className="flex-1 flex flex-col">
               <TeamRow name={m.team1} score={m.score1} isWinner={winner1} isFinal={isLast} />
@@ -243,9 +277,9 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
             const matchesInRound = grouped[round];
             const isLast = isFinalRound(ri);
             const lower = isLowerRound(round);
-            const gap = gapForRound(ri);
-            const offset = offsetForRound(ri);
-            const showConnector = ri > 0 && grouped[rounds[ri - 1]].length === matchesInRound.length * 2;
+            const { depth, showConnector } = roundLayout[round];
+            const gap = gapForDepth(depth);
+            const offset = offsetForDepth(depth);
 
             return (
               <div key={round} className="flex items-start">
@@ -253,19 +287,19 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
                 {showConnector && (
                   <div
                     className="flex flex-col w-7 shrink-0"
-                    style={{ paddingTop: offsetForRound(ri - 1) + 32 + MATCH_H / 2, gap: `${MATCH_H + gapForRound(ri - 1)}px` }}
+                    style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
                   >
                     {Array.from({ length: matchesInRound.length }).map((_, i) => {
                       // Each connector spans from match (2i) center to match (2i+1) center in previous round
-                      const span = MATCH_H + gapForRound(ri - 1);
+                      const span = MATCH_H + gapForDepth(depth - 1);
                       return (
                         <div
                           key={i}
                           style={{ height: span }}
-                          className="border-l-2 border-t-2 border-b-2 border-border/60 rounded-l-sm relative"
+                          className="border-l border-t border-b border-border/70 rounded-l-sm relative"
                         >
                           {/* horizontal stub into next match */}
-                          <div className="absolute top-1/2 -right-0 w-[14px] h-[2px] bg-border/60 -translate-y-1/2" />
+                          <div className="absolute top-1/2 -right-0 w-[14px] h-px bg-border/70 -translate-y-1/2" />
                         </div>
                       );
                     })}
@@ -286,15 +320,15 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
             );
           })}
 
-          {/* 3rd place — separate side panel */}
+          {/* 3rd place — separate side panel, intentionally not part of the bracket flow */}
           {thirdPlaceRounds.length > 0 && (
-            <div className="flex items-start ml-6 pl-6 border-l border-border/30">
+            <div className="flex items-start ml-8 pl-8 border-l border-border/40">
               {thirdPlaceRounds.map((round) => (
                 <div key={round} className="flex flex-col w-[260px] shrink-0">
                   {renderRoundHeader(round, false, false)}
                   <div
                     className="flex flex-col"
-                    style={{ paddingTop: offsetForRound(Math.max(0, rounds.length - 2)), gap: `${BASE_GAP}px` }}
+                    style={{ gap: `${BASE_GAP}px` }}
                   >
                     {grouped[round].map(m => renderMatchCard(m, false))}
                   </div>
