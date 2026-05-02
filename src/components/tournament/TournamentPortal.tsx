@@ -281,6 +281,148 @@ const FeaturedLiveCard = ({ t, onClick }: { t: TournamentData; onClick: () => vo
   );
 };
 
+// --- Qualifier bundling -------------------------------------------------
+const isQualifierName = (t: TournamentData) =>
+  t.kind === "qualifier" || /elimination|qualifier|open\s*qual|closed\s*qual/i.test(t.name);
+
+const qualifierBundleKey = (t: TournamentData) =>
+  t.name.replace(/\s*[—-]\s*.*?(elimination|qualifier).*$/i, "").trim();
+
+const regionLabel = (name: string) => {
+  const m = name.match(/[—-]\s*([^—-]+?)(?:\s+Elimination|\s+Qualifier)?\s*$/i);
+  return (m?.[1] || name).trim();
+};
+
+const QualifierBundleCard = ({
+  bundleKey,
+  tournaments,
+  onSelect,
+}: {
+  bundleKey: string;
+  tournaments: TournamentData[];
+  onSelect: (id: string) => void;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = [...tournaments].sort(
+    (a, b) => (a.startDate || "").localeCompare(b.startDate || "")
+  );
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const tier = first.tier;
+  const completed = sorted.filter(t => t.status === "completed").length;
+  const total = sorted.length;
+  const live = sorted.some(t => t.status === "live");
+  const totalTeams = sorted.reduce((s, t) => s + (t.teams || 0), 0);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "bg-card border border-border rounded-lg overflow-hidden sm:col-span-2 lg:col-span-3",
+        live && "border-[hsl(var(--win))]/50"
+      )}
+    >
+      <div className={cn("h-1 w-full", tierBarColor(tier))} />
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full text-left p-4 hover:bg-muted/10 transition-colors"
+      >
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(tier))}>
+              {tier}-TIER
+            </span>
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary font-mono font-bold">
+              <Layers className="w-3 h-3" /> KWALIFIKACJE
+            </span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+              {total} {total === 1 ? "region" : "regiony"}
+            </span>
+            {live && (
+              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] font-mono font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--win))] animate-pulse" />
+                LIVE
+              </span>
+            )}
+          </div>
+          <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform shrink-0", expanded && "rotate-180")} />
+        </div>
+
+        <h3 className="font-heading font-bold text-foreground text-base mb-0.5 leading-tight">
+          {bundleKey} — Kwalifikacje
+        </h3>
+        <p className="text-[11px] text-muted-foreground mb-3 truncate">
+          {first.organizer || "—"}
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1 text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-2">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3 h-3 shrink-0" />
+            <span>{completed}/{total} rozegranych</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <UsersIcon className="w-3 h-3 shrink-0" />
+            <span>{totalTeams} drużyn</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span>Online</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3 h-3 shrink-0" />
+            <span>{formatDate(first.startDate)} → {formatDate(last.endDate)}</span>
+          </div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="border-t border-border overflow-hidden"
+          >
+            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {sorted.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => onSelect(t.id)}
+                  className="flex items-center justify-between gap-2 p-3 rounded-md border border-border bg-background/40 hover:border-primary/50 hover:bg-muted/20 transition-colors text-left"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={cn(
+                        "text-[10px] font-mono px-1.5 py-0.5 rounded border",
+                        t.status === "live" && "border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]",
+                        t.status === "upcoming" && "border-primary/40 bg-primary/10 text-primary",
+                        t.status === "completed" && "border-[hsl(var(--win))]/30 bg-[hsl(var(--win))]/10 text-[hsl(var(--win))]",
+                      )}>
+                        {t.status === "live" ? "LIVE" : t.status === "upcoming" ? "SOON" : "DONE"}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">{t.teams} dr.</span>
+                    </div>
+                    <div className="font-heading text-sm font-semibold text-foreground truncate">
+                      {regionLabel(t.name)}
+                    </div>
+                    <div className="text-[10px] font-mono text-muted-foreground">
+                      {formatDate(t.startDate)} → {formatDate(t.endDate)}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 export const TournamentPortal = ({ tournaments, onSelect, onCreate }: Props) => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
