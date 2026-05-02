@@ -650,6 +650,7 @@ const TournamentPanel = () => {
         match={selectedMatchInfo.match}
         phaseName={selectedMatchInfo.phaseName}
         bo={selectedMatchInfo.bo}
+        tournamentId={selectedTournament.id}
         onBack={() => setSelectedMatchRef(null)}
         onUpdate={(patch) => updatePhaseMatch(
           selectedTournament.id,

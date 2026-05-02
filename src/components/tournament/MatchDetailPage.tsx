@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { teamDatabase } from "@/data/tournaments";
+import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ interface Props {
   match: MatchResult;
   phaseName: string;
   bo: 1 | 3 | 5;
+  tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
 }
@@ -33,13 +35,15 @@ const blankPlayer = (name: string, team: string): MapPlayerStats => ({
   ef: 0,
 });
 
-const getRoster = (teamName: string): string[] => {
+const getRoster = (teamName: string, tournamentId?: string): string[] => {
+  const lineup = resolveLineup(tournamentId, teamName);
+  if (lineup.length > 0) return lineup.slice(0, 5);
   const team = teamDatabase.find(t => t.name === teamName);
   return (team?.roster || []).slice(0, 5);
 };
 
-const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string): MapPlayerStats[] => {
-  const roster = getRoster(teamName);
+const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string, tournamentId?: string): MapPlayerStats[] => {
+  const roster = getRoster(teamName, tournamentId);
   const base = roster.length === 5
     ? roster.map(n => blankPlayer(n, teamName))
     : Array.from({ length: 5 }, (_, i) => blankPlayer(roster[i] || `Player ${i + 1}`, teamName));
@@ -49,7 +53,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string)
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
@@ -91,8 +95,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
       map: available,
       score1: 0,
       score2: 0,
-      team1Players: ensurePlayers(undefined, match.team1),
-      team2Players: ensurePlayers(undefined, match.team2),
+      team1Players: ensurePlayers(undefined, match.team1, tournamentId),
+      team2Players: ensurePlayers(undefined, match.team2, tournamentId),
     };
     onUpdate({ maps: [...maps, newMap] });
     setActiveMapIdx(maps.length);
@@ -108,7 +112,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
       toast({ title: "Nie można symulować", description: "Najpierw przypisz obie drużyny.", variant: "destructive" });
       return;
     }
-    const result = simulateMatch(match.team1, match.team2, bo);
+    const result = simulateMatch(match.team1, match.team2, bo, { tournamentId });
     onUpdate({
       score1: result.score1,
       score2: result.score2,
@@ -369,7 +373,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
                 const m = maps[activeMapIdx];
                 if (!m) return;
                 if (!m.team1Players || m.team1Players.length < 5) {
-                  updateMap(activeMapIdx, { team1Players: ensurePlayers(m.team1Players, match.team1) });
+                  updateMap(activeMapIdx, { team1Players: ensurePlayers(m.team1Players, match.team1, tournamentId) });
                 }
               }}
               onUpdatePlayer={(pi, patch) => updatePlayer(activeMapIdx, "team1Players", pi, patch)}
@@ -387,7 +391,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, onBack, onUpdate }: Prop
                 const m = maps[activeMapIdx];
                 if (!m) return;
                 if (!m.team2Players || m.team2Players.length < 5) {
-                  updateMap(activeMapIdx, { team2Players: ensurePlayers(m.team2Players, match.team2) });
+                  updateMap(activeMapIdx, { team2Players: ensurePlayers(m.team2Players, match.team2, tournamentId) });
                 }
               }}
               onUpdatePlayer={(pi, patch) => updatePlayer(activeMapIdx, "team2Players", pi, patch)}
