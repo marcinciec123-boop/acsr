@@ -114,6 +114,7 @@ const TransferPanel = () => {
     if (transferFrom !== "-") {
       const fromTeam = teamDatabase.find(td => td.name === transferFrom);
       if (fromTeam) fromTeam.roster = fromTeam.roster.filter(p => p !== t.player);
+      removeFromAllBenches(t.player);
     }
     if (transferTo !== "-") {
       const toTeam = teamDatabase.find(td => td.name === transferTo);
