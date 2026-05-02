@@ -52,9 +52,18 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
-  // Group by round name preserving insertion order
+  const displayRoundName = (round?: string) => {
+    const clean = (round || "Match").trim();
+    return clean
+      .replace(/\s+[—-]?\s*M(?:atch)?\s*\d+$/i, "")
+      .replace(/\s+#\d+$/i, "")
+      .trim() || "Match";
+  };
+
+  // Group by display round name preserving insertion order. Seeded imports may store
+  // every match as "1ST ROUND M1", "1ST ROUND M2" etc.; visually that is one round.
   const groupedAll = matches.reduce<Record<string, MatchResult[]>>((acc, m) => {
-    const key = m.round || "Match";
+    const key = displayRoundName(m.round);
     if (!acc[key]) acc[key] = [];
     acc[key].push(m);
     return acc;
