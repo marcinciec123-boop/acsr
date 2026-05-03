@@ -11,6 +11,7 @@ import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
+import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 
 interface TournamentPlayProps {
   tournament: Tournament;
@@ -60,21 +61,36 @@ interface TournamentProgress {
 }
 
 function saveProgress(tournamentId: string, progress: TournamentProgress) {
+  const key = `tournament_progress_${tournamentId}`;
   try {
-    localStorage.setItem(`tournament_progress_${tournamentId}`, JSON.stringify(progress));
+    const serialized = JSON.stringify(progress);
+    void setDeviceValue(key, serialized).catch(error => console.error("Tournament progress device save failed:", error));
+    try { localStorage.setItem(key, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized); }
+    catch { try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* device cache only */ } }
     scheduleDeviceBackup();
   } catch (e) { /* ignore quota errors */ }
 }
 
 function loadProgress(tournamentId: string): TournamentProgress | null {
+  const key = `tournament_progress_${tournamentId}`;
   try {
-    const data = localStorage.getItem(`tournament_progress_${tournamentId}`);
+    const data = localStorage.getItem(key);
+    if (data === DEVICE_STORE_REF) {
+      const cached = getCachedDeviceValue(key);
+      return cached ? JSON.parse(cached) : null;
+    }
+    if (!data) {
+      const cached = getCachedDeviceValue(key);
+      return cached ? JSON.parse(cached) : null;
+    }
     return data ? JSON.parse(data) : null;
   } catch { return null; }
 }
 
 function clearProgress(tournamentId: string) {
-  localStorage.removeItem(`tournament_progress_${tournamentId}`);
+  const key = `tournament_progress_${tournamentId}`;
+  localStorage.removeItem(key);
+  void removeDeviceValue(key).catch(() => undefined);
   scheduleDeviceBackup();
 }
 

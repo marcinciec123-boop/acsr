@@ -1,4 +1,5 @@
 import { scheduleDeviceBackup } from "./deviceBackup";
+import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 // ===== Persistence Layer =====
 // localStorage for text data, IndexedDB for images
@@ -7,28 +8,107 @@ const STORAGE_PREFIX = "csgo_hub_";
 
 // --- localStorage helpers ---
 export function saveToStorage<T>(key: string, data: T): boolean {
+  const storageKey = STORAGE_PREFIX + key;
   try {
-    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data));
+    const serialized = JSON.stringify(data);
+    void setDeviceValue(storageKey, serialized).then(() => scheduleDeviceBackup()).catch(error => {
+      console.error("Failed to save to device storage:", key, error);
+    });
+    try {
+      localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized);
+    } catch (markerError) {
+      console.warn("Local storage marker failed, data kept in device storage:", key, markerError);
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.setItem(storageKey, DEVICE_STORE_REF);
+      } catch { /* device storage cache will still serve this session */ }
+    }
     scheduleDeviceBackup();
     return true;
   } catch (e) {
-    console.error("Failed to save to localStorage:", key, e);
+    console.error("Failed to save storage marker:", key, e);
+    return false;
+  }
+}
+
+export async function saveToStorageAsync<T>(key: string, data: T): Promise<boolean> {
+  const storageKey = STORAGE_PREFIX + key;
+  try {
+    const serialized = JSON.stringify(data);
+    await setDeviceValue(storageKey, serialized);
+    try { localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized); }
+    catch { try { localStorage.setItem(storageKey, DEVICE_STORE_REF); } catch { /* device-only */ } }
+    scheduleDeviceBackup();
+    return true;
+  } catch (e) {
+    console.error("Failed to save to device storage:", key, e);
     return false;
   }
 }
 
 export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + key);
-    if (!raw) return fallback;
+    const storageKey = STORAGE_PREFIX + key;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) {
+      const cached = getCachedDeviceValue(storageKey);
+      return cached ? JSON.parse(cached) as T : fallback;
+    }
+    if (raw === DEVICE_STORE_REF) {
+      const cached = getCachedDeviceValue(storageKey);
+      return cached ? JSON.parse(cached) as T : fallback;
+    }
     return JSON.parse(raw) as T;
   } catch {
     return fallback;
   }
 }
 
+export async function loadFromStorageAsync<T>(key: string, fallback: T): Promise<T> {
+  const storageKey = STORAGE_PREFIX + key;
+  try {
+    const marker = localStorage.getItem(storageKey);
+    if (marker === DEVICE_STORE_REF) {
+      const raw = await getDeviceValue(storageKey);
+      return raw ? JSON.parse(raw) as T : fallback;
+    }
+    if (marker) return JSON.parse(marker) as T;
+    const raw = await getDeviceValue(storageKey);
+    if (raw) {
+      try { localStorage.setItem(storageKey, raw.length > 120_000 ? DEVICE_STORE_REF : raw); } catch { /* keep device-only */ }
+      return JSON.parse(raw) as T;
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function migrateHeavyLocalStorageToDeviceStore(): Promise<number> {
+  if (typeof localStorage === "undefined") return 0;
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith(STORAGE_PREFIX) || key.startsWith("tournament_progress_"))) keys.push(key);
+  }
+
+  let migrated = 0;
+  for (const key of keys) {
+    const value = localStorage.getItem(key);
+    if (!value || value === DEVICE_STORE_REF) continue;
+    const isHeavy = value.length > 120_000 || key.startsWith("csgo_hub_teamlogo_");
+    if (!isHeavy) continue;
+    await setDeviceValue(key, value);
+    try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { localStorage.removeItem(key); }
+    migrated += 1;
+  }
+  if (migrated > 0) scheduleDeviceBackup();
+  return migrated;
+}
+
 export function removeFromStorage(key: string): void {
   localStorage.removeItem(STORAGE_PREFIX + key);
+  void removeDeviceValue(STORAGE_PREFIX + key).catch(() => undefined);
   scheduleDeviceBackup();
 }
 

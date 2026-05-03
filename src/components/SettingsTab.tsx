@@ -4,6 +4,7 @@ import { Settings, RotateCcw, Save, Download, Trash2, AlertTriangle } from "luci
 import { cn } from "@/lib/utils";
 import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
+import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 
 interface SaveSlot {
   label: string;
@@ -27,6 +28,10 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
   const getSlot = (key: string): SaveSlot | null => {
     try {
       const raw = localStorage.getItem(key);
+      if (raw === DEVICE_STORE_REF) {
+        const cached = getCachedDeviceValue(key);
+        return cached ? JSON.parse(cached) : null;
+      }
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   };
@@ -38,14 +43,17 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
   const completedCount = tournaments.filter(t => t.status === "completed").length;
   const totalCount = tournaments.length;
 
-  const saveToSlot = (index: number) => {
+  const saveToSlot = async (index: number) => {
     const slot: SaveSlot = {
       label: `Zapis ${index + 1}`,
       tournaments: tournaments.map(t => ({ ...t })),
       simResults: { ...simResults },
       savedAt: new Date().toLocaleString("pl-PL"),
     };
-    localStorage.setItem(SLOT_KEYS[index], JSON.stringify(slot));
+    const serialized = JSON.stringify(slot);
+    await setDeviceValue(SLOT_KEYS[index], serialized);
+    try { localStorage.setItem(SLOT_KEYS[index], serialized.length > 120_000 ? DEVICE_STORE_REF : serialized); }
+    catch { try { localStorage.setItem(SLOT_KEYS[index], DEVICE_STORE_REF); } catch { /* device-only */ } }
     scheduleDeviceBackup();
     setSlots(prev => {
       const next = [...prev];
@@ -62,6 +70,7 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
 
   const deleteSlot = (index: number) => {
     localStorage.removeItem(SLOT_KEYS[index]);
+    void removeDeviceValue(SLOT_KEYS[index]).catch(() => undefined);
     scheduleDeviceBackup();
     setSlots(prev => {
       const next = [...prev];

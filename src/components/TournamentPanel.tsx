@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
-import { saveToStorage, loadFromStorage } from "@/lib/storage";
+import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
@@ -559,18 +559,18 @@ const TournamentPanel = () => {
     return placements.sort((a, b) => a.placement - b.placement);
   };
 
-  const confirmTournamentResults = (id: string) => {
+  const confirmTournamentResults = async (id: string) => {
     const source = tournaments.find(t => t.id === id);
     if (!source || source.resultsConfirmed) return;
     const placements = source.placements?.length ? source.placements : deriveFinalPlacements(source);
     const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
     const next = tournaments.map(t => t.id === id ? finalized : t);
-    const saved = saveToStorage(STORAGE_KEY, next);
+    const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {
       setTournaments(next);
       const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
       const placements = finalized.placements || [];
-      saveToStorage("ranking_data", ranking.map(team => {
+      await saveToStorageAsync("ranking_data", ranking.map(team => {
         const earned = placements.find(p => p.team === team.name)?.points || 0;
         return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
       }));

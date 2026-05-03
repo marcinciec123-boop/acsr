@@ -3,8 +3,12 @@ import App from "./App.tsx";
 import "./index.css";
 import { bootstrapPersistedState } from "./lib/changeLog";
 import { createDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from "./lib/deviceBackup";
+import { initializeDeviceStoreCache } from "./lib/deviceStore";
+import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 
 const startApp = async () => {
+  await initializeDeviceStoreCache();
+  await migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
   await restoreLatestDeviceBackupIfLocalStateMissing().catch(error => {
     console.error("Device backup restore failed:", error);
     return false;

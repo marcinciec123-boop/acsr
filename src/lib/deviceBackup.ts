@@ -1,3 +1,5 @@
+import { DEVICE_STORE_REF, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
+
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
 const BACKUP_DB_VERSION = 1;
 const BACKUP_STORE = "snapshots";
@@ -60,6 +62,15 @@ const collectLocalState = (): Record<string, string> => {
   return Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b)));
 };
 
+const collectDeviceState = async (): Promise<Record<string, string>> => {
+  const values = await getAllDeviceValues();
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([key]) => isManagedKey(key))
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+};
+
 const stateSignature = (keys: Record<string, string>) => JSON.stringify(keys);
 
 export const listDeviceBackups = async (): Promise<DeviceBackupSnapshot[]> => {
@@ -100,7 +111,7 @@ export const createDeviceBackup = async (
   label?: string,
 ): Promise<DeviceBackupSnapshot | null> => {
   if (!isBrowser()) return null;
-  const keys = collectLocalState();
+  const keys = { ...collectLocalState(), ...(await collectDeviceState()) };
   if (Object.keys(keys).length === 0) return null;
 
   const signature = stateSignature(keys);
@@ -199,7 +210,17 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
     if (key && isManagedKey(key)) currentKeys.push(key);
   }
   currentKeys.forEach(key => localStorage.removeItem(key));
-  Object.entries(snapshot.keys).forEach(([key, value]) => localStorage.setItem(key, value));
+  const currentDeviceKeys = Object.keys(await collectDeviceState().catch(() => ({})));
+  await Promise.all(currentDeviceKeys.map(key => removeDeviceValue(key).catch(() => undefined)));
+  await Promise.all(Object.entries(snapshot.keys).map(async ([key, value]) => {
+    if (value.length > 120_000) {
+      await setDeviceValue(key, value);
+      try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* device-only */ }
+    } else {
+      localStorage.setItem(key, value);
+      await removeDeviceValue(key).catch(() => undefined);
+    }
+  }));
   return snapshot;
 };
 
@@ -232,7 +253,8 @@ export const importDeviceBackup = async (raw: string): Promise<DeviceBackupSnaps
 
 export const restoreLatestDeviceBackupIfLocalStateMissing = async (): Promise<boolean> => {
   if (!isBrowser()) return false;
-  if (Object.keys(collectLocalState()).length > 0) return false;
+  const deviceState = await collectDeviceState().catch(() => ({}));
+  if (Object.keys({ ...collectLocalState(), ...deviceState }).length > 0) return false;
   const latest = (await listDeviceBackups())[0];
   if (!latest) return false;
   await restoreDeviceBackup(latest.id);
