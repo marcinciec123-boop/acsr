@@ -69,6 +69,28 @@ export async function loadFromStorageAsync<T>(key: string, fallback: T): Promise
   }
 }
 
+export async function migrateHeavyLocalStorageToDeviceStore(): Promise<number> {
+  if (typeof localStorage === "undefined") return 0;
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith(STORAGE_PREFIX) || key.startsWith("tournament_progress_"))) keys.push(key);
+  }
+
+  let migrated = 0;
+  for (const key of keys) {
+    const value = localStorage.getItem(key);
+    if (!value || value === DEVICE_STORE_REF) continue;
+    const isHeavy = value.length > 120_000 || key.startsWith("csgo_hub_teamlogo_");
+    if (!isHeavy) continue;
+    await setDeviceValue(key, value);
+    try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { localStorage.removeItem(key); }
+    migrated += 1;
+  }
+  if (migrated > 0) scheduleDeviceBackup();
+  return migrated;
+}
+
 export function removeFromStorage(key: string): void {
   localStorage.removeItem(STORAGE_PREFIX + key);
   void removeDeviceValue(STORAGE_PREFIX + key).catch(() => undefined);
