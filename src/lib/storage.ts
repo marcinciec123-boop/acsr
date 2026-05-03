@@ -1,5 +1,5 @@
 import { scheduleDeviceBackup } from "./deviceBackup";
-import { DEVICE_STORE_REF, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
+import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 // ===== Persistence Layer =====
 // localStorage for text data, IndexedDB for images
@@ -29,9 +29,13 @@ export function saveToStorage<T>(key: string, data: T): boolean {
 
 export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    const storageKey = STORAGE_PREFIX + key;
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return fallback;
-    if (raw === DEVICE_STORE_REF) return fallback;
+    if (raw === DEVICE_STORE_REF) {
+      const cached = getCachedDeviceValue(storageKey);
+      return cached ? JSON.parse(cached) as T : fallback;
+    }
     return JSON.parse(raw) as T;
   } catch {
     return fallback;
