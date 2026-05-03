@@ -79,6 +79,10 @@ function loadProgress(tournamentId: string): TournamentProgress | null {
       const cached = getCachedDeviceValue(key);
       return cached ? JSON.parse(cached) : null;
     }
+    if (!data) {
+      const cached = getCachedDeviceValue(key);
+      return cached ? JSON.parse(cached) : null;
+    }
     return data ? JSON.parse(data) : null;
   } catch { return null; }
 }
