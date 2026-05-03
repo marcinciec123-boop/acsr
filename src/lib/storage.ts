@@ -16,9 +16,12 @@ export function saveToStorage<T>(key: string, data: T): boolean {
     });
     try {
       localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized);
-    } catch {
-      localStorage.removeItem(storageKey);
-      localStorage.setItem(storageKey, DEVICE_STORE_REF);
+    } catch (markerError) {
+      console.warn("Local storage marker failed, data kept in device storage:", key, markerError);
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.setItem(storageKey, DEVICE_STORE_REF);
+      } catch { /* device storage cache will still serve this session */ }
     }
     scheduleDeviceBackup();
     return true;
