@@ -1,3 +1,5 @@
+import { DEVICE_STORE_REF, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
+
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
 const BACKUP_DB_VERSION = 1;
 const BACKUP_STORE = "snapshots";
@@ -60,6 +62,15 @@ const collectLocalState = (): Record<string, string> => {
   return Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b)));
 };
 
+const collectDeviceState = async (): Promise<Record<string, string>> => {
+  const values = await getAllDeviceValues();
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([key]) => isManagedKey(key))
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+};
+
 const stateSignature = (keys: Record<string, string>) => JSON.stringify(keys);
 
 export const listDeviceBackups = async (): Promise<DeviceBackupSnapshot[]> => {
@@ -100,7 +111,7 @@ export const createDeviceBackup = async (
   label?: string,
 ): Promise<DeviceBackupSnapshot | null> => {
   if (!isBrowser()) return null;
-  const keys = collectLocalState();
+  const keys = { ...collectLocalState(), ...(await collectDeviceState()) };
   if (Object.keys(keys).length === 0) return null;
 
   const signature = stateSignature(keys);
