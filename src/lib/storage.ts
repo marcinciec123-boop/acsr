@@ -1,4 +1,5 @@
 import { scheduleDeviceBackup } from "./deviceBackup";
+import { DEVICE_STORE_REF, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 // ===== Persistence Layer =====
 // localStorage for text data, IndexedDB for images
@@ -7,12 +8,21 @@ const STORAGE_PREFIX = "csgo_hub_";
 
 // --- localStorage helpers ---
 export function saveToStorage<T>(key: string, data: T): boolean {
+  const storageKey = STORAGE_PREFIX + key;
   try {
-    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data));
+    const serialized = JSON.stringify(data);
+    void setDeviceValue(storageKey, serialized).then(() => scheduleDeviceBackup()).catch(error => {
+      console.error("Failed to save to device storage:", key, error);
+    });
+    try {
+      localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized);
+    } catch {
+      localStorage.setItem(storageKey, DEVICE_STORE_REF);
+    }
     scheduleDeviceBackup();
     return true;
   } catch (e) {
-    console.error("Failed to save to localStorage:", key, e);
+    console.error("Failed to save storage marker:", key, e);
     return false;
   }
 }
@@ -21,7 +31,28 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + key);
     if (!raw) return fallback;
+    if (raw === DEVICE_STORE_REF) return fallback;
     return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function loadFromStorageAsync<T>(key: string, fallback: T): Promise<T> {
+  const storageKey = STORAGE_PREFIX + key;
+  try {
+    const marker = localStorage.getItem(storageKey);
+    if (marker === DEVICE_STORE_REF) {
+      const raw = await getDeviceValue(storageKey);
+      return raw ? JSON.parse(raw) as T : fallback;
+    }
+    if (marker) return JSON.parse(marker) as T;
+    const raw = await getDeviceValue(storageKey);
+    if (raw) {
+      try { localStorage.setItem(storageKey, raw.length > 120_000 ? DEVICE_STORE_REF : raw); } catch { /* keep device-only */ }
+      return JSON.parse(raw) as T;
+    }
+    return fallback;
   } catch {
     return fallback;
   }
@@ -29,6 +60,7 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
 
 export function removeFromStorage(key: string): void {
   localStorage.removeItem(STORAGE_PREFIX + key);
+  void removeDeviceValue(STORAGE_PREFIX + key).catch(() => undefined);
   scheduleDeviceBackup();
 }
 
