@@ -31,6 +31,21 @@ export function saveToStorage<T>(key: string, data: T): boolean {
   }
 }
 
+export async function saveToStorageAsync<T>(key: string, data: T): Promise<boolean> {
+  const storageKey = STORAGE_PREFIX + key;
+  try {
+    const serialized = JSON.stringify(data);
+    await setDeviceValue(storageKey, serialized);
+    try { localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized); }
+    catch { try { localStorage.setItem(storageKey, DEVICE_STORE_REF); } catch { /* device-only */ } }
+    scheduleDeviceBackup();
+    return true;
+  } catch (e) {
+    console.error("Failed to save to device storage:", key, e);
+    return false;
+  }
+}
+
 export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const storageKey = STORAGE_PREFIX + key;
