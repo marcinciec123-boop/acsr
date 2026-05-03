@@ -210,7 +210,15 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
     if (key && isManagedKey(key)) currentKeys.push(key);
   }
   currentKeys.forEach(key => localStorage.removeItem(key));
-  Object.entries(snapshot.keys).forEach(([key, value]) => localStorage.setItem(key, value));
+  await Promise.all(Object.entries(snapshot.keys).map(async ([key, value]) => {
+    if (value.length > 120_000) {
+      await setDeviceValue(key, value);
+      try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* device-only */ }
+    } else {
+      localStorage.setItem(key, value);
+      await removeDeviceValue(key).catch(() => undefined);
+    }
+  }));
   return snapshot;
 };
 
@@ -243,7 +251,8 @@ export const importDeviceBackup = async (raw: string): Promise<DeviceBackupSnaps
 
 export const restoreLatestDeviceBackupIfLocalStateMissing = async (): Promise<boolean> => {
   if (!isBrowser()) return false;
-  if (Object.keys(collectLocalState()).length > 0) return false;
+  const deviceState = await collectDeviceState().catch(() => ({}));
+  if (Object.keys({ ...collectLocalState(), ...deviceState }).length > 0) return false;
   const latest = (await listDeviceBackups())[0];
   if (!latest) return false;
   await restoreDeviceBackup(latest.id);
