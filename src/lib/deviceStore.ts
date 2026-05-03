@@ -10,6 +10,8 @@ interface DeviceStoreRecord {
   updatedAt: number;
 }
 
+let deviceStoreCache: Record<string, string> | null = null;
+
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
 const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
@@ -26,6 +28,7 @@ const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject
 });
 
 export const setDeviceValue = async (key: string, value: string): Promise<void> => {
+  deviceStoreCache = { ...(deviceStoreCache || {}), [key]: value };
   const db = await openDeviceStore();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(DEVICE_STORE_NAME, "readwrite");
@@ -36,6 +39,7 @@ export const setDeviceValue = async (key: string, value: string): Promise<void> 
 };
 
 export const getDeviceValue = async (key: string): Promise<string | null> => {
+  if (deviceStoreCache && key in deviceStoreCache) return deviceStoreCache[key];
   const db = await openDeviceStore();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(DEVICE_STORE_NAME, "readonly");
@@ -46,6 +50,11 @@ export const getDeviceValue = async (key: string): Promise<string | null> => {
 };
 
 export const removeDeviceValue = async (key: string): Promise<void> => {
+  if (deviceStoreCache) {
+    const next = { ...deviceStoreCache };
+    delete next[key];
+    deviceStoreCache = next;
+  }
   const db = await openDeviceStore();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(DEVICE_STORE_NAME, "readwrite");
@@ -67,3 +76,15 @@ export const getAllDeviceValues = async (): Promise<Record<string, string>> => {
     req.onerror = () => reject(req.error);
   });
 };
+
+export const initializeDeviceStoreCache = async (): Promise<void> => {
+  try {
+    deviceStoreCache = await getAllDeviceValues();
+  } catch {
+    deviceStoreCache = {};
+  }
+};
+
+export const getCachedDeviceValue = (key: string): string | null => (
+  deviceStoreCache && key in deviceStoreCache ? deviceStoreCache[key] : null
+);
