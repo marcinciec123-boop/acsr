@@ -3,8 +3,10 @@ import App from "./App.tsx";
 import "./index.css";
 import { bootstrapPersistedState } from "./lib/changeLog";
 import { createDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from "./lib/deviceBackup";
+import { initializeDeviceStoreCache } from "./lib/deviceStore";
 
 const startApp = async () => {
+  await initializeDeviceStoreCache();
   await restoreLatestDeviceBackupIfLocalStateMissing().catch(error => {
     console.error("Device backup restore failed:", error);
     return false;
