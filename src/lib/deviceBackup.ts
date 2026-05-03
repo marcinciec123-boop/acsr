@@ -210,6 +210,8 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
     if (key && isManagedKey(key)) currentKeys.push(key);
   }
   currentKeys.forEach(key => localStorage.removeItem(key));
+  const currentDeviceKeys = Object.keys(await collectDeviceState().catch(() => ({})));
+  await Promise.all(currentDeviceKeys.map(key => removeDeviceValue(key).catch(() => undefined)));
   await Promise.all(Object.entries(snapshot.keys).map(async ([key, value]) => {
     if (value.length > 120_000) {
       await setDeviceValue(key, value);
