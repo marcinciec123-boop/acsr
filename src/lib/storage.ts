@@ -31,7 +31,10 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const storageKey = STORAGE_PREFIX + key;
     const raw = localStorage.getItem(storageKey);
-    if (!raw) return fallback;
+    if (!raw) {
+      const cached = getCachedDeviceValue(storageKey);
+      return cached ? JSON.parse(cached) as T : fallback;
+    }
     if (raw === DEVICE_STORE_REF) {
       const cached = getCachedDeviceValue(storageKey);
       return cached ? JSON.parse(cached) as T : fallback;
