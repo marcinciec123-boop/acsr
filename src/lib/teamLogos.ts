@@ -1,9 +1,7 @@
-// Team logo persistence.
-// Stored in localStorage (under csgo_hub_teamlogo_*) so they are part of
-// device backups / world exports. Falls back to IndexedDB for legacy data
-// from older versions of the app.
+// Team logo persistence: heavy image data lives in IndexedDB-backed device storage.
 import { saveImage, loadImage, deleteImage } from "./storage";
 import { scheduleDeviceBackup } from "./deviceBackup";
+import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const LS_PREFIX = "csgo_hub_teamlogo_";
 const IDB_PREFIX = "teamlogo_"; // legacy IndexedDB key prefix
@@ -14,20 +12,30 @@ const idbKey = (teamName: string) => IDB_PREFIX + slug(teamName);
 
 export async function saveTeamLogo(teamName: string, dataUrl: string): Promise<void> {
   try {
-    localStorage.setItem(lsKey(teamName), dataUrl);
-    scheduleDeviceBackup();
+    await setDeviceValue(lsKey(teamName), dataUrl);
+    try { localStorage.setItem(lsKey(teamName), DEVICE_STORE_REF); } catch { /* device-only */ }
   } catch (e) {
-    // localStorage quota — fall back to IndexedDB so the user doesn't lose the upload
-    console.warn("Logo localStorage save failed, falling back to IndexedDB:", e);
+    console.warn("Logo device storage save failed, falling back to image DB:", e);
     await saveImage(idbKey(teamName), dataUrl);
   }
+  scheduleDeviceBackup();
   window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: { teamName } }));
 }
 
 export async function loadTeamLogo(teamName: string): Promise<string | null> {
+  const key = lsKey(teamName);
+  const cached = getCachedDeviceValue(key);
+  if (cached) return cached;
   try {
-    const fromLs = localStorage.getItem(lsKey(teamName));
-    if (fromLs) return fromLs;
+    const fromDevice = await getDeviceValue(key);
+    if (fromDevice) return fromDevice;
+    const fromLs = localStorage.getItem(key);
+    if (fromLs && fromLs !== DEVICE_STORE_REF) {
+      await setDeviceValue(key, fromLs);
+      try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* ignore */ }
+      scheduleDeviceBackup();
+      return fromLs;
+    }
   } catch {
     /* ignore */
   }
@@ -36,9 +44,10 @@ export async function loadTeamLogo(teamName: string): Promise<string | null> {
     const legacy = await loadImage(idbKey(teamName));
     if (legacy) {
       try {
-        localStorage.setItem(lsKey(teamName), legacy);
+        await setDeviceValue(key, legacy);
+        localStorage.setItem(key, DEVICE_STORE_REF);
         scheduleDeviceBackup();
-      } catch { /* quota — keep using IDB */ }
+      } catch { /* keep using legacy image DB */ }
       return legacy;
     }
   } catch { /* ignore */ }
@@ -47,6 +56,7 @@ export async function loadTeamLogo(teamName: string): Promise<string | null> {
 
 export async function deleteTeamLogo(teamName: string): Promise<void> {
   try { localStorage.removeItem(lsKey(teamName)); } catch { /* ignore */ }
+  try { await removeDeviceValue(lsKey(teamName)); } catch { /* ignore */ }
   try { await deleteImage(idbKey(teamName)); } catch { /* ignore */ }
   scheduleDeviceBackup();
   window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: { teamName } }));
