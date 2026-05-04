@@ -19,6 +19,8 @@ import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
 import { toast } from "@/hooks/use-toast";
+import { suggestInvites } from "@/lib/inviteSuggestion";
+import { countryFlag } from "@/lib/flags";
 
 interface SelectedMatchRef {
   phaseId: string;
