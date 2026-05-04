@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
+import TeamsManagementPanel from "./TeamsManagementPanel";
 
 interface SaveSlot {
   label: string;
@@ -14,15 +15,20 @@ interface SaveSlot {
 }
 
 interface SettingsTabProps {
-  tournaments: Tournament[];
-  simResults: Record<string, TournamentSimulation>;
-  onReset: () => void;
-  onLoadState: (tournaments: Tournament[], simResults: Record<string, TournamentSimulation>) => void;
+  tournaments?: Tournament[];
+  simResults?: Record<string, TournamentSimulation>;
+  onReset?: () => void;
+  onLoadState?: (tournaments: Tournament[], simResults: Record<string, TournamentSimulation>) => void;
 }
 
 const SLOT_KEYS = ["csgo_hub_save_1", "csgo_hub_save_2"];
 
-const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: SettingsTabProps) => {
+const SettingsTab = ({
+  tournaments = [],
+  simResults = {},
+  onReset = () => undefined,
+  onLoadState = () => undefined,
+}: SettingsTabProps) => {
   const [confirmReset, setConfirmReset] = useState(false);
 
   const getSlot = (key: string): SaveSlot | null => {
