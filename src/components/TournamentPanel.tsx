@@ -152,6 +152,36 @@ const TournamentPanel = () => {
 
   const seedRandom = () => setSelectedTeams(prev => shuffle(prev));
 
+  const applyInvites = (mode: "replace" | "append") => {
+    const config = {
+      scope: inviteScope,
+      slots: inviteScope === "global"
+        ? { GLOBAL: inviteSlots.GLOBAL || 0 }
+        : Object.fromEntries(Object.entries(inviteSlots).filter(([k]) => k !== "GLOBAL")),
+      exclude: mode === "append" ? selectedTeams : [],
+    };
+    const suggestions = suggestInvites(config);
+    const names = suggestions.map(s => s.team);
+    if (names.length === 0) {
+      toast({ title: "Brak sugestii", description: "Sprawdź konfigurację slotów.", variant: "destructive" });
+      return;
+    }
+    setSelectedTeams(prev => mode === "replace" ? names : [...prev, ...names.filter(n => !prev.includes(n))]);
+    toast({
+      title: mode === "replace" ? "Zaproszenia ustawione" : "Dodano zaproszenia",
+      description: `${names.length} drużyn z rankingu`,
+    });
+  };
+
+  const toggleInviteRegion = (code: string) => {
+    setInviteSlots(prev => {
+      const next = { ...prev };
+      if (next[code] !== undefined && code !== "GLOBAL") delete next[code];
+      else if (code !== "GLOBAL") next[code] = 2;
+      return next;
+    });
+  };
+
   const moveSeed = (idx: number, dir: -1 | 1) => {
     setSelectedTeams(prev => {
       const next = [...prev];
