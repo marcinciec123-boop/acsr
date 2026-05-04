@@ -112,6 +112,10 @@ const TournamentPanel = () => {
   const [qualSlots, setQualSlots] = useState<Record<string, number>>({ EU: 2, GLOBAL: 2 });
   const [qualLinkedTo, setQualLinkedTo] = useState<string>("");
 
+  // Invite-by-ranking config (independent from qualifier — used to pre-fill participants)
+  const [inviteScope, setInviteScope] = useState<"global" | "regional">("global");
+  const [inviteSlots, setInviteSlots] = useState<Record<string, number>>({ GLOBAL: 8, EU: 4, US: 2, LATAM: 1, ASIA: 1 });
+
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
   const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
