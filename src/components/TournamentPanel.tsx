@@ -19,6 +19,8 @@ import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
 import { toast } from "@/hooks/use-toast";
+import { suggestInvites } from "@/lib/inviteSuggestion";
+import { countryFlag } from "@/lib/flags";
 
 interface SelectedMatchRef {
   phaseId: string;
@@ -110,6 +112,10 @@ const TournamentPanel = () => {
   const [qualSlots, setQualSlots] = useState<Record<string, number>>({ EU: 2, GLOBAL: 2 });
   const [qualLinkedTo, setQualLinkedTo] = useState<string>("");
 
+  // Invite-by-ranking config (independent from qualifier — used to pre-fill participants)
+  const [inviteScope, setInviteScope] = useState<"global" | "regional">("global");
+  const [inviteSlots, setInviteSlots] = useState<Record<string, number>>({ GLOBAL: 8, EU: 4, US: 2, LATAM: 1, ASIA: 1 });
+
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
   const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
@@ -145,6 +151,36 @@ const TournamentPanel = () => {
   };
 
   const seedRandom = () => setSelectedTeams(prev => shuffle(prev));
+
+  const applyInvites = (mode: "replace" | "append") => {
+    const config = {
+      scope: inviteScope,
+      slots: inviteScope === "global"
+        ? { GLOBAL: inviteSlots.GLOBAL || 0 }
+        : Object.fromEntries(Object.entries(inviteSlots).filter(([k]) => k !== "GLOBAL")),
+      exclude: mode === "append" ? selectedTeams : [],
+    };
+    const suggestions = suggestInvites(config);
+    const names = suggestions.map(s => s.team);
+    if (names.length === 0) {
+      toast({ title: "Brak sugestii", description: "Sprawdź konfigurację slotów.", variant: "destructive" });
+      return;
+    }
+    setSelectedTeams(prev => mode === "replace" ? names : [...prev, ...names.filter(n => !prev.includes(n))]);
+    toast({
+      title: mode === "replace" ? "Zaproszenia ustawione" : "Dodano zaproszenia",
+      description: `${names.length} drużyn z rankingu`,
+    });
+  };
+
+  const toggleInviteRegion = (code: string) => {
+    setInviteSlots(prev => {
+      const next = { ...prev };
+      if (next[code] !== undefined && code !== "GLOBAL") delete next[code];
+      else if (code !== "GLOBAL") next[code] = 2;
+      return next;
+    });
+  };
 
   const moveSeed = (idx: number, dir: -1 | 1) => {
     setSelectedTeams(prev => {

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
+import TeamsManagementPanel from "./TeamsManagementPanel";
 
 interface SaveSlot {
   label: string;
@@ -14,15 +15,20 @@ interface SaveSlot {
 }
 
 interface SettingsTabProps {
-  tournaments: Tournament[];
-  simResults: Record<string, TournamentSimulation>;
-  onReset: () => void;
-  onLoadState: (tournaments: Tournament[], simResults: Record<string, TournamentSimulation>) => void;
+  tournaments?: Tournament[];
+  simResults?: Record<string, TournamentSimulation>;
+  onReset?: () => void;
+  onLoadState?: (tournaments: Tournament[], simResults: Record<string, TournamentSimulation>) => void;
 }
 
 const SLOT_KEYS = ["csgo_hub_save_1", "csgo_hub_save_2"];
 
-const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: SettingsTabProps) => {
+const SettingsTab = ({
+  tournaments = [],
+  simResults = {},
+  onReset = () => undefined,
+  onLoadState = () => undefined,
+}: SettingsTabProps) => {
   const [confirmReset, setConfirmReset] = useState(false);
 
   const getSlot = (key: string): SaveSlot | null => {
@@ -91,32 +97,39 @@ const SettingsTab = ({ tournaments, simResults, onReset, onLoadState }: Settings
 
   return (
     <section className="py-12">
-      <div className="container mx-auto px-4 max-w-2xl">
+      <div className="container mx-auto px-4 max-w-3xl">
         <div className="flex items-center gap-3 mb-8">
           <Settings className="w-6 h-6 text-primary" />
           <h2 className="text-3xl font-heading font-bold text-foreground">Ustawienia</h2>
         </div>
 
-        {/* Season Status */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-6">
-          <h3 className="font-heading font-bold text-foreground mb-3">Stan sezonu</h3>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full gradient-primary rounded-full transition-all"
-                style={{ width: `${(completedCount / totalCount) * 100}%` }}
-              />
-            </div>
-            <span className="font-mono text-sm text-muted-foreground">{completedCount}/{totalCount}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {completedCount === 0
-              ? "Sezon nie został jeszcze rozpoczęty."
-              : completedCount === totalCount
-              ? "Sezon zakończony! Wszystkie turnieje rozegrane."
-              : `Rozegrano ${completedCount} z ${totalCount} turniejów.`}
-          </p>
+        {/* Teams management */}
+        <div className="mb-6">
+          <TeamsManagementPanel />
         </div>
+
+        {/* Season Status */}
+        {totalCount > 0 && (
+          <div className="bg-card border border-border rounded-lg p-6 mb-6">
+            <h3 className="font-heading font-bold text-foreground mb-3">Stan sezonu</h3>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full gradient-primary rounded-full transition-all"
+                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                />
+              </div>
+              <span className="font-mono text-sm text-muted-foreground">{completedCount}/{totalCount}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {completedCount === 0
+                ? "Sezon nie został jeszcze rozpoczęty."
+                : completedCount === totalCount
+                ? "Sezon zakończony! Wszystkie turnieje rozegrane."
+                : `Rozegrano ${completedCount} z ${totalCount} turniejów.`}
+            </p>
+          </div>
+        )}
 
         {/* Reset */}
         <div className="bg-card border border-border rounded-lg p-6 mb-6">
