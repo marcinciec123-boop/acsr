@@ -75,6 +75,7 @@ const Index = () => {
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
           {activeTab === "backup" && <DeviceBackupPanel />}
+          {activeTab === "settings" && <SettingsTab />}
         </>
       )}
 
