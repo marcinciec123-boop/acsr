@@ -705,6 +705,7 @@ export const TournamentDetailPage = ({
                         matches={phase.bracket}
                         bo={phase.bo}
                         advanceCount={phase.advanceCount}
+                        priorMeetings={collectPriorMeetings(t.phases, phase.id)}
                         onUpdate={(mid, s1, s2, t1, t2) =>
                           onUpdateMatch(phase.id, mid, {
                             score1: s1, score2: s2,
