@@ -18,6 +18,8 @@ interface Props {
   bo: 1 | 3 | 5;
   /** Number of teams that should advance from Swiss; defaults to half. */
   advanceCount?: number;
+  /** Pairs that already met in earlier phases (for rematch avoidance). */
+  priorMeetings?: Set<string>;
   /** Update a single match score / teams */
   onUpdate: (
     id: string,
