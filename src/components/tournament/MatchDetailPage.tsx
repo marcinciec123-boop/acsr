@@ -171,12 +171,49 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-card to-secondary/30 border border-border rounded-xl p-6 mb-6"
         >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <Sword className="w-4 h-4 text-primary" />
               <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                {phaseName} • {match.round || "Mecz"} • BO{bo}
+                {phaseName} • {match.round || "Mecz"}
               </span>
+              <div className="flex items-center gap-1.5 ml-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format:</span>
+                {(() => {
+                  const isFinal = /final/i.test(match.round || "") && !/semi/i.test(match.round || "");
+                  const options: (1 | 3 | 5)[] = isFinal ? [3, 5] : [1, 3, 5];
+                  return (
+                    <select
+                      value={bo}
+                      onChange={e => {
+                        const newBo = parseInt(e.target.value) as 1 | 3 | 5;
+                        const mapsToWinNew = newBo === 1 ? 1 : newBo === 3 ? 2 : 3;
+                        const trimmedMaps = (match.maps || []).slice(0, newBo);
+                        // Recompute series score from trimmed maps
+                        let s1 = 0, s2 = 0;
+                        trimmedMaps.forEach(m => {
+                          const max = Math.max(m.score1, m.score2);
+                          const diff = Math.abs(m.score1 - m.score2);
+                          if (max >= 13 && diff >= 2) {
+                            if (m.score1 > m.score2) s1++; else s2++;
+                          }
+                        });
+                        const patch: Partial<MatchResult> = { bo: newBo };
+                        if ((match.maps || []).length !== trimmedMaps.length) {
+                          patch.maps = trimmedMaps;
+                          patch.score1 = s1;
+                          patch.score2 = s2;
+                        }
+                        onUpdate(patch);
+                        toast({ title: `Format meczu: BO${newBo}`, description: `Mecz rozgrywany do ${mapsToWinNew} wygranych map.` });
+                      }}
+                      className="h-6 px-1.5 rounded bg-secondary/40 border border-border text-[11px] font-mono text-foreground"
+                    >
+                      {options.map(o => <option key={o} value={o}>BO{o}</option>)}
+                    </select>
+                  );
+                })()}
+              </div>
             </div>
             <Button
               size="sm"
