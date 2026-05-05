@@ -6,6 +6,7 @@ import {
   Layers, ArrowRight,
 } from "lucide-react";
 import { computePhaseWinners, getPhaseFinishStatus } from "@/lib/phaseWinners";
+import { collectPriorMeetings, reorderSeedsToAvoidRematches } from "@/lib/priorMeetings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -645,7 +646,9 @@ export const TournamentDetailPage = ({
                             onClick={() => {
                               const padded = [...winners];
                               while (padded.length < expected) padded.push(`TBD-P${idx + 1}-${padded.length + 1}`);
-                              onReseedPhase(nextPhase.id, padded);
+                              const prior = collectPriorMeetings(t.phases, nextPhase.id);
+                              const reordered = reorderSeedsToAvoidRematches(padded, prior);
+                              onReseedPhase(nextPhase.id, reordered);
                               setActivePhaseId(nextPhase.id);
                             }}
                             className="gap-1.5 h-8"
@@ -704,6 +707,7 @@ export const TournamentDetailPage = ({
                         matches={phase.bracket}
                         bo={phase.bo}
                         advanceCount={phase.advanceCount}
+                        priorMeetings={collectPriorMeetings(t.phases, phase.id)}
                         onUpdate={(mid, s1, s2, t1, t2) =>
                           onUpdateMatch(phase.id, mid, {
                             score1: s1, score2: s2,

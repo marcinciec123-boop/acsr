@@ -85,9 +85,10 @@ export function getSwissRounds(bracket: MatchResult[]): SwissRoundData[] {
 export function computeSwissStage(
   phaseTeams: string[],
   bracket: MatchResult[],
-  opts: { winCap?: number } = {},
+  opts: { winCap?: number; priorMeetings?: Set<string> } = {},
 ): SwissStageData {
   const winCap = opts.winCap ?? 3;
+  const priorMeetings = opts.priorMeetings;
   const rounds = getSwissRounds(bracket);
   const currentRound = rounds.length ? rounds[rounds.length - 1].round : 0;
 
@@ -167,6 +168,22 @@ export function computeSwissStage(
       }
     });
   });
+
+  // Cross-phase rematch avoidance: register opponents from prior phases so
+  // pairing in next round treats them as already played.
+  if (priorMeetings && priorMeetings.size > 0) {
+    const teamList = Array.from(map.keys());
+    for (let i = 0; i < teamList.length; i++) {
+      for (let j = i + 1; j < teamList.length; j++) {
+        const a = teamList[i], b = teamList[j];
+        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+        if (priorMeetings.has(key)) {
+          map.get(a)!.pastOpponents.add(b);
+          map.get(b)!.pastOpponents.add(a);
+        }
+      }
+    }
+  }
 
   // Mark status (advanced/eliminated) once thresholds are reached.
   map.forEach(s => {

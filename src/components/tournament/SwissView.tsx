@@ -18,6 +18,8 @@ interface Props {
   bo: 1 | 3 | 5;
   /** Number of teams that should advance from Swiss; defaults to half. */
   advanceCount?: number;
+  /** Pairs that already met in earlier phases (for rematch avoidance). */
+  priorMeetings?: Set<string>;
   /** Update a single match score / teams */
   onUpdate: (
     id: string,
@@ -172,6 +174,7 @@ export const SwissView = ({
   matches,
   bo,
   advanceCount,
+  priorMeetings,
   onUpdate,
   onOpenMatch,
   onDelete,
@@ -188,7 +191,7 @@ export const SwissView = ({
     return 3;
   })();
 
-  const stage = computeSwissStage(phaseTeams, matches, { winCap });
+  const stage = computeSwissStage(phaseTeams, matches, { winCap, priorMeetings });
   const advancedCount = stage.standings.filter(s => s.status === "advanced").length;
   const eliminatedCount = stage.standings.filter(s => s.status === "eliminated").length;
   const playingCount = stage.standings.filter(s => s.status === "playing").length;
