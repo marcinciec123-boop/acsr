@@ -646,13 +646,10 @@ export const TournamentDetailPage = ({
                             onClick={() => {
                               const padded = [...winners];
                               while (padded.length < expected) padded.push(`TBD-P${idx + 1}-${padded.length + 1}`);
-                              // Avoid first-round rematches by reordering seeds based on prior phases.
-                              import("@/lib/priorMeetings").then(({ collectPriorMeetings, reorderSeedsToAvoidRematches }) => {
-                                const prior = collectPriorMeetings(t.phases, nextPhase.id);
-                                const reordered = reorderSeedsToAvoidRematches(padded, prior);
-                                onReseedPhase(nextPhase.id, reordered);
-                                setActivePhaseId(nextPhase.id);
-                              });
+                              const prior = collectPriorMeetings(t.phases, nextPhase.id);
+                              const reordered = reorderSeedsToAvoidRematches(padded, prior);
+                              onReseedPhase(nextPhase.id, reordered);
+                              setActivePhaseId(nextPhase.id);
                             }}
                             className="gap-1.5 h-8"
                           >
