@@ -35,11 +35,25 @@ const roundLabel = (totalRounds: number, roundIdx: number) => {
   return `Round ${roundIdx + 1}`;
 };
 
+/** Standard single-elim seeding positions for a bracket of given size.
+ *  E.g. size=8 → [1,8,5,4,3,6,7,2] (1-indexed). Top seed always plays lowest available. */
+const seedingOrder = (size: number): number[] => {
+  let seeds: number[] = [1, 2];
+  while (seeds.length < size) {
+    const next: number[] = [];
+    const total = seeds.length * 2 + 1;
+    for (const s of seeds) { next.push(s); next.push(total - s); }
+    seeds = next;
+  }
+  return seeds;
+};
+
 /** Build a single elimination bracket (with BYEs for non-pow2). Auto-advances BYE matches. */
 export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const size = nextPow2(Math.max(2, teams.length));
-  const seeded: (string | null)[] = [...teams];
-  while (seeded.length < size) seeded.push(null); // BYE
+  // Standard seeding: assign teams to bracket positions so top seeds face BYEs/lowest seeds.
+  const order = seedingOrder(size); // 1-based seeds in bracket position order
+  const seeded: (string | null)[] = order.map(seedNum => teams[seedNum - 1] ?? null);
 
   const totalRounds = Math.log2(size);
   const matches: MatchResult[] = [];
