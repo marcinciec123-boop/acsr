@@ -85,9 +85,10 @@ export function getSwissRounds(bracket: MatchResult[]): SwissRoundData[] {
 export function computeSwissStage(
   phaseTeams: string[],
   bracket: MatchResult[],
-  opts: { winCap?: number } = {},
+  opts: { winCap?: number; priorMeetings?: Set<string> } = {},
 ): SwissStageData {
   const winCap = opts.winCap ?? 3;
+  const priorMeetings = opts.priorMeetings;
   const rounds = getSwissRounds(bracket);
   const currentRound = rounds.length ? rounds[rounds.length - 1].round : 0;
 
