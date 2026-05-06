@@ -97,6 +97,8 @@ const TournamentPanel = () => {
   const [newEnd, setNewEnd] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
+  const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
+  const [customPoints, setCustomPoints] = useState<Partial<Record<PointsBucket, number>>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
