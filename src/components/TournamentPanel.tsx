@@ -86,6 +86,7 @@ const TournamentPanel = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
+  const [activePhaseByTournament, setActivePhaseByTournament] = useState<Record<string, string>>({});
 
   // Tournament meta
   const [newName, setNewName] = useState("");
@@ -456,7 +457,7 @@ const TournamentPanel = () => {
               return {
                 ...g,
                 teams: [...newTeams],
-                matches: rebuildGroupMatches(p.format, newTeams, p.bo),
+                matches: rebuildGroupMatches(p.format, newTeams, p.bo, p.advanceCount && p.groups ? Math.max(1, Math.ceil(p.advanceCount / p.groups.length)) : 2),
               };
             }),
           };
@@ -480,7 +481,7 @@ const TournamentPanel = () => {
             groups: p.groups.map((g, i) => ({
               ...g,
               teams: distributed[i],
-              matches: rebuildGroupMatches(p.format, distributed[i], p.bo),
+              matches: rebuildGroupMatches(p.format, distributed[i], p.bo, p.advanceCount && p.groups ? Math.max(1, Math.ceil(p.advanceCount / p.groups.length)) : 2),
             })),
           };
         }),
@@ -787,7 +788,12 @@ const TournamentPanel = () => {
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
         onDelete={() => handleDelete(selectedTournament.id)}
-        onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
+        onOpenMatch={(phaseId, matchId, groupId) => {
+          setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }));
+          setSelectedMatchRef({ phaseId, matchId, groupId });
+        }}
+        activePhaseId={activePhaseByTournament[selectedTournament.id]}
+        onActivePhaseChange={(phaseId) => setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }))}
         mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
         onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />

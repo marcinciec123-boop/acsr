@@ -225,7 +225,7 @@ export const buildGSLGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[]
  *   - LB R3 (Elimination R3, 1 match)    — winners of LB R2 face off
  *   - LB Final (Decider, 1)              — loser of UB Final vs winner of LB R3 → winner = 2nd seed
  */
-export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
+export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3, advancePerGroup: number = 2): MatchResult[] => {
   const t = [...teams];
   while (t.length < 8) t.push("TBD");
   // Seed pairings (1v8, 2v7, 3v6, 4v5)
@@ -235,7 +235,7 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): Mat
     [t[2], t[5]],
     [t[3], t[4]],
   ];
-  return [
+  const matches: MatchResult[] = [
     { id: uid(), team1: om[0][0], team2: om[0][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M1", round: "Upper Bracket — Opening", bo },
     { id: uid(), team1: om[1][0], team2: om[1][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M2", round: "Upper Bracket — Opening", bo },
     { id: uid(), team1: om[2][0], team2: om[2][1], score1: 0, score2: 0, bracketSlot: "IEM-UB-R1-M3", round: "Upper Bracket — Opening", bo },
@@ -253,8 +253,13 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3): Mat
     { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Upper Bracket — Decider (1st seed)", bo },
 
     { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R3", round: "Lower Bracket — Elimination R3", bo },
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (2nd seed)", bo },
   ];
+  // LB Final (decider for 2nd seed) only makes sense when exactly 2 advance.
+  // If 3+ advance, both LB-Final participants would qualify anyway → skip the match.
+  if (advancePerGroup <= 2) {
+    matches.push({ id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (2nd seed)", bo });
+  }
+  return matches;
 };
 
 /** Swiss: returns first-round matches only (subsequent rounds added by user as results come in) */
@@ -292,10 +297,11 @@ export const rebuildGroupMatches = (
   format: PhaseFormat,
   teams: string[],
   bo: 1 | 3 | 5,
+  advancePerGroup: number = 2,
 ): MatchResult[] => {
   if (format === "round-robin") return buildRoundRobin(teams, bo);
   if (format === "gsl-groups") return buildGSLGroup(teams, bo);
-  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo);
+  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo, advancePerGroup);
   return [];
 };
 
@@ -356,11 +362,14 @@ export const buildPhase = (
     const distributed = manual
       ? Array.from({ length: groupCount }, () => [] as string[])
       : distributeIntoGroups(teams, groupCount);
+    const advPerGroup = opts.advanceCount && groupCount > 0
+      ? Math.max(1, Math.ceil(opts.advanceCount / groupCount))
+      : 2;
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
       teams: groupTeams,
-      matches: buildGSLDoubleElimGroup(groupTeams, bo),
+      matches: buildGSLDoubleElimGroup(groupTeams, bo, advPerGroup),
     }));
   } else if (format === "swiss") {
     phase.bracket = buildSwissRound1(teams, bo);
