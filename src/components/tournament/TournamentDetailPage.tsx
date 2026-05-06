@@ -246,6 +246,7 @@ export const TournamentDetailPage = ({
   onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
   onSetStatus, onConfirmResults, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
+  activePhaseId: controlledActivePhaseId, onActivePhaseChange,
 }: Props) => {
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
@@ -259,8 +260,13 @@ export const TournamentDetailPage = ({
   const allWinners = Object.values(winnersByRegion).flat();
   const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
 
-  // Active phase tab — defaults to first phase, persists across re-renders for this tournament
-  const [activePhaseId, setActivePhaseId] = useState<string>(() => t.phases[0]?.id || "");
+  // Active phase tab — controlled by parent if provided (so it persists across match-detail navigation)
+  const [internalPhaseId, setInternalPhaseId] = useState<string>(() => t.phases[0]?.id || "");
+  const activePhaseId = controlledActivePhaseId ?? internalPhaseId;
+  const setActivePhaseId = (id: string) => {
+    if (onActivePhaseChange) onActivePhaseChange(id);
+    else setInternalPhaseId(id);
+  };
   useEffect(() => {
     if (!t.phases.find(p => p.id === activePhaseId) && t.phases[0]) {
       setActivePhaseId(t.phases[0].id);
