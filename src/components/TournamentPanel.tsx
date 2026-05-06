@@ -579,7 +579,7 @@ const TournamentPanel = () => {
       placements.push({
         team,
         placement,
-        points: getPointsForPlacement(t.tier, placement, t.format.toLowerCase().includes("league") ? "league" : "knockout"),
+        points: resolvePoints(t, placement),
       });
       placed.add(team);
     };
