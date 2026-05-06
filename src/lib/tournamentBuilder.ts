@@ -297,10 +297,11 @@ export const rebuildGroupMatches = (
   format: PhaseFormat,
   teams: string[],
   bo: 1 | 3 | 5,
+  advancePerGroup: number = 2,
 ): MatchResult[] => {
   if (format === "round-robin") return buildRoundRobin(teams, bo);
   if (format === "gsl-groups") return buildGSLGroup(teams, bo);
-  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo);
+  if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo, advancePerGroup);
   return [];
 };
 
