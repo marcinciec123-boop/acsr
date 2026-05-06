@@ -456,7 +456,7 @@ const TournamentPanel = () => {
               return {
                 ...g,
                 teams: [...newTeams],
-                matches: rebuildGroupMatches(p.format, newTeams, p.bo),
+                matches: rebuildGroupMatches(p.format, newTeams, p.bo, p.advanceCount && p.groups ? Math.max(1, Math.ceil(p.advanceCount / p.groups.length)) : 2),
               };
             }),
           };
@@ -480,7 +480,7 @@ const TournamentPanel = () => {
             groups: p.groups.map((g, i) => ({
               ...g,
               teams: distributed[i],
-              matches: rebuildGroupMatches(p.format, distributed[i], p.bo),
+              matches: rebuildGroupMatches(p.format, distributed[i], p.bo, p.advanceCount && p.groups ? Math.max(1, Math.ceil(p.advanceCount / p.groups.length)) : 2),
             })),
           };
         }),
