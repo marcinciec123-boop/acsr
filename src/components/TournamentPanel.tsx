@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
+import { resolvePoints, POINTS_BUCKETS, getDefaultPointsForBucket, type PointsBucket } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
@@ -96,6 +97,8 @@ const TournamentPanel = () => {
   const [newEnd, setNewEnd] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
+  const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
+  const [customPoints, setCustomPoints] = useState<Partial<Record<PointsBucket, number>>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -128,6 +131,7 @@ const TournamentPanel = () => {
   const resetForm = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
     setNewLocation(""); setNewTier("A");
+    setCustomPointsEnabled(false); setCustomPoints({});
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
@@ -280,6 +284,7 @@ const TournamentPanel = () => {
       placements: [],
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
+      customPoints: customPointsEnabled ? customPoints : undefined,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
@@ -579,7 +584,7 @@ const TournamentPanel = () => {
       placements.push({
         team,
         placement,
-        points: getPointsForPlacement(t.tier, placement, t.format.toLowerCase().includes("league") ? "league" : "knockout"),
+        points: resolvePoints(t, placement),
       });
       placed.add(team);
     };
@@ -839,6 +844,59 @@ const TournamentPanel = () => {
                     <option value="C">Tier C</option>
                   </select>
                 </div>
+              </section>
+
+              {/* Custom points */}
+              <section className="space-y-2 border border-border rounded-md p-3 bg-secondary/20">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customPointsEnabled}
+                    onChange={e => {
+                      setCustomPointsEnabled(e.target.checked);
+                      if (e.target.checked && Object.keys(customPoints).length === 0) {
+                        const defaults: Partial<Record<PointsBucket, number>> = {};
+                        POINTS_BUCKETS.forEach(b => { defaults[b] = getDefaultPointsForBucket(newTier, b); });
+                        setCustomPoints(defaults);
+                      }
+                    }}
+                    className="accent-primary"
+                  />
+                  <span className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    Ręczny przydział punktów za miejsca
+                  </span>
+                </label>
+                {customPointsEnabled && (
+                  <>
+                    <p className="text-[10px] font-mono text-muted-foreground">
+                      Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = użyj domyślnej wartości dla tieru.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {POINTS_BUCKETS.map(b => (
+                        <div key={b} className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground w-14 shrink-0">
+                            {b === "1" ? "1 msc" : b === "2" ? "2 msc" : `${b} msc`}
+                          </span>
+                          <Input
+                            type="number"
+                            value={customPoints[b] ?? ""}
+                            placeholder={String(getDefaultPointsForBucket(newTier, b))}
+                            onChange={e => {
+                              const v = e.target.value;
+                              setCustomPoints(prev => {
+                                const next = { ...prev };
+                                if (v === "") delete next[b];
+                                else next[b] = parseInt(v, 10) || 0;
+                                return next;
+                              });
+                            }}
+                            className="h-7 text-xs font-mono"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </section>
 
               {/* Participants */}
