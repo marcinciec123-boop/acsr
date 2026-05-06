@@ -131,6 +131,7 @@ const TournamentPanel = () => {
   const resetForm = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
     setNewLocation(""); setNewTier("A");
+    setCustomPointsEnabled(false); setCustomPoints({});
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
