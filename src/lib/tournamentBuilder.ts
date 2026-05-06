@@ -362,11 +362,14 @@ export const buildPhase = (
     const distributed = manual
       ? Array.from({ length: groupCount }, () => [] as string[])
       : distributeIntoGroups(teams, groupCount);
+    const advPerGroup = opts.advanceCount && groupCount > 0
+      ? Math.max(1, Math.ceil(opts.advanceCount / groupCount))
+      : 2;
     phase.groups = distributed.map<PhaseGroup>((groupTeams, i) => ({
       id: uid(),
       name: `Group ${String.fromCharCode(65 + i)}`,
       teams: groupTeams,
-      matches: buildGSLDoubleElimGroup(groupTeams, bo),
+      matches: buildGSLDoubleElimGroup(groupTeams, bo, advPerGroup),
     }));
   } else if (format === "swiss") {
     phase.bracket = buildSwissRound1(teams, bo);
