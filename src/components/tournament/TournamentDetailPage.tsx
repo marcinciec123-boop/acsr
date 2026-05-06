@@ -46,6 +46,8 @@ interface Props {
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
   mainTournaments?: TournamentData[];
   onPromoteWinners?: (winners: string[], targetTournamentId: string) => void;
+  activePhaseId?: string;
+  onActivePhaseChange?: (phaseId: string) => void;
 }
 
 const tierColor = (tier: string) => {
