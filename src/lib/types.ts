@@ -128,6 +128,8 @@ export interface TournamentData {
   /** Konfiguracja kwalifikacji (gdy kind === "qualifier") */
   qualifierConfig?: QualifierConfig;
   /** Region przypisany do meczu — używane do grupowania zwycięzców (opcjonalne, na poziomie fazy) */
+  /** Ręczny przydział punktów za miejsca. Klucze: "1","2","3-4","5-8","9-16","17-32","33+". Brak = użyj domyślnych z tieru. */
+  customPoints?: Partial<Record<"1" | "2" | "3-4" | "5-8" | "9-16" | "17-32" | "33+", number>>;
 }
 
 export interface Transfer {
