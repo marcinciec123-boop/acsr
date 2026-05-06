@@ -284,6 +284,7 @@ const TournamentPanel = () => {
       placements: [],
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
+      customPoints: customPointsEnabled ? customPoints : undefined,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
