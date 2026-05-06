@@ -788,7 +788,12 @@ const TournamentPanel = () => {
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
         onDelete={() => handleDelete(selectedTournament.id)}
-        onOpenMatch={(phaseId, matchId, groupId) => setSelectedMatchRef({ phaseId, matchId, groupId })}
+        onOpenMatch={(phaseId, matchId, groupId) => {
+          setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }));
+          setSelectedMatchRef({ phaseId, matchId, groupId });
+        }}
+        activePhaseId={activePhaseByTournament[selectedTournament.id]}
+        onActivePhaseChange={(phaseId) => setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }))}
         mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
         onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />
