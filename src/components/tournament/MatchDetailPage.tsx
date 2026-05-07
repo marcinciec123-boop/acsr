@@ -276,6 +276,59 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
           </div>
         </motion.div>
 
+        {/* Confirm + ranking points */}
+        <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+              Zatwierdzanie wyniku i punkty rankingowe
+            </h3>
+            {match.resultConfirmed && (
+              <span className="text-[10px] font-mono text-[hsl(var(--win))] uppercase tracking-wider">
+                ✓ Zatwierdzone
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                Punkty dla zwycięzcy {winnerName && `(${winnerName})`}
+              </label>
+              <Input
+                type="number"
+                value={pointsWin}
+                onChange={e => setPointsWin(parseInt(e.target.value) || 0)}
+                className="h-9 text-center font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                Punkty odjęte przegranemu {loserName && `(${loserName})`}
+              </label>
+              <Input
+                type="number"
+                value={pointsLose}
+                onChange={e => setPointsLose(parseInt(e.target.value) || 0)}
+                className="h-9 text-center font-mono"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 text-xs">
+              Powrót bez zatwierdzania
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={!matchDecided}
+              className="h-8 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
+              title={!matchDecided ? `Wpisz/przesymuluj wynik (do ${mapsToWin} wygranych map)` : undefined}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              {match.resultConfirmed ? "Zaktualizuj punkty" : "Zatwierdź wynik"}
+            </Button>
+          </div>
+        </div>
+
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-4 w-full max-w-xl mb-4">
             <TabsTrigger value="score">Wynik</TabsTrigger>
