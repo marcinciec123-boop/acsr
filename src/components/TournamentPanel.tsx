@@ -760,6 +760,15 @@ const TournamentPanel = () => {
           patch,
           selectedMatchRef!.groupId,
         )}
+        onConfirm={async (winner, loser, pw, pl) => {
+          const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(x => ({ ...x }));
+          const updated = ranking.map(team => {
+            if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
+            if (team.name === loser) return { ...team, points: Math.max(0, (team.points || 0) - pl) };
+            return team;
+          });
+          await saveToStorageAsync("ranking_data", updated);
+        }}
       />
     ) : selectedTournament ? (
       <TournamentDetailPage
