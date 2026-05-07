@@ -953,19 +953,39 @@ const TournamentPanel = () => {
                   </div>
                 )}
                 <Input
-                  placeholder="Szukaj drużyny..."
+                  placeholder={`Szukaj drużyny... (${filteredTeams.length}/${allTeams.length})`}
                   value={teamSearch}
                   onChange={e => setTeamSearch(e.target.value)}
                 />
-                <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 gap-1">
-                  {filteredTeams.slice(0, 60).map(name => {
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                  <span>Pokazano: {filteredTeams.length}</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeams(prev => Array.from(new Set([...prev, ...filteredTeams])))}
+                      className="text-primary hover:underline"
+                    >
+                      + dodaj wszystkie widoczne
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeams([])}
+                      className="text-destructive hover:underline"
+                    >
+                      wyczyść wybór
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-[420px] overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 bg-card/50">
+                  {filteredTeams.map(name => {
                     const checked = selectedTeams.includes(name);
                     return (
                       <button
                         key={name}
+                        type="button"
                         onClick={() => toggleTeam(name)}
                         className={cn(
-                          "text-[11px] text-left px-2 py-1 rounded font-mono truncate transition-colors",
+                          "text-[11px] text-left px-2 py-1.5 rounded font-mono truncate transition-colors",
                           checked
                             ? "bg-primary/20 text-primary border border-primary/40"
                             : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
@@ -975,7 +995,13 @@ const TournamentPanel = () => {
                       </button>
                     );
                   })}
+                  {filteredTeams.length === 0 && (
+                    <p className="col-span-full text-center text-xs font-mono text-muted-foreground py-6">
+                      Brak drużyn pasujących do filtra.
+                    </p>
+                  )}
                 </div>
+
               </section>
 
               {/* Qualifier toggle & config */}
