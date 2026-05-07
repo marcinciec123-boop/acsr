@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
-import { resolvePoints, POINTS_BUCKETS, getDefaultPointsForBucket, type PointsBucket } from "@/lib/customPoints";
+import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
@@ -98,7 +98,7 @@ const TournamentPanel = () => {
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
-  const [customPoints, setCustomPoints] = useState<Partial<Record<PointsBucket, number>>>({});
+  const [customPoints, setCustomPoints] = useState<Record<string, number>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -760,6 +760,15 @@ const TournamentPanel = () => {
           patch,
           selectedMatchRef!.groupId,
         )}
+        onConfirm={async (winner, loser, pw, pl) => {
+          const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(x => ({ ...x }));
+          const updated = ranking.map(team => {
+            if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
+            if (team.name === loser) return { ...team, points: Math.max(0, (team.points || 0) - pl) };
+            return team;
+          });
+          await saveToStorageAsync("ranking_data", updated);
+        }}
       />
     ) : selectedTournament ? (
       <TournamentDetailPage
@@ -855,38 +864,40 @@ const TournamentPanel = () => {
                     onChange={e => {
                       setCustomPointsEnabled(e.target.checked);
                       if (e.target.checked && Object.keys(customPoints).length === 0) {
-                        const defaults: Partial<Record<PointsBucket, number>> = {};
-                        POINTS_BUCKETS.forEach(b => { defaults[b] = getDefaultPointsForBucket(newTier, b); });
+                        const defaults: Record<string, number> = {};
+                        const n = Math.max(2, selectedTeams.length || 2);
+                        for (let p = 1; p <= n; p++) defaults[String(p)] = getDefaultPoints(newTier, p);
                         setCustomPoints(defaults);
                       }
                     }}
                     className="accent-primary"
                   />
                   <span className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
-                    Ręczny przydział punktów za miejsca
+                    Ręczny przydział punktów za miejsca (per miejsce)
                   </span>
                 </label>
                 {customPointsEnabled && (
                   <>
                     <p className="text-[10px] font-mono text-muted-foreground">
-                      Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = użyj domyślnej wartości dla tieru.
+                      Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = wartość domyślna dla tieru.
+                      Liczba miejsc = liczba uczestników ({selectedTeams.length}).
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {POINTS_BUCKETS.map(b => (
-                        <div key={b} className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-mono text-muted-foreground w-14 shrink-0">
-                            {b === "1" ? "1 msc" : b === "2" ? "2 msc" : `${b} msc`}
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-60 overflow-y-auto pr-1">
+                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                        <div key={p} className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground w-10 shrink-0">
+                            #{p}
                           </span>
                           <Input
                             type="number"
-                            value={customPoints[b] ?? ""}
-                            placeholder={String(getDefaultPointsForBucket(newTier, b))}
+                            value={customPoints[String(p)] ?? ""}
+                            placeholder={String(getDefaultPoints(newTier, p))}
                             onChange={e => {
                               const v = e.target.value;
                               setCustomPoints(prev => {
                                 const next = { ...prev };
-                                if (v === "") delete next[b];
-                                else next[b] = parseInt(v, 10) || 0;
+                                if (v === "") delete next[String(p)];
+                                else next[String(p)] = parseInt(v, 10) || 0;
                                 return next;
                               });
                             }}
@@ -951,19 +962,39 @@ const TournamentPanel = () => {
                   </div>
                 )}
                 <Input
-                  placeholder="Szukaj drużyny..."
+                  placeholder={`Szukaj drużyny... (${filteredTeams.length}/${allTeams.length})`}
                   value={teamSearch}
                   onChange={e => setTeamSearch(e.target.value)}
                 />
-                <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 gap-1">
-                  {filteredTeams.slice(0, 60).map(name => {
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                  <span>Pokazano: {filteredTeams.length}</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeams(prev => Array.from(new Set([...prev, ...filteredTeams])))}
+                      className="text-primary hover:underline"
+                    >
+                      + dodaj wszystkie widoczne
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeams([])}
+                      className="text-destructive hover:underline"
+                    >
+                      wyczyść wybór
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-[420px] overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 bg-card/50">
+                  {filteredTeams.map(name => {
                     const checked = selectedTeams.includes(name);
                     return (
                       <button
                         key={name}
+                        type="button"
                         onClick={() => toggleTeam(name)}
                         className={cn(
-                          "text-[11px] text-left px-2 py-1 rounded font-mono truncate transition-colors",
+                          "text-[11px] text-left px-2 py-1.5 rounded font-mono truncate transition-colors",
                           checked
                             ? "bg-primary/20 text-primary border border-primary/40"
                             : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
@@ -973,7 +1004,13 @@ const TournamentPanel = () => {
                       </button>
                     );
                   })}
+                  {filteredTeams.length === 0 && (
+                    <p className="col-span-full text-center text-xs font-mono text-muted-foreground py-6">
+                      Brak drużyn pasujących do filtra.
+                    </p>
+                  )}
                 </div>
+
               </section>
 
               {/* Qualifier toggle & config */}

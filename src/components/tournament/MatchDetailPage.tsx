@@ -21,6 +21,7 @@ interface Props {
   tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
+  onConfirm?: (winner: string, loser: string, pointsWin: number, pointsLose: number) => void;
 }
 
 const blankPlayer = (name: string, team: string): MapPlayerStats => ({
@@ -53,7 +54,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate, onConfirm }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
@@ -153,6 +154,36 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
 
   const winner1 = computedScore.s1 > computedScore.s2 && computedScore.s1 + computedScore.s2 > 0;
   const winner2 = computedScore.s2 > computedScore.s1 && computedScore.s1 + computedScore.s2 > 0;
+  const matchDecided = (winner1 || winner2) && (computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin);
+  const winnerName = winner1 ? match.team1 : winner2 ? match.team2 : "";
+  const loserName = winner1 ? match.team2 : winner2 ? match.team1 : "";
+
+  const defaultWinPts = match.bracketSlot?.toUpperCase().includes("FINAL") ? 100
+    : (match.round || "").toLowerCase().includes("final") ? 80
+    : 25;
+  const defaultLosePts = 10;
+
+  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? defaultWinPts);
+  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? defaultLosePts);
+
+  useEffect(() => {
+    if (match.pointsWinner !== undefined) setPointsWin(match.pointsWinner);
+    if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
+  }, [match.id]);
+
+  const handleConfirm = () => {
+    if (!matchDecided || !winnerName || !loserName) {
+      toast({ title: "Mecz nierozstrzygnięty", description: `Wpisz wynik (do ${mapsToWin} wygranych map).`, variant: "destructive" });
+      return;
+    }
+    onUpdate({ pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true });
+    onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
+    toast({
+      title: "Wynik zatwierdzony",
+      description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
+    });
+    onBack();
+  };
 
   return (
     <section className="py-6">
@@ -244,6 +275,59 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
             </div>
           </div>
         </motion.div>
+
+        {/* Confirm + ranking points */}
+        <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+              Zatwierdzanie wyniku i punkty rankingowe
+            </h3>
+            {match.resultConfirmed && (
+              <span className="text-[10px] font-mono text-[hsl(var(--win))] uppercase tracking-wider">
+                ✓ Zatwierdzone
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                Punkty dla zwycięzcy {winnerName && `(${winnerName})`}
+              </label>
+              <Input
+                type="number"
+                value={pointsWin}
+                onChange={e => setPointsWin(parseInt(e.target.value) || 0)}
+                className="h-9 text-center font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                Punkty odjęte przegranemu {loserName && `(${loserName})`}
+              </label>
+              <Input
+                type="number"
+                value={pointsLose}
+                onChange={e => setPointsLose(parseInt(e.target.value) || 0)}
+                className="h-9 text-center font-mono"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 text-xs">
+              Powrót bez zatwierdzania
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={!matchDecided}
+              className="h-8 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
+              title={!matchDecided ? `Wpisz/przesymuluj wynik (do ${mapsToWin} wygranych map)` : undefined}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              {match.resultConfirmed ? "Zaktualizuj punkty" : "Zatwierdź wynik"}
+            </Button>
+          </div>
+        </div>
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-4 w-full max-w-xl mb-4">

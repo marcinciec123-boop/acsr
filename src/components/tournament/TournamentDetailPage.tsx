@@ -672,7 +672,7 @@ export const TournamentDetailPage = ({
                     {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
                       <PhaseSeedingPanel
                         phaseTeams={phase.teams}
-                        allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
+                        allTeams={Array.from(new Set(t.participants)).sort()}
                         slotCount={Math.max(
                           phase.teams.length,
                           (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
@@ -737,7 +737,7 @@ export const TournamentDetailPage = ({
                     {phase.bracket && phase.bracket.length > 0 && phase.format !== "swiss" && (
                       <BracketView
                         matches={phase.bracket}
-                        allTeams={[...t.participants, ...allTeams]}
+                        allTeams={Array.from(new Set(t.participants)).sort()}
                         onUpdate={(mid, s1, s2, t1, t2, round) =>
                           onUpdateMatch(phase.id, mid, {
                             score1: s1, score2: s2,

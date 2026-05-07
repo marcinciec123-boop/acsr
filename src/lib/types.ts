@@ -47,6 +47,12 @@ export interface MatchResult {
   /** Where loser advances (DE only) */
   loserTo?: string;
   bo?: 1 | 3 | 5; // best-of
+  /** Punkty rankingowe przyznawane zwycięzcy po zatwierdzeniu meczu */
+  pointsWinner?: number;
+  /** Punkty rankingowe odejmowane przegranemu po zatwierdzeniu meczu */
+  pointsLoser?: number;
+  /** Czy wynik meczu został zatwierdzony i punkty zaaplikowane do rankingu */
+  resultConfirmed?: boolean;
 }
 
 export type PhaseFormat =
@@ -128,8 +134,9 @@ export interface TournamentData {
   /** Konfiguracja kwalifikacji (gdy kind === "qualifier") */
   qualifierConfig?: QualifierConfig;
   /** Region przypisany do meczu — używane do grupowania zwycięzców (opcjonalne, na poziomie fazy) */
-  /** Ręczny przydział punktów za miejsca. Klucze: "1","2","3-4","5-8","9-16","17-32","33+". Brak = użyj domyślnych z tieru. */
-  customPoints?: Partial<Record<"1" | "2" | "3-4" | "5-8" | "9-16" | "17-32" | "33+", number>>;
+  /** Ręczny przydział punktów za miejsca — klucz to placement (1-indexed jako string).
+   *  Brak klucza = użyj domyślnej wartości dla tieru. */
+  customPoints?: Record<string, number>;
 }
 
 export interface Transfer {
