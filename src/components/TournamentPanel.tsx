@@ -855,38 +855,40 @@ const TournamentPanel = () => {
                     onChange={e => {
                       setCustomPointsEnabled(e.target.checked);
                       if (e.target.checked && Object.keys(customPoints).length === 0) {
-                        const defaults: Partial<Record<PointsBucket, number>> = {};
-                        POINTS_BUCKETS.forEach(b => { defaults[b] = getDefaultPointsForBucket(newTier, b); });
+                        const defaults: Record<string, number> = {};
+                        const n = Math.max(2, selectedTeams.length || 2);
+                        for (let p = 1; p <= n; p++) defaults[String(p)] = getDefaultPoints(newTier, p);
                         setCustomPoints(defaults);
                       }
                     }}
                     className="accent-primary"
                   />
                   <span className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
-                    Ręczny przydział punktów za miejsca
+                    Ręczny przydział punktów za miejsca (per miejsce)
                   </span>
                 </label>
                 {customPointsEnabled && (
                   <>
                     <p className="text-[10px] font-mono text-muted-foreground">
-                      Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = użyj domyślnej wartości dla tieru.
+                      Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = wartość domyślna dla tieru.
+                      Liczba miejsc = liczba uczestników ({selectedTeams.length}).
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {POINTS_BUCKETS.map(b => (
-                        <div key={b} className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-mono text-muted-foreground w-14 shrink-0">
-                            {b === "1" ? "1 msc" : b === "2" ? "2 msc" : `${b} msc`}
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-60 overflow-y-auto pr-1">
+                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                        <div key={p} className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground w-10 shrink-0">
+                            #{p}
                           </span>
                           <Input
                             type="number"
-                            value={customPoints[b] ?? ""}
-                            placeholder={String(getDefaultPointsForBucket(newTier, b))}
+                            value={customPoints[String(p)] ?? ""}
+                            placeholder={String(getDefaultPoints(newTier, p))}
                             onChange={e => {
                               const v = e.target.value;
                               setCustomPoints(prev => {
                                 const next = { ...prev };
-                                if (v === "") delete next[b];
-                                else next[b] = parseInt(v, 10) || 0;
+                                if (v === "") delete next[String(p)];
+                                else next[String(p)] = parseInt(v, 10) || 0;
                                 return next;
                               });
                             }}
