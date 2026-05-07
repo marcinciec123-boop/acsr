@@ -21,6 +21,7 @@ interface Props {
   tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
+  onConfirm?: (winner: string, loser: string, pointsWin: number, pointsLose: number) => void;
 }
 
 const blankPlayer = (name: string, team: string): MapPlayerStats => ({
@@ -53,7 +54,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate, onConfirm }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
