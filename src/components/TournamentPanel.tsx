@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
-import { resolvePoints, POINTS_BUCKETS, getDefaultPointsForBucket, type PointsBucket } from "@/lib/customPoints";
+import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
@@ -98,7 +98,7 @@ const TournamentPanel = () => {
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
-  const [customPoints, setCustomPoints] = useState<Partial<Record<PointsBucket, number>>>({});
+  const [customPoints, setCustomPoints] = useState<Record<string, number>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
