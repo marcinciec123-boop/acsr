@@ -47,6 +47,12 @@ export interface MatchResult {
   /** Where loser advances (DE only) */
   loserTo?: string;
   bo?: 1 | 3 | 5; // best-of
+  /** Punkty rankingowe przyznawane zwycięzcy po zatwierdzeniu meczu */
+  pointsWinner?: number;
+  /** Punkty rankingowe odejmowane przegranemu po zatwierdzeniu meczu */
+  pointsLoser?: number;
+  /** Czy wynik meczu został zatwierdzony i punkty zaaplikowane do rankingu */
+  resultConfirmed?: boolean;
 }
 
 export type PhaseFormat =
