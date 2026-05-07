@@ -154,6 +154,36 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
 
   const winner1 = computedScore.s1 > computedScore.s2 && computedScore.s1 + computedScore.s2 > 0;
   const winner2 = computedScore.s2 > computedScore.s1 && computedScore.s1 + computedScore.s2 > 0;
+  const matchDecided = (winner1 || winner2) && (computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin);
+  const winnerName = winner1 ? match.team1 : winner2 ? match.team2 : "";
+  const loserName = winner1 ? match.team2 : winner2 ? match.team1 : "";
+
+  const defaultWinPts = match.bracketSlot?.toUpperCase().includes("FINAL") ? 100
+    : (match.round || "").toLowerCase().includes("final") ? 80
+    : 25;
+  const defaultLosePts = 10;
+
+  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? defaultWinPts);
+  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? defaultLosePts);
+
+  useEffect(() => {
+    if (match.pointsWinner !== undefined) setPointsWin(match.pointsWinner);
+    if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
+  }, [match.id]);
+
+  const handleConfirm = () => {
+    if (!matchDecided || !winnerName || !loserName) {
+      toast({ title: "Mecz nierozstrzygnięty", description: `Wpisz wynik (do ${mapsToWin} wygranych map).`, variant: "destructive" });
+      return;
+    }
+    onUpdate({ pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true });
+    onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
+    toast({
+      title: "Wynik zatwierdzony",
+      description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
+    });
+    onBack();
+  };
 
   return (
     <section className="py-6">
