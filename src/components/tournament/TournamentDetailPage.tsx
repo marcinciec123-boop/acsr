@@ -385,30 +385,47 @@ export const TournamentDetailPage = ({
           </div>
         </motion.div>
 
-        {/* Participants — with flags */}
-        {t.participants.length > 0 && (
-          <div className="bg-card border border-border rounded-lg p-4 mb-6">
-            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3 flex items-center gap-2">
-              <UsersIcon className="w-3.5 h-3.5" />
-              Uczestnicy ({t.participants.length})
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {t.participants.map((p, i) => {
-                const flag = !isPlaceholder(p) ? getTeamFlag(p) : "";
-                return (
-                  <span
-                    key={p}
-                    className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
-                  >
-                    <span className="text-muted-foreground">#{i + 1}</span>
-                    {flag && <span>{flag}</span>}
-                    {p}
-                  </span>
-                );
-              })}
+        {/* Participants — with flags and current ranking position */}
+        {t.participants.length > 0 && (() => {
+          const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+          const sorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
+          const rankMap = new Map(sorted.map((tm, i) => [tm.name, i + 1]));
+          return (
+            <div className="bg-card border border-border rounded-lg p-4 mb-6">
+              <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3 flex items-center gap-2">
+                <UsersIcon className="w-3.5 h-3.5" />
+                Uczestnicy ({t.participants.length})
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {t.participants.map((p, i) => {
+                  const flag = !isPlaceholder(p) ? getTeamFlag(p) : "";
+                  const rank = rankMap.get(p);
+                  return (
+                    <span
+                      key={p}
+                      className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
+                    >
+                      <span className="text-muted-foreground">#{i + 1}</span>
+                      {flag && <span>{flag}</span>}
+                      {p}
+                      {rank && (
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30"
+                          title="Aktualne miejsce w rankingu"
+                        >
+                          WR #{rank}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* Tournament stats (player ratings, team performance) */}
+        <TournamentStatsPanel tournament={t} />
 
         {/* Lineup picker — substitutions per tournament */}
         <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
