@@ -116,7 +116,7 @@ const NewsFeed = () => {
     setAiLoading(mode);
     try {
       const snapshot = buildSnapshot();
-      const count = mode === "mixed" ? 6 : 4;
+      const count = mode === "mixed" ? 10 : 8;
       const res = await generateAIRumors(snapshot, count, { mode });
       if (!res.ok) {
         toast.error(res.error || "Nie udało się wygenerować newsów");

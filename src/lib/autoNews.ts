@@ -173,12 +173,16 @@ export async function generateTournamentRecap(
 ): Promise<void> {
   const ctx = `Turniej "${tournamentName}" (Tier ${tier}) właśnie się zakończył. \
 Zwycięzca: ${winner || "nieznany"}. Drugie miejsce: ${runnerUp || "nieznane"}. \
-Napisz 4 posty: (1) recap turnieju z najważniejszymi momentami, \
-(2) sylwetka MVP (wybierz gracza ze zwycięskiej drużyny z top playersów), \
+Napisz 8 postów: (1) recap turnieju z najważniejszymi momentami, \
+(2) sylwetka MVP (gracz ze zwycięskiej drużyny z top playersów), \
 (3) power-ranking top 5 po turnieju z krótkim komentarzem, \
-(4) hot-take lub mem o przegranym finaliście / zaskoczeniu turnieju.`;
+(4) hot-take o przegranym finaliście / zaskoczeniu turnieju, \
+(5) mem o najsłabszym występie, \
+(6) ciekawostka statystyczna z turnieju, \
+(7) zapowiedź co dalej dla zwycięzców (kolejne turnieje), \
+(8) plotka transferowa lub beef związany z turniejem.`;
 
-  await generateAIRumors(snapshot, 4, {
+  await generateAIRumors(snapshot, 8, {
     mode: "recap",
     context: ctx,
     eventKeyPrefix: `recap:${tournamentName}`,

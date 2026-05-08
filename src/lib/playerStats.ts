@@ -32,34 +32,39 @@ export interface MatchStats {
   bo: number;
 }
 
-// HLTV 3.0-inspired rating calculation
+// Rebalanced rating — 1.00 ≈ neutral performance (K/D ~1.0, KAST ~70%, ADR ~78).
+// Above-average frags/survival/impact push past 1.10–1.30 more readily than HLTV 2.x.
 export function calculateRating(stats: PlayerMatchStats): number {
   if (stats.rounds <= 0) return 0;
 
   const kpr = stats.kills / stats.rounds;
   const dpr = stats.deaths / stats.rounds;
   const apr = stats.assists / stats.rounds;
-  const kastNorm = stats.kast / 100;
-  const adrNorm = stats.adr / 100;
 
-  const impact = 2.13 * kpr + 0.42 * apr - 0.41;
+  // 1.0 at kpr=0.65 (decent fragger)
+  const killComp = kpr / 0.65;
+  // 1.0 at dpr=0.65; lower deaths boost above 1, higher reduces below 1
+  const survivalComp = 2 - (dpr / 0.65);
+  // KAST 1.0 at 70%
+  const kastComp = stats.kast / 70;
+  // ADR 1.0 at 78
+  const adrComp = stats.adr / 78;
+  // Impact: rewards multikills proxy + assists
+  const impactComp = (2.0 * kpr + 0.5 * apr) / 1.5;
 
-  const killRating = kpr / 0.679;
-  const survivalRating = 1 - (dpr / 0.679);
-  const impactRating = Math.max(0, impact);
-  const kastRating = kastNorm / 0.689;
-  const adrRating = adrNorm / 0.789;
+  const utilityBonus = (stats.ud / 200) * 0.04 + (stats.ef / 4) * 0.03;
+  const baseline = 0.05;
 
-  const utilityBonus = (stats.ud / 150) * 0.05 + (stats.ef / 3) * 0.03;
+  const rating =
+      0.30 * killComp
+    + 0.20 * survivalComp
+    + 0.20 * impactComp
+    + 0.15 * kastComp
+    + 0.15 * adrComp
+    + utilityBonus
+    + baseline;
 
-  const rating = 0.2688 * killRating
-    + 0.2073 * survivalRating
-    + 0.2372 * impactRating
-    + 0.1584 * kastRating
-    + 0.1283 * adrRating
-    + utilityBonus;
-
-  return Math.round(rating * 100) / 100;
+  return Math.round(Math.max(0, rating) * 100) / 100;
 }
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
