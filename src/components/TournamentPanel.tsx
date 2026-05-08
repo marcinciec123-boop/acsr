@@ -103,6 +103,7 @@ const TournamentPanel = () => {
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
+  const [teamSort, setTeamSort] = useState<"name" | "rank" | "points-desc" | "points-asc" | "region" | "country">("rank");
 
   // Phases (custom builder)
   const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>([
@@ -122,11 +123,39 @@ const TournamentPanel = () => {
 
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
-  const allTeams = useMemo(() => teamDatabase.map(t => t.name).sort(), []);
-  const filteredTeams = useMemo(
-    () => allTeams.filter(t => t.toLowerCase().includes(teamSearch.toLowerCase())),
-    [allTeams, teamSearch]
-  );
+  // Live ranking data (used for sorting & rank labels in team picker)
+  const liveRanking = useMemo(() => {
+    const stored = loadFromStorage<typeof teamDatabase | null>("ranking_data", null);
+    return stored && stored.length > 0 ? stored : teamDatabase;
+  }, [tournaments]);
+
+  const rankMap = useMemo(() => {
+    const sorted = [...liveRanking].sort((a, b) => (b.points || 0) - (a.points || 0));
+    return new Map(sorted.map((t, i) => [t.name, i + 1]));
+  }, [liveRanking]);
+
+  const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
+
+  const allTeams = useMemo(() => liveRanking.map(t => t.name), [liveRanking]);
+
+  const filteredTeams = useMemo(() => {
+    const q = teamSearch.toLowerCase();
+    const filtered = allTeams.filter(n => n.toLowerCase().includes(q));
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      const ma = teamMeta.get(a); const mb = teamMeta.get(b);
+      switch (teamSort) {
+        case "name": return a.localeCompare(b);
+        case "rank": return (rankMap.get(a) ?? 999) - (rankMap.get(b) ?? 999);
+        case "points-desc": return (mb?.points || 0) - (ma?.points || 0);
+        case "points-asc": return (ma?.points || 0) - (mb?.points || 0);
+        case "region": return (ma?.region || "").localeCompare(mb?.region || "") || a.localeCompare(b);
+        case "country": return (ma?.country || "").localeCompare(mb?.country || "") || a.localeCompare(b);
+        default: return 0;
+      }
+    });
+    return sorted;
+  }, [allTeams, teamSearch, teamSort, rankMap, teamMeta]);
 
   const resetForm = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
