@@ -19,6 +19,10 @@ import { GroupTable } from "./GroupTable";
 import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 import { SwissView } from "./SwissView";
 import { TournamentLineupPanel } from "./TournamentLineupPanel";
+import { TournamentStatsPanel } from "./TournamentStatsPanel";
+import { loadFromStorage } from "@/lib/storage";
+import { teamDatabase } from "@/data/tournaments";
+import type { TeamData } from "@/lib/types";
 
 interface Props {
   tournament: TournamentData;
