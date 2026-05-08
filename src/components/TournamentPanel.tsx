@@ -990,11 +990,27 @@ const TournamentPanel = () => {
                     </div>
                   </div>
                 )}
-                <Input
-                  placeholder={`Szukaj drużyny... (${filteredTeams.length}/${allTeams.length})`}
-                  value={teamSearch}
-                  onChange={e => setTeamSearch(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={`Szukaj drużyny... (${filteredTeams.length}/${allTeams.length})`}
+                    value={teamSearch}
+                    onChange={e => setTeamSearch(e.target.value)}
+                    className="flex-1"
+                  />
+                  <select
+                    value={teamSort}
+                    onChange={e => setTeamSort(e.target.value as typeof teamSort)}
+                    className="px-2 py-2 rounded-md bg-card border border-border text-foreground text-xs font-mono"
+                    title="Sortuj drużyny"
+                  >
+                    <option value="rank">Sort: Ranking ↑</option>
+                    <option value="points-desc">Sort: Punkty ↓</option>
+                    <option value="points-asc">Sort: Punkty ↑</option>
+                    <option value="name">Sort: Nazwa A→Z</option>
+                    <option value="region">Sort: Region</option>
+                    <option value="country">Sort: Kraj</option>
+                  </select>
+                </div>
                 <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                   <span>Pokazano: {filteredTeams.length}</span>
                   <div className="flex gap-2">
@@ -1017,19 +1033,30 @@ const TournamentPanel = () => {
                 <div className="max-h-[420px] overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 bg-card/50">
                   {filteredTeams.map(name => {
                     const checked = selectedTeams.includes(name);
+                    const meta = teamMeta.get(name);
+                    const rank = rankMap.get(name);
                     return (
                       <button
                         key={name}
                         type="button"
                         onClick={() => toggleTeam(name)}
                         className={cn(
-                          "text-[11px] text-left px-2 py-1.5 rounded font-mono truncate transition-colors",
+                          "text-[11px] text-left px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1.5 min-w-0",
                           checked
                             ? "bg-primary/20 text-primary border border-primary/40"
                             : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
                         )}
+                        title={meta ? `${name} • #${rank} • ${meta.points} pkt • ${meta.region}` : name}
                       >
-                        {checked ? "✓ " : "+ "}{name}
+                        {rank && (
+                          <span className={cn(
+                            "text-[9px] tabular-nums shrink-0 px-1 rounded",
+                            rank <= 10 ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]" :
+                            rank <= 30 ? "bg-primary/20 text-primary" :
+                            "bg-muted/40 text-muted-foreground"
+                          )}>#{rank}</span>
+                        )}
+                        <span className="truncate flex-1">{checked ? "✓ " : ""}{name}</span>
                       </button>
                     );
                   })}
