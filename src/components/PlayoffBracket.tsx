@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Trophy, Crown } from "lucide-react";
+import { useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
 import { type MatchResult, type KnockoutRound } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +99,27 @@ const PlayoffBracket = ({
   finished,
   onMatchClick,
 }: PlayoffBracketProps) => {
+  const celebratedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!finished || !winner) return;
+    if (celebratedRef.current === winner) return;
+    celebratedRef.current = winner;
+
+    const fire = (particleRatio: number, opts: confetti.Options) => {
+      confetti({
+        origin: { y: 0.7 },
+        particleCount: Math.floor(220 * particleRatio),
+        ...opts,
+      });
+    };
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+  }, [finished, winner]);
+
   // Combine all rounds for bracket display
   const allRounds = [
     ...completedRounds.map((r, i) => ({ name: r.name, matches: r.matches, isCompleted: true, roundIdx: i })),
