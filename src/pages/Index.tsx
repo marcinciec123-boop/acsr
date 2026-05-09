@@ -9,6 +9,7 @@ import PlayerProfile from "@/components/PlayerProfile";
 import PlayersPanel from "@/components/PlayersPanel";
 import DeviceBackupPanel from "@/components/DeviceBackupPanel";
 import SettingsTab from "@/components/SettingsTab";
+import CommandPalette from "@/components/CommandPalette";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -43,6 +44,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
+      <CommandPalette
+        onTabChange={handleTabChange}
+        onSelectTeam={handleSelectTeam}
+        onSelectPlayer={handleSelectPlayer}
+      />
 
       {selectedPlayer ? (
         <PlayerProfile
