@@ -277,6 +277,46 @@ export const TournamentDetailPage = ({
     }
   }, [t.phases, activePhaseId]);
 
+  // View tab: "play" (rozgrywka) vs "stats" (statystyki) — persisted per tournament
+  const viewKey = `tour-view-${t.id}`;
+  const [view, setView] = useState<"play" | "stats">(() => {
+    if (typeof window === "undefined") return "play";
+    return (sessionStorage.getItem(viewKey) as "play" | "stats") || "play";
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(viewKey, view); } catch {}
+  }, [view, viewKey]);
+
+  // Scroll position restoration — keep place when navigating to match detail and back
+  const scrollKey = `tour-scroll-${t.id}`;
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = sessionStorage.getItem(scrollKey);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      if (!isNaN(y)) {
+        // Wait a tick for layout
+        requestAnimationFrame(() => window.scrollTo(0, y));
+      }
+    }
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+    };
+  }, [scrollKey]);
+
+
   // Phase progress helper for tab badges
   const phaseProgress = (phase: typeof t.phases[number]) => {
     const bracketDone = phase.bracket?.filter(m => m.score1 + m.score2 > 0).length || 0;
