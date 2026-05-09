@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Trophy, Crown } from "lucide-react";
+import { useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
 import { type MatchResult, type KnockoutRound } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 
