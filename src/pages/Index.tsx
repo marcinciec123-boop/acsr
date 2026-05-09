@@ -44,6 +44,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
+      <CommandPalette
+        onTabChange={handleTabChange}
+        onSelectTeam={handleSelectTeam}
+        onSelectPlayer={handleSelectPlayer}
+      />
 
       {selectedPlayer ? (
         <PlayerProfile
