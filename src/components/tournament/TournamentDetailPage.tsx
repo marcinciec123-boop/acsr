@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Trophy, MapPin, Calendar, DollarSign, Users as UsersIcon, Trash2,
   Award, Send, ArrowUp, ArrowDown, Shuffle, Save, Radio, CheckCircle2, Clock,
-  Layers, ArrowRight,
+  Layers, ArrowRight, BarChart3, Swords,
 } from "lucide-react";
 import { computePhaseWinners, getPhaseFinishStatus } from "@/lib/phaseWinners";
 import { collectPriorMeetings, reorderSeedsToAvoidRematches } from "@/lib/priorMeetings";
@@ -277,6 +277,46 @@ export const TournamentDetailPage = ({
     }
   }, [t.phases, activePhaseId]);
 
+  // View tab: "play" (rozgrywka) vs "stats" (statystyki) — persisted per tournament
+  const viewKey = `tour-view-${t.id}`;
+  const [view, setView] = useState<"play" | "stats">(() => {
+    if (typeof window === "undefined") return "play";
+    return (sessionStorage.getItem(viewKey) as "play" | "stats") || "play";
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(viewKey, view); } catch {}
+  }, [view, viewKey]);
+
+  // Scroll position restoration — keep place when navigating to match detail and back
+  const scrollKey = `tour-scroll-${t.id}`;
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = sessionStorage.getItem(scrollKey);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      if (!isNaN(y)) {
+        // Wait a tick for layout
+        requestAnimationFrame(() => window.scrollTo(0, y));
+      }
+    }
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+    };
+  }, [scrollKey]);
+
+
   // Phase progress helper for tab badges
   const phaseProgress = (phase: typeof t.phases[number]) => {
     const bracketDone = phase.bracket?.filter(m => m.score1 + m.score2 > 0).length || 0;
@@ -424,9 +464,37 @@ export const TournamentDetailPage = ({
           );
         })()}
 
-        {/* Tournament stats (player ratings, team performance) */}
-        <TournamentStatsPanel tournament={t} />
+        {/* View tabs: Rozgrywka vs Statystyki */}
+        <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">
+          <button
+            onClick={() => setView("play")}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-colors",
+              view === "play"
+                ? "bg-primary/15 text-primary border border-primary/40"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+            )}
+          >
+            <Swords className="w-3.5 h-3.5" /> Rozgrywka
+          </button>
+          <button
+            onClick={() => setView("stats")}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-colors",
+              view === "stats"
+                ? "bg-primary/15 text-primary border border-primary/40"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+            )}
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Statystyki
+          </button>
+        </div>
 
+        {view === "stats" && (
+          <TournamentStatsPanel tournament={t} />
+        )}
+
+        {view === "play" && (<>
         {/* Lineup picker — substitutions per tournament */}
         <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
 
@@ -793,6 +861,7 @@ export const TournamentDetailPage = ({
             })}
           </div>
         )}
+        </>)}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border/50">
