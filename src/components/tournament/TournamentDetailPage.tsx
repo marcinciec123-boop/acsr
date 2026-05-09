@@ -464,9 +464,37 @@ export const TournamentDetailPage = ({
           );
         })()}
 
-        {/* Tournament stats (player ratings, team performance) */}
-        <TournamentStatsPanel tournament={t} />
+        {/* View tabs: Rozgrywka vs Statystyki */}
+        <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">
+          <button
+            onClick={() => setView("play")}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-colors",
+              view === "play"
+                ? "bg-primary/15 text-primary border border-primary/40"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+            )}
+          >
+            <Swords className="w-3.5 h-3.5" /> Rozgrywka
+          </button>
+          <button
+            onClick={() => setView("stats")}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-colors",
+              view === "stats"
+                ? "bg-primary/15 text-primary border border-primary/40"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+            )}
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Statystyki
+          </button>
+        </div>
 
+        {view === "stats" && (
+          <TournamentStatsPanel tournament={t} />
+        )}
+
+        {view === "play" && (<>
         {/* Lineup picker — substitutions per tournament */}
         <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
 
