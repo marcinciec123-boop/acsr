@@ -149,13 +149,20 @@ const decideSeriesScore = (s1: number, s2: number, bo: 1 | 3 | 5): { s1: number;
 const decideMapRounds = (): { winnerRounds: number; loserRounds: number } => {
   const isOT = rand() < 0.12;
   if (isOT) {
-    const otCount = rand() < 0.75 ? 1 : 2;
-    const winnerRounds = 13 + 3 * otCount; // 16 or 19
-    const loserRounds = winnerRounds - randInt(1, 4);
-    return { winnerRounds, loserRounds: Math.max(0, loserRounds) };
+    // OT trigger = regulation 12-12. Each OT is MR3 (first to 4, must win by 2
+    // in this sim — so 4-3 doesn't end the half, it forces another OT).
+    // OT1 winner reaches 16 (12+4), loser 12-14.
+    // OT2 winner reaches 19, loser 15-17. Etc.
+    const otCount = rand() < 0.78 ? 1 : 2;
+    const winnerRounds = 12 + 4 * otCount; // 16 or 19
+    // Loser already had previous OTs end 3-3, so loser >= 12 + 3*(otCount-1)
+    const loserMin = 12 + 3 * (otCount - 1);
+    const loserMax = winnerRounds - 2; // must lose by >= 2
+    const loserRounds = randInt(loserMin, loserMax);
+    return { winnerRounds, loserRounds };
   }
   const winnerRounds = 13;
-  // Loser between 2 and 11; bias around 7-10 for tightness
+  // Regulation: loser must be <= 11 (otherwise it'd be 12-12 -> OT).
   const loserRounds = Math.max(2, Math.min(11, Math.round(randRange(3, 11))));
   return { winnerRounds, loserRounds };
 };
