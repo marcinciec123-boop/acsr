@@ -861,6 +861,7 @@ export const TournamentDetailPage = ({
             })}
           </div>
         )}
+        </>)}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border/50">
