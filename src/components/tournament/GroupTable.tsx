@@ -4,7 +4,8 @@ import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
-import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
+import TeamLogo from "@/components/TeamLogo";
 import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
 
 interface Props {
@@ -17,10 +18,9 @@ interface Props {
 
 const teamLabel = (name: string) => {
   if (isPlaceholder(name)) return <span className="text-muted-foreground italic">{name || "TBD"}</span>;
-  const flag = getTeamFlag(name);
   return (
-    <span className="inline-flex items-center gap-1.5 min-w-0">
-      {flag && <span className="text-sm leading-none shrink-0">{flag}</span>}
+    <span className="inline-flex items-center gap-1.5 min-w-0 align-middle">
+      <TeamLogo teamName={name} size={18} rounded="md" />
       <span className="truncate">{name}</span>
     </span>
   );
