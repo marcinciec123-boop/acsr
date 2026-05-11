@@ -3,6 +3,7 @@ import { BarChart3, Trophy, Target, Skull, Zap } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
+import TeamLogo from "@/components/TeamLogo";
 
 interface Props {
   tournament: TournamentData;
@@ -177,7 +178,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
               <div key={`${p.team}-${p.name}`} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[11px] font-mono items-center hover:bg-secondary/30">
                 <span className={cn("col-span-1", i < 3 ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground")}>{i + 1}</span>
                 <span className="col-span-4 truncate text-foreground">{p.name}</span>
-                <span className="col-span-3 truncate text-muted-foreground">{p.team}</span>
+                <span className="col-span-3 min-w-0 inline-flex items-center gap-1.5 text-muted-foreground">
+                  <TeamLogo teamName={p.team} size={16} rounded="md" />
+                  <span className="truncate">{p.team}</span>
+                </span>
                 <span className="col-span-1 text-right text-muted-foreground">{p.kills}-{p.deaths}</span>
                 <span className="col-span-1 text-right text-muted-foreground">{p.adr.toFixed(0)}</span>
                 <span className={cn("col-span-2 text-right font-bold", getRatingColor(p.rating))}>{p.rating.toFixed(2)}</span>
@@ -203,7 +207,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             {teams.slice(0, 10).map((t, i) => (
               <div key={t.team} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[11px] font-mono items-center hover:bg-secondary/30">
                 <span className={cn("col-span-1", i < 3 ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground")}>{i + 1}</span>
-                <span className="col-span-5 truncate text-foreground">{t.team}</span>
+                <span className="col-span-5 min-w-0 inline-flex items-center gap-1.5 text-foreground">
+                  <TeamLogo teamName={t.team} size={18} rounded="md" />
+                  <span className="truncate">{t.team}</span>
+                </span>
                 <span className="col-span-2 text-right text-muted-foreground">{t.matchesWon}-{t.matchesPlayed - t.matchesWon}</span>
                 <span className="col-span-2 text-right text-muted-foreground">{t.mapsWon}-{t.mapsLost}</span>
                 <span className={cn("col-span-2 text-right font-bold", getRatingColor(t.avgRating))}>
@@ -237,6 +244,7 @@ const MiniBoard = ({ title, icon, entries }: { title: string; icon: React.ReactN
           <div className="min-w-0 flex items-center gap-1.5">
             <span className="text-[10px] font-mono text-muted-foreground w-3">{i + 1}</span>
             <span className="text-[11px] font-mono text-foreground truncate">{e.name}</span>
+            <TeamLogo teamName={e.team} size={14} rounded="md" className="hidden sm:flex" />
             <span className="text-[10px] font-mono text-muted-foreground truncate hidden sm:inline">· {e.team}</span>
           </div>
           <span className="text-[11px] font-mono font-bold text-primary tabular-nums">{e.value}</span>
