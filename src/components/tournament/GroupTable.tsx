@@ -77,7 +77,9 @@ const renderMatchRow = (
 export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch }: Props) => {
   const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
-  const advN = advancePerGroup ?? (isGSLDE ? 2 : format === "gsl-groups" ? 2 : 2);
+  const isGSL4 = format === "gsl-groups";
+  const isDoubleElim = isGSLDE || isGSL4;
+  const advN = advancePerGroup ?? (isGSLDE ? 2 : isGSL4 ? 2 : 2);
 
   // For IEM/GSL-DE: split matches into Upper / Lower bracket columns
   const ubMatches = isGSLDE
