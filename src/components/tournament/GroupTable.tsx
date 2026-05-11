@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
 
 interface Props {
   group: PhaseGroup;
