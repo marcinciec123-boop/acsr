@@ -20,6 +20,7 @@ import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 import { SwissView } from "./SwissView";
 import { TournamentLineupPanel } from "./TournamentLineupPanel";
 import { TournamentStatsPanel } from "./TournamentStatsPanel";
+import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
@@ -441,7 +442,6 @@ export const TournamentDetailPage = ({
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {t.participants.map((p, i) => {
-                  const flag = !isPlaceholder(p) ? getTeamFlag(p) : "";
                   const rank = rankMap.get(p);
                   return (
                     <span
@@ -449,7 +449,7 @@ export const TournamentDetailPage = ({
                       className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
                     >
                       <span className="text-muted-foreground">#{i + 1}</span>
-                      {flag && <span>{flag}</span>}
+                      {!isPlaceholder(p) && <TeamLogo teamName={p} size={18} rounded="md" />}
                       {p}
                       {rank && (
                         <span
