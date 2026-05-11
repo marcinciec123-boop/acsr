@@ -128,8 +128,6 @@ const PlayoffBracket = ({
 
   if (allRounds.length === 0) return null;
 
-  // Calculate bracket dimensions
-  const totalRounds = allRounds.length + (finished ? 0 : 1); // approximate remaining
 
   return (
     <motion.div
@@ -152,15 +150,21 @@ const PlayoffBracket = ({
 
       {/* Bracket visualization */}
       <div className="overflow-x-auto">
-        <div className="flex gap-1 items-start min-w-max p-4">
+        <div className="flex gap-3 items-start min-w-max p-4">
           {allRounds.map((round, ri) => {
             const realMatches = round.matches.filter(m => m.team2 !== "BYE");
-            const spacing = Math.pow(2, ri); // exponential spacing for bracket alignment
+            // Liquipedia-style centering: each round's matches sit between their feeders
+            const MATCH_H = 56;
+            const BASE_GAP = 14;
+            const gap = BASE_GAP + (Math.pow(2, ri) - 1) * (MATCH_H + BASE_GAP);
+            const offset = ri === 0
+              ? 0
+              : Math.pow(2, ri - 1) * (MATCH_H + BASE_GAP) - BASE_GAP / 2 - MATCH_H / 2;
 
             return (
-              <div key={ri} className="flex flex-col items-center">
+              <div key={ri} className="flex flex-col items-stretch">
                 {/* Round header */}
-                <div className="mb-3 text-center">
+                <div className="mb-3 text-center h-6">
                   <p className={cn(
                     "text-xs font-mono uppercase tracking-wider",
                     round.isCompleted ? "text-muted-foreground" : "text-primary"
@@ -169,21 +173,16 @@ const PlayoffBracket = ({
                   </p>
                 </div>
 
-                {/* Matches */}
-                <div className="flex flex-col justify-around flex-1" style={{ gap: `${spacing * 16}px` }}>
+                {/* Matches with bracket-aligned vertical spacing */}
+                <div className="flex flex-col" style={{ paddingTop: offset, gap: `${gap}px` }}>
                   {realMatches.map((m, mi) => (
-                    <div key={mi} className="flex items-center">
-                      <BracketMatch
-                        match={m}
-                        isResolved={!!m.winner}
-                        size={realMatches.length <= 2 ? "large" : "normal"}
-                        onClick={() => onMatchClick?.(ri, mi, !round.isCompleted)}
-                      />
-                      {/* Connector line */}
-                      {ri < allRounds.length - 1 && (
-                        <div className="w-6 h-px bg-border/50 ml-1" />
-                      )}
-                    </div>
+                    <BracketMatch
+                      key={mi}
+                      match={m}
+                      isResolved={!!m.winner}
+                      size={realMatches.length <= 2 ? "large" : "normal"}
+                      onClick={() => onMatchClick?.(ri, mi, !round.isCompleted)}
+                    />
                   ))}
                 </div>
               </div>
