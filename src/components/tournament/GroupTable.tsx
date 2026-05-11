@@ -81,14 +81,6 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
   const isDoubleElim = isGSLDE || isGSL4;
   const advN = advancePerGroup ?? (isGSLDE ? 2 : isGSL4 ? 2 : 2);
 
-  // For IEM/GSL-DE: split matches into Upper / Lower bracket columns
-  const ubMatches = isGSLDE
-    ? group.matches.filter(m => (m.bracketSlot || "").startsWith("IEM-UB"))
-    : [];
-  const lbMatches = isGSLDE
-    ? group.matches.filter(m => (m.bracketSlot || "").startsWith("IEM-LB"))
-    : [];
-
   const groupByRound = (list: MatchResult[]) => {
     const map = new Map<string, MatchResult[]>();
     list.forEach(m => {
