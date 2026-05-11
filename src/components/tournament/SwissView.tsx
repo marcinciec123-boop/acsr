@@ -10,7 +10,8 @@ import {
   swissRoundLabel,
   type SwissTeamStanding,
 } from "@/lib/swissEngine";
-import { getTeamFlag, isPlaceholder, teamTag } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
+import TeamLogo from "@/components/TeamLogo";
 
 interface Props {
   phaseTeams: string[];
@@ -44,19 +45,13 @@ const STATUS_STYLE: Record<SwissTeamStanding["status"], { row: string; pill: str
   playing:     { row: "border-l-2 border-l-transparent", pill: "bg-secondary text-muted-foreground border-border", label: "GRA" },
 };
 
-const TeamCell = ({ name, withTag = false }: { name: string; withTag?: boolean }) => {
+const TeamCell = ({ name, logoSize = 18 }: { name: string; logoSize?: number }) => {
   if (isPlaceholder(name) || !name) {
     return <span className="italic text-muted-foreground text-xs">TBD</span>;
   }
-  const flag = getTeamFlag(name);
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0">
-      {flag && <span className="text-sm leading-none shrink-0">{flag}</span>}
-      {withTag && (
-        <span className="text-[9px] font-mono px-1 py-0.5 bg-secondary/60 rounded text-muted-foreground shrink-0">
-          {teamTag(name)}
-        </span>
-      )}
+      <TeamLogo teamName={name} size={logoSize} rounded="md" />
       <span className="truncate text-xs font-medium text-foreground">{name}</span>
     </span>
   );
@@ -71,7 +66,6 @@ const OpponentCell = ({
   if (!entry || !entry.opponent) {
     return <span className="text-muted-foreground/40 text-[10px]">—</span>;
   }
-  const flag = getTeamFlag(entry.opponent);
   const won = entry.result === "W";
   const pending = !entry.result;
   return (
@@ -83,7 +77,7 @@ const OpponentCell = ({
       entry.decisive && !pending && "ring-1 ring-[hsl(var(--gold))]/40",
     )}>
       <div className="flex items-center gap-1 min-w-0 max-w-full">
-        {flag && <span className="text-[11px] leading-none shrink-0">{flag}</span>}
+        <TeamLogo teamName={entry.opponent} size={14} rounded="md" />
         <span className="text-[10px] truncate font-medium">{entry.opponent}</span>
       </div>
       <span className={cn(
@@ -292,7 +286,7 @@ export const SwissView = ({
                 >
                   <td className="px-2 py-1.5 text-center font-mono font-bold text-muted-foreground tabular-nums">{i + 1}.</td>
                   <td className="px-2 py-1.5">
-                    <TeamCell name={s.team} withTag />
+                    <TeamCell name={s.team} logoSize={20} />
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     <span className={cn(
