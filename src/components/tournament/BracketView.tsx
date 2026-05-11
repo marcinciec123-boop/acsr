@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import type { MatchResult } from "@/lib/types";
-import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
+import TeamLogo from "@/components/TeamLogo";
 
 interface Props {
   matches: MatchResult[];
@@ -20,7 +21,6 @@ const TeamRow = ({
   name, score, isWinner, isFinal,
 }: { name: string; score: number; isWinner: boolean; isFinal: boolean }) => {
   const placeholder = isPlaceholder(name);
-  const flag = !placeholder ? getTeamFlag(name) : "";
   return (
     <div className={cn(
       "flex justify-between items-center px-3 py-2 transition-colors",
@@ -29,7 +29,7 @@ const TeamRow = ({
     )}>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {isWinner && isFinal && <Crown className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />}
-        {flag && <span className="text-base leading-none shrink-0">{flag}</span>}
+        {!placeholder && <TeamLogo teamName={name} size={22} rounded="md" />}
         <span className={cn(
           "truncate text-[13px]",
           isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
