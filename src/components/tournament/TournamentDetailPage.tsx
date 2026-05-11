@@ -297,8 +297,11 @@ export const TournamentDetailPage = ({
     if (saved) {
       const y = parseInt(saved, 10);
       if (!isNaN(y)) {
-        // Wait a tick for layout
-        requestAnimationFrame(() => window.scrollTo(0, y));
+        // Restore after the tournament layout paints; long brackets can change height over a few frames.
+        requestAnimationFrame(() => {
+          window.scrollTo(0, y);
+          requestAnimationFrame(() => window.scrollTo(0, y));
+        });
       }
     }
     let raf = 0;
@@ -312,7 +315,7 @@ export const TournamentDetailPage = ({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [scrollKey]);
 
