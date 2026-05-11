@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
-import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
