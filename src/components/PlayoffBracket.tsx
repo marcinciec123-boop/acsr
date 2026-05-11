@@ -128,8 +128,6 @@ const PlayoffBracket = ({
 
   if (allRounds.length === 0) return null;
 
-  // Calculate bracket dimensions
-  const totalRounds = allRounds.length + (finished ? 0 : 1); // approximate remaining
 
   return (
     <motion.div
