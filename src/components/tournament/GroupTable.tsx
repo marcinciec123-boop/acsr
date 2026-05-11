@@ -198,31 +198,15 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
           </div>
         </div>
 
-        {isGSLDE ? (
-          /* UB / LB column layout for IEM-style DE groups */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/40">
-            <div className="space-y-2">
-              <h6 className="text-[10px] font-mono uppercase text-[hsl(var(--win))] font-bold border-b border-[hsl(var(--win))]/30 pb-1">
-                ↑ Upper Bracket
-              </h6>
-              {Array.from(groupByRound(ubMatches).entries()).map(([roundName, ms]) => (
-                <div key={roundName} className="space-y-1">
-                  <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
-                  {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <h6 className="text-[10px] font-mono uppercase text-destructive font-bold border-b border-destructive/30 pb-1">
-                ↓ Lower Bracket
-              </h6>
-              {Array.from(groupByRound(lbMatches).entries()).map(([roundName, ms]) => (
-                <div key={roundName} className="space-y-1">
-                  <h6 className="text-[10px] font-mono uppercase text-muted-foreground">{roundName}</h6>
-                  {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
-                </div>
-              ))}
-            </div>
+        {isDoubleElim ? (
+          /* Proper Liquipedia-style double-elim bracket */
+          <div className="pt-2 border-t border-border/40">
+            <DoubleElimGroupBracket
+              matches={group.matches}
+              format={format!}
+              onMatchUpdate={onMatchUpdate}
+              onOpenMatch={onOpenMatch}
+            />
           </div>
         ) : (
           /* Default: matches grouped by round */
