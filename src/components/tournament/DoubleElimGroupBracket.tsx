@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MatchResult, PhaseFormat } from "@/lib/types";
-import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
+import TeamLogo from "@/components/TeamLogo";
 
 interface Props {
   matches: MatchResult[];
@@ -27,10 +28,9 @@ const offsetForDepth = (depth: number) =>
 const teamLabel = (name: string, isWinner: boolean) => {
   if (isPlaceholder(name) || !name)
     return <span className="text-muted-foreground italic text-[11px]">{name || "TBD"}</span>;
-  const flag = getTeamFlag(name);
   return (
     <span className={cn("inline-flex items-center gap-1 min-w-0", isWinner && "font-bold text-foreground")}>
-      {flag && <span className="text-xs leading-none shrink-0">{flag}</span>}
+      <TeamLogo teamName={name} size={16} rounded="md" />
       <span className="truncate text-[11px]">{name}</span>
     </span>
   );
