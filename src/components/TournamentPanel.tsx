@@ -757,6 +757,12 @@ const TournamentPanel = () => {
 
   const selectedTournament = selectedId ? tournaments.find(t => t.id === selectedId) ?? null : null;
 
+  const saveTournamentScroll = (tournamentId: string) => {
+    try {
+      sessionStorage.setItem(`tour-scroll-${tournamentId}`, String(window.scrollY));
+    } catch { /* session storage unavailable */ }
+  };
+
   // Find the currently-selected match (for MatchDetailPage)
   const selectedMatchInfo = useMemo(() => {
     if (!selectedTournament || !selectedMatchRef) return null;
@@ -832,6 +838,7 @@ const TournamentPanel = () => {
         onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => {
+          saveTournamentScroll(selectedTournament.id);
           setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }));
           setSelectedMatchRef({ phaseId, matchId, groupId });
         }}

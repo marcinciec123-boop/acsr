@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
-import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { isPlaceholder } from "@/lib/teamHelpers";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
@@ -20,6 +20,7 @@ import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 import { SwissView } from "./SwissView";
 import { TournamentLineupPanel } from "./TournamentLineupPanel";
 import { TournamentStatsPanel } from "./TournamentStatsPanel";
+import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
@@ -297,8 +298,11 @@ export const TournamentDetailPage = ({
     if (saved) {
       const y = parseInt(saved, 10);
       if (!isNaN(y)) {
-        // Wait a tick for layout
-        requestAnimationFrame(() => window.scrollTo(0, y));
+        // Restore after the tournament layout paints; long brackets can change height over a few frames.
+        requestAnimationFrame(() => {
+          window.scrollTo(0, y);
+          requestAnimationFrame(() => window.scrollTo(0, y));
+        });
       }
     }
     let raf = 0;
@@ -312,7 +316,7 @@ export const TournamentDetailPage = ({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [scrollKey]);
 
@@ -438,7 +442,6 @@ export const TournamentDetailPage = ({
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {t.participants.map((p, i) => {
-                  const flag = !isPlaceholder(p) ? getTeamFlag(p) : "";
                   const rank = rankMap.get(p);
                   return (
                     <span
@@ -446,7 +449,7 @@ export const TournamentDetailPage = ({
                       className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
                     >
                       <span className="text-muted-foreground">#{i + 1}</span>
-                      {flag && <span>{flag}</span>}
+                      {!isPlaceholder(p) && <TeamLogo teamName={p} size={18} rounded="md" />}
                       {p}
                       {rank && (
                         <span
