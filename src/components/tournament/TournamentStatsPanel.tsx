@@ -118,11 +118,13 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       .map(p => {
         const adr = p.rounds > 0 ? p.adrSum / p.rounds : 0;
         const kast = p.rounds > 0 ? p.kastSum / p.rounds : 0;
-        const rating = calculateRating({
-          playerName: p.name, team: p.team,
-          kills: p.kills, deaths: p.deaths, assists: p.assists,
-          adr, kast, ud: p.ud, ef: p.ef, rounds: p.rounds,
-        });
+        const rating = p.ratings.length > 0
+          ? p.ratings.reduce((a, b) => a + b, 0) / p.ratings.length
+          : calculateRating({
+              playerName: p.name, team: p.team,
+              kills: p.kills, deaths: p.deaths, assists: p.assists,
+              adr, kast, ud: p.ud, ef: p.ef, rounds: p.rounds,
+            });
         const kd = p.deaths > 0 ? p.kills / p.deaths : p.kills;
         return { ...p, adr, kast, rating, kd };
       })
