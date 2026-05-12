@@ -13,7 +13,7 @@ import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, Qualifi
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
-import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
+import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
@@ -407,9 +407,11 @@ const TournamentPanel = () => {
               groups: p.groups.map(g => {
                 if (g.id !== groupId) return g;
                 let nextMatches = g.matches.map(m => m.id !== matchId ? m : { ...m, ...patch });
-                // Auto-propagate winners/losers within IEM-DE groups
+                // Auto-propagate winners/losers within DE groups
                 if (p.format === "gsl-de-groups") {
                   nextMatches = propagateGSLDEGroup([...nextMatches]);
+                } else if (p.format === "gsl-groups") {
+                  nextMatches = propagateGSL4Group([...nextMatches]);
                 }
                 return { ...g, matches: nextMatches };
               }),

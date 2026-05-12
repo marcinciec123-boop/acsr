@@ -110,7 +110,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
                 <th className="text-center py-1.5 px-1.5" title="Mecze">M</th>
                 <th className="text-center py-1.5 px-1.5 text-[hsl(var(--win))]" title="Wygrane">W</th>
                 <th className="text-center py-1.5 px-1.5 text-destructive" title="Porażki">L</th>
-                <th className="text-center py-1.5 px-1.5" title="Bilans map">RD</th>
+                <th className="text-center py-1.5 px-1.5" title="Bilans rund (suma rund wygranych - przegranych)">RD</th>
                 <th className="text-center py-1.5 px-1 w-8" title="Status"></th>
               </tr>
             </thead>
@@ -154,11 +154,11 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
                     </td>
                     <td className={cn(
                       "text-center py-1.5 px-1.5 font-mono tabular-nums",
-                      s.mapDiff > 0 && "text-[hsl(var(--win))]",
-                      s.mapDiff < 0 && "text-destructive",
-                      s.mapDiff === 0 && "text-muted-foreground"
-                    )}>
-                      {s.mapDiff > 0 ? `+${s.mapDiff}` : s.mapDiff}
+                      s.roundDiff > 0 && "text-[hsl(var(--win))]",
+                      s.roundDiff < 0 && "text-destructive",
+                      s.roundDiff === 0 && "text-muted-foreground"
+                    )} title={`Rundy: ${s.roundsWon}-${s.roundsLost}`}>
+                      {s.roundDiff > 0 ? `+${s.roundDiff}` : s.roundDiff}
                     </td>
                     <td className="text-center py-1.5 px-1">
                       {advances && (

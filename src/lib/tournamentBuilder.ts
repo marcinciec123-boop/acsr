@@ -443,19 +443,57 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   return matches;
 };
 
+/** Auto-propagate winners/losers within a 4-team GSL group. */
+export const propagateGSL4Group = (matches: MatchResult[]): MatchResult[] => {
+  const by = (slot: string) => matches.find(m => m.bracketSlot === slot);
+  const decided = (slot: string) => {
+    const m = by(slot); if (!m) return false;
+    if (!m.team1 || !m.team2) return false;
+    if (m.team1 === "TBD" || m.team2 === "TBD") return false;
+    if (m.score1 + m.score2 === 0) return false;
+    return m.score1 !== m.score2;
+  };
+  const winnerOf = (slot: string): string => {
+    if (!decided(slot)) return "";
+    const m = by(slot)!;
+    return m.score1 > m.score2 ? m.team1 : m.team2;
+  };
+  const loserOf = (slot: string): string => {
+    if (!decided(slot)) return "";
+    const m = by(slot)!;
+    return m.score1 > m.score2 ? m.team2 : m.team1;
+  };
+  const setSlot = (slot: string, t1: string, t2: string) => {
+    const m = by(slot); if (!m) return;
+    let changed = false;
+    if (t1 && m.team1 !== t1) { m.team1 = t1; changed = true; }
+    if (t2 && m.team2 !== t2) { m.team2 = t2; changed = true; }
+    if (changed) { m.score1 = 0; m.score2 = 0; }
+  };
+
+  setSlot("GSL-WM", winnerOf("GSL-OM1"), winnerOf("GSL-OM2"));
+  setSlot("GSL-LM", loserOf("GSL-OM1"), loserOf("GSL-OM2"));
+  setSlot("GSL-DM", loserOf("GSL-WM"), winnerOf("GSL-LM"));
+
+  return matches;
+};
+
 /** Compute standings for a Round Robin / GSL group based on completed matches */
 export interface GroupStanding {
   team: string;
   wins: number;
   losses: number;
   mapDiff: number;
+  roundDiff: number;
+  roundsWon: number;
+  roundsLost: number;
 }
 
 export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
   const standings = new Map<string, GroupStanding>();
   group.teams.forEach(t => {
     if (!t || t === "TBD" || t === "BYE") return;
-    standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0 });
+    standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0, roundDiff: 0, roundsWon: 0, roundsLost: 0 });
   });
   // head-to-head wins record: h2h[A][B] = mecze A wygrane vs B
   const h2h: Record<string, Record<string, number>> = {};
@@ -476,6 +514,16 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
     else                     { s2.wins++; s1.losses++; bumpH2H(m.team2, m.team1); }
     s1.mapDiff += m.score1 - m.score2;
     s2.mapDiff += m.score2 - m.score1;
+    // Round (in-game CS rounds) totals across played maps
+    for (const map of m.maps || []) {
+      const r1 = map.score1 || 0;
+      const r2 = map.score2 || 0;
+      if (r1 + r2 <= 0) continue;
+      s1.roundsWon += r1; s1.roundsLost += r2;
+      s2.roundsWon += r2; s2.roundsLost += r1;
+      s1.roundDiff += r1 - r2;
+      s2.roundDiff += r2 - r1;
+    }
   });
   return Array.from(standings.values()).sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;

@@ -21,6 +21,7 @@ interface PlayerAgg {
   ud: number;
   ef: number;
   maps: number;
+  ratings: number[];       // per-map rating samples (averaged for tournament rating)
 }
 
 interface TeamAgg {
@@ -45,7 +46,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       const key = `${team}::${name}`;
       let p = pmap.get(key);
       if (!p) {
-        p = { name, team, kills: 0, deaths: 0, assists: 0, rounds: 0, adrSum: 0, kastSum: 0, ud: 0, ef: 0, maps: 0 };
+        p = { name, team, kills: 0, deaths: 0, assists: 0, rounds: 0, adrSum: 0, kastSum: 0, ud: 0, ef: 0, maps: 0, ratings: [] };
         pmap.set(key, p);
       }
       return p;
@@ -101,6 +102,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             agg.ef += pl.ef || 0;
             agg.maps += 1;
             const r = pl.rating ?? calculateRating({ ...pl, rounds: totalRounds });
+            agg.ratings.push(r);
             sideRatings.push(r);
           }
           if (sideRatings.length > 0) {
@@ -116,11 +118,13 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       .map(p => {
         const adr = p.rounds > 0 ? p.adrSum / p.rounds : 0;
         const kast = p.rounds > 0 ? p.kastSum / p.rounds : 0;
-        const rating = calculateRating({
-          playerName: p.name, team: p.team,
-          kills: p.kills, deaths: p.deaths, assists: p.assists,
-          adr, kast, ud: p.ud, ef: p.ef, rounds: p.rounds,
-        });
+        const rating = p.ratings.length > 0
+          ? p.ratings.reduce((a, b) => a + b, 0) / p.ratings.length
+          : calculateRating({
+              playerName: p.name, team: p.team,
+              kills: p.kills, deaths: p.deaths, assists: p.assists,
+              adr, kast, ud: p.ud, ef: p.ef, rounds: p.rounds,
+            });
         const kd = p.deaths > 0 ? p.kills / p.deaths : p.kills;
         return { ...p, adr, kast, rating, kd };
       })
