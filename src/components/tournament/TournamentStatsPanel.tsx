@@ -46,7 +46,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       const key = `${team}::${name}`;
       let p = pmap.get(key);
       if (!p) {
-        p = { name, team, kills: 0, deaths: 0, assists: 0, rounds: 0, adrSum: 0, kastSum: 0, ud: 0, ef: 0, maps: 0 };
+        p = { name, team, kills: 0, deaths: 0, assists: 0, rounds: 0, adrSum: 0, kastSum: 0, ud: 0, ef: 0, maps: 0, ratings: [] };
         pmap.set(key, p);
       }
       return p;
