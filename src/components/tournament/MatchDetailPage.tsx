@@ -11,6 +11,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
+import TeamLogo from "@/components/TeamLogo";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -258,7 +259,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
             </Button>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-            <div className={cn("text-right", winner1 && "text-foreground")}>
+            <div className={cn("flex items-center gap-3 justify-end min-w-0", winner1 && "text-foreground")}>
+              {match.team1 && match.team1 !== "TBD" && <TeamLogo teamName={match.team1} size={44} rounded="lg" />}
               <p className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team1 || "TBD"}
               </p>
@@ -268,10 +270,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
               <span className="text-muted-foreground text-3xl">:</span>
               <span className={winner2 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{computedScore.s2}</span>
             </div>
-            <div className={cn("text-left", winner2 && "text-foreground")}>
+            <div className={cn("flex items-center gap-3 min-w-0", winner2 && "text-foreground")}>
               <p className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team2 || "TBD"}
               </p>
+              {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
         </motion.div>
@@ -379,13 +382,15 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
                     <div key={i} className="flex items-center gap-3 text-sm font-mono p-2 rounded bg-secondary/30">
                       <span className="text-[10px] text-muted-foreground w-6">M{i + 1}</span>
                       <span className="text-primary w-24 truncate">{m.map}</span>
-                      <span className={cn("flex-1 text-right truncate", m.score1 > m.score2 && "text-foreground font-bold")}>
-                        {match.team1}
-                      </span>
+                      <div className={cn("flex-1 flex items-center justify-end gap-2 min-w-0", m.score1 > m.score2 && "text-foreground font-bold")}>
+                        <span className="truncate">{match.team1}</span>
+                        <TeamLogo teamName={match.team1} size={18} rounded="md" />
+                      </div>
                       <span className="font-bold tabular-nums">{m.score1} : {m.score2}</span>
-                      <span className={cn("flex-1 truncate", m.score2 > m.score1 && "text-foreground font-bold")}>
-                        {match.team2}
-                      </span>
+                      <div className={cn("flex-1 flex items-center gap-2 min-w-0", m.score2 > m.score1 && "text-foreground font-bold")}>
+                        <TeamLogo teamName={match.team2} size={18} rounded="md" />
+                        <span className="truncate">{match.team2}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -581,7 +586,10 @@ const PlayerStatsTab = ({
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center justify-between">
-          <h4 className="text-sm font-heading font-bold text-foreground">{teamName || "Drużyna"}</h4>
+          <div className="flex items-center gap-2.5 min-w-0">
+            {teamName && teamName !== "TBD" && <TeamLogo teamName={teamName} size={28} rounded="md" />}
+            <h4 className="text-sm font-heading font-bold text-foreground truncate">{teamName || "Drużyna"}</h4>
+          </div>
           <span className="text-[10px] font-mono text-muted-foreground">
             Mapa {activeMapIdx + 1} • Rundy: {totalRounds}
           </span>
@@ -641,6 +649,34 @@ const PlayerStatsTab = ({
                 );
               })}
             </tbody>
+            {players.length > 0 && (() => {
+              const sumK = players.reduce((s, p) => s + (p.kills || 0), 0);
+              const sumA = players.reduce((s, p) => s + (p.assists || 0), 0);
+              const sumD = players.reduce((s, p) => s + (p.deaths || 0), 0);
+              const sumUD = players.reduce((s, p) => s + (p.ud || 0), 0);
+              const sumEF = players.reduce((s, p) => s + (p.ef || 0), 0);
+              const avgADR = players.reduce((s, p) => s + (p.adr || 0), 0) / players.length;
+              const avgKAST = players.reduce((s, p) => s + (p.kast || 0), 0) / players.length;
+              const ratings = players.map(p => p.rating ?? calculateRating({ ...p, rounds: totalRounds }));
+              const avgRating = ratings.reduce((s, r) => s + r, 0) / ratings.length;
+              return (
+                <tfoot>
+                  <tr className="bg-secondary/40 border-t-2 border-border font-mono font-bold">
+                    <td className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary">Suma / Średnia</td>
+                    <td className="text-center px-2 py-2 text-foreground">{sumK}</td>
+                    <td className="text-center px-2 py-2 text-foreground">{sumA}</td>
+                    <td className="text-center px-2 py-2 text-foreground">{sumD}</td>
+                    <td className="text-center px-2 py-2 text-muted-foreground">{avgADR.toFixed(1)}</td>
+                    <td className="text-center px-2 py-2 text-foreground">{sumUD}</td>
+                    <td className="text-center px-2 py-2 text-foreground">{sumEF}</td>
+                    <td className="text-center px-2 py-2 text-muted-foreground">{avgKAST.toFixed(0)}%</td>
+                    <td className={cn("text-center px-2 py-2 tabular-nums", getRatingColor(avgRating))}>
+                      {avgRating.toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              );
+            })()}
           </table>
         </div>
       </div>
