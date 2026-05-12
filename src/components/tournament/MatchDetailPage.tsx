@@ -259,7 +259,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
             </Button>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-            <div className={cn("text-right", winner1 && "text-foreground")}>
+            <div className={cn("flex items-center gap-3 justify-end min-w-0", winner1 && "text-foreground")}>
+              {match.team1 && match.team1 !== "TBD" && <TeamLogo teamName={match.team1} size={44} rounded="lg" />}
               <p className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team1 || "TBD"}
               </p>
@@ -269,10 +270,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
               <span className="text-muted-foreground text-3xl">:</span>
               <span className={winner2 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{computedScore.s2}</span>
             </div>
-            <div className={cn("text-left", winner2 && "text-foreground")}>
+            <div className={cn("flex items-center gap-3 min-w-0", winner2 && "text-foreground")}>
               <p className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team2 || "TBD"}
               </p>
+              {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
         </motion.div>
