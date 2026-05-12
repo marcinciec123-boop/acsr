@@ -101,9 +101,13 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             agg.ud += pl.ud || 0;
             agg.ef += pl.ef || 0;
             agg.maps += 1;
-            const r = pl.rating ?? calculateRating({ ...pl, rounds: totalRounds });
-            agg.ratings.push(r);
-            sideRatings.push(r);
+            const r = (pl.rating && pl.rating > 0)
+              ? pl.rating
+              : calculateRating({ ...pl, rounds: totalRounds });
+            if (r > 0) {
+              agg.ratings.push(r);
+              sideRatings.push(r);
+            }
           }
           if (sideRatings.length > 0) {
             const teamAgg = ensureTeam(side.team);
