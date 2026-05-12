@@ -154,11 +154,11 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
                     </td>
                     <td className={cn(
                       "text-center py-1.5 px-1.5 font-mono tabular-nums",
-                      s.mapDiff > 0 && "text-[hsl(var(--win))]",
-                      s.mapDiff < 0 && "text-destructive",
-                      s.mapDiff === 0 && "text-muted-foreground"
-                    )}>
-                      {s.mapDiff > 0 ? `+${s.mapDiff}` : s.mapDiff}
+                      s.roundDiff > 0 && "text-[hsl(var(--win))]",
+                      s.roundDiff < 0 && "text-destructive",
+                      s.roundDiff === 0 && "text-muted-foreground"
+                    )} title={`Rundy: ${s.roundsWon}-${s.roundsLost}`}>
+                      {s.roundDiff > 0 ? `+${s.roundDiff}` : s.roundDiff}
                     </td>
                     <td className="text-center py-1.5 px-1">
                       {advances && (
