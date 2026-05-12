@@ -102,6 +102,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             agg.ef += pl.ef || 0;
             agg.maps += 1;
             const r = pl.rating ?? calculateRating({ ...pl, rounds: totalRounds });
+            agg.ratings.push(r);
             sideRatings.push(r);
           }
           if (sideRatings.length > 0) {
