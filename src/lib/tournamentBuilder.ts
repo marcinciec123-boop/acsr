@@ -493,7 +493,7 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
   const standings = new Map<string, GroupStanding>();
   group.teams.forEach(t => {
     if (!t || t === "TBD" || t === "BYE") return;
-    standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0 });
+    standings.set(t, { team: t, wins: 0, losses: 0, mapDiff: 0, roundDiff: 0, roundsWon: 0, roundsLost: 0 });
   });
   // head-to-head wins record: h2h[A][B] = mecze A wygrane vs B
   const h2h: Record<string, Record<string, number>> = {};
@@ -514,6 +514,16 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
     else                     { s2.wins++; s1.losses++; bumpH2H(m.team2, m.team1); }
     s1.mapDiff += m.score1 - m.score2;
     s2.mapDiff += m.score2 - m.score1;
+    // Round (in-game CS rounds) totals across played maps
+    for (const map of m.maps || []) {
+      const r1 = map.score1 || 0;
+      const r2 = map.score2 || 0;
+      if (r1 + r2 <= 0) continue;
+      s1.roundsWon += r1; s1.roundsLost += r2;
+      s2.roundsWon += r2; s2.roundsLost += r1;
+      s1.roundDiff += r1 - r2;
+      s2.roundDiff += r2 - r1;
+    }
   });
   return Array.from(standings.values()).sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
