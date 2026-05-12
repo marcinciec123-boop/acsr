@@ -443,12 +443,50 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   return matches;
 };
 
+/** Auto-propagate winners/losers within a 4-team GSL group. */
+export const propagateGSL4Group = (matches: MatchResult[]): MatchResult[] => {
+  const by = (slot: string) => matches.find(m => m.bracketSlot === slot);
+  const decided = (slot: string) => {
+    const m = by(slot); if (!m) return false;
+    if (!m.team1 || !m.team2) return false;
+    if (m.team1 === "TBD" || m.team2 === "TBD") return false;
+    if (m.score1 + m.score2 === 0) return false;
+    return m.score1 !== m.score2;
+  };
+  const winnerOf = (slot: string): string => {
+    if (!decided(slot)) return "";
+    const m = by(slot)!;
+    return m.score1 > m.score2 ? m.team1 : m.team2;
+  };
+  const loserOf = (slot: string): string => {
+    if (!decided(slot)) return "";
+    const m = by(slot)!;
+    return m.score1 > m.score2 ? m.team2 : m.team1;
+  };
+  const setSlot = (slot: string, t1: string, t2: string) => {
+    const m = by(slot); if (!m) return;
+    let changed = false;
+    if (t1 && m.team1 !== t1) { m.team1 = t1; changed = true; }
+    if (t2 && m.team2 !== t2) { m.team2 = t2; changed = true; }
+    if (changed) { m.score1 = 0; m.score2 = 0; }
+  };
+
+  setSlot("GSL-WM", winnerOf("GSL-OM1"), winnerOf("GSL-OM2"));
+  setSlot("GSL-LM", loserOf("GSL-OM1"), loserOf("GSL-OM2"));
+  setSlot("GSL-DM", loserOf("GSL-WM"), winnerOf("GSL-LM"));
+
+  return matches;
+};
+
 /** Compute standings for a Round Robin / GSL group based on completed matches */
 export interface GroupStanding {
   team: string;
   wins: number;
   losses: number;
   mapDiff: number;
+  roundDiff: number;
+  roundsWon: number;
+  roundsLost: number;
 }
 
 export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
