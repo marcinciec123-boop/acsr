@@ -382,13 +382,15 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
                     <div key={i} className="flex items-center gap-3 text-sm font-mono p-2 rounded bg-secondary/30">
                       <span className="text-[10px] text-muted-foreground w-6">M{i + 1}</span>
                       <span className="text-primary w-24 truncate">{m.map}</span>
-                      <span className={cn("flex-1 text-right truncate", m.score1 > m.score2 && "text-foreground font-bold")}>
-                        {match.team1}
-                      </span>
+                      <div className={cn("flex-1 flex items-center justify-end gap-2 min-w-0", m.score1 > m.score2 && "text-foreground font-bold")}>
+                        <span className="truncate">{match.team1}</span>
+                        <TeamLogo teamName={match.team1} size={18} rounded="md" />
+                      </div>
                       <span className="font-bold tabular-nums">{m.score1} : {m.score2}</span>
-                      <span className={cn("flex-1 truncate", m.score2 > m.score1 && "text-foreground font-bold")}>
-                        {match.team2}
-                      </span>
+                      <div className={cn("flex-1 flex items-center gap-2 min-w-0", m.score2 > m.score1 && "text-foreground font-bold")}>
+                        <TeamLogo teamName={match.team2} size={18} rounded="md" />
+                        <span className="truncate">{match.team2}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
