@@ -21,6 +21,7 @@ interface PlayerAgg {
   ud: number;
   ef: number;
   maps: number;
+  ratings: number[];       // per-map rating samples (averaged for tournament rating)
 }
 
 interface TeamAgg {
