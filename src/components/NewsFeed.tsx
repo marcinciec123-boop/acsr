@@ -57,7 +57,7 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
 
 const buildSnapshot = (): WorldSnapshot => {
   const transfers = getAllTransfers().slice(-15).reverse();
-  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
+  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
 
   // top players: weź po 1 z top 8 drużyn (najwyższy career rating)
   const topTeams = [...teamDatabase].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
