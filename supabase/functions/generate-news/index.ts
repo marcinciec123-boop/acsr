@@ -80,9 +80,11 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
   }
 
   if (body.tournaments.length) {
-    parts.push(`\nTurnieje:\n${body.tournaments.slice(0, 10).map(t => {
-      const w = t.winner ? ` — wygrana: ${t.winner}${t.runnerUp ? ` vs ${t.runnerUp}` : ""}` : "";
-      return `${t.name} [${t.tier}] — ${t.status}, ${t.teams} dr.${w}`;
+    parts.push(`\nTurnieje (KAŻDA wzmianka o turnieju MUSI dotyczyć drużyny z jego listy "uczestnicy"):\n${body.tournaments.slice(0, 10).map(t => {
+      const participants = t.participants?.length ? `\n   uczestnicy: ${t.participants.join(", ")}` : "";
+      const top = t.topPlacements?.length ? `\n   miejsca: ${t.topPlacements.map(p => `${p.placement}. ${p.team}`).join(", ")}` : "";
+      const w = t.winner ? ` — wygrana: ${t.winner}${t.runnerUp ? ` (finał vs ${t.runnerUp})` : ""}` : "";
+      return `- ${t.name} [${t.tier}] — status: ${t.status}, ${t.teams} dr.${w}${participants}${top}`;
     }).join("\n")}`);
   }
 
@@ -90,7 +92,7 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
     parts.push(`\nTop gracze (rating):\n${body.topPlayers.slice(0, 12).map(p => `${p.player} (${p.team})${p.role ? ` [${p.role}]` : ""} — ${p.rating.toFixed(2)}`).join("\n")}`);
   }
 
-  parts.push(`\nUŻYWAJ KONKRETNYCH NAZW z danych powyżej. Każdy post musi mieć inny temat lub inny ton.`);
+  parts.push(`\nUŻYWAJ WYŁĄCZNIE NAZW Z POWYŻSZYCH DANYCH. Jeśli post dotyczy turnieju, sprawdź że drużyna jest na liście "uczestnicy" tego turnieju — inaczej nie pisz o niej w kontekście tego turnieju. Każdy post musi mieć inny temat lub inny ton.`);
 
   return parts.join("\n");
 }
