@@ -701,3 +701,150 @@ const NumCell = ({ value, onChange, max }: { value: number; onChange: (v: number
     className="h-7 w-14 text-center text-xs font-mono px-1"
   />
 );
+
+interface AggRow {
+  name: string;
+  kills: number;
+  assists: number;
+  deaths: number;
+  ud: number;
+  ef: number;
+  adrSum: number;     // weighted by rounds
+  kastSum: number;    // weighted by rounds
+  rounds: number;
+  ratings: number[];
+  mapsPlayed: number;
+}
+
+const MatchPlayerTotals = ({
+  match, maps, side, teamName,
+}: {
+  match: MatchResult;
+  maps: MatchMap[];
+  side: "team1Players" | "team2Players";
+  teamName: string;
+}) => {
+  const rows = useMemo(() => {
+    const agg = new Map<string, AggRow>();
+    for (const m of maps) {
+      const list = (m[side] || []) as MapPlayerStats[];
+      const totalRounds = (m.score1 || 0) + (m.score2 || 0);
+      if (totalRounds <= 0) continue;
+      for (const p of list) {
+        if (!p.playerName) continue;
+        let r = agg.get(p.playerName);
+        if (!r) {
+          r = { name: p.playerName, kills: 0, assists: 0, deaths: 0, ud: 0, ef: 0, adrSum: 0, kastSum: 0, rounds: 0, ratings: [], mapsPlayed: 0 };
+          agg.set(p.playerName, r);
+        }
+        r.kills += p.kills || 0;
+        r.assists += p.assists || 0;
+        r.deaths += p.deaths || 0;
+        r.ud += p.ud || 0;
+        r.ef += p.ef || 0;
+        r.adrSum += (p.adr || 0) * totalRounds;
+        r.kastSum += (p.kast || 0) * totalRounds;
+        r.rounds += totalRounds;
+        r.mapsPlayed += 1;
+        const rt = (p.rating && p.rating > 0) ? p.rating : calculateRating({ ...p, rounds: totalRounds });
+        if (rt > 0) r.ratings.push(rt);
+      }
+    }
+    return Array.from(agg.values()).map(r => ({
+      ...r,
+      adr: r.rounds > 0 ? r.adrSum / r.rounds : 0,
+      kast: r.rounds > 0 ? r.kastSum / r.rounds : 0,
+      rating: r.ratings.length > 0 ? r.ratings.reduce((a, b) => a + b, 0) / r.ratings.length : 0,
+    })).sort((a, b) => b.rating - a.rating);
+  }, [maps, side]);
+
+  if (rows.length === 0 || !teamName || teamName === "TBD") return null;
+
+  return (
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <TeamLogo teamName={teamName} size={28} rounded="md" />
+          <h4 className="text-sm font-heading font-bold text-foreground truncate">{teamName}</h4>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            • Statystyki łączne ({maps.length} {maps.length === 1 ? "mapa" : "map"})
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          K/A/D/UD/EF: suma · ADR/KAST/Rating: średnia
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
+              <th className="text-left px-3 py-2">Gracz</th>
+              <th className="text-center px-2 py-2">Mapy</th>
+              <th className="text-center px-2 py-2">K</th>
+              <th className="text-center px-2 py-2">A</th>
+              <th className="text-center px-2 py-2">D</th>
+              <th className="text-center px-2 py-2">+/−</th>
+              <th className="text-center px-2 py-2">ADR</th>
+              <th className="text-center px-2 py-2">UD</th>
+              <th className="text-center px-2 py-2">EF</th>
+              <th className="text-center px-2 py-2">KAST%</th>
+              <th className="text-center px-2 py-2">Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.name} className="border-b border-border/20 hover:bg-secondary/20 font-mono">
+                <td className="px-3 py-2 text-foreground">{r.name}</td>
+                <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
+                <td className="text-center px-2 py-2 text-foreground">{r.kills}</td>
+                <td className="text-center px-2 py-2 text-foreground">{r.assists}</td>
+                <td className="text-center px-2 py-2 text-foreground">{r.deaths}</td>
+                <td className={cn("text-center px-2 py-2", r.kills - r.deaths > 0 ? "text-[hsl(var(--win))]" : r.kills - r.deaths < 0 ? "text-[hsl(var(--loss))]" : "text-muted-foreground")}>
+                  {r.kills - r.deaths > 0 ? "+" : ""}{r.kills - r.deaths}
+                </td>
+                <td className="text-center px-2 py-2 text-muted-foreground">{r.adr.toFixed(1)}</td>
+                <td className="text-center px-2 py-2 text-foreground">{r.ud}</td>
+                <td className="text-center px-2 py-2 text-foreground">{r.ef}</td>
+                <td className="text-center px-2 py-2 text-muted-foreground">{r.kast.toFixed(0)}%</td>
+                <td className={cn("text-center px-2 py-2 font-bold tabular-nums", getRatingColor(r.rating))}>
+                  {r.rating.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {(() => {
+            const sumK = rows.reduce((s, r) => s + r.kills, 0);
+            const sumA = rows.reduce((s, r) => s + r.assists, 0);
+            const sumD = rows.reduce((s, r) => s + r.deaths, 0);
+            const sumUD = rows.reduce((s, r) => s + r.ud, 0);
+            const sumEF = rows.reduce((s, r) => s + r.ef, 0);
+            const avgADR = rows.reduce((s, r) => s + r.adr, 0) / rows.length;
+            const avgKAST = rows.reduce((s, r) => s + r.kast, 0) / rows.length;
+            const avgRating = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
+            return (
+              <tfoot>
+                <tr className="bg-secondary/40 border-t-2 border-border font-mono font-bold">
+                  <td className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary">Drużyna</td>
+                  <td className="text-center px-2 py-2 text-muted-foreground">—</td>
+                  <td className="text-center px-2 py-2 text-foreground">{sumK}</td>
+                  <td className="text-center px-2 py-2 text-foreground">{sumA}</td>
+                  <td className="text-center px-2 py-2 text-foreground">{sumD}</td>
+                  <td className={cn("text-center px-2 py-2", sumK - sumD > 0 ? "text-[hsl(var(--win))]" : sumK - sumD < 0 ? "text-[hsl(var(--loss))]" : "text-muted-foreground")}>
+                    {sumK - sumD > 0 ? "+" : ""}{sumK - sumD}
+                  </td>
+                  <td className="text-center px-2 py-2 text-muted-foreground">{avgADR.toFixed(1)}</td>
+                  <td className="text-center px-2 py-2 text-foreground">{sumUD}</td>
+                  <td className="text-center px-2 py-2 text-foreground">{sumEF}</td>
+                  <td className="text-center px-2 py-2 text-muted-foreground">{avgKAST.toFixed(0)}%</td>
+                  <td className={cn("text-center px-2 py-2 tabular-nums", getRatingColor(avgRating))}>
+                    {avgRating.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            );
+          })()}
+        </table>
+      </div>
+    </div>
+  );
+};
