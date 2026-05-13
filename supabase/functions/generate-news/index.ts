@@ -10,7 +10,7 @@ const corsHeaders = {
 interface SnapshotPayload {
   topTeams: { name: string; points: number; country: string }[];
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
-  tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null }[];
+  tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null; participants?: string[]; topPlacements?: { team: string; placement: number }[] }[];
   topPlayers?: { player: string; team: string; rating: number; role?: string }[];
   count?: number;
   /** Optional: bias the generator toward a specific post type */
