@@ -656,34 +656,6 @@ const PlayerStatsTab = ({
                 );
               })}
             </tbody>
-            {players.length > 0 && (() => {
-              const sumK = players.reduce((s, p) => s + (p.kills || 0), 0);
-              const sumA = players.reduce((s, p) => s + (p.assists || 0), 0);
-              const sumD = players.reduce((s, p) => s + (p.deaths || 0), 0);
-              const sumUD = players.reduce((s, p) => s + (p.ud || 0), 0);
-              const sumEF = players.reduce((s, p) => s + (p.ef || 0), 0);
-              const avgADR = players.reduce((s, p) => s + (p.adr || 0), 0) / players.length;
-              const avgKAST = players.reduce((s, p) => s + (p.kast || 0), 0) / players.length;
-              const ratings = players.map(p => p.rating ?? calculateRating({ ...p, rounds: totalRounds }));
-              const avgRating = ratings.reduce((s, r) => s + r, 0) / ratings.length;
-              return (
-                <tfoot>
-                  <tr className="bg-secondary/40 border-t-2 border-border font-mono font-bold">
-                    <td className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary">Suma / Średnia</td>
-                    <td className="text-center px-2 py-2 text-foreground">{sumK}</td>
-                    <td className="text-center px-2 py-2 text-foreground">{sumA}</td>
-                    <td className="text-center px-2 py-2 text-foreground">{sumD}</td>
-                    <td className="text-center px-2 py-2 text-muted-foreground">{avgADR.toFixed(1)}</td>
-                    <td className="text-center px-2 py-2 text-foreground">{sumUD}</td>
-                    <td className="text-center px-2 py-2 text-foreground">{sumEF}</td>
-                    <td className="text-center px-2 py-2 text-muted-foreground">{avgKAST.toFixed(0)}%</td>
-                    <td className={cn("text-center px-2 py-2 tabular-nums", getRatingColor(avgRating))}>
-                      {avgRating.toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              );
-            })()}
           </table>
         </div>
       </div>
@@ -812,37 +784,6 @@ const MatchPlayerTotals = ({
               </tr>
             ))}
           </tbody>
-          {(() => {
-            const sumK = rows.reduce((s, r) => s + r.kills, 0);
-            const sumA = rows.reduce((s, r) => s + r.assists, 0);
-            const sumD = rows.reduce((s, r) => s + r.deaths, 0);
-            const sumUD = rows.reduce((s, r) => s + r.ud, 0);
-            const sumEF = rows.reduce((s, r) => s + r.ef, 0);
-            const avgADR = rows.reduce((s, r) => s + r.adr, 0) / rows.length;
-            const avgKAST = rows.reduce((s, r) => s + r.kast, 0) / rows.length;
-            const avgRating = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
-            return (
-              <tfoot>
-                <tr className="bg-secondary/40 border-t-2 border-border font-mono font-bold">
-                  <td className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary">Drużyna</td>
-                  <td className="text-center px-2 py-2 text-muted-foreground">—</td>
-                  <td className="text-center px-2 py-2 text-foreground">{sumK}</td>
-                  <td className="text-center px-2 py-2 text-foreground">{sumA}</td>
-                  <td className="text-center px-2 py-2 text-foreground">{sumD}</td>
-                  <td className={cn("text-center px-2 py-2", sumK - sumD > 0 ? "text-[hsl(var(--win))]" : sumK - sumD < 0 ? "text-[hsl(var(--loss))]" : "text-muted-foreground")}>
-                    {sumK - sumD > 0 ? "+" : ""}{sumK - sumD}
-                  </td>
-                  <td className="text-center px-2 py-2 text-muted-foreground">{avgADR.toFixed(1)}</td>
-                  <td className="text-center px-2 py-2 text-foreground">{sumUD}</td>
-                  <td className="text-center px-2 py-2 text-foreground">{sumEF}</td>
-                  <td className="text-center px-2 py-2 text-muted-foreground">{avgKAST.toFixed(0)}%</td>
-                  <td className={cn("text-center px-2 py-2 tabular-nums", getRatingColor(avgRating))}>
-                    {avgRating.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            );
-          })()}
         </table>
       </div>
     </div>
