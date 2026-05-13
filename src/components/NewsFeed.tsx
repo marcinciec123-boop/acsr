@@ -57,7 +57,7 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
 
 const buildSnapshot = (): WorldSnapshot => {
   const transfers = getAllTransfers().slice(-15).reverse();
-  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
+  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
 
   // top players: weź po 1 z top 8 drużyn (najwyższy career rating)
   const topTeams = [...teamDatabase].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
@@ -86,9 +86,12 @@ const buildSnapshot = (): WorldSnapshot => {
     topTeams: topTeams.map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
     recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
     tournaments: tournaments.map(t => {
-      const winner = t.placements?.find(p => p.placement === 1)?.team || null;
-      const runnerUp = t.placements?.find(p => p.placement === 2)?.team || null;
-      return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp };
+      const placements = (t.placements || []).slice().sort((a, b) => a.placement - b.placement);
+      const winner = placements.find(p => p.placement === 1)?.team || null;
+      const runnerUp = placements.find(p => p.placement === 2)?.team || null;
+      const top = placements.slice(0, 8).map(p => ({ team: p.team, placement: p.placement }));
+      const participants = (t.participants && t.participants.length ? t.participants : placements.map(p => p.team));
+      return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp, participants, topPlacements: top };
     }),
     topPlayers,
   };

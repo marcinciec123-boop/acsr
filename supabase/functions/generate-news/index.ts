@@ -10,7 +10,7 @@ const corsHeaders = {
 interface SnapshotPayload {
   topTeams: { name: string; points: number; country: string }[];
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
-  tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null }[];
+  tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null; participants?: string[]; topPlacements?: { team: string; placement: number }[] }[];
   topPlayers?: { player: string; team: string; rating: number; role?: string }[];
   count?: number;
   /** Optional: bias the generator toward a specific post type */
@@ -40,8 +40,15 @@ function buildSystemPrompt(mode: string): string {
   const base = `Jesteś dziennikarzem sceny CS:GO piszącym dla portalu fanowskiego po polsku. \
 Piszesz krótkie, soczyste posty z różnorodnym tonem — czasem analitycznie, czasem prowokacyjnie, \
 czasem z humorem. NIE używaj hashtagów. Emoji używaj OSZCZĘDNIE (max 1 na post, tylko jeśli pasuje). \
-NIE wymyślaj wydarzeń sprzecznych z danymi — jeśli spekulujesz, oznacz to słowami "podobno", \
-"krążą plotki", "źródła sugerują", "ponoć". Każdy post to 2-5 zdań.`;
+Każdy post to 2-5 zdań.
+
+ŻELAZNE ZASADY FAKTÓW (krytyczne, nie łam ich):
+- Używaj WYŁĄCZNIE drużyn, graczy i turniejów wymienionych w danych poniżej. NIGDY nie wymyślaj nowych nazw.
+- O turnieju możesz pisać tylko w kontekście drużyn z jego listy "uczestnicy". Jeśli drużyny tam nie ma — NIE pisz, że grała, wygrała, przegrała, odpadła ani że "zawiodła" w tym turnieju.
+- Nie przypisuj zwycięstwa/finału/półfinału drużynie inaczej niż wynika to z pól "wygrana", "finał", "topPlacements".
+- Jeśli turniej jest w statusie "upcoming"/"scheduled" (jeszcze się nie zaczął) — NIE pisz o wynikach, MVP, formie z tego turnieju. Możesz tylko zapowiadać.
+- Nie wymieniaj wyników liczbowych map (np. 16:14), bo nie masz tych danych.
+- Spekulacje (transfery, plotki, beef) zawsze oznaczaj słowami "podobno", "krążą plotki", "źródła sugerują", "ponoć" — i tylko między prawdziwymi z danych podmiotami.`;
 
   const modeHints: Record<string, string> = {
     memes: "Skup się na memach i żartach — krótkie, dosadne, czasem z dystansem do sceny. Możesz parodiować typowe zachowania pro-graczy, fanów, casterów.",
@@ -73,9 +80,11 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
   }
 
   if (body.tournaments.length) {
-    parts.push(`\nTurnieje:\n${body.tournaments.slice(0, 10).map(t => {
-      const w = t.winner ? ` — wygrana: ${t.winner}${t.runnerUp ? ` vs ${t.runnerUp}` : ""}` : "";
-      return `${t.name} [${t.tier}] — ${t.status}, ${t.teams} dr.${w}`;
+    parts.push(`\nTurnieje (KAŻDA wzmianka o turnieju MUSI dotyczyć drużyny z jego listy "uczestnicy"):\n${body.tournaments.slice(0, 10).map(t => {
+      const participants = t.participants?.length ? `\n   uczestnicy: ${t.participants.join(", ")}` : "";
+      const top = t.topPlacements?.length ? `\n   miejsca: ${t.topPlacements.map(p => `${p.placement}. ${p.team}`).join(", ")}` : "";
+      const w = t.winner ? ` — wygrana: ${t.winner}${t.runnerUp ? ` (finał vs ${t.runnerUp})` : ""}` : "";
+      return `- ${t.name} [${t.tier}] — status: ${t.status}, ${t.teams} dr.${w}${participants}${top}`;
     }).join("\n")}`);
   }
 
@@ -83,7 +92,7 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
     parts.push(`\nTop gracze (rating):\n${body.topPlayers.slice(0, 12).map(p => `${p.player} (${p.team})${p.role ? ` [${p.role}]` : ""} — ${p.rating.toFixed(2)}`).join("\n")}`);
   }
 
-  parts.push(`\nUŻYWAJ KONKRETNYCH NAZW z danych powyżej. Każdy post musi mieć inny temat lub inny ton.`);
+  parts.push(`\nUŻYWAJ WYŁĄCZNIE NAZW Z POWYŻSZYCH DANYCH. Jeśli post dotyczy turnieju, sprawdź że drużyna jest na liście "uczestnicy" tego turnieju — inaczej nie pisz o niej w kontekście tego turnieju. Każdy post musi mieć inny temat lub inny ton.`);
 
   return parts.join("\n");
 }
