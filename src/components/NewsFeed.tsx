@@ -86,9 +86,12 @@ const buildSnapshot = (): WorldSnapshot => {
     topTeams: topTeams.map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
     recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
     tournaments: tournaments.map(t => {
-      const winner = t.placements?.find(p => p.placement === 1)?.team || null;
-      const runnerUp = t.placements?.find(p => p.placement === 2)?.team || null;
-      return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp };
+      const placements = (t.placements || []).slice().sort((a, b) => a.placement - b.placement);
+      const winner = placements.find(p => p.placement === 1)?.team || null;
+      const runnerUp = placements.find(p => p.placement === 2)?.team || null;
+      const top = placements.slice(0, 8).map(p => ({ team: p.team, placement: p.placement }));
+      const participants = (t.participants && t.participants.length ? t.participants : placements.map(p => p.team));
+      return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp, participants, topPlacements: top };
     }),
     topPlayers,
   };
