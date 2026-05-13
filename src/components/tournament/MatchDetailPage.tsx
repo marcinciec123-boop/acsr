@@ -373,6 +373,13 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
             </div>
 
             {maps.length > 0 && (
+              <>
+                <MatchPlayerTotals match={match} maps={maps} side="team1Players" teamName={match.team1} />
+                <MatchPlayerTotals match={match} maps={maps} side="team2Players" teamName={match.team2} />
+              </>
+            )}
+
+            {maps.length > 0 && (
               <div className="bg-card border border-border rounded-lg p-5">
                 <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3">
                   Mapy
