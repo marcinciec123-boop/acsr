@@ -53,6 +53,8 @@ export interface MatchResult {
   pointsLoser?: number;
   /** Czy wynik meczu został zatwierdzony i punkty zaaplikowane do rankingu */
   resultConfirmed?: boolean;
+  /** ISO timestamp ustawiany kiedy mecz uzyskuje finalny wynik (do chronologicznego sortowania historii). */
+  playedAt?: string;
 }
 
 export type PhaseFormat =
