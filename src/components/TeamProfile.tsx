@@ -83,6 +83,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     const matches: {
       id: string; tournamentId: string; tournamentName: string; date: string;
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
+      playedAt?: string;
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
 
@@ -127,12 +128,18 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           opponent: isT1 ? m.team2 : m.team1,
           ownScore, oppScore, won,
           bo: m.bo, round: m.round,
+          playedAt: m.playedAt,
         });
       }
     }
 
     trophies.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
-    matches.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    // Chronological: newest first by `playedAt`, fallback to tournament endDate.
+    matches.sort((a, b) => {
+      const ka = a.playedAt || a.date || "";
+      const kb = b.playedAt || b.date || "";
+      return kb.localeCompare(ka);
+    });
     const totalMatches = wins + losses;
     const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
@@ -644,12 +651,12 @@ const RosterTabContent = ({
 const MatchList = ({
   matches, teamName,
 }: {
-  matches: { id: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string }[];
+  matches: { id: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string; playedAt?: string }[];
   teamName: string;
 }) => (
   <ul className="divide-y divide-border/60">
     {matches.map(m => (
-      <li key={m.id} className="py-2 flex items-center gap-3">
+      <li key={m.id} className="py-2 flex items-center gap-3 flex-wrap">
         <span className={cn(
           "w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0",
           m.won ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
@@ -657,13 +664,18 @@ const MatchList = ({
         <TeamLogo teamName={teamName} size={22} rounded="md" />
         <span className="font-mono text-xs text-muted-foreground">vs</span>
         <TeamLogo teamName={m.opponent} size={22} rounded="md" />
-        <span className="text-sm font-heading text-foreground truncate flex-1">{m.opponent}</span>
+        <span className="text-sm font-heading text-foreground truncate flex-1 min-w-[80px]">{m.opponent}</span>
         <span className={cn(
           "text-sm font-mono font-bold tabular-nums shrink-0",
           m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
         )}>{m.ownScore}–{m.oppScore}</span>
         {m.bo && (
           <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
+        )}
+        {m.round && (
+          <span className="text-[10px] font-mono text-primary/80 border border-primary/30 bg-primary/5 rounded px-1.5 py-0.5 shrink-0 truncate max-w-[160px]" title={m.round}>
+            {m.round}
+          </span>
         )}
         <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
       </li>
