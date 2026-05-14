@@ -399,7 +399,7 @@ const TournamentPanel = () => {
   ) => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== tournamentId) return t;
-      return {
+      const next: TournamentData = {
         ...t,
         phases: t.phases.map(p => {
           if (p.id !== phaseId) return p;
@@ -408,7 +408,10 @@ const TournamentPanel = () => {
               ...p,
               groups: p.groups.map(g => {
                 if (g.id !== groupId) return g;
-                let nextMatches = g.matches.map(m => m.id !== matchId ? m : { ...m, ...patch });
+                let nextMatches = g.matches.map(m => {
+                  if (m.id !== matchId) return m;
+                  return stampPlayedAt(m, { ...m, ...patch });
+                });
                 // Auto-propagate winners/losers within DE groups
                 if (p.format === "gsl-de-groups") {
                   nextMatches = propagateGSLDEGroup([...nextMatches]);
@@ -420,19 +423,24 @@ const TournamentPanel = () => {
             };
           }
           if (p.bracket) {
-            const updated = p.bracket.map(m => m.id !== matchId ? m : { ...m, ...patch });
+            const updated = p.bracket.map(m => {
+              if (m.id !== matchId) return m;
+              return stampPlayedAt(m, { ...m, ...patch });
+            });
             // Run propagation to convergence (a fix in R1 may cascade through R2, R3...)
             let curr = updated;
             for (let i = 0; i < 10; i++) {
-              const next = propagateBracket(curr);
-              if (JSON.stringify(next) === JSON.stringify(curr)) break;
-              curr = next;
+              const nextProp = propagateBracket(curr);
+              if (JSON.stringify(nextProp) === JSON.stringify(curr)) break;
+              curr = nextProp;
             }
             return { ...p, bracket: curr };
           }
           return p;
         }),
       };
+      // Auto-resolve any BYE matches that may have appeared after the update.
+      return normalizeTournamentByes(next);
     }));
   };
 
