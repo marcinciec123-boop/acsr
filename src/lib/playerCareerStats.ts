@@ -18,6 +18,10 @@ export interface CareerMatchEntry {
   oppScore: number;
   won: boolean;
   bo: 1 | 3 | 5;
+  /** Round label for display (e.g. "Quarterfinals", "Swiss R1") */
+  round?: string;
+  /** ISO timestamp from the match (when finalized) — used for chronological sort. */
+  playedAt?: string;
   /** Aggregated across all maps in this match */
   kills: number;
   deaths: number;
@@ -242,6 +246,8 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         oppScore,
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
+        round: match.round,
+        playedAt: match.playedAt || t.endDate,
         kills: mKills,
         deaths: mDeaths,
         assists: mAssists,
@@ -255,6 +261,9 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
       });
     }
   }
+
+  // Sort all matches chronologically (newest first) for the recent list
+  matchEntries.sort((a, b) => (b.playedAt || "").localeCompare(a.playedAt || ""));
 
   const matchesPlayed = matchEntries.length;
   const careerRating = matchesPlayed > 0
@@ -356,7 +365,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
     bestMap,
     worstMap,
     perMap,
-    recentMatches: matchEntries.slice().reverse().slice(0, 20),
+    recentMatches: matchEntries.slice(0, 20),
     wins,
     losses,
     topOpponents: Array.from(opponentCount.entries())

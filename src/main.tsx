@@ -5,6 +5,9 @@ import { bootstrapPersistedState } from "./lib/changeLog";
 import { createDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from "./lib/deviceBackup";
 import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
+import { initTheme } from "./lib/theme";
+
+initTheme();
 
 const startApp = async () => {
   await initializeDeviceStoreCache();

@@ -6,6 +6,7 @@ import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 import TeamsManagementPanel from "./TeamsManagementPanel";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 interface SaveSlot {
   label: string;
@@ -102,6 +103,9 @@ const SettingsTab = ({
           <Settings className="w-6 h-6 text-primary" />
           <h2 className="text-3xl font-heading font-bold text-foreground">Ustawienia</h2>
         </div>
+
+        {/* Theme picker */}
+        <ThemeSwitcher />
 
         {/* Teams management */}
         <div className="mb-6">
