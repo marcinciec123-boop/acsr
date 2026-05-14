@@ -365,7 +365,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
     bestMap,
     worstMap,
     perMap,
-    recentMatches: matchEntries.slice().reverse().slice(0, 20),
+    recentMatches: matchEntries.slice(0, 20),
     wins,
     losses,
     topOpponents: Array.from(opponentCount.entries())
