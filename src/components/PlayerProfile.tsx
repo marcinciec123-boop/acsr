@@ -458,6 +458,7 @@ const PlayerProfile = ({
                   <thead>
                     <tr className="text-muted-foreground border-b border-border/50 text-[10px] uppercase tracking-wider">
                       <th className="text-left py-1.5">Turniej</th>
+                      <th className="text-left py-1.5">Runda</th>
                       <th className="text-left py-1.5">Przeciwnik</th>
                       <th className="text-center py-1.5">Wynik</th>
                       <th className="text-center py-1.5">K-D-A</th>
@@ -471,6 +472,9 @@ const PlayerProfile = ({
                       <tr key={m.matchId} className="border-b border-border/30 hover:bg-secondary/20">
                         <td className="py-2 text-muted-foreground truncate max-w-[160px]" title={m.tournamentName}>
                           {m.tournamentName}
+                        </td>
+                        <td className="py-2 text-[10px] text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
+                          {m.round || "—"}
                         </td>
                         <td className="py-2">
                           <button
