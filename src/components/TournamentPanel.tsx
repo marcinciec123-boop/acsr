@@ -15,6 +15,7 @@ import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
+import { normalizeAllTournamentByes, normalizeTournamentByes, stampPlayedAt } from "@/lib/normalizeMatches";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
@@ -81,8 +82,9 @@ interface PhaseDraft {
 const TournamentPanel = () => {
   const [tournaments, setTournaments] = useState<TournamentData[]>(() => {
     const stored = loadFromStorage<TournamentData[]>(STORAGE_KEY, []);
-    // Seed StarLadder Berlin Major 2025 + ESL Pro League I (idempotent)
-    return seedEslProLeagueI(seedMajorBerlin2025(stored));
+    // Seed StarLadder Berlin Major 2025 + ESL Pro League I (idempotent), then
+    // auto-resolve any BYE matchups so they never block the user.
+    return normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
   });
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
