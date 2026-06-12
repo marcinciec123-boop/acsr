@@ -873,7 +873,15 @@ const TournamentPanel = () => {
           tournaments={tournaments}
           onSelect={(id) => setSelectedId(id)}
           onCreate={() => setShowCreate(true)}
+          onCreateWorlds={() => setShowWorlds(true)}
         />
+
+        <WorldsBuilder
+          open={showWorlds}
+          onOpenChange={setShowWorlds}
+          onCreated={(t) => { setTournaments(prev => [t, ...prev]); }}
+        />
+
 
         {/* CREATE DIALOG */}
         <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) resetForm(); }}>
