@@ -59,7 +59,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   useEffect(() => { saveToStorage(RANKING_KEY, teams); }, [teams]);
   useEffect(() => { saveToStorage(ADJUSTMENTS_KEY, adjustments); }, [adjustments]);
 
-  const sorted = useMemo(() => [...teams].sort((a, b) => b.points - a.points), [teams]);
+  const sorted = useMemo(() => [...teams].filter(t => !t.isNational).sort((a, b) => b.points - a.points), [teams]);
 
   // Poprzednie pozycje (z migawki)
   const prevRanks = useMemo(() => {
