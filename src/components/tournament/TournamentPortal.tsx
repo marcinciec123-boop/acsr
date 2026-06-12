@@ -424,7 +424,7 @@ const QualifierBundleCard = ({
   );
 };
 
-export const TournamentPortal = ({ tournaments, onSelect, onCreate }: Props) => {
+export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
 
