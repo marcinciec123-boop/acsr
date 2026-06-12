@@ -13,6 +13,7 @@ interface Props {
   tournaments: TournamentData[];
   onSelect: (id: string) => void;
   onCreate: () => void;
+  onCreateWorlds?: () => void;
 }
 
 type StatusFilter = "live" | "upcoming" | "completed";
