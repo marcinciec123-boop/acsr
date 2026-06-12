@@ -140,7 +140,7 @@ const TournamentPanel = () => {
 
   const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
 
-  const allTeams = useMemo(() => liveRanking.map(t => t.name), [liveRanking]);
+  const allTeams = useMemo(() => liveRanking.filter(t => !t.isNational).map(t => t.name), [liveRanking]);
 
   const filteredTeams = useMemo(() => {
     const q = teamSearch.toLowerCase();
