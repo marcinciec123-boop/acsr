@@ -129,8 +129,8 @@ const TournamentPanel = () => {
 
   // Live ranking data (used for sorting & rank labels in team picker)
   const liveRanking = useMemo(() => {
-    const stored = loadFromStorage<typeof teamDatabase | null>("ranking_data", null);
-    return stored && stored.length > 0 ? stored : teamDatabase;
+    const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
+    return stored && stored.length > 0 ? stored : (teamDatabase as TeamData[]);
   }, [tournaments]);
 
   const rankMap = useMemo(() => {
