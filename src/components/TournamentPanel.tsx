@@ -653,12 +653,15 @@ const TournamentPanel = () => {
     const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {
       setTournaments(next);
-      const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
-      const placements = finalized.placements || [];
-      await saveToStorageAsync("ranking_data", ranking.map(team => {
-        const earned = placements.find(p => p.team === team.name)?.points || 0;
-        return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
-      }));
+      // Mistrzostwa świata (reprezentacje narodowe) NIE wpływają na klubowy ranking.
+      if (finalized.kind !== "worlds") {
+        const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(t => ({ ...t }));
+        const placementsArr = finalized.placements || [];
+        await saveToStorageAsync("ranking_data", ranking.map(team => {
+          const earned = placementsArr.find(p => p.team === team.name)?.points || 0;
+          return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
+        }));
+      }
       toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
     } else {
       toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
