@@ -9,7 +9,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig } from "@/lib/types";
+import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig, TeamData } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
@@ -23,6 +23,7 @@ import { TournamentPortal } from "./tournament/TournamentPortal";
 import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
+import { WorldsBuilder } from "@/components/WorldsBuilder";
 
 interface SelectedMatchRef {
   phaseId: string;
@@ -87,6 +88,7 @@ const TournamentPanel = () => {
     return normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
   });
   const [showCreate, setShowCreate] = useState(false);
+  const [showWorlds, setShowWorlds] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
   const [activePhaseByTournament, setActivePhaseByTournament] = useState<Record<string, string>>({});
@@ -127,8 +129,8 @@ const TournamentPanel = () => {
 
   // Live ranking data (used for sorting & rank labels in team picker)
   const liveRanking = useMemo(() => {
-    const stored = loadFromStorage<typeof teamDatabase | null>("ranking_data", null);
-    return stored && stored.length > 0 ? stored : teamDatabase;
+    const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
+    return stored && stored.length > 0 ? stored : (teamDatabase as TeamData[]);
   }, [tournaments]);
 
   const rankMap = useMemo(() => {
@@ -138,7 +140,7 @@ const TournamentPanel = () => {
 
   const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
 
-  const allTeams = useMemo(() => liveRanking.map(t => t.name), [liveRanking]);
+  const allTeams = useMemo(() => liveRanking.filter(t => !t.isNational).map(t => t.name), [liveRanking]);
 
   const filteredTeams = useMemo(() => {
     const q = teamSearch.toLowerCase();
@@ -651,12 +653,15 @@ const TournamentPanel = () => {
     const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {
       setTournaments(next);
-      const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
-      const placements = finalized.placements || [];
-      await saveToStorageAsync("ranking_data", ranking.map(team => {
-        const earned = placements.find(p => p.team === team.name)?.points || 0;
-        return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
-      }));
+      // Mistrzostwa świata (reprezentacje narodowe) NIE wpływają na klubowy ranking.
+      if (finalized.kind !== "worlds") {
+        const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(t => ({ ...t }));
+        const placementsArr = finalized.placements || [];
+        await saveToStorageAsync("ranking_data", ranking.map(team => {
+          const earned = placementsArr.find(p => p.team === team.name)?.points || 0;
+          return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
+        }));
+      }
       toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
     } else {
       toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
@@ -808,7 +813,9 @@ const TournamentPanel = () => {
           selectedMatchRef!.groupId,
         )}
         onConfirm={async (winner, loser, pw, pl) => {
-          const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(x => ({ ...x }));
+          // Mistrzostwa świata nie wpływają na klubowy ranking.
+          if (selectedTournament?.kind === "worlds") return;
+          const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(x => ({ ...x }));
           const updated = ranking.map(team => {
             if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
             if (team.name === loser) return { ...team, points: Math.max(0, (team.points || 0) - pl) };
@@ -866,7 +873,15 @@ const TournamentPanel = () => {
           tournaments={tournaments}
           onSelect={(id) => setSelectedId(id)}
           onCreate={() => setShowCreate(true)}
+          onCreateWorlds={() => setShowWorlds(true)}
         />
+
+        <WorldsBuilder
+          open={showWorlds}
+          onOpenChange={setShowWorlds}
+          onCreated={(t) => { setTournaments(prev => [t, ...prev]); }}
+        />
+
 
         {/* CREATE DIALOG */}
         <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) resetForm(); }}>

@@ -6,6 +6,8 @@ export interface TeamData {
   country: string;
   region: string;
   roster: string[];
+  /** Reprezentacja narodowa (mistrzostwa świata) — nie liczy się do klubowego rankingu. */
+  isNational?: boolean;
 }
 
 export interface MapPlayerStats {
@@ -94,7 +96,7 @@ export interface TournamentPhase {
   region?: string;
 }
 
-export type TournamentKind = "main" | "qualifier";
+export type TournamentKind = "main" | "qualifier" | "worlds";
 
 export interface QualifierConfig {
   /** "global" = jedna pula, "regional" = osobne sloty per region */

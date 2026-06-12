@@ -13,6 +13,7 @@ interface Props {
   tournaments: TournamentData[];
   onSelect: (id: string) => void;
   onCreate: () => void;
+  onCreateWorlds?: () => void;
 }
 
 type StatusFilter = "live" | "upcoming" | "completed";
@@ -423,7 +424,7 @@ const QualifierBundleCard = ({
   );
 };
 
-export const TournamentPortal = ({ tournaments, onSelect, onCreate }: Props) => {
+export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
 
@@ -479,9 +480,16 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate }: Props) => 
               <p className="text-xs font-mono text-muted-foreground">{tournaments.length} wydarzeń w bazie</p>
             </div>
           </div>
-          <Button onClick={onCreate} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nowy turniej
-          </Button>
+          <div className="flex items-center gap-2">
+            {onCreateWorlds && (
+              <Button onClick={onCreateWorlds} variant="outline" className="gap-1.5">
+                🌍 Mistrzostwa Świata
+              </Button>
+            )}
+            <Button onClick={onCreate} className="gap-1.5">
+              <Plus className="w-4 h-4" /> Nowy turniej
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
