@@ -88,6 +88,7 @@ const TournamentPanel = () => {
     return normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
   });
   const [showCreate, setShowCreate] = useState(false);
+  const [showWorlds, setShowWorlds] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
   const [activePhaseByTournament, setActivePhaseByTournament] = useState<Record<string, string>>({});
