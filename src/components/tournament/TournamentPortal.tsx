@@ -480,9 +480,16 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
               <p className="text-xs font-mono text-muted-foreground">{tournaments.length} wydarzeń w bazie</p>
             </div>
           </div>
-          <Button onClick={onCreate} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nowy turniej
-          </Button>
+          <div className="flex items-center gap-2">
+            {onCreateWorlds && (
+              <Button onClick={onCreateWorlds} variant="outline" className="gap-1.5">
+                🌍 Mistrzostwa Świata
+              </Button>
+            )}
+            <Button onClick={onCreate} className="gap-1.5">
+              <Plus className="w-4 h-4" /> Nowy turniej
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
