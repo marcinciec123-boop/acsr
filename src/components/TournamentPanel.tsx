@@ -23,6 +23,7 @@ import { TournamentPortal } from "./tournament/TournamentPortal";
 import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
+import { WorldsBuilder } from "@/components/WorldsBuilder";
 
 interface SelectedMatchRef {
   phaseId: string;
