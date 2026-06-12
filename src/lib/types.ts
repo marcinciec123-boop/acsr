@@ -6,6 +6,8 @@ export interface TeamData {
   country: string;
   region: string;
   roster: string[];
+  /** Reprezentacja narodowa (mistrzostwa świata) — nie liczy się do klubowego rankingu. */
+  isNational?: boolean;
 }
 
 export interface MapPlayerStats {
