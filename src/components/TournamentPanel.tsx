@@ -813,7 +813,9 @@ const TournamentPanel = () => {
           selectedMatchRef!.groupId,
         )}
         onConfirm={async (winner, loser, pw, pl) => {
-          const ranking = loadFromStorage<typeof teamDatabase | null>("ranking_data", null) || teamDatabase.map(x => ({ ...x }));
+          // Mistrzostwa świata nie wpływają na klubowy ranking.
+          if (selectedTournament?.kind === "worlds") return;
+          const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(x => ({ ...x }));
           const updated = ranking.map(team => {
             if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
             if (team.name === loser) return { ...team, points: Math.max(0, (team.points || 0) - pl) };
