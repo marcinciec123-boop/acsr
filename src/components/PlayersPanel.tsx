@@ -68,6 +68,7 @@ const emptyFAForm = (): FAFormState => ({
 const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState<RegionFilter>("all");
+  const [teamStatus, setTeamStatus] = useState<TeamStatusFilter>("all");
   const [nationality, setNationality] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
