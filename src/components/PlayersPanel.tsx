@@ -188,7 +188,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       }
     });
     return list;
-  }, [rows, search, region, nationality, roleFilter, sort, onlyWithStats]);
+  }, [rows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
 
   const saveFANationality = (player: string, codeOverride?: string) => {
     const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
