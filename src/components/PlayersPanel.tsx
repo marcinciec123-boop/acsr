@@ -25,7 +25,8 @@ import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
-type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA" | "TEAM";
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
+type TeamStatusFilter = "all" | "team" | "fa";
 type SortMode = "rating" | "matches" | "team" | "name";
 
 interface PlayersPanelProps {
@@ -67,6 +68,7 @@ const emptyFAForm = (): FAFormState => ({
 const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState<RegionFilter>("all");
+  const [teamStatus, setTeamStatus] = useState<TeamStatusFilter>("all");
   const [nationality, setNationality] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
@@ -161,9 +163,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         const teamName = r.team?.name.toLowerCase() || "";
         if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !teamName.includes(q)) return false;
       }
-      if (region === "FA") { if (!r.isFA) return false; }
-      else if (region === "TEAM") { if (r.isFA) return false; }
-      else if (region !== "all" && r.region !== region) return false;
+      if (teamStatus === "fa" && !r.isFA) return false;
+      if (teamStatus === "team" && r.isFA) return false;
+      if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
       if (onlyWithStats && r.matches === 0) return false;
@@ -186,7 +188,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       }
     });
     return list;
-  }, [rows, search, region, nationality, roleFilter, sort, onlyWithStats]);
+  }, [rows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
 
   const saveFANationality = (player: string, codeOverride?: string) => {
     const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
@@ -313,28 +315,49 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              {(["all", "TEAM", "EU", "US", "LATAM", "ASIA", "OCE", "AFR", "FA"] as RegionFilter[]).map(r => (
+              {([
+                { v: "all", label: "Wszyscy" },
+                { v: "team", label: `Z drużyną (${counts.total - counts.fa})`, icon: <UserPlus className="w-3 h-3" /> },
+                { v: "fa", label: `FA (${counts.fa})`, icon: <UserMinus className="w-3 h-3" /> },
+              ] as { v: TeamStatusFilter; label: string; icon?: JSX.Element }[]).map(opt => (
                 <button
-                  key={r}
-                  onClick={() => setRegion(r)}
+                  key={opt.v}
+                  onClick={() => setTeamStatus(opt.v)}
                   className={cn(
                     "px-2.5 py-1 text-xs font-mono rounded border transition-colors inline-flex items-center gap-1",
-                    region === r
-                      ? r === "FA"
+                    teamStatus === opt.v
+                      ? opt.v === "fa"
                         ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                        : r === "TEAM"
+                        : opt.v === "team"
                           ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                           : "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground"
                   )}
                 >
-                  {r === "FA" && <UserMinus className="w-3 h-3" />}
-                  {r === "TEAM" && <UserPlus className="w-3 h-3" />}
-                  {r === "all" ? "Wszystkie" : r === "FA" ? `FA (${counts.fa})` : r === "TEAM" ? `Z drużyną (${counts.total - counts.fa})` : r}
+                  {opt.icon}
+                  {opt.label}
                 </button>
               ))}
             </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRegion(r)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    region === r
+                      ? "bg-primary/20 text-primary border-primary/40"
+                      : "text-muted-foreground border-border hover:text-foreground"
+                  )}
+                >
+                  {r === "all" ? "Wszystkie" : r}
+                </button>
+              ))}
+            </div>
+
 
             <div className="flex items-center gap-2">
               <select
