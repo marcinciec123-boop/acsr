@@ -25,7 +25,8 @@ import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
-type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA" | "TEAM";
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
+type TeamStatusFilter = "all" | "team" | "fa";
 type SortMode = "rating" | "matches" | "team" | "name";
 
 interface PlayersPanelProps {
