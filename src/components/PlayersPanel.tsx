@@ -315,28 +315,49 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              {(["all", "TEAM", "EU", "US", "LATAM", "ASIA", "OCE", "AFR", "FA"] as RegionFilter[]).map(r => (
+              {([
+                { v: "all", label: "Wszyscy" },
+                { v: "team", label: `Z drużyną (${counts.total - counts.fa})`, icon: <UserPlus className="w-3 h-3" /> },
+                { v: "fa", label: `FA (${counts.fa})`, icon: <UserMinus className="w-3 h-3" /> },
+              ] as { v: TeamStatusFilter; label: string; icon?: JSX.Element }[]).map(opt => (
                 <button
-                  key={r}
-                  onClick={() => setRegion(r)}
+                  key={opt.v}
+                  onClick={() => setTeamStatus(opt.v)}
                   className={cn(
                     "px-2.5 py-1 text-xs font-mono rounded border transition-colors inline-flex items-center gap-1",
-                    region === r
-                      ? r === "FA"
+                    teamStatus === opt.v
+                      ? opt.v === "fa"
                         ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                        : r === "TEAM"
+                        : opt.v === "team"
                           ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                           : "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground"
                   )}
                 >
-                  {r === "FA" && <UserMinus className="w-3 h-3" />}
-                  {r === "TEAM" && <UserPlus className="w-3 h-3" />}
-                  {r === "all" ? "Wszystkie" : r === "FA" ? `FA (${counts.fa})` : r === "TEAM" ? `Z drużyną (${counts.total - counts.fa})` : r}
+                  {opt.icon}
+                  {opt.label}
                 </button>
               ))}
             </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRegion(r)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    region === r
+                      ? "bg-primary/20 text-primary border-primary/40"
+                      : "text-muted-foreground border-border hover:text-foreground"
+                  )}
+                >
+                  {r === "all" ? "Wszystkie" : r}
+                </button>
+              ))}
+            </div>
+
 
             <div className="flex items-center gap-2">
               <select
