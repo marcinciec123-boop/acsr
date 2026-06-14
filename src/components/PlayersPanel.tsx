@@ -25,7 +25,7 @@ import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
-type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA";
+type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR" | "FA" | "TEAM";
 type SortMode = "rating" | "matches" | "team" | "name";
 
 interface PlayersPanelProps {
@@ -162,6 +162,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !teamName.includes(q)) return false;
       }
       if (region === "FA") { if (!r.isFA) return false; }
+      else if (region === "TEAM") { if (r.isFA) return false; }
       else if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
@@ -313,7 +314,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-1.5 flex-wrap">
               <Globe className="w-4 h-4 text-muted-foreground" />
-              {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR", "FA"] as RegionFilter[]).map(r => (
+              {(["all", "TEAM", "EU", "US", "LATAM", "ASIA", "OCE", "AFR", "FA"] as RegionFilter[]).map(r => (
                 <button
                   key={r}
                   onClick={() => setRegion(r)}
@@ -322,12 +323,15 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     region === r
                       ? r === "FA"
                         ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                        : "bg-primary/20 text-primary border-primary/40"
+                        : r === "TEAM"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground"
                   )}
                 >
                   {r === "FA" && <UserMinus className="w-3 h-3" />}
-                  {r === "all" ? "Wszystkie" : r === "FA" ? `FA (${counts.fa})` : r}
+                  {r === "TEAM" && <UserPlus className="w-3 h-3" />}
+                  {r === "all" ? "Wszystkie" : r === "FA" ? `FA (${counts.fa})` : r === "TEAM" ? `Z drużyną (${counts.total - counts.fa})` : r}
                 </button>
               ))}
             </div>
