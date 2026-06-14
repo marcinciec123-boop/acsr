@@ -162,6 +162,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !teamName.includes(q)) return false;
       }
       if (region === "FA") { if (!r.isFA) return false; }
+      else if (region === "TEAM") { if (r.isFA) return false; }
       else if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
