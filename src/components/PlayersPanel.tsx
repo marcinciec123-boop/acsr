@@ -162,9 +162,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         const teamName = r.team?.name.toLowerCase() || "";
         if (!r.name.toLowerCase().includes(q) && !real.includes(q) && !teamName.includes(q)) return false;
       }
-      if (region === "FA") { if (!r.isFA) return false; }
-      else if (region === "TEAM") { if (r.isFA) return false; }
-      else if (region !== "all" && r.region !== region) return false;
+      if (teamStatus === "fa" && !r.isFA) return false;
+      if (teamStatus === "team" && r.isFA) return false;
+      if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
       if (onlyWithStats && r.matches === 0) return false;
