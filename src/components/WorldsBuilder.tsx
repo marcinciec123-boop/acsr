@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Globe, Users, Trophy, Trash2, Plus } from "lucide-react";
+import { Globe, Users, Trophy, Trash2, Plus, GitBranch } from "lucide-react";
 import { availableCountries, playersByCountry, buildNationalTeamName, upsertNationalTeams, regionForCountry } from "@/lib/nationalTeams";
 import { buildPhase, formatLabel } from "@/lib/tournamentBuilder";
-import type { TournamentData, PhaseFormat, TeamData } from "@/lib/types";
+import type { TournamentData, TournamentPhase, PhaseFormat, TeamData } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
@@ -16,9 +16,20 @@ interface Props {
 }
 
 interface NationDraft {
-  code: string;       // ISO
-  label?: string;     // custom label, default "Team {CODE}"
-  roster: string[];   // selected players (5)
+  code: string;
+  label?: string;
+  roster: string[];
+}
+
+interface PhaseDraft {
+  name: string;
+  format: PhaseFormat;
+  bo: 1 | 3 | 5;
+  groupCount: number;
+  advanceCount: number;
+  seededCount: number;
+  teamCount: number;
+  groupAssignment?: "random" | "manual";
 }
 
 const EMPTY_ROSTER = ["", "", "", "", ""];
@@ -32,12 +43,15 @@ const PHASE_FORMATS: { value: PhaseFormat; label: string }[] = [
   { value: "gsl-de-groups", label: "IEM-style Groups (8, DE)" },
 ];
 
+const DEFAULT_PHASES: PhaseDraft[] = [
+  { name: "Group Stage", format: "round-robin", bo: 1, groupCount: 4, advanceCount: 8, seededCount: 0, teamCount: 0, groupAssignment: "random" },
+  { name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 },
+];
+
 export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
-  // Step 1: countries
   const [nations, setNations] = useState<NationDraft[]>([]);
   const [countrySearch, setCountrySearch] = useState("");
 
-  // Step 2: tournament meta
   const [name, setName] = useState("Mistrzostwa Świata CS:GO");
   const [organizer, setOrganizer] = useState("FIVB / Custom");
   const [prize, setPrize] = useState("$1,000,000");
@@ -46,12 +60,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
   const [location, setLocation] = useState("");
   const [tier, setTier] = useState<"S" | "A" | "B" | "C">("S");
 
-  // Step 3: format
-  const [phaseName, setPhaseName] = useState("Playoffs");
-  const [format, setFormat] = useState<PhaseFormat>("single-elim");
-  const [bo, setBo] = useState<1 | 3 | 5>(3);
-  const [groupCount, setGroupCount] = useState(4);
-  const [advanceCount, setAdvanceCount] = useState(8);
+  const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>(DEFAULT_PHASES);
 
   const countries = useMemo(() => availableCountries(), []);
   const playerPool = useMemo(() => playersByCountry(), []);
@@ -88,22 +97,33 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
     ));
   };
 
+  const addPhaseDraft = () => {
+    setPhaseDrafts(prev => [
+      ...prev,
+      { name: `Phase ${prev.length + 1}`, format: "single-elim", bo: 3, groupCount: 2, advanceCount: 4, seededCount: 0, teamCount: 0 },
+    ]);
+  };
+  const updatePhaseDraft = (idx: number, patch: Partial<PhaseDraft>) => {
+    setPhaseDrafts(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
+  };
+  const removePhaseDraft = (idx: number) => {
+    setPhaseDrafts(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const reset = () => {
     setNations([]); setCountrySearch("");
     setName("Mistrzostwa Świata CS:GO"); setOrganizer("FIVB / Custom");
     setPrize("$1,000,000"); setStart(""); setEnd(""); setLocation(""); setTier("S");
-    setPhaseName("Playoffs"); setFormat("single-elim"); setBo(3);
-    setGroupCount(4); setAdvanceCount(8);
+    setPhaseDrafts(DEFAULT_PHASES);
   };
 
-  const canCreate = nations.length >= 2 && name.trim().length > 0;
+  const canCreate = nations.length >= 2 && name.trim().length > 0 && phaseDrafts.length > 0;
 
   const handleCreate = () => {
     if (!canCreate) {
-      toast({ title: "Brak danych", description: "Dodaj min. 2 reprezentacje i nazwij turniej.", variant: "destructive" });
+      toast({ title: "Brak danych", description: "Dodaj min. 2 reprezentacje, nazwij turniej i dodaj fazę.", variant: "destructive" });
       return;
     }
-    // Build national teams
     const teamRecords: TeamData[] = nations.map(n => ({
       name: buildNationalTeamName(n.code, n.label),
       points: 0,
@@ -115,8 +135,33 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
     upsertNationalTeams(teamRecords);
 
     const teamNames = teamRecords.map(t => t.name);
-    const phase = buildPhase(phaseName.trim() || "Playoffs", format, teamNames, {
-      bo, groupCount, advanceCount, groupAssignment: "random",
+
+    // Build phases like normal tournaments (with TBD propagation)
+    const phases: TournamentPhase[] = [];
+    let teamsForPhase = [...teamNames];
+    phaseDrafts.forEach((draft, idx) => {
+      const incomingSize = teamsForPhase.length;
+      const phaseSize = draft.teamCount > 0 ? draft.teamCount : incomingSize;
+      const realCount = draft.seededCount > 0
+        ? Math.min(draft.seededCount, phaseSize, incomingSize)
+        : Math.min(incomingSize, phaseSize);
+      const realPart = teamsForPhase.slice(0, realCount);
+      const tbdPart = Array.from(
+        { length: Math.max(0, phaseSize - realCount) },
+        (_, i) => `TBD-P${idx}-${i + 1}`,
+      );
+      const phaseTeams = [...realPart, ...tbdPart];
+      const phase = buildPhase(draft.name.trim() || `Phase ${idx + 1}`, draft.format, phaseTeams, {
+        bo: draft.bo,
+        groupCount: draft.groupCount,
+        advanceCount: draft.advanceCount,
+        groupAssignment: draft.groupAssignment ?? "random",
+      });
+      phases.push(phase);
+      if (idx < phaseDrafts.length - 1) {
+        const nextCount = draft.advanceCount || phaseTeams.length;
+        teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-${idx}-${i + 1}`);
+      }
     });
 
     const t: TournamentData = {
@@ -129,17 +174,17 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
       location: location.trim(),
       tier,
       teams: teamNames.length,
-      format: formatLabel(format),
+      format: phases.map(p => formatLabel(p.format)).join(" → "),
       status: "upcoming",
       participants: teamNames,
-      phases: [phase],
+      phases,
       placements: [],
       kind: "worlds",
     };
     onCreated(t);
     reset();
     onOpenChange(false);
-    toast({ title: "Mistrzostwa utworzone", description: `${teamNames.length} reprezentacji w drabince.` });
+    toast({ title: "Mistrzostwa utworzone", description: `${teamNames.length} reprezentacji • ${phases.length} faz.` });
   };
 
   return (
@@ -235,7 +280,6 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                               {pool.map(pl => (
                                 <option key={pl} value={pl}>{pl}</option>
                               ))}
-                              {/* Allow keeping current value even if not in pool */}
                               {p && !pool.includes(p) && <option value={p}>{p}</option>}
                             </select>
                             <Input
@@ -281,45 +325,115 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
             </div>
           </section>
 
-          {/* STEP 4: format */}
+          {/* STEP 4: custom multi-phase format */}
           <section className="space-y-2">
-            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">4. Format</h3>
-            <Input value={phaseName} onChange={e => setPhaseName(e.target.value)} placeholder="Nazwa fazy..." />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <select
-                value={format}
-                onChange={e => setFormat(e.target.value as PhaseFormat)}
-                className="col-span-2 px-2 py-2 rounded-md bg-card border border-border text-foreground text-xs font-mono"
-              >
-                {PHASE_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-              <select
-                value={bo}
-                onChange={e => setBo(parseInt(e.target.value) as 1 | 3 | 5)}
-                className="px-2 py-2 rounded-md bg-card border border-border text-foreground text-xs font-mono"
-              >
-                <option value={1}>Bo1</option><option value={3}>Bo3</option><option value={5}>Bo5</option>
-              </select>
-              <div className="flex items-center gap-1">
-                {(format === "round-robin" || format === "gsl-groups" || format === "gsl-de-groups") && (
-                  <>
-                    <span className="text-[10px] font-mono text-muted-foreground">Grupy</span>
-                    <Input type="number" min={1} value={groupCount}
-                      onChange={e => setGroupCount(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="h-8 text-xs" />
-                  </>
-                )}
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
+                <GitBranch className="w-3.5 h-3.5" /> 4. Format (fazy: {phaseDrafts.length})
+              </h3>
+              <Button size="sm" variant="outline" onClick={addPhaseDraft} className="h-7 gap-1 text-xs">
+                <Plus className="w-3 h-3" /> Dodaj fazę
+              </Button>
             </div>
-            {(format === "round-robin" || format === "swiss" || format === "gsl-groups" || format === "gsl-de-groups") && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-muted-foreground">Awans</span>
-                <Input type="number" min={0} value={advanceCount}
-                  onChange={e => setAdvanceCount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="h-8 text-xs w-24" />
-                <span className="text-[10px] font-mono text-muted-foreground">drużyn (do następnej fazy — możesz dodać kolejne fazy później)</span>
-              </div>
-            )}
+
+            {phaseDrafts.map((draft, idx) => {
+              const hasGroups = draft.format === "round-robin" || draft.format === "gsl-groups" || draft.format === "gsl-de-groups";
+              const hasAdvance = hasGroups || draft.format === "swiss";
+              return (
+                <div key={idx} className="bg-secondary/30 border border-border rounded p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-muted-foreground w-10 shrink-0">#{idx + 1}</span>
+                    <Input
+                      value={draft.name}
+                      onChange={e => updatePhaseDraft(idx, { name: e.target.value })}
+                      placeholder="Nazwa fazy..."
+                      className="h-8 text-xs flex-1"
+                    />
+                    {phaseDrafts.length > 1 && (
+                      <button
+                        onClick={() => removePhaseDraft(idx)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        title="Usuń fazę"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <select
+                      value={draft.format}
+                      onChange={e => updatePhaseDraft(idx, { format: e.target.value as PhaseFormat })}
+                      className="col-span-2 px-2 py-1.5 rounded bg-card border border-border text-foreground text-xs font-mono h-8"
+                    >
+                      {PHASE_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                    <select
+                      value={draft.bo}
+                      onChange={e => updatePhaseDraft(idx, { bo: parseInt(e.target.value) as 1 | 3 | 5 })}
+                      className="px-2 py-1.5 rounded bg-card border border-border text-foreground text-xs font-mono h-8"
+                    >
+                      <option value={1}>Bo1</option><option value={3}>Bo3</option><option value={5}>Bo5</option>
+                    </select>
+                    {hasGroups ? (
+                      <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                        Grupy
+                        <Input
+                          type="number" min={1} value={draft.groupCount}
+                          onChange={e => updatePhaseDraft(idx, { groupCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                          className="h-8 text-xs"
+                        />
+                      </label>
+                    ) : <div />}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {hasAdvance && (
+                      <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                        Awans
+                        <Input
+                          type="number" min={0} value={draft.advanceCount}
+                          onChange={e => updatePhaseDraft(idx, { advanceCount: Math.max(0, parseInt(e.target.value) || 0) })}
+                          className="h-8 text-xs"
+                        />
+                      </label>
+                    )}
+                    <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                      Seed
+                      <Input
+                        type="number" min={0} value={draft.seededCount}
+                        onChange={e => updatePhaseDraft(idx, { seededCount: Math.max(0, parseInt(e.target.value) || 0) })}
+                        className="h-8 text-xs"
+                        title="Ile drużyn wchodzi z poprzedniej fazy (0 = wszystkie)"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                      Rozmiar
+                      <Input
+                        type="number" min={0} value={draft.teamCount}
+                        onChange={e => updatePhaseDraft(idx, { teamCount: Math.max(0, parseInt(e.target.value) || 0) })}
+                        className="h-8 text-xs"
+                        title="Całkowita liczba miejsc w fazie (0 = auto)"
+                      />
+                    </label>
+                  </div>
+
+                  {hasGroups && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-muted-foreground">Losowanie grup:</span>
+                      <select
+                        value={draft.groupAssignment ?? "random"}
+                        onChange={e => updatePhaseDraft(idx, { groupAssignment: e.target.value as "random" | "manual" })}
+                        className="px-2 py-1 rounded bg-card border border-border text-foreground text-[11px] font-mono h-7"
+                      >
+                        <option value="random">Losowo (snake-seed)</option>
+                        <option value="manual">Ręcznie (po utworzeniu)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </section>
 
           <p className="text-[10px] font-mono text-muted-foreground italic border-t border-border pt-2">
