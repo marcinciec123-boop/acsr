@@ -694,6 +694,69 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   );
 };
 
+const PredictionCard = ({
+  team, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
+}: {
+  team: string;
+  winPoints: number;
+  lossPoints: number;
+  expected: number;
+  upset: boolean;
+  rankIfWin: { from: number; to: number; delta: number };
+  rankIfLose: { from: number; to: number; delta: number };
+  highlighted: boolean;
+}) => {
+  const RankDelta = ({ d }: { d: { from: number; to: number; delta: number } }) => {
+    if (d.from <= 0) return <span className="text-muted-foreground">—</span>;
+    if (d.delta === 0) return <span className="text-muted-foreground">#{d.from} (bez zmian)</span>;
+    const up = d.delta > 0;
+    return (
+      <span className={cn("font-mono", up ? "text-[hsl(var(--win))]" : "text-destructive")}>
+        #{d.from} → #{d.to}{" "}
+        {up ? <ArrowUp className="w-2.5 h-2.5 inline" /> : <ArrowDown className="w-2.5 h-2.5 inline" />}
+        {Math.abs(d.delta)}
+      </span>
+    );
+  };
+  return (
+    <div className={cn(
+      "rounded-lg border p-3 space-y-2 bg-secondary/20",
+      highlighted ? "border-[hsl(var(--win))]/60 bg-[hsl(var(--win))]/5" : "border-border",
+    )}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <TeamLogo teamName={team} size={20} rounded="md" />
+          <span className="text-xs font-bold truncate">{team}</span>
+        </div>
+        <span className={cn(
+          "text-[9px] font-mono px-1.5 py-0.5 rounded border",
+          upset
+            ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/40"
+            : "bg-secondary text-muted-foreground border-border",
+        )}>
+          {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+        <div className="space-y-0.5">
+          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli wygra</div>
+          <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
+          </div>
+          <RankDelta d={rankIfWin} />
+        </div>
+        <div className="space-y-0.5">
+          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli przegra</div>
+          <div className="text-destructive font-bold flex items-center gap-1">
+            <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
+          </div>
+          <RankDelta d={rankIfLose} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PlayerStatsTab = ({
   maps, activeMapIdx, setActiveMapIdx, side, teamName, onEnsurePlayers, onUpdatePlayer,
 }: {
