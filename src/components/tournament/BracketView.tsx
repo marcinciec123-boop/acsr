@@ -7,8 +7,12 @@ import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 
+import MatchPredictionBadge from "./MatchPredictionBadge";
+
 interface Props {
   matches: MatchResult[];
+  /** Tournament tier for VRS predictions. */
+  tier?: string;
   onUpdate: (id: string, score1: number, score2: number, team1?: string, team2?: string, round?: string) => void;
   onDelete?: (id: string) => void;
   onMove?: (id: string, dir: -1 | 1) => void;
