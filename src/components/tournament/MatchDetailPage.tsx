@@ -58,7 +58,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate, onConfirm }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId, onBack, onUpdate, onConfirm }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
