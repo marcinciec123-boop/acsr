@@ -174,6 +174,7 @@ export const SwissView = ({
   phaseTeams,
   matches,
   bo,
+  tier,
   advanceCount,
   priorMeetings,
   onUpdate,
