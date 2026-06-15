@@ -162,31 +162,66 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   const winnerName = winner1 ? match.team1 : winner2 ? match.team2 : "";
   const loserName = winner1 ? match.team2 : winner2 ? match.team1 : "";
 
-  const defaultWinPts = match.bracketSlot?.toUpperCase().includes("FINAL") ? 100
-    : (match.round || "").toLowerCase().includes("final") ? 80
-    : 25;
-  const defaultLosePts = 10;
+  // ===== VRS-style ranking points =====
+  const ranking = useMemo(() => getRankingSnapshot(), [match.id]);
+  const previews = useMemo(() => {
+    if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD" || match.team2 === "BYE") {
+      return null;
+    }
+    return predictBothOutcomes(match.team1, match.team2, tier, ranking);
+  }, [match.team1, match.team2, tier, ranking]);
 
-  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? defaultWinPts);
-  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? defaultLosePts);
+  // Default points come from VRS based on the currently-projected winner.
+  const vrsDefaults = useMemo(() => {
+    if (!winnerName || !loserName) {
+      // No projected winner yet — show the prediction for team1 winning by default.
+      if (previews) return { win: previews.team1Wins.winPoints, lose: previews.team1Wins.lossPoints };
+      return { win: 20, lose: 10 };
+    }
+    const p = predictMatch(winnerName, loserName, tier, ranking);
+    return { win: p.winPoints, lose: p.lossPoints };
+  }, [winnerName, loserName, tier, ranking, previews]);
+
+  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? vrsDefaults.win);
+  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? vrsDefaults.lose);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // When the projected winner changes (and user hasn't pinned custom points), refresh defaults.
+  useEffect(() => {
+    if (match.pointsWinner === undefined) setPointsWin(vrsDefaults.win);
+    if (match.pointsLoser === undefined) setPointsLose(vrsDefaults.lose);
+  }, [vrsDefaults.win, vrsDefaults.lose]);
 
   useEffect(() => {
     if (match.pointsWinner !== undefined) setPointsWin(match.pointsWinner);
     if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
   }, [match.id]);
 
-  const handleConfirm = () => {
+  const winnerRankDelta = useMemo(() => winnerName ? predictRankDelta(winnerName, pointsWin, ranking) : null, [winnerName, pointsWin, ranking]);
+  const loserRankDelta = useMemo(() => loserName ? predictRankDelta(loserName, -pointsLose, ranking) : null, [loserName, pointsLose, ranking]);
+
+  const openConfirm = () => {
     if (!matchDecided || !winnerName || !loserName) {
       toast({ title: "Mecz nierozstrzygnięty", description: `Wpisz wynik (do ${mapsToWin} wygranych map).`, variant: "destructive" });
       return;
     }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = () => {
     onUpdate({ pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true });
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
     toast({
       title: "Wynik zatwierdzony",
       description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
     });
+    setConfirmOpen(false);
     onBack();
+  };
+
+  const resetToVrs = () => {
+    setPointsWin(vrsDefaults.win);
+    setPointsLose(vrsDefaults.lose);
   };
 
   return (
