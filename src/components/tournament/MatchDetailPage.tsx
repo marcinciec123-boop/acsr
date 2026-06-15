@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2 } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
@@ -12,6 +13,7 @@ import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
+import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -19,6 +21,7 @@ interface Props {
   match: MatchResult;
   phaseName: string;
   bo: 1 | 3 | 5;
+  tier?: string;
   tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
