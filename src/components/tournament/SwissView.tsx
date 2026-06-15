@@ -13,10 +13,14 @@ import {
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 
+import MatchPredictionBadge from "./MatchPredictionBadge";
+
 interface Props {
   phaseTeams: string[];
   matches: MatchResult[];
   bo: 1 | 3 | 5;
+  /** Tournament tier for VRS prediction display. */
+  tier?: string;
   /** Number of teams that should advance from Swiss; defaults to half. */
   advanceCount?: number;
   /** Pairs that already met in earlier phases (for rematch avoidance). */
@@ -96,11 +100,13 @@ const OpponentCell = ({
 const RoundMatchCard = ({
   match,
   decisive,
+  tier,
   onOpenMatch,
   onDelete,
 }: {
   match: MatchResult;
   decisive: boolean;
+  tier?: string;
   onUpdate: (id: string, s1: number, s2: number) => void;
   onOpenMatch?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -159,6 +165,7 @@ const RoundMatchCard = ({
           </div>
         );
       })}
+      <MatchPredictionBadge team1={match.team1} team2={match.team2} tier={tier || "B"} decided={played} compact />
     </div>
   );
 };
@@ -167,6 +174,7 @@ export const SwissView = ({
   phaseTeams,
   matches,
   bo,
+  tier,
   advanceCount,
   priorMeetings,
   onUpdate,
@@ -354,6 +362,7 @@ export const SwissView = ({
                       key={m.id}
                       match={m}
                       decisive={(m.bo || 1) >= 3}
+                      tier={tier}
                       onUpdate={onUpdate}
                       onOpenMatch={onOpenMatch}
                       onDelete={onDelete}

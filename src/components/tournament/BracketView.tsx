@@ -7,8 +7,12 @@ import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 
+import MatchPredictionBadge from "./MatchPredictionBadge";
+
 interface Props {
   matches: MatchResult[];
+  /** Tournament tier for VRS predictions. */
+  tier?: string;
   onUpdate: (id: string, score1: number, score2: number, team1?: string, team2?: string, round?: string) => void;
   onDelete?: (id: string) => void;
   onMove?: (id: string, dir: -1 | 1) => void;
@@ -48,7 +52,7 @@ const TeamRow = ({
 };
 
 /** Liquipedia-style bracket with SVG connectors between rounds */
-export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
+export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
@@ -131,12 +135,13 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
     const winner1 = decided && m.score1 > m.score2;
     const winner2 = decided && m.score2 > m.score1;
     const editingRound = editingRoundFor === m.id;
+    const showPrediction = !decided && !isEditing && m.team1 && m.team2 && m.team2 !== "BYE";
     return (
       <div
         key={m.id}
         style={!isEditing ? { height: MATCH_H } : undefined}
         className={cn(
-          "border rounded-md overflow-hidden text-xs shadow-md bg-card/60 backdrop-blur-sm flex flex-col",
+          "relative group border rounded-md overflow-visible text-xs shadow-md bg-card/60 backdrop-blur-sm flex flex-col",
           isLast
             ? "border-[hsl(var(--gold))]/50 shadow-[0_0_16px_hsl(var(--gold)/0.18)]"
             : decided
@@ -153,6 +158,11 @@ export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpen
           <span>BO{m.bo || 3}</span>
           {decided && <span className="text-[hsl(var(--win))]">✓</span>}
         </div>
+        {showPrediction && (
+          <div className="absolute top-full left-0 right-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity rounded-b-md border border-t-0 border-primary/40 bg-card shadow-lg overflow-hidden">
+            <MatchPredictionBadge team1={m.team1} team2={m.team2} tier={tier || "B"} />
+          </div>
+        )}
         {isEditing ? (
           <div className="p-2 space-y-1.5 bg-card min-h-[128px]">
             {editingRound ? (

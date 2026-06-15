@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2 } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
@@ -12,6 +13,7 @@ import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
+import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -19,6 +21,7 @@ interface Props {
   match: MatchResult;
   phaseName: string;
   bo: 1 | 3 | 5;
+  tier?: string;
   tournamentId?: string;
   onBack: () => void;
   onUpdate: (patch: Partial<MatchResult>) => void;
@@ -55,7 +58,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, onUpdate, onConfirm }: Props) => {
+export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId, onBack, onUpdate, onConfirm }: Props) => {
   const [tab, setTab] = useState<string>("score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
 
@@ -159,31 +162,66 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
   const winnerName = winner1 ? match.team1 : winner2 ? match.team2 : "";
   const loserName = winner1 ? match.team2 : winner2 ? match.team1 : "";
 
-  const defaultWinPts = match.bracketSlot?.toUpperCase().includes("FINAL") ? 100
-    : (match.round || "").toLowerCase().includes("final") ? 80
-    : 25;
-  const defaultLosePts = 10;
+  // ===== VRS-style ranking points =====
+  const ranking = useMemo(() => getRankingSnapshot(), [match.id]);
+  const previews = useMemo(() => {
+    if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD" || match.team2 === "BYE") {
+      return null;
+    }
+    return predictBothOutcomes(match.team1, match.team2, tier, ranking);
+  }, [match.team1, match.team2, tier, ranking]);
 
-  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? defaultWinPts);
-  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? defaultLosePts);
+  // Default points come from VRS based on the currently-projected winner.
+  const vrsDefaults = useMemo(() => {
+    if (!winnerName || !loserName) {
+      // No projected winner yet — show the prediction for team1 winning by default.
+      if (previews) return { win: previews.team1Wins.winPoints, lose: previews.team1Wins.lossPoints };
+      return { win: 20, lose: 10 };
+    }
+    const p = predictMatch(winnerName, loserName, tier, ranking);
+    return { win: p.winPoints, lose: p.lossPoints };
+  }, [winnerName, loserName, tier, ranking, previews]);
+
+  const [pointsWin, setPointsWin] = useState<number>(match.pointsWinner ?? vrsDefaults.win);
+  const [pointsLose, setPointsLose] = useState<number>(match.pointsLoser ?? vrsDefaults.lose);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // When the projected winner changes (and user hasn't pinned custom points), refresh defaults.
+  useEffect(() => {
+    if (match.pointsWinner === undefined) setPointsWin(vrsDefaults.win);
+    if (match.pointsLoser === undefined) setPointsLose(vrsDefaults.lose);
+  }, [vrsDefaults.win, vrsDefaults.lose]);
 
   useEffect(() => {
     if (match.pointsWinner !== undefined) setPointsWin(match.pointsWinner);
     if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
   }, [match.id]);
 
-  const handleConfirm = () => {
+  const winnerRankDelta = useMemo(() => winnerName ? predictRankDelta(winnerName, pointsWin, ranking) : null, [winnerName, pointsWin, ranking]);
+  const loserRankDelta = useMemo(() => loserName ? predictRankDelta(loserName, -pointsLose, ranking) : null, [loserName, pointsLose, ranking]);
+
+  const openConfirm = () => {
     if (!matchDecided || !winnerName || !loserName) {
       toast({ title: "Mecz nierozstrzygnięty", description: `Wpisz wynik (do ${mapsToWin} wygranych map).`, variant: "destructive" });
       return;
     }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = () => {
     onUpdate({ pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true });
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
     toast({
       title: "Wynik zatwierdzony",
       description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
     });
+    setConfirmOpen(false);
     onBack();
+  };
+
+  const resetToVrs = () => {
+    setPointsWin(vrsDefaults.win);
+    setPointsLose(vrsDefaults.lose);
   };
 
   return (
@@ -279,49 +317,55 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
           </div>
         </motion.div>
 
-        {/* Confirm + ranking points */}
+        {/* VRS prediction + confirm trigger */}
         <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
-              Zatwierdzanie wyniku i punkty rankingowe
+            <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5" /> Predykcja VRS • Tier {tier}
             </h3>
             {match.resultConfirmed && (
               <span className="text-[10px] font-mono text-[hsl(var(--win))] uppercase tracking-wider">
-                ✓ Zatwierdzone
+                ✓ Zatwierdzone ({match.pointsWinner ?? pointsWin}/−{match.pointsLoser ?? pointsLose})
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
-                Punkty dla zwycięzcy {winnerName && `(${winnerName})`}
-              </label>
-              <Input
-                type="number"
-                value={pointsWin}
-                onChange={e => setPointsWin(parseInt(e.target.value) || 0)}
-                className="h-9 text-center font-mono"
+
+          {previews ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <PredictionCard
+                team={match.team1}
+                winPoints={previews.team1Wins.winPoints}
+                lossPoints={previews.team2Wins.lossPoints}
+                expected={previews.team1Wins.expectedWinner}
+                upset={previews.team1Wins.upset}
+                rankIfWin={predictRankDelta(match.team1, previews.team1Wins.winPoints, ranking)}
+                rankIfLose={predictRankDelta(match.team1, -previews.team2Wins.lossPoints, ranking)}
+                highlighted={winner1}
+              />
+              <PredictionCard
+                team={match.team2}
+                winPoints={previews.team2Wins.winPoints}
+                lossPoints={previews.team1Wins.lossPoints}
+                expected={previews.team2Wins.expectedWinner}
+                upset={previews.team2Wins.upset}
+                rankIfWin={predictRankDelta(match.team2, previews.team2Wins.winPoints, ranking)}
+                rankIfLose={predictRankDelta(match.team2, -previews.team1Wins.lossPoints, ranking)}
+                highlighted={winner2}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
-                Punkty odjęte przegranemu {loserName && `(${loserName})`}
-              </label>
-              <Input
-                type="number"
-                value={pointsLose}
-                onChange={e => setPointsLose(parseInt(e.target.value) || 0)}
-                className="h-9 text-center font-mono"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-end gap-2">
+          ) : (
+            <p className="text-[11px] font-mono text-muted-foreground">
+              Predykcja dostępna po przypisaniu obu drużyn.
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-1">
             <Button variant="ghost" size="sm" onClick={onBack} className="h-8 text-xs">
               Powrót bez zatwierdzania
             </Button>
             <Button
               size="sm"
-              onClick={handleConfirm}
+              onClick={openConfirm}
               disabled={!matchDecided}
               className="h-8 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
               title={!matchDecided ? `Wpisz/przesymuluj wynik (do ${mapsToWin} wygranych map)` : undefined}
@@ -331,6 +375,111 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
             </Button>
           </div>
         </div>
+
+        {/* Confirmation modal */}
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-[hsl(var(--gold))]" />
+                Zatwierdź wynik meczu
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                {phaseName} • {match.round || "Mecz"} • Tier {tier}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div className="text-center text-sm font-mono py-2 bg-secondary/40 rounded-md border border-border">
+                <span className="text-foreground font-bold">{winnerName}</span>
+                <span className="text-muted-foreground mx-2">pokonał</span>
+                <span className="text-muted-foreground">{loserName}</span>
+                <div className="text-[hsl(var(--win))] font-bold text-lg mt-1">
+                  {Math.max(computedScore.s1, computedScore.s2)} : {Math.min(computedScore.s1, computedScore.s2)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                    Punkty dla zwycięzcy
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[hsl(var(--win))] font-mono text-sm">+</span>
+                    <Input
+                      type="number"
+                      value={pointsWin}
+                      onChange={e => setPointsWin(parseInt(e.target.value) || 0)}
+                      className="h-9 text-center font-mono"
+                    />
+                  </div>
+                  {winnerRankDelta && winnerRankDelta.from > 0 && (
+                    <p className="text-[10px] font-mono text-muted-foreground text-center">
+                      Miejsce #{winnerRankDelta.from} → #{winnerRankDelta.to}
+                      {winnerRankDelta.delta !== 0 && (
+                        <span className={cn("ml-1 font-bold", winnerRankDelta.delta > 0 ? "text-[hsl(var(--win))]" : "text-destructive")}>
+                          {winnerRankDelta.delta > 0
+                            ? <><ArrowUp className="w-2.5 h-2.5 inline" />{winnerRankDelta.delta}</>
+                            : <><ArrowDown className="w-2.5 h-2.5 inline" />{Math.abs(winnerRankDelta.delta)}</>}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                    Punkty odjęte przegranemu
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-destructive font-mono text-sm">−</span>
+                    <Input
+                      type="number"
+                      value={pointsLose}
+                      onChange={e => setPointsLose(parseInt(e.target.value) || 0)}
+                      className="h-9 text-center font-mono"
+                    />
+                  </div>
+                  {loserRankDelta && loserRankDelta.from > 0 && (
+                    <p className="text-[10px] font-mono text-muted-foreground text-center">
+                      Miejsce #{loserRankDelta.from} → #{loserRankDelta.to}
+                      {loserRankDelta.delta !== 0 && (
+                        <span className={cn("ml-1 font-bold", loserRankDelta.delta > 0 ? "text-[hsl(var(--win))]" : "text-destructive")}>
+                          {loserRankDelta.delta > 0
+                            ? <><ArrowUp className="w-2.5 h-2.5 inline" />{loserRankDelta.delta}</>
+                            : <><ArrowDown className="w-2.5 h-2.5 inline" />{Math.abs(loserRankDelta.delta)}</>}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetToVrs}
+                className="text-[10px] font-mono text-primary hover:underline w-full text-center"
+              >
+                ↺ Przywróć wartości VRS ({vrsDefaults.win} / {vrsDefaults.lose})
+              </button>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)}>
+                Anuluj
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirm}
+                className="gap-1.5 bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                Potwierdź wynik
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-4 w-full max-w-xl mb-4">
@@ -542,6 +691,69 @@ export const MatchDetailPage = ({ match, phaseName, bo, tournamentId, onBack, on
         </Tabs>
       </div>
     </section>
+  );
+};
+
+const PredictionCard = ({
+  team, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
+}: {
+  team: string;
+  winPoints: number;
+  lossPoints: number;
+  expected: number;
+  upset: boolean;
+  rankIfWin: { from: number; to: number; delta: number };
+  rankIfLose: { from: number; to: number; delta: number };
+  highlighted: boolean;
+}) => {
+  const RankDelta = ({ d }: { d: { from: number; to: number; delta: number } }) => {
+    if (d.from <= 0) return <span className="text-muted-foreground">—</span>;
+    if (d.delta === 0) return <span className="text-muted-foreground">#{d.from} (bez zmian)</span>;
+    const up = d.delta > 0;
+    return (
+      <span className={cn("font-mono", up ? "text-[hsl(var(--win))]" : "text-destructive")}>
+        #{d.from} → #{d.to}{" "}
+        {up ? <ArrowUp className="w-2.5 h-2.5 inline" /> : <ArrowDown className="w-2.5 h-2.5 inline" />}
+        {Math.abs(d.delta)}
+      </span>
+    );
+  };
+  return (
+    <div className={cn(
+      "rounded-lg border p-3 space-y-2 bg-secondary/20",
+      highlighted ? "border-[hsl(var(--win))]/60 bg-[hsl(var(--win))]/5" : "border-border",
+    )}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <TeamLogo teamName={team} size={20} rounded="md" />
+          <span className="text-xs font-bold truncate">{team}</span>
+        </div>
+        <span className={cn(
+          "text-[9px] font-mono px-1.5 py-0.5 rounded border",
+          upset
+            ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/40"
+            : "bg-secondary text-muted-foreground border-border",
+        )}>
+          {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+        <div className="space-y-0.5">
+          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli wygra</div>
+          <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
+          </div>
+          <RankDelta d={rankIfWin} />
+        </div>
+        <div className="space-y-0.5">
+          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli przegra</div>
+          <div className="text-destructive font-bold flex items-center gap-1">
+            <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
+          </div>
+          <RankDelta d={rankIfLose} />
+        </div>
+      </div>
+    </div>
   );
 };
 

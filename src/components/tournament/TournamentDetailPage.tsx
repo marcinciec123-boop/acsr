@@ -806,6 +806,7 @@ export const TournamentDetailPage = ({
                         phaseTeams={phase.teams}
                         matches={phase.bracket}
                         bo={phase.bo}
+                        tier={t.tier}
                         advanceCount={phase.advanceCount}
                         priorMeetings={collectPriorMeetings(t.phases, phase.id)}
                         onUpdate={(mid, s1, s2, t1, t2) =>
@@ -829,6 +830,7 @@ export const TournamentDetailPage = ({
                     {phase.bracket && phase.bracket.length > 0 && phase.format !== "swiss" && (
                       <BracketView
                         matches={phase.bracket}
+                        tier={t.tier}
                         allTeams={Array.from(new Set(t.participants)).sort()}
                         onUpdate={(mid, s1, s2, t1, t2, round) =>
                           onUpdateMatch(phase.id, mid, {
