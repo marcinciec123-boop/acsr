@@ -362,6 +362,7 @@ export const SwissView = ({
                       key={m.id}
                       match={m}
                       decisive={(m.bo || 1) >= 3}
+                      tier={tier}
                       onUpdate={onUpdate}
                       onOpenMatch={onOpenMatch}
                       onDelete={onDelete}
