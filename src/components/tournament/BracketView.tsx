@@ -52,7 +52,7 @@ const TeamRow = ({
 };
 
 /** Liquipedia-style bracket with SVG connectors between rounds */
-export const BracketView = ({ matches, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
+export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
