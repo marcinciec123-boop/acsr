@@ -13,10 +13,14 @@ import {
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 
+import MatchPredictionBadge from "./MatchPredictionBadge";
+
 interface Props {
   phaseTeams: string[];
   matches: MatchResult[];
   bo: 1 | 3 | 5;
+  /** Tournament tier for VRS prediction display. */
+  tier?: string;
   /** Number of teams that should advance from Swiss; defaults to half. */
   advanceCount?: number;
   /** Pairs that already met in earlier phases (for rematch avoidance). */
