@@ -100,11 +100,13 @@ const OpponentCell = ({
 const RoundMatchCard = ({
   match,
   decisive,
+  tier,
   onOpenMatch,
   onDelete,
 }: {
   match: MatchResult;
   decisive: boolean;
+  tier?: string;
   onUpdate: (id: string, s1: number, s2: number) => void;
   onOpenMatch?: (id: string) => void;
   onDelete?: (id: string) => void;
