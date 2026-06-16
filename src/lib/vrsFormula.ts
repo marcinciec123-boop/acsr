@@ -20,6 +20,8 @@ const MIN_LOSS = 1;
 const HARD_MAX = 60;
 // Spread of expected-score curve (lower = steeper).
 const SCALE = 40;
+// Loser penalty is slightly softer than winner reward (VRS-style asymmetry).
+const LOSS_MULTIPLIER = 0.8;
 
 export interface VrsPrediction {
   winPoints: number;   // points the winner gains
