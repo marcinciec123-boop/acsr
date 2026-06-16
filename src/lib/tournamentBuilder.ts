@@ -180,21 +180,43 @@ export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
   return [...ub, ...lb, gf];
 };
 
-/** Round Robin: every team plays every other once */
+/**
+ * Round Robin scheduled by matchdays (circle method).
+ * Każda drużyna gra dokładnie raz na kolejkę. Przy nieparzystej liczbie
+ * drużyn jedna pauzuje w danej kolejce (parowana z "BYE", pomijamy mecz).
+ */
 export const buildRoundRobin = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const matches: MatchResult[] = [];
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = i + 1; j < teams.length; j++) {
+  if (teams.length < 2) return matches;
+
+  const arr = [...teams];
+  if (arr.length % 2 === 1) arr.push("BYE");
+  const n = arr.length;
+  const rounds = n - 1;
+  const half = n / 2;
+
+  // Circle method: index 0 stays fixed, indices 1..n-1 rotate.
+  const rotation = [...arr];
+  for (let r = 0; r < rounds; r++) {
+    for (let i = 0; i < half; i++) {
+      const a = rotation[i];
+      const b = rotation[n - 1 - i];
+      if (a === "BYE" || b === "BYE") continue;
+      // Alternate home/away each round for variety.
+      const flip = r % 2 === 1 && i !== 0;
       matches.push({
         id: uid(),
-        team1: teams[i],
-        team2: teams[j],
+        team1: flip ? b : a,
+        team2: flip ? a : b,
         score1: 0,
         score2: 0,
-        round: "Round Robin",
+        round: `Kolejka ${r + 1}`,
         bo,
       });
     }
+    // Rotate: keep rotation[0] fixed, shift the rest clockwise.
+    const last = rotation.pop()!;
+    rotation.splice(1, 0, last);
   }
   return matches;
 };
