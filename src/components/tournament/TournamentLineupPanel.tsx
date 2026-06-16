@@ -206,7 +206,7 @@ const TeamLineupRow = ({
           {currentLineup.map(p => {
             const onBench = bench.includes(p);
             const role = playerRoles[p];
-            const country = playerNationalities[p];
+            const country = resolvePlayerCountry(p);
             return (
               <span
                 key={p}
