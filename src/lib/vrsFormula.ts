@@ -20,6 +20,8 @@ const MIN_LOSS = 1;
 const HARD_MAX = 60;
 // Spread of expected-score curve (lower = steeper).
 const SCALE = 40;
+// Loser penalty is slightly softer than winner reward (VRS-style asymmetry).
+const LOSS_MULTIPLIER = 0.8;
 
 export interface VrsPrediction {
   winPoints: number;   // points the winner gains
@@ -59,11 +61,13 @@ export const predictMatch = (
   // Lower rank number = better → if rW < rL, winner is favored.
   const expectedWinner = 1 / (1 + Math.pow(10, (rW - rL) / SCALE));
 
-  // Winner's gain ∝ surprise (1 - expectedWinner). Loser's penalty ∝ how
-  // expected the win was for them (= expectedLoser = 1 - expectedWinner of
-  // the winner from the loser's perspective = expectedWinner here).
-  const rawWin = K * (1 - expectedWinner);
-  const rawLoss = K * expectedWinner;
+  // Winner's gain ∝ surprise (1 - expectedWinner): an underdog win pays more.
+  // Loser's penalty ∝ how expected it was for THEM to win (= 1 - expectedWinner):
+  // a heavy favorite that loses gets punished hard; a huge underdog losing
+  // barely loses anything. Loss is slightly softer than the matching win.
+  const surprise = 1 - expectedWinner;
+  const rawWin = K * surprise;
+  const rawLoss = K * surprise * LOSS_MULTIPLIER;
 
   const winPoints = Math.max(MIN_WIN, Math.min(HARD_MAX, Math.round(rawWin)));
   const lossPoints = Math.max(MIN_LOSS, Math.min(HARD_MAX, Math.round(rawLoss)));
