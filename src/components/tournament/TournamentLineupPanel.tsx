@@ -6,6 +6,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { countryFlag } from "@/lib/flags";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { cn } from "@/lib/utils";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import { splitRoster } from "@/lib/benchedPlayers";
