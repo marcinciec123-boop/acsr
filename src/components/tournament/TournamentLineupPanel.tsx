@@ -234,7 +234,7 @@ const TeamLineupRow = ({
           {fullPool.map(p => {
             const selected = draft.includes(p);
             const onBench = bench.includes(p);
-            const country = playerNationalities[p];
+            const country = resolvePlayerCountry(p);
             const role = playerRoles[p];
             return (
               <button
