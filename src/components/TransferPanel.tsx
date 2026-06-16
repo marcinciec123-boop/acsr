@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2 } from "lucide-react";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -345,7 +346,7 @@ const TransferPanel = () => {
                 >
                   <div className="col-span-1 font-mono text-muted-foreground text-xs">{i + 1}</div>
                   <div className="col-span-3 font-medium text-foreground flex items-center gap-1.5">
-                    {playerNationalities[t.player] && <span className="text-xs">{countryFlag(playerNationalities[t.player])}</span>}
+                    {(() => { const c = resolvePlayerCountry(t.player); return c && <span className="text-xs">{countryFlag(c)}</span>; })()}
                     {t.player}
                   </div>
                   <div className="col-span-3">

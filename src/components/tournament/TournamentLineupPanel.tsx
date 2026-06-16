@@ -6,6 +6,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { countryFlag } from "@/lib/flags";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { cn } from "@/lib/utils";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import { splitRoster } from "@/lib/benchedPlayers";
@@ -205,7 +206,7 @@ const TeamLineupRow = ({
           {currentLineup.map(p => {
             const onBench = bench.includes(p);
             const role = playerRoles[p];
-            const country = playerNationalities[p];
+            const country = resolvePlayerCountry(p);
             return (
               <span
                 key={p}
@@ -233,7 +234,7 @@ const TeamLineupRow = ({
           {fullPool.map(p => {
             const selected = draft.includes(p);
             const onBench = bench.includes(p);
-            const country = playerNationalities[p];
+            const country = resolvePlayerCountry(p);
             const role = playerRoles[p];
             return (
               <button
