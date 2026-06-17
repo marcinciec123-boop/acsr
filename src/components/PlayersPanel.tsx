@@ -73,6 +73,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [nationality, setNationality] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
+  const [ratingPeriod, setRatingPeriod] = useState<RatingPeriod>("all");
   const [onlyWithStats, setOnlyWithStats] = useState(false);
   // Bump to force re-read after a nationality edit on a FA card
   const [refreshKey, setRefreshKey] = useState(0);
