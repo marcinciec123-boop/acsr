@@ -411,6 +411,29 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               </select>
             </div>
 
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Rating:</span>
+              {([
+                { v: "all", label: "Cała kariera" },
+                { v: "year", label: "Rok" },
+                { v: "month", label: "Miesiąc" },
+                { v: "lastTournament", label: "Ostatni turniej" },
+              ] as { v: RatingPeriod; label: string }[]).map(opt => (
+                <button
+                  key={opt.v}
+                  onClick={() => setRatingPeriod(opt.v)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    ratingPeriod === opt.v
+                      ? "bg-primary/20 text-primary border-primary/40"
+                      : "text-muted-foreground border-border hover:text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
             <label className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
