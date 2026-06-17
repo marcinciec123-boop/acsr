@@ -15,6 +15,7 @@ import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
+import { computePlayerRatingForPeriod, type RatingPeriod } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
