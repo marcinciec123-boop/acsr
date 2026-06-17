@@ -157,9 +157,19 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     fa: rows.filter(r => r.isFA).length,
   }), [rows]);
 
+  // When a non-default period is picked, recompute rating/matches per player.
+  const periodRows = useMemo<PlayerRow[]>(() => {
+    if (ratingPeriod === "all") return rows;
+    return rows.map(r => {
+      const { rating, matches } = computePlayerRatingForPeriod(r.name, ratingPeriod);
+      return { ...r, rating, matches };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, ratingPeriod, refreshKey]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = rows.filter(r => {
+    let list = periodRows.filter(r => {
       if (q) {
         const real = r.realName ? `${r.realName.firstName} ${r.realName.lastName}`.toLowerCase() : "";
         const teamName = r.team?.name.toLowerCase() || "";
@@ -190,7 +200,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       }
     });
     return list;
-  }, [rows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
+  }, [periodRows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
 
   const saveFANationality = (player: string, codeOverride?: string) => {
     const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
