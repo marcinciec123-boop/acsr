@@ -11,11 +11,39 @@ import type { TeamData } from "@/lib/types";
 
 const RANKING_KEY = "ranking_data";
 
+/** Pełne nazwy krajów po ISO (rozszerzaj wedle potrzeb). */
+const COUNTRY_NAMES: Record<string, string> = {
+  PL: "Poland", DE: "Germany", FR: "France", ES: "Spain", IT: "Italy", NL: "Netherlands",
+  BE: "Belgium", DK: "Denmark", SE: "Sweden", NO: "Norway", FI: "Finland", GB: "United Kingdom",
+  UA: "Ukraine", RU: "Russia", PT: "Portugal", CZ: "Czechia", SK: "Slovakia", RO: "Romania",
+  BG: "Bulgaria", HU: "Hungary", AT: "Austria", CH: "Switzerland", IE: "Ireland", GR: "Greece",
+  HR: "Croatia", RS: "Serbia", SI: "Slovenia", BA: "Bosnia & Herzegovina", MK: "North Macedonia",
+  AL: "Albania", XK: "Kosovo", EE: "Estonia", LV: "Latvia", LT: "Lithuania", BY: "Belarus",
+  MD: "Moldova", IS: "Iceland", LU: "Luxembourg", MT: "Malta", CY: "Cyprus", ME: "Montenegro",
+  US: "United States", CA: "Canada",
+  BR: "Brazil", AR: "Argentina", CL: "Chile", UY: "Uruguay", PE: "Peru", CO: "Colombia",
+  VE: "Venezuela", MX: "Mexico", BO: "Bolivia", PY: "Paraguay", EC: "Ecuador",
+  CN: "China", KR: "South Korea", JP: "Japan", TW: "Taiwan", HK: "Hong Kong", SG: "Singapore",
+  MY: "Malaysia", TH: "Thailand", ID: "Indonesia", PH: "Philippines", VN: "Vietnam",
+  IN: "India", PK: "Pakistan", BD: "Bangladesh", KZ: "Kazakhstan", UZ: "Uzbekistan",
+  MN: "Mongolia", KG: "Kyrgyzstan", TM: "Turkmenistan", TJ: "Tajikistan",
+  AZ: "Azerbaijan", AM: "Armenia", GE: "Georgia", TR: "Turkey", IL: "Israel",
+  SA: "Saudi Arabia", AE: "United Arab Emirates", QA: "Qatar", IR: "Iran", IQ: "Iraq", LB: "Lebanon",
+  AU: "Australia", NZ: "New Zealand", FJ: "Fiji",
+  ZA: "South Africa", EG: "Egypt", MA: "Morocco", NG: "Nigeria", DZ: "Algeria",
+  TN: "Tunisia", LY: "Libya", KE: "Kenya", GH: "Ghana",
+};
+
+export const countryName = (iso: string): string => {
+  const up = (normalizeCountry(iso) || iso || "").toUpperCase();
+  return COUNTRY_NAMES[up] || up;
+};
+
 /** Konwencja nazwy reprezentacji: "🇵🇱 Poland" — czytelne i unikalne. */
 export const buildNationalTeamName = (countryCode: string, customLabel?: string): string => {
   const iso = normalizeCountry(countryCode) || countryCode.toUpperCase();
   const flag = countryFlag(iso);
-  const label = customLabel?.trim() || `Team ${iso}`;
+  const label = customLabel?.trim() || COUNTRY_NAMES[iso] || iso;
   return `${flag} ${label}`.trim();
 };
 
