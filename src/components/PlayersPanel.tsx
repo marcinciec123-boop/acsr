@@ -15,6 +15,7 @@ import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
+import { computePlayerRatingForPeriod, type RatingPeriod } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
@@ -72,6 +73,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [nationality, setNationality] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
+  const [ratingPeriod, setRatingPeriod] = useState<RatingPeriod>("all");
   const [onlyWithStats, setOnlyWithStats] = useState(false);
   // Bump to force re-read after a nationality edit on a FA card
   const [refreshKey, setRefreshKey] = useState(0);
@@ -155,9 +157,19 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     fa: rows.filter(r => r.isFA).length,
   }), [rows]);
 
+  // When a non-default period is picked, recompute rating/matches per player.
+  const periodRows = useMemo<PlayerRow[]>(() => {
+    if (ratingPeriod === "all") return rows;
+    return rows.map(r => {
+      const { rating, matches } = computePlayerRatingForPeriod(r.name, ratingPeriod);
+      return { ...r, rating, matches };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, ratingPeriod, refreshKey]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = rows.filter(r => {
+    let list = periodRows.filter(r => {
       if (q) {
         const real = r.realName ? `${r.realName.firstName} ${r.realName.lastName}`.toLowerCase() : "";
         const teamName = r.team?.name.toLowerCase() || "";
@@ -188,7 +200,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       }
     });
     return list;
-  }, [rows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
+  }, [periodRows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
 
   const saveFANationality = (player: string, codeOverride?: string) => {
     const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
@@ -397,6 +409,29 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 <option value="team">Sortuj: Drużyna</option>
                 <option value="name">Sortuj: Nick A-Z</option>
               </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Rating:</span>
+              {([
+                { v: "all", label: "Cała kariera" },
+                { v: "year", label: "Rok" },
+                { v: "month", label: "Miesiąc" },
+                { v: "lastTournament", label: "Ostatni turniej" },
+              ] as { v: RatingPeriod; label: string }[]).map(opt => (
+                <button
+                  key={opt.v}
+                  onClick={() => setRatingPeriod(opt.v)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    ratingPeriod === opt.v
+                      ? "bg-primary/20 text-primary border-primary/40"
+                      : "text-muted-foreground border-border hover:text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
 
             <label className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground cursor-pointer select-none">

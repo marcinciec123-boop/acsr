@@ -47,6 +47,12 @@ const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoPr
     rounded === "xl" ? "rounded-xl" :
     rounded === "lg" ? "rounded-lg" : "rounded-md";
 
+  // National team detection: name begins with a regional-indicator flag emoji.
+  const firstCp = teamName ? teamName.codePointAt(0) ?? 0 : 0;
+  const isNationalFlag =
+    !logo &&
+    ((firstCp >= 0x1F1E6 && firstCp <= 0x1F1FF) || teamName.startsWith("🇽🇰"));
+
   if (logo) {
     return (
       <div
@@ -54,6 +60,20 @@ const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoPr
         className={cn("bg-secondary/40 border border-border flex items-center justify-center overflow-hidden shrink-0", radius, className)}
       >
         <img src={logo} alt={`${teamName} logo`} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  if (isNationalFlag) {
+    // Take the leading flag (one regional-indicator pair, or Kosovo special case)
+    const flag = teamName.startsWith("🇽🇰") ? "🇽🇰" : String.fromCodePoint(...[...teamName].slice(0, 2).map(c => c.codePointAt(0) ?? 0));
+    return (
+      <div
+        style={{ width: size, height: size, fontSize: Math.max(14, Math.round(size * 0.85)) }}
+        className={cn("flex items-center justify-center shrink-0 leading-none select-none", radius, className)}
+        aria-label={`${teamName} flag`}
+      >
+        {flag}
       </div>
     );
   }

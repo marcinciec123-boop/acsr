@@ -381,3 +381,81 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
     bestMapKills,
   };
 }
+
+// ===== Period-scoped rating (used by Gracze panel filters) =====
+export type RatingPeriod = "all" | "month" | "year" | "lastTournament";
+
+/** All matches a player participated in, sorted newest first (full list, not sliced). */
+export function listPlayerMatches(playerName: string, tournaments?: TournamentData[]): CareerMatchEntry[] {
+  // Reuse computeCareerStats by widening recentMatches: just run our own collector.
+  const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []);
+  const entries: CareerMatchEntry[] = [];
+  for (const t of ts) {
+    const allMatches: MatchResult[] = [];
+    for (const phase of t.phases || []) {
+      if (phase.bracket) allMatches.push(...phase.bracket);
+      if (phase.groups) for (const g of phase.groups) allMatches.push(...g.matches);
+    }
+    if (t.matches) allMatches.push(...t.matches);
+    for (const match of allMatches) {
+      const inMaps = findInMap(match, playerName);
+      if (inMaps.length === 0) continue;
+      const isTeam1 = inMaps[0].isTeam1;
+      const team = isTeam1 ? match.team1 : match.team2;
+      const opponent = isTeam1 ? match.team2 : match.team1;
+      const ownScore = isTeam1 ? match.score1 : match.score2;
+      const oppScore = isTeam1 ? match.score2 : match.score1;
+      let mKills = 0, mDeaths = 0, mAssists = 0, mUd = 0, mEf = 0;
+      let mRounds = 0, mAdrW = 0, mKastW = 0;
+      for (const { map, player } of inMaps) {
+        const rounds = (map.score1 || 0) + (map.score2 || 0);
+        if (rounds <= 0) continue;
+        mKills += player.kills; mDeaths += player.deaths; mAssists += player.assists;
+        mUd += player.ud; mEf += player.ef; mRounds += rounds;
+        mAdrW += player.adr * rounds; mKastW += player.kast * rounds;
+      }
+      if (mRounds === 0) continue;
+      const rating = calculateRating({
+        playerName, team, kills: mKills, deaths: mDeaths, assists: mAssists,
+        adr: Math.round(mAdrW / mRounds), kast: Math.round(mKastW / mRounds),
+        ud: mUd, ef: mEf, rounds: mRounds,
+      });
+      entries.push({
+        tournamentId: t.id, tournamentName: t.name, matchId: match.id,
+        team, opponent, ownScore, oppScore,
+        won: ownScore > oppScore && (ownScore + oppScore) > 0,
+        bo: (match.bo || 1) as 1 | 3 | 5,
+        round: match.round, playedAt: match.playedAt || t.endDate,
+        kills: mKills, deaths: mDeaths, assists: mAssists,
+        adr: Math.round(mAdrW / mRounds), kast: Math.round(mKastW / mRounds),
+        ud: mUd, ef: mEf, rounds: mRounds, rating, maps: [],
+      });
+    }
+  }
+  entries.sort((a, b) => (b.playedAt || "").localeCompare(a.playedAt || ""));
+  return entries;
+}
+
+/** Average match rating (HLTV-style) over a time window. */
+export function computePlayerRatingForPeriod(
+  playerName: string,
+  period: RatingPeriod,
+  tournaments?: TournamentData[],
+): { rating: number; matches: number } {
+  const all = listPlayerMatches(playerName, tournaments);
+  if (all.length === 0) return { rating: 0, matches: 0 };
+  let filtered: CareerMatchEntry[] = all;
+  if (period === "lastTournament") {
+    const lastId = all[0].tournamentId;
+    filtered = all.filter(m => m.tournamentId === lastId);
+  } else if (period === "month" || period === "year") {
+    const cutoff = Date.now() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
+    filtered = all.filter(m => {
+      const t = m.playedAt ? Date.parse(m.playedAt) : NaN;
+      return Number.isFinite(t) && t >= cutoff;
+    });
+  }
+  if (filtered.length === 0) return { rating: 0, matches: 0 };
+  const avg = filtered.reduce((s, m) => s + m.rating, 0) / filtered.length;
+  return { rating: Math.round(avg * 100) / 100, matches: filtered.length };
+}
