@@ -9,19 +9,19 @@ import { loadFromStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 
 const K_BY_TIER: Record<string, number> = {
-  S: 42,
-  A: 32,
-  B: 22,
-  C: 14,
+  S: 64,
+  A: 48,
+  B: 34,
+  C: 22,
 };
 
 const MIN_WIN = 1;
 const MIN_LOSS = 1;
-const HARD_MAX = 60;
-// Spread of expected-score curve (lower = steeper).
-const SCALE = 40;
+const HARD_MAX = 95;
+// Spread of expected-score curve (lower = steeper, more reward for upsets).
+const SCALE = 28;
 // Loser penalty is slightly softer than winner reward (VRS-style asymmetry).
-const LOSS_MULTIPLIER = 0.8;
+const LOSS_MULTIPLIER = 0.85;
 
 export interface VrsPrediction {
   winPoints: number;   // points the winner gains
