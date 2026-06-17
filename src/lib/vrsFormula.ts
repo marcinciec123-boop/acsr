@@ -8,29 +8,36 @@ import type { TeamData } from "./types";
 import { loadFromStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 
-const K_BY_TIER: Record<string, number> = {
-  S: 64,
-  A: 48,
-  B: 34,
-  C: 22,
+// Tier multiplier applied to the base rank-diff curve.
+const TIER_MULT: Record<string, number> = {
+  S: 1.25,
+  A: 1.0,
+  B: 0.85,
+  C: 0.7,
 };
 
-const MIN_WIN = 1;
-const MIN_LOSS = 1;
-const HARD_MAX = 95;
-// Spread of expected-score curve (lower = steeper, more reward for upsets).
-const SCALE = 28;
-// Loser penalty is slightly softer than winner reward (VRS-style asymmetry).
-const LOSS_MULTIPLIER = 0.85;
+// Linear rank-diff curve (matches user spec):
+// adjacent (~1) → ~10, 10 apart → ~15, 20 apart → ~20, 30 apart → ~25 ...
+const WIN_BASE = 10;
+const WIN_PER_RANK = 0.5;   // upset slope (worse beats better)
+const WIN_FAV_SLOPE = 0.3;  // favorite-win decay
+const LOSS_BASE = 8;
+const LOSS_UPSET_SLOPE = 0.4;  // big penalty for favorite who lost
+const LOSS_EXPECTED_SLOPE = 0.3; // small penalty for underdog losing as expected
+
+const WIN_MIN = 2;
+const WIN_MAX = 70;
+const LOSS_MIN = 1;
+const LOSS_MAX = 55;
 
 export interface VrsPrediction {
-  winPoints: number;   // points the winner gains
-  lossPoints: number;  // points the loser loses (positive number)
-  expectedWinner: number; // 0..1 probability the team listed as "winner" wins
+  winPoints: number;
+  lossPoints: number;
+  expectedWinner: number; // 0..1 probability the listed "winner" wins
   upset: boolean;
 }
 
-const kFor = (tier: string) => K_BY_TIER[tier?.toUpperCase()] ?? 22;
+const tierMult = (tier: string) => TIER_MULT[tier?.toUpperCase()] ?? 0.85;
 
 /** Read the current ranking snapshot (saved by TournamentPanel). */
 export const getRankingSnapshot = (): TeamData[] => {
@@ -47,6 +54,8 @@ export const getTeamRank = (teamName: string, ranking: TeamData[]): number => {
   return idx === -1 ? sorted.length + 1 : idx + 1;
 };
 
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 /** Predict points exchanged between two teams given the assumed winner. */
 export const predictMatch = (
   winnerTeam: string,
@@ -54,29 +63,36 @@ export const predictMatch = (
   tier: string,
   ranking: TeamData[] = getRankingSnapshot(),
 ): VrsPrediction => {
-  const K = kFor(tier);
+  const mult = tierMult(tier);
   const rW = getTeamRank(winnerTeam, ranking);
   const rL = getTeamRank(loserTeam, ranking);
-  // Expected score (winner's probability of winning) using ELO logistic on rank diff.
-  // Lower rank number = better → if rW < rL, winner is favored.
-  const expectedWinner = 1 / (1 + Math.pow(10, (rW - rL) / SCALE));
+  // Signed rank difference: positive = upset (winner is worse-ranked).
+  const diff = rW - rL;
 
-  // Winner's gain ∝ surprise (1 - expectedWinner): an underdog win pays more.
-  // Loser's penalty ∝ how expected it was for THEM to win (= 1 - expectedWinner):
-  // a heavy favorite that loses gets punished hard; a huge underdog losing
-  // barely loses anything. Loss is slightly softer than the matching win.
-  const surprise = 1 - expectedWinner;
-  const rawWin = K * surprise;
-  const rawLoss = K * surprise * LOSS_MULTIPLIER;
+  let rawWin: number;
+  let rawLoss: number;
+  if (diff >= 0) {
+    // Upset: worse beats better. Both winner reward & loser penalty grow with diff.
+    rawWin = WIN_BASE + WIN_PER_RANK * diff;
+    rawLoss = LOSS_BASE + LOSS_UPSET_SLOPE * diff;
+  } else {
+    // Favorite win: rewards decay with how expected it was.
+    const gap = -diff;
+    rawWin = WIN_BASE - WIN_FAV_SLOPE * gap;
+    rawLoss = LOSS_BASE - LOSS_EXPECTED_SLOPE * gap;
+  }
 
-  const winPoints = Math.max(MIN_WIN, Math.min(HARD_MAX, Math.round(rawWin)));
-  const lossPoints = Math.max(MIN_LOSS, Math.min(HARD_MAX, Math.round(rawLoss)));
+  const winPoints = clamp(Math.round(rawWin * mult), WIN_MIN, WIN_MAX);
+  const lossPoints = clamp(Math.round(rawLoss * mult), LOSS_MIN, LOSS_MAX);
+
+  // Rough win-probability proxy for "upset" flag (logistic over rank diff).
+  const expectedWinner = 1 / (1 + Math.pow(10, diff / 30));
 
   return {
     winPoints,
     lossPoints,
     expectedWinner,
-    upset: expectedWinner < 0.35,
+    upset: diff > 8,
   };
 };
 
