@@ -20,6 +20,7 @@ import { GroupAssignmentPanel } from "./GroupAssignmentPanel";
 import { SwissView } from "./SwissView";
 import { TournamentLineupPanel } from "./TournamentLineupPanel";
 import { TournamentStatsPanel } from "./TournamentStatsPanel";
+import { PickemPanel } from "./PickemPanel";
 import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -500,6 +501,10 @@ export const TournamentDetailPage = ({
         {view === "play" && (<>
         {/* Lineup picker — substitutions per tournament */}
         <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
+
+        {/* Pick'em — predictions panel (shown once at least one group has been drawn) */}
+        <PickemPanel tournament={t} />
+
 
         {/* Qualifier panel */}
         {isQualifier && (
