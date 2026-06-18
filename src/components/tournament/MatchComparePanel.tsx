@@ -13,8 +13,8 @@ import { resolveLineup } from "@/lib/tournamentLineups";
 import { teamDatabase } from "@/data/tournaments";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { predictBothOutcomes, getRankingSnapshot, getTeamRank } from "@/lib/vrsFormula";
-import { getPlayerCountry } from "@/lib/playerCountry";
-import { getCountryFlag } from "@/lib/flags";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
+import { countryFlag } from "@/lib/flags";
 
 interface Props {
   team1: string;
