@@ -218,7 +218,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <TeamLogo teamName={cs.favored === "t1" ? team1 : team2} size={16} rounded="sm" />
+                  <TeamLogo teamName={cs.favored === "t1" ? team1 : team2} size={16} rounded="md" />
                   <span className="truncate">{cs.label}</span>
                 </div>
                 <span className="font-bold text-foreground tabular-nums">{fmtOdds(cs.odds)}</span>
