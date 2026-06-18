@@ -251,8 +251,8 @@ const PlayerPicker = ({
       </div>
       <div className="flex flex-wrap gap-1.5">
         {roster.map(name => {
-          const country = getPlayerCountry(name);
-          const flag = country ? getCountryFlag(country) : "";
+          const country = resolvePlayerCountry(name);
+          const flag = country ? countryFlag(country) : "";
           const isSelected = name === selected;
           return (
             <button
