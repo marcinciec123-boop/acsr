@@ -483,12 +483,31 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-4 w-full max-w-xl mb-4">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl mb-4">
             <TabsTrigger value="score">Wynik</TabsTrigger>
             <TabsTrigger value="maps">Mapy ({maps.length}/{bo})</TabsTrigger>
+            <TabsTrigger value="compare">Porównanie</TabsTrigger>
             <TabsTrigger value="t1">Stats {match.team1 || "T1"}</TabsTrigger>
             <TabsTrigger value="t2">Stats {match.team2 || "T2"}</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="compare">
+            {match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && match.team2 !== "BYE" ? (
+              <MatchComparePanel
+                team1={match.team1}
+                team2={match.team2}
+                tier={tier}
+                bo={bo}
+                tournamentId={tournamentId}
+              />
+            ) : (
+              <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
+                <p className="text-sm text-muted-foreground font-mono">
+                  Porównanie dostępne po przypisaniu obu drużyn.
+                </p>
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="score" className="space-y-4">
             <div className="bg-card border border-border rounded-lg p-5">
