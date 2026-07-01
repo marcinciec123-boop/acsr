@@ -25,9 +25,9 @@ const LOSS_BASE = 6;
 const LOSS_UPSET_SLOPE = 0.28;  // łagodniejsza kara dla faworyta który przegrał
 const LOSS_EXPECTED_SLOPE = 0.32; // szybszy zanik kary dla underdoga
 
-const WIN_MIN = 2;
+const WIN_MIN = 5;
 const WIN_MAX = 70;
-const LOSS_MIN = 1;
+const LOSS_MIN = 5;
 const LOSS_MAX = 40;
 
 export interface VrsPrediction {

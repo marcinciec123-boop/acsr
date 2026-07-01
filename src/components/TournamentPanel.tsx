@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig, TeamData } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
+import { loadArchivedTeams } from "@/lib/teamManagement";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
@@ -140,7 +141,11 @@ const TournamentPanel = () => {
 
   const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
 
-  const allTeams = useMemo(() => liveRanking.filter(t => !t.isNational).map(t => t.name), [liveRanking]);
+  const archivedSet = useMemo(() => new Set(loadArchivedTeams()), [liveRanking, tournaments]);
+  const allTeams = useMemo(
+    () => liveRanking.filter(t => !t.isNational && !archivedSet.has(t.name)).map(t => t.name),
+    [liveRanking, archivedSet]
+  );
 
   const filteredTeams = useMemo(() => {
     const q = teamSearch.toLowerCase();
