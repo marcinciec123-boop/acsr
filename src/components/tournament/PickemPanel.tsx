@@ -485,9 +485,9 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                   hit ? "border-[hsl(var(--win))]/40" : wrong ? "border-destructive/40" : "border-border"
                                 )}>
                                   <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                                    <span className="flex items-center gap-1.5"><TeamLogo teamName={m.team1} size={16} rounded="sm" />{m.team1}</span>
+                                    <span className="flex items-center gap-1.5"><TeamLogo teamName={m.team1} size={16} rounded="md" />{m.team1}</span>
                                     <span>vs</span>
-                                    <span className="flex items-center gap-1.5">{m.team2}<TeamLogo teamName={m.team2} size={16} rounded="sm" /></span>
+                                    <span className="flex items-center gap-1.5">{m.team2}<TeamLogo teamName={m.team2} size={16} rounded="md" /></span>
                                   </div>
                                   <div className="grid grid-cols-2 gap-1">
                                     {[m.team1, m.team2].map(team => {
