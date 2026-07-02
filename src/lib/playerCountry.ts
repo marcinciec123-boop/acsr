@@ -55,13 +55,13 @@ export const resolvePlayerCountry = (player: string): string => {
   const manual = manualFaCache![player];
   if (manual) return manual;
 
-  // current team's country
-  const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
-  const teams = stored && stored.length > 0 ? stored : (teamDatabase as TeamData[]);
-  const onTeam = teams.find(t => t.roster?.includes(player));
-  if (onTeam?.country) return onTeam.country;
+  // NOTE: we deliberately do NOT fall back to the current team's country —
+  // a player's nationality must not silently become the team's country after
+  // a transfer. If none of the explicit sources know the player, we return "".
 
-  // previous team via transfer log
+  // previous team via transfer log (last resort, only if roster country wasn't
+  // used — this covers ex-players whose static entry is missing but who did
+  // pass through a team with a known country at some point).
   const transfers = getAllTransfers().filter(t => t.player === player);
   if (transfers.length > 0) {
     const last = transfers[transfers.length - 1];
