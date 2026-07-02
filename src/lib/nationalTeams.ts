@@ -60,10 +60,8 @@ export const playersByCountry = (): Record<string, string[]> => {
   Object.entries(playerNationalities).forEach(([nick, iso]) => push(iso, nick));
 
   // Include free agents (manual + transfer-derived) so they can be picked for
-  // national teams. Uses dynamic import to avoid a circular dep at module init.
+  // national teams.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getFreeAgents } = require("./freeAgents") as typeof import("./freeAgents");
     for (const fa of getFreeAgents()) push(fa.country, fa.player);
   } catch { /* ignore */ }
 
