@@ -47,15 +47,25 @@ export const buildNationalTeamName = (countryCode: string, customLabel?: string)
   return `${flag} ${label}`.trim();
 };
 
-/** Wszyscy zarejestrowani gracze (z mapy narodowości) pogrupowani po ISO kraju. */
+/** Wszyscy zarejestrowani gracze (z mapy narodowości + wolni agenci) pogrupowani po ISO kraju. */
 export const playersByCountry = (): Record<string, string[]> => {
   const map: Record<string, string[]> = {};
-  Object.entries(playerNationalities).forEach(([nick, iso]) => {
+  const push = (iso: string, nick: string) => {
     const key = (iso || "").toUpperCase();
-    if (!key) return;
+    if (!key || !nick) return;
     if (!map[key]) map[key] = [];
-    map[key].push(nick);
-  });
+    if (!map[key].includes(nick)) map[key].push(nick);
+  };
+  Object.entries(playerNationalities).forEach(([nick, iso]) => push(iso, nick));
+
+  // Include free agents (manual + transfer-derived) so they can be picked for
+  // national teams. Uses dynamic import to avoid a circular dep at module init.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getFreeAgents } = require("./freeAgents") as typeof import("./freeAgents");
+    for (const fa of getFreeAgents()) push(fa.country, fa.player);
+  } catch { /* ignore */ }
+
   Object.values(map).forEach(arr => arr.sort((a, b) => a.localeCompare(b)));
   return map;
 };
