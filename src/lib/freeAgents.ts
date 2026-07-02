@@ -123,8 +123,13 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   saveManualFreeAgents(list);
 
   if (country) {
-    playerNationalities[nick] = country;
-    setFreeAgentNationality(nick, country);
+    // Only backfill nationality when the player has no known nationality yet.
+    // Prevents disband/manual-FA flows from silently overwriting a player's
+    // real nationality with the last team's country.
+    if (!playerNationalities[nick]) {
+      playerNationalities[nick] = country;
+      setFreeAgentNationality(nick, country);
+    }
   }
   if (role) {
     playerRoles[nick] = role;
