@@ -13,6 +13,7 @@ import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, Qualifi
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
 import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
 import { loadArchivedTeams } from "@/lib/teamManagement";
+import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
