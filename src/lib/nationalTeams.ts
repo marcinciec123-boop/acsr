@@ -7,6 +7,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { loadFromStorage, saveToStorage } from "@/lib/storage";
+import { getFreeAgents } from "@/lib/freeAgents";
 import type { TeamData } from "@/lib/types";
 
 const RANKING_KEY = "ranking_data";
