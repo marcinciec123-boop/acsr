@@ -142,7 +142,12 @@ const TournamentPanel = () => {
 
   const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
 
-  const archivedSet = useMemo(() => new Set(loadArchivedTeams()), [liveRanking, tournaments]);
+  const archivedSet = useMemo(() => {
+    const s = new Set(loadArchivedTeams());
+    // Renamed teams: their oldName should not show up in tournament selection.
+    nameChanges.forEach(nc => s.add(nc.oldName));
+    return s;
+  }, [liveRanking, tournaments]);
   const allTeams = useMemo(
     () => liveRanking.filter(t => !t.isNational && !archivedSet.has(t.name)).map(t => t.name),
     [liveRanking, archivedSet]
