@@ -383,7 +383,7 @@ export const playerNationalities: Record<string, string> = {
   "gxx-": "XK",
   Krabeni: "XK",
   sinopsyy: "XK",
-  rigoN: "XK",
+  rigoN: "CH",
   // Quantum Bellator
   x1ron: "IR",
   kasya: "SD",

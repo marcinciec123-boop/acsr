@@ -538,17 +538,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           ex-{p.previousTeam}
                         </button>
                       )}
-                      {/* Inline nationality editor when missing */}
-                      {!p.country && !isEditingThis && (
+                      {/* Inline nationality editor — always available for FAs */}
+                      {!isEditingThis && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingFA(p.name);
-                            setFaCountryDraft("");
+                            setFaCountryDraft(p.country || "");
                           }}
                           className="mt-1 text-[10px] font-mono text-amber-400 hover:text-amber-300 underline decoration-dotted"
                         >
-                          + dodaj narodowość
+                          {p.country ? "✎ zmień narodowość" : "+ dodaj narodowość"}
                         </button>
                       )}
                       {isEditingThis && (

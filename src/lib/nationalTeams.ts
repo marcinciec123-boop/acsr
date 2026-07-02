@@ -7,6 +7,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { loadFromStorage, saveToStorage } from "@/lib/storage";
+import { getFreeAgents } from "@/lib/freeAgents";
 import type { TeamData } from "@/lib/types";
 
 const RANKING_KEY = "ranking_data";
@@ -47,15 +48,23 @@ export const buildNationalTeamName = (countryCode: string, customLabel?: string)
   return `${flag} ${label}`.trim();
 };
 
-/** Wszyscy zarejestrowani gracze (z mapy narodowości) pogrupowani po ISO kraju. */
+/** Wszyscy zarejestrowani gracze (z mapy narodowości + wolni agenci) pogrupowani po ISO kraju. */
 export const playersByCountry = (): Record<string, string[]> => {
   const map: Record<string, string[]> = {};
-  Object.entries(playerNationalities).forEach(([nick, iso]) => {
+  const push = (iso: string, nick: string) => {
     const key = (iso || "").toUpperCase();
-    if (!key) return;
+    if (!key || !nick) return;
     if (!map[key]) map[key] = [];
-    map[key].push(nick);
-  });
+    if (!map[key].includes(nick)) map[key].push(nick);
+  };
+  Object.entries(playerNationalities).forEach(([nick, iso]) => push(iso, nick));
+
+  // Include free agents (manual + transfer-derived) so they can be picked for
+  // national teams.
+  try {
+    for (const fa of getFreeAgents()) push(fa.country, fa.player);
+  } catch { /* ignore */ }
+
   Object.values(map).forEach(arr => arr.sort((a, b) => a.localeCompare(b)));
   return map;
 };
