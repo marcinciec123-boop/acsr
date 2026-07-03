@@ -103,37 +103,14 @@ const TournamentSummary = ({ tournament, simulation, matchStats, onClose }: Tour
         })}
       </div>
 
-      {/* Full placements table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-card border border-border rounded-lg overflow-hidden"
       >
-        <div className="px-4 py-3 bg-secondary/50 font-heading font-bold text-foreground text-sm flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          Pełna klasyfikacja
-        </div>
-        <div className="divide-y divide-border/50">
-          {placements.map((p, i) => (
-            <div key={p.team} className="flex items-center px-4 py-2 text-sm">
-              <span className="w-10 font-mono text-muted-foreground text-xs">#{p.placement}</span>
-              <span className={cn(
-                "flex-1 font-medium truncate",
-                p.placement === 1 ? "text-accent font-bold" : p.placement <= 4 ? "text-foreground" : "text-muted-foreground"
-              )}>
-                {p.team}
-              </span>
-              <span className={cn(
-                "font-mono text-xs",
-                p.points > 0 ? "text-win" : p.points < 0 ? "text-loss" : "text-muted-foreground"
-              )}>
-                {p.points > 0 ? "+" : ""}{p.points}
-              </span>
-            </div>
-          ))}
-        </div>
+        <FullResultsPanel tournament={tournament} simulation={simulation} />
       </motion.div>
+
 
       {/* MVP & Top Players */}
       {playerRankings.length > 0 && (
