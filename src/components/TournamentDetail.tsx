@@ -3,6 +3,7 @@ import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap } from "lucide-r
 import { type Tournament, type TournamentSimulation, type SwissResult, type GroupResult, type KnockoutResult, type MajorStage, type MatchResult } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import FullResultsPanel from "@/components/tournament/FullResultsPanel";
 
 interface TournamentDetailProps {
   tournament: Tournament;
@@ -232,6 +233,14 @@ const TournamentDetail = ({ tournament, simulation, onBack }: TournamentDetailPr
             <p className="text-3xl font-heading font-bold text-foreground">{simulation.winner}</p>
           </motion.div>
         )}
+
+        {/* Full results — placements + prize + rank change + roster */}
+        {tournament.status === "completed" && simulation.placements?.length > 0 && (
+          <div className="mb-8">
+            <FullResultsPanel tournament={tournament} simulation={simulation} />
+          </div>
+        )}
+
 
         {/* Major Stages tabs */}
         {tournament.format === "major" && simulation.majorStages && (

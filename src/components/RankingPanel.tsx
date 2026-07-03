@@ -97,7 +97,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     return { totalPoints, avgPoints, top, dominantRegion, regionsRanked, totalPlayers };
   }, [sorted]);
 
-  const maxPoints = sorted[0]?.points || 1;
+  
 
   const handleAdjust = () => {
     const pts = parseInt(adjPoints);
@@ -250,14 +250,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   </div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className={cn("text-2xl font-mono font-black", meta.color)}>
+                      <div className={cn("text-2xl font-mono font-black tracking-tight", meta.color)}>
                         {team.points.toLocaleString()}
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">punktów</div>
+                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">punktów rankingowych</div>
                     </div>
                     <div className="text-right text-[10px] font-mono text-muted-foreground">
                       <div>{team.roster.length} graczy</div>
-                      <div>{Math.round((team.points / maxPoints) * 100)}% lidera</div>
                     </div>
                   </div>
                 </motion.button>
@@ -357,13 +356,14 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
         {/* === MAIN TABLE === */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[60px_60px_1fr_90px_90px_1fr_90px_60px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+          {/* Header — desktop only */}
+          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             <div className="text-center">#</div>
             <div className="text-center">Trend</div>
             <div>Drużyna</div>
             <div className="text-center">Tier</div>
             <div className="text-center">Region</div>
-            <div>Punkty</div>
+            <div className="text-right">Punkty</div>
             <div className="text-right">Skład</div>
             <div className="text-right">Akcje</div>
           </div>
@@ -379,7 +379,33 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
             const isEditing = editingTeam === team.name;
             const tier = tierFor(globalRank);
             const trend = trendFor(team.name, globalRank);
-            const pct = (team.points / maxPoints) * 100;
+
+            const RankBadge = (
+              <span className={cn(
+                "inline-flex items-center justify-center rounded-md font-black text-xs border",
+                globalRank <= 3 ? "w-7 h-7" : "w-6 h-6",
+                globalRank === 1 && "text-[hsl(var(--gold))] border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.1)]",
+                globalRank === 2 && "text-[hsl(var(--silver))] border-[hsl(var(--silver)/0.4)] bg-[hsl(var(--silver)/0.1)]",
+                globalRank === 3 && "text-[hsl(var(--bronze))] border-[hsl(var(--bronze)/0.4)] bg-[hsl(var(--bronze)/0.1)]",
+                globalRank > 3 && "text-muted-foreground border-border bg-secondary/40",
+              )}>
+                {globalRank}
+              </span>
+            );
+
+            const PointsPill = (
+              <span className={cn(
+                "inline-flex items-baseline gap-1 rounded-md px-2 py-1 font-mono border",
+                globalRank <= 3
+                  ? "bg-gradient-to-r from-primary/15 to-accent/15 border-primary/40 text-foreground"
+                  : globalRank <= 15
+                    ? "bg-primary/10 border-primary/25 text-foreground"
+                    : "bg-secondary/60 border-border text-foreground"
+              )}>
+                <span className="text-sm font-black tracking-tight">{team.points.toLocaleString()}</span>
+                <span className="text-[9px] text-muted-foreground uppercase tracking-wider">pkt</span>
+              </span>
+            );
 
             return (
               <motion.div
@@ -388,62 +414,65 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: Math.min(i * 0.008, 0.4) }}
                 className={cn(
-                  "grid grid-cols-[60px_60px_1fr_90px_90px_1fr_90px_60px] gap-2 px-4 py-2.5 border-t border-border/40 items-center text-sm hover:bg-secondary/30 transition-colors group",
+                  "border-t border-border/40 items-center hover:bg-secondary/30 transition-colors group",
+                  // Mobile: compact 3-column row
+                  "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
+                  // Desktop: full table
+                  "md:grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
-                <div className="text-center font-mono">
-                  {globalRank <= 3 ? (
-                    <span className={cn(
-                      "inline-flex items-center justify-center w-7 h-7 rounded-md font-black text-xs border",
-                      globalRank === 1 && "text-[hsl(var(--gold))] border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.1)]",
-                      globalRank === 2 && "text-[hsl(var(--silver))] border-[hsl(var(--silver)/0.4)] bg-[hsl(var(--silver)/0.1)]",
-                      globalRank === 3 && "text-[hsl(var(--bronze))] border-[hsl(var(--bronze)/0.4)] bg-[hsl(var(--bronze)/0.1)]",
-                    )}>
-                      {globalRank}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">{globalRank}</span>
-                  )}
+                {/* Rank */}
+                <div className="text-center font-mono flex md:block justify-center">
+                  {RankBadge}
                 </div>
 
-                <div className="flex justify-center">
+                {/* Trend — desktop only */}
+                <div className="hidden md:flex justify-center">
                   <TrendBadge trend={trend} compact />
                 </div>
 
+                {/* Team */}
                 <div className="min-w-0">
                   <button
                     onClick={() => onSelectTeam?.(team.name)}
-                    className="flex items-center gap-2.5 group/team text-left min-w-0 w-full"
+                    className="flex items-center gap-2 md:gap-2.5 group/team text-left min-w-0 w-full"
                   >
-                    <TeamLogo teamName={team.name} size={32} rounded="md" />
+                    <TeamLogo teamName={team.name} size={28} rounded="md" />
                     <div className="min-w-0">
-                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate">
+                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base">
                         {team.name}
                       </div>
                       <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
                         <span>{countryFlag(team.country)}</span>
                         <span className="truncate">{team.country}</span>
+                        <span className="md:hidden text-border">•</span>
+                        <span className="md:hidden">{team.region}</span>
+                        <span className="md:hidden text-border">•</span>
+                        <span className={cn("md:hidden font-bold", tier.color)}>{tier.label}</span>
                       </div>
                     </div>
                   </button>
                 </div>
 
-                <div className="flex justify-center">
+                {/* Tier — desktop */}
+                <div className="hidden md:flex justify-center">
                   <span className={cn("inline-flex items-center justify-center w-7 h-7 rounded-md text-xs font-black border", tier.bg, tier.color)}>
                     {tier.label}
                   </span>
                 </div>
 
-                <div className="text-center text-xs text-muted-foreground font-mono">{team.region}</div>
+                {/* Region — desktop */}
+                <div className="hidden md:block text-center text-xs text-muted-foreground font-mono">{team.region}</div>
 
-                <div className="space-y-1">
+                {/* Points — desktop */}
+                <div className="hidden md:block text-right">
                   {isEditing ? (
                     <Input
                       type="number"
                       value={editPoints}
                       onChange={e => setEditPoints(e.target.value)}
-                      className="h-7 w-24 text-xs"
+                      className="h-7 w-24 text-xs ml-auto"
                       autoFocus
                       onKeyDown={e => {
                         if (e.key === "Enter") handleInlineEdit(team.name);
@@ -451,28 +480,17 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       }}
                     />
                   ) : (
-                    <>
-                      <div className="font-mono font-bold text-foreground text-sm">{team.points.toLocaleString()}</div>
-                      <div className="h-1 w-full max-w-[140px] bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            globalRank <= 3 ? "bg-gradient-to-r from-primary to-accent" :
-                            globalRank <= 15 ? "bg-primary/70" :
-                            "bg-muted-foreground/40"
-                          )}
-                          style={{ width: `${Math.max(2, pct)}%` }}
-                        />
-                      </div>
-                    </>
+                    <div className="flex justify-end">{PointsPill}</div>
                   )}
                 </div>
 
-                <div className="text-right text-xs font-mono text-muted-foreground">
+                {/* Roster — desktop */}
+                <div className="hidden md:block text-right text-xs font-mono text-muted-foreground">
                   {team.roster.length}
                 </div>
 
-                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Actions — desktop */}
+                <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {isEditing ? (
                     <>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleInlineEdit(team.name)}>
@@ -492,6 +510,12 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       <Edit3 className="w-3 h-3" />
                     </Button>
                   )}
+                </div>
+
+                {/* Mobile: points pill on the right */}
+                <div className="md:hidden flex items-center gap-1">
+                  {PointsPill}
+                  <TrendBadge trend={trend} compact />
                 </div>
               </motion.div>
             );
