@@ -250,14 +250,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   </div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className={cn("text-2xl font-mono font-black", meta.color)}>
+                      <div className={cn("text-2xl font-mono font-black tracking-tight", meta.color)}>
                         {team.points.toLocaleString()}
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">punktów</div>
+                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">punktów rankingowych</div>
                     </div>
                     <div className="text-right text-[10px] font-mono text-muted-foreground">
                       <div>{team.roster.length} graczy</div>
-                      <div>{Math.round((team.points / maxPoints) * 100)}% lidera</div>
                     </div>
                   </div>
                 </motion.button>
