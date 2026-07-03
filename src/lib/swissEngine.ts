@@ -323,14 +323,45 @@ export function planNextSwissRound(
   return { round, pairings, byes };
 }
 
-/** Greedy pairing top-vs-bottom that avoids rematches when possible.
- *  Tries swapping if the natural pairing would be a rematch. */
+/** Top-vs-bottom pairing that GUARANTEES no rematch whenever any rematch-free
+ *  perfect pairing exists (backtracking). Falls back to a greedy pairing that
+ *  minimises the number of rematches only when no perfect pairing is possible. */
 function pairBucket(sorted: SwissTeamStanding[]): [SwissTeamStanding, SwissTeamStanding][] {
+  if (sorted.length < 2) return [];
+
+  // 1) Try backtracking search for a perfect no-rematch pairing.
+  const used = new Array(sorted.length).fill(false);
+  const chosen: [number, number][] = [];
+
+  const solve = (): boolean => {
+    // Find first free index
+    let i = -1;
+    for (let k = 0; k < sorted.length; k++) if (!used[k]) { i = k; break; }
+    if (i === -1) return true;
+    used[i] = true;
+    // Prefer bottom-of-bucket opponent first (classic top-vs-bottom seeding)
+    for (let j = sorted.length - 1; j > i; j--) {
+      if (used[j]) continue;
+      if (sorted[i].pastOpponents.has(sorted[j].team)) continue;
+      used[j] = true;
+      chosen.push([i, j]);
+      if (solve()) return true;
+      chosen.pop();
+      used[j] = false;
+    }
+    used[i] = false;
+    return false;
+  };
+
+  if (solve()) {
+    return chosen.map(([a, b]) => [sorted[a], sorted[b]] as [SwissTeamStanding, SwissTeamStanding]);
+  }
+
+  // 2) Fallback: greedy top-vs-bottom, accept rematch only as last resort.
   const pairs: [SwissTeamStanding, SwissTeamStanding][] = [];
   const remaining = [...sorted];
   while (remaining.length >= 2) {
     const top = remaining.shift()!;
-    // pick the lowest seed not already faced; if all faced, accept rematch.
     let oppIdx = remaining.length - 1;
     for (let i = remaining.length - 1; i >= 0; i--) {
       if (!top.pastOpponents.has(remaining[i].team)) { oppIdx = i; break; }
