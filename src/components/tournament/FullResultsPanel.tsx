@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Medal, Award, TrendingUp, ChevronDown, ChevronUp, Users, DollarSign, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
-import type { Tournament, TournamentSimulation, TeamData } from "@/data/tournaments";
+import type { Tournament, TournamentSimulation } from "@/data/tournaments";
+import type { TeamData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { distributePrizePool, parsePrizePool, formatMoney } from "@/lib/prizeDistribution";
