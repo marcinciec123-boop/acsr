@@ -33,7 +33,7 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
   // Current ranking (post-tournament, since ranking is applied when tournament ends)
   const currentTeams = loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase;
   const currentRankMap = useMemo(() => {
-    const sorted = [...currentTeams].filter(t => !t.isNational).sort((a, b) => b.points - a.points);
+    const sorted = [...currentTeams].filter(t => !(t as unknown as { isNational?: boolean }).isNational).sort((a, b) => b.points - a.points);
     const map: Record<string, number> = {};
     sorted.forEach((t, i) => { map[t.name] = i + 1; });
     return map;
