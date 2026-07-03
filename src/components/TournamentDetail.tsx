@@ -3,6 +3,7 @@ import { ArrowLeft, Trophy, MapPin, Users, Calendar, Crown, Zap } from "lucide-r
 import { type Tournament, type TournamentSimulation, type SwissResult, type GroupResult, type KnockoutResult, type MajorStage, type MatchResult } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import FullResultsPanel from "@/components/tournament/FullResultsPanel";
 
 interface TournamentDetailProps {
   tournament: Tournament;
