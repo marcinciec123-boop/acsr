@@ -393,38 +393,93 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap mb-6">
+        {/* Filters + view mode */}
+        <div className="flex items-center gap-2 flex-wrap mb-4">
           <Filter className="w-4 h-4 text-muted-foreground" />
           {(["all", "S", "A", "B", "C"] as TierFilter[]).map((t) => (
             <button
               key={t}
               onClick={() => setTierFilter(t)}
               className={cn(
-                "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
                 tierFilter === t ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
               )}
             >
-              {t === "all" ? "Wszystkie" : `Tier ${t}`}
+              {t === "all" ? "Tier" : t}
             </button>
           ))}
           <div className="w-px h-5 bg-border mx-1" />
-          {(["all", "upcoming", "completed"] as StatusFilter[]).map((s) => (
+          {(["all", "live", "upcoming", "completed"] as StatusFilter[]).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "px-3 py-1 text-xs font-mono rounded border transition-colors",
+                "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
                 statusFilter === s ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
               )}
             >
-              {s === "all" ? "Status" : s === "upcoming" ? "Nadchodzące" : "Zakończone"}
+              {s === "all" ? "Status" : s === "upcoming" ? "Nadchodzące" : s === "completed" ? "Zakończone" : "LIVE"}
             </button>
           ))}
+          <div className="w-px h-5 bg-border mx-1" />
+          <select
+            value={formatFilter}
+            onChange={(e) => setFormatFilter(e.target.value as FormatFilter)}
+            className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/40 text-foreground"
+          >
+            <option value="all">Format</option>
+            <option value="knockout">KO</option>
+            <option value="swiss+knockout">Swiss+KO</option>
+            <option value="groups+knockout">Grupy+KO</option>
+            <option value="major">Major</option>
+          </select>
+          <select
+            value={yearFilter === "all" ? "all" : String(yearFilter)}
+            onChange={(e) => setYearFilter(e.target.value === "all" ? "all" : parseInt(e.target.value))}
+            className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/40 text-foreground"
+          >
+            <option value="all">Rok</option>
+            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+
+          <div className="ml-auto flex items-center gap-1 rounded-md border border-border bg-secondary/40 p-0.5">
+            {([
+              { mode: "list" as const, label: "Lista", Icon: List },
+              { mode: "month" as const, label: "Miesiąc", Icon: LayoutGrid },
+              { mode: "year" as const, label: "Rok", Icon: CalendarDays },
+            ]).map(({ mode, label, Icon }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 text-[11px] font-mono rounded transition-colors",
+                  viewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="w-3 h-3" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Calendar views */}
+        {viewMode !== "list" && (
+          <TournamentCalendar
+            tournaments={filtered}
+            view={viewMode}
+            onOpen={(id) => {
+              if (simResults[id]) setSelectedId(id);
+              else {
+                const tt = tournaments.find(x => x.id === id);
+                if (tt?.status === "upcoming") onPlayTournament(id);
+              }
+            }}
+          />
+        )}
+
         {/* Tournament list */}
-        {Object.entries(grouped).map(([month, monthTournaments]) => {
+        {viewMode === "list" && Object.entries(grouped).map(([month, monthTournaments]) => {
           // Group qualifiers under their parent major
           const isQualifier = (t: Tournament) => /elimination|qualifier|open\s*qual|closed\s*qual/i.test(t.name);
           const qualKey = (t: Tournament) => {
