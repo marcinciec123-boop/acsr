@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown, ChevronDown, Layers } from "lucide-react";
+import { MapPin, Users, Trophy, Zap, ChevronRight, Filter, Play, RotateCcw, FastForward, Shield, Crown, ChevronDown, Layers, List, CalendarDays, LayoutGrid } from "lucide-react";
 import { type Tournament, type TournamentSimulation, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
+import TournamentCalendar from "./tournament/TournamentCalendar";
 
 const statusConfig = {
   live: { label: "LIVE", className: "bg-destructive/20 text-destructive border-destructive/40" },
