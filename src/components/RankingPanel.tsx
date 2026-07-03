@@ -97,7 +97,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     return { totalPoints, avgPoints, top, dominantRegion, regionsRanked, totalPlayers };
   }, [sorted]);
 
-  const maxPoints = sorted[0]?.points || 1;
+  
 
   const handleAdjust = () => {
     const pts = parseInt(adjPoints);
