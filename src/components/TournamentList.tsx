@@ -265,6 +265,8 @@ const QualifierBundleCard = ({
 
 type TierFilter = "all" | "S" | "A" | "B" | "C";
 type StatusFilter = "all" | "live" | "upcoming" | "completed";
+type FormatFilter = "all" | "knockout" | "swiss+knockout" | "groups+knockout" | "major";
+type ViewMode = "list" | "month" | "year";
 
 interface TournamentListProps {
   tournaments: Tournament[];
@@ -280,17 +282,29 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>("all");
+  const [yearFilter, setYearFilter] = useState<number | "all">("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const sorted = [...tournaments].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   const nextUpcoming = sorted.find((t) => t.status === "upcoming");
   const completedCount = tournaments.filter((t) => t.status === "completed").length;
   const totalCount = tournaments.length;
 
+  const availableYears = useMemo(() => {
+    const s = new Set<number>();
+    tournaments.forEach(t => s.add(new Date(t.startDate).getFullYear()));
+    return Array.from(s).sort();
+  }, [tournaments]);
+
   const filtered = sorted.filter((t) => {
     if (tierFilter !== "all" && t.tier !== tierFilter) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (formatFilter !== "all" && t.format !== formatFilter) return false;
+    if (yearFilter !== "all" && new Date(t.startDate).getFullYear() !== yearFilter) return false;
     return true;
   });
+
 
   const grouped = filtered.reduce<Record<string, Tournament[]>>((acc, t) => {
     const key = new Date(t.startDate).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
