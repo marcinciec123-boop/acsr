@@ -234,6 +234,14 @@ const TournamentDetail = ({ tournament, simulation, onBack }: TournamentDetailPr
           </motion.div>
         )}
 
+        {/* Full results — placements + prize + rank change + roster */}
+        {tournament.status === "completed" && simulation.placements?.length > 0 && (
+          <div className="mb-8">
+            <FullResultsPanel tournament={tournament} simulation={simulation} />
+          </div>
+        )}
+
+
         {/* Major Stages tabs */}
         {tournament.format === "major" && simulation.majorStages && (
           <div className="mb-6">
