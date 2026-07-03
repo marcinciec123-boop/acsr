@@ -3,6 +3,7 @@ import { Trophy, Crown, Medal, TrendingUp, Target, Star, ArrowRight } from "luci
 import { type TournamentSimulation, type Tournament, type TeamPlacement } from "@/data/tournaments";
 import { type MatchStats } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
+import FullResultsPanel from "@/components/tournament/FullResultsPanel";
 
 interface TournamentSummaryProps {
   tournament: Tournament;
