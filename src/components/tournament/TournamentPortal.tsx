@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy, Plus, Calendar, MapPin, DollarSign, Users as UsersIcon,
   Radio, Clock, CheckCircle2, ChevronRight, Filter, Layers, ChevronDown,
+  CalendarDays, LayoutGrid, List, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,10 @@ interface Props {
   onCreateWorlds?: () => void;
 }
 
-type StatusFilter = "live" | "upcoming" | "completed";
+type StatusFilter = "ALL" | "live" | "upcoming" | "completed";
 type TierFilter = "ALL" | "S" | "A" | "B" | "C";
+type ViewMode = "month" | "year" | "list";
+type FormatFilter = "ALL" | string;
 
 const tierColor = (tier: string) => {
   switch (tier) {
@@ -49,6 +52,47 @@ const formatYear = (d: string) => {
   try {
     return new Date(d).getFullYear().toString();
   } catch { return ""; }
+};
+
+const fullDate = (d: string) => {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return d; }
+};
+
+const monthKey = (d: string) => {
+  if (!d) return "Bez daty";
+  try {
+    return new Date(d).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+  } catch { return "Bez daty"; }
+};
+
+const dateRangeDays = (start: string, end: string): string[] => {
+  if (!start) return [];
+  const out: string[] = [];
+  const s = new Date(start);
+  const e = new Date(end || start);
+  const cur = new Date(s);
+  if (Number.isNaN(cur.getTime())) return [];
+  while (cur <= e) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out.length ? out : [start];
+};
+
+const statusLabel = (status: TournamentData["status"]) =>
+  status === "live" ? "Na żywo" : status === "upcoming" ? "Nadchodzący" : "Zakończony";
+
+const statusDot = (status: TournamentData["status"]) =>
+  status === "live" ? "bg-[hsl(var(--win))] animate-pulse" : status === "upcoming" ? "bg-primary" : "bg-muted-foreground";
+
+const initialCalendarDate = (tournaments: TournamentData[]) => {
+  const sorted = [...tournaments].filter(t => t.startDate).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const next = sorted.find(t => t.status !== "completed") || sorted[sorted.length - 1];
+  const date = next ? new Date(next.startDate) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
 };
 
 const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void }) => {
