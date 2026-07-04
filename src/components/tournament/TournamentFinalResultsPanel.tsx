@@ -1,0 +1,219 @@
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, TrendingUp, Users } from "lucide-react";
+import type { TeamData, TournamentData } from "@/lib/types";
+import { teamDatabase } from "@/data/tournaments";
+import { resolvePoints } from "@/lib/customPoints";
+import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
+import { resolveLineup } from "@/lib/tournamentLineups";
+import { loadFromStorage } from "@/lib/storage";
+import { countryFlag } from "@/lib/flags";
+import { cn } from "@/lib/utils";
+import TeamLogo from "@/components/TeamLogo";
+
+interface Props {
+  tournament: TournamentData;
+}
+
+const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
+
+const winnerOf = (score1: number, score2: number, team1: string, team2: string) => {
+  if (!isRealTeam(team1) || !isRealTeam(team2) || score1 + score2 === 0 || score1 === score2) return "";
+  return score1 > score2 ? team1 : team2;
+};
+
+const loserOf = (score1: number, score2: number, team1: string, team2: string) => {
+  if (!isRealTeam(team1) || !isRealTeam(team2) || score1 + score2 === 0 || score1 === score2) return "";
+  return score1 > score2 ? team2 : team1;
+};
+
+const derivePlacements = (tournament: TournamentData): TournamentData["placements"] => {
+  const out: TournamentData["placements"] = [];
+  const placed = new Set<string>();
+  const add = (team: string, placement: number) => {
+    if (!isRealTeam(team) || placed.has(team)) return;
+    out.push({ team, placement, points: resolvePoints(tournament, placement) });
+    placed.add(team);
+  };
+
+  const finalPhase = tournament.phases[tournament.phases.length - 1];
+  const bracket = finalPhase?.bracket || [];
+  const rounds = Array.from(new Set(bracket.map(m => m.round || "Match")));
+  const finalRound = rounds.find(r => /grand\s*final/i.test(r))
+    || rounds.find(r => /^final$/i.test(r))
+    || rounds.find(r => /final/i.test(r))
+    || rounds[rounds.length - 1];
+
+  bracket
+    .filter(m => (m.round || "Match") === finalRound)
+    .forEach(m => {
+      add(winnerOf(m.score1, m.score2, m.team1, m.team2), 1);
+      add(loserOf(m.score1, m.score2, m.team1, m.team2), 2);
+    });
+
+  const semiRound = rounds.find(r => /semi/i.test(r));
+  if (semiRound) {
+    bracket
+      .filter(m => (m.round || "Match") === semiRound)
+      .forEach(m => add(loserOf(m.score1, m.score2, m.team1, m.team2), 3));
+  }
+
+  for (let i = rounds.length - 1; i >= 0; i--) {
+    bracket
+      .filter(m => (m.round || "Match") === rounds[i])
+      .forEach(m => add(loserOf(m.score1, m.score2, m.team1, m.team2), out.length + 1));
+  }
+
+  tournament.participants.forEach(team => add(team, out.length + 1));
+  return out.sort((a, b) => a.placement - b.placement || a.team.localeCompare(b.team));
+};
+
+const medalFor = (place: number) => {
+  if (place === 1) return { Icon: Crown, className: "text-[hsl(var(--gold))]" };
+  if (place === 2) return { Icon: Medal, className: "text-[hsl(var(--silver))]" };
+  if (place === 3) return { Icon: Award, className: "text-[hsl(var(--bronze))]" };
+  return { Icon: null, className: "text-muted-foreground" };
+};
+
+export const TournamentFinalResultsPanel = ({ tournament }: Props) => {
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  const placements = useMemo(() => {
+    const source = tournament.placements?.length ? tournament.placements : derivePlacements(tournament);
+    return source.slice().sort((a, b) => a.placement - b.placement || a.team.localeCompare(b.team));
+  }, [tournament]);
+
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+  const rankMap = useMemo(() => {
+    const sorted = [...ranking]
+      .filter(team => !team.isNational)
+      .sort((a, b) => (b.points || 0) - (a.points || 0));
+    return new Map(sorted.map((team, index) => [team.name, index + 1]));
+  }, [ranking]);
+
+  const teamMeta = useMemo(() => new Map([...teamDatabase, ...ranking].map(team => [team.name, team])), [ranking]);
+  const totalPool = parsePrizePool(tournament.prizePool);
+  const prizeMap = useMemo(
+    () => distributePrizePool(totalPool, Math.max(tournament.teams || 0, placements.length)),
+    [placements.length, totalPool, tournament.teams],
+  );
+
+  if (tournament.status !== "completed" || placements.length === 0) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
+      <div className="px-4 py-3 border-b border-border bg-secondary/40 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-primary" />
+        <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+          Pełne rezultaty końcowe
+        </h3>
+        <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+          {placements.length} miejsc • pula {tournament.prizePool || "$0"}
+        </span>
+      </div>
+
+      <div className="hidden md:grid grid-cols-[70px_1fr_90px_110px_120px_36px] gap-2 px-4 py-2 bg-background/40 border-b border-border/60 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="text-center">Miejsce</div>
+        <div>Drużyna i skład</div>
+        <div className="text-right">Pkt VRS</div>
+        <div className="text-right">Wygrana</div>
+        <div className="text-center">Rank po</div>
+        <div />
+      </div>
+
+      <div className="divide-y divide-border/50">
+        {placements.map((placement, index) => {
+          const medal = medalFor(placement.placement);
+          const lineup = resolveLineup(tournament.id, placement.team);
+          const rank = rankMap.get(placement.team);
+          const meta = teamMeta.get(placement.team);
+          const prize = prizeMap[placement.placement] || 0;
+          const isOpen = expandedTeam === placement.team;
+          const Icon = medal.Icon;
+
+          return (
+            <motion.div
+              key={`${placement.placement}-${placement.team}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: Math.min(index * 0.015, 0.25) }}
+              className={cn(
+                placement.placement === 1 && "bg-[hsl(var(--gold))]/5",
+                placement.placement === 2 && "bg-[hsl(var(--silver))]/5",
+                placement.placement === 3 && "bg-[hsl(var(--bronze))]/5",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => setExpandedTeam(isOpen ? null : placement.team)}
+                className="w-full grid grid-cols-[42px_1fr_auto] md:grid-cols-[70px_1fr_90px_110px_120px_36px] gap-2 px-3 md:px-4 py-3 items-center text-left hover:bg-secondary/30 transition-colors"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  {Icon && <Icon className={cn("w-4 h-4", medal.className)} />}
+                  <span className={cn("font-mono font-black text-xs", medal.className)}>#{placement.placement}</span>
+                </div>
+
+                <div className="min-w-0 flex items-center gap-2.5">
+                  <TeamLogo teamName={placement.team} size={30} rounded="md" />
+                  <div className="min-w-0">
+                    <div className="font-heading font-bold text-foreground truncate flex items-center gap-1.5">
+                      {meta?.country && <span className="text-xs">{countryFlag(meta.country)}</span>}
+                      <span className="truncate">{placement.team}</span>
+                    </div>
+                    <div className="text-[10px] font-mono text-muted-foreground truncate">
+                      {lineup.length ? lineup.join(" • ") : "Brak zapisanego składu"}
+                    </div>
+                    <div className="md:hidden text-[10px] font-mono text-muted-foreground mt-0.5">
+                      <span className={placement.points >= 0 ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]"}>
+                        {placement.points > 0 ? "+" : ""}{placement.points} pkt
+                      </span>
+                      <span> • {formatMoney(prize)} • rank #{rank ?? "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={cn(
+                  "hidden md:block text-right font-mono font-bold tabular-nums",
+                  placement.points > 0 ? "text-[hsl(var(--win))]" : placement.points < 0 ? "text-[hsl(var(--loss))]" : "text-muted-foreground",
+                )}>
+                  {placement.points > 0 ? "+" : ""}{placement.points}
+                </div>
+
+                <div className="hidden md:flex items-center justify-end gap-1 text-xs font-mono text-foreground tabular-nums">
+                  {prize > 0 && <DollarSign className="w-3 h-3 text-[hsl(var(--gold))]" />}
+                  {formatMoney(prize)}
+                </div>
+
+                <div className="hidden md:flex items-center justify-center gap-1.5 text-xs font-mono">
+                  <span className="font-bold text-foreground">#{rank ?? "—"}</span>
+                  {rank ? <Minus className="w-3 h-3 text-muted-foreground" /> : null}
+                </div>
+
+                <div className="flex justify-end">
+                  {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="px-4 pb-4 pt-1">
+                  <div className="flex items-center gap-1.5 mb-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    <Users className="w-3 h-3" /> Skład grający w tym turnieju
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lineup.length ? lineup.map(player => (
+                      <span key={player} className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/50 text-foreground">
+                        {player}
+                      </span>
+                    )) : (
+                      <span className="text-xs font-mono text-muted-foreground">Brak danych o składzie.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

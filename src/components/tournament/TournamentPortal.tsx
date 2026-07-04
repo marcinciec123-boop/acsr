@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy, Plus, Calendar, MapPin, DollarSign, Users as UsersIcon,
   Radio, Clock, CheckCircle2, ChevronRight, Filter, Layers, ChevronDown,
+  CalendarDays, LayoutGrid, List, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,10 @@ interface Props {
   onCreateWorlds?: () => void;
 }
 
-type StatusFilter = "live" | "upcoming" | "completed";
+type StatusFilter = "ALL" | "live" | "upcoming" | "completed";
 type TierFilter = "ALL" | "S" | "A" | "B" | "C";
+type ViewMode = "month" | "year" | "list";
+type FormatFilter = "ALL" | string;
 
 const tierColor = (tier: string) => {
   switch (tier) {
@@ -49,6 +52,47 @@ const formatYear = (d: string) => {
   try {
     return new Date(d).getFullYear().toString();
   } catch { return ""; }
+};
+
+const fullDate = (d: string) => {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return d; }
+};
+
+const monthKey = (d: string) => {
+  if (!d) return "Bez daty";
+  try {
+    return new Date(d).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+  } catch { return "Bez daty"; }
+};
+
+const dateRangeDays = (start: string, end: string): string[] => {
+  if (!start) return [];
+  const out: string[] = [];
+  const s = new Date(start);
+  const e = new Date(end || start);
+  const cur = new Date(s);
+  if (Number.isNaN(cur.getTime())) return [];
+  while (cur <= e) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out.length ? out : [start];
+};
+
+const statusLabel = (status: TournamentData["status"]) =>
+  status === "live" ? "Na żywo" : status === "upcoming" ? "Nadchodzący" : "Zakończony";
+
+const statusDot = (status: TournamentData["status"]) =>
+  status === "live" ? "bg-[hsl(var(--win))] animate-pulse" : status === "upcoming" ? "bg-primary" : "bg-muted-foreground";
+
+const initialCalendarDate = (tournaments: TournamentData[]) => {
+  const sorted = [...tournaments].filter(t => t.startDate).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const next = sorted.find(t => t.status !== "completed") || sorted[sorted.length - 1];
+  const date = next ? new Date(next.startDate) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
 };
 
 const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void }) => {
@@ -424,9 +468,244 @@ const QualifierBundleCard = ({
   );
 };
 
+const CalendarEventButton = ({ t, onSelect, dense = false }: { t: TournamentData; onSelect: (id: string) => void; dense?: boolean }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(t.id)}
+    className={cn(
+      "w-full text-left rounded border transition-colors hover:border-primary/60 hover:bg-primary/10 min-w-0",
+      dense ? "px-1.5 py-1" : "px-2 py-1.5",
+      tierColor(t.tier),
+    )}
+    title={`${t.name} • ${fullDate(t.startDate)} → ${fullDate(t.endDate)}`}
+  >
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
+      <span className={cn("font-heading font-bold truncate", dense ? "text-[10px]" : "text-xs")}>{t.name}</span>
+      {t.status === "completed" && (
+        <span className="ml-auto shrink-0 text-[9px] font-mono text-[hsl(var(--win))]">wyniki</span>
+      )}
+    </div>
+    {!dense && (
+      <div className="mt-0.5 flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+        <span>{t.tier}-Tier</span>
+        <span>•</span>
+        <span className="truncate">{t.format}</span>
+      </div>
+    )}
+  </button>
+);
+
+const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const initial = initialCalendarDate(tournaments);
+  const [year, setYear] = useState(initial.getFullYear());
+  const [month, setMonth] = useState(initial.getMonth());
+
+  const dayIndex = useMemo(() => {
+    const map: Record<string, TournamentData[]> = {};
+    tournaments.forEach(t => {
+      dateRangeDays(t.startDate, t.endDate).forEach(day => {
+        (map[day] ??= []).push(t);
+      });
+    });
+    Object.values(map).forEach(items => items.sort((a, b) => a.startDate.localeCompare(b.startDate)));
+    return map;
+  }, [tournaments]);
+
+  const first = new Date(year, month, 1);
+  const startDow = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-border bg-secondary/40">
+        <button
+          type="button"
+          onClick={() => {
+            if (month === 0) { setMonth(11); setYear(v => v - 1); }
+            else setMonth(v => v - 1);
+          }}
+          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <div className="text-center">
+          <h3 className="font-heading font-black text-lg text-foreground capitalize">
+            {first.toLocaleDateString("pl-PL", { month: "long", year: "numeric" })}
+          </h3>
+          <p className="text-[10px] font-mono text-muted-foreground">Kliknij turniej, żeby otworzyć panel i wyniki</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (month === 11) { setMonth(0); setYear(v => v + 1); }
+            else setMonth(v => v + 1);
+          }}
+          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 border-b border-border/60 bg-background/40 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        {["Pon", "Wto", "Śro", "Czw", "Pią", "Sob", "Nie"].map(day => (
+          <div key={day} className="text-center py-2">{day}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7">
+        {cells.map((day, index) => {
+          if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
+          const iso = day.toISOString().slice(0, 10);
+          const events = dayIndex[iso] || [];
+          const today = iso === new Date().toISOString().slice(0, 10);
+          return (
+            <div
+              key={iso}
+              className={cn(
+                "min-h-24 sm:min-h-32 border-l border-t border-border/30 p-1.5 flex flex-col gap-1 min-w-0",
+                today && "bg-primary/10",
+              )}
+            >
+              <span className={cn("text-[10px] font-mono", today ? "text-primary font-black" : "text-muted-foreground")}>{day.getDate()}</span>
+              <div className="space-y-1 overflow-hidden">
+                {events.slice(0, 4).map(t => <CalendarEventButton key={t.id} t={t} onSelect={onSelect} dense />)}
+                {events.length > 4 && <span className="block text-[9px] font-mono text-muted-foreground px-1">+{events.length - 4} więcej</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const years = useMemo(() => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(), [tournaments]);
+  const [year, setYear] = useState(years[years.length - 1] || String(new Date().getFullYear()));
+  const yearTournaments = tournaments
+    .filter(t => formatYear(t.startDate) === year || formatYear(t.endDate) === year)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-border bg-secondary/40">
+        <button type="button" onClick={() => setYear(String(Number(year) - 1))} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <h3 className="font-heading font-black text-lg text-foreground">Sezon {year}</h3>
+        <button type="button" onClick={() => setYear(String(Number(year) + 1))} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="hidden md:grid grid-cols-[220px_1fr] border-b border-border/60 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="px-3 py-2">Turniej</div>
+        <div className="grid grid-cols-12">
+          {["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"].map(m => (
+            <div key={m} className="text-center py-2 border-l border-border/30">{m}</div>
+          ))}
+        </div>
+      </div>
+
+      <div className="divide-y divide-border/40">
+        {yearTournaments.map(t => {
+          const start = new Date(t.startDate);
+          const end = new Date(t.endDate || t.startDate);
+          const startDay = start.getFullYear() === Number(year) ? start.getMonth() * 30 + start.getDate() : 0;
+          const endDay = end.getFullYear() === Number(year) ? end.getMonth() * 30 + end.getDate() : 360;
+          const left = Math.max(0, Math.min(98, (startDay / 360) * 100));
+          const width = Math.max(2, Math.min(100 - left, ((endDay - startDay + 1) / 360) * 100));
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onSelect(t.id)}
+              className="w-full grid grid-cols-1 md:grid-cols-[220px_1fr] items-center text-left hover:bg-secondary/30 transition-colors"
+            >
+              <div className="px-3 py-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
+                  <span className="text-sm font-heading font-bold text-foreground truncate">{t.name}</span>
+                </div>
+                <div className="mt-0.5 text-[10px] font-mono text-muted-foreground">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {statusLabel(t.status)}</div>
+              </div>
+              <div className="relative h-9 px-3 hidden md:block">
+                <div className="absolute inset-y-0 left-3 right-3 grid grid-cols-12">
+                  {Array.from({ length: 12 }).map((_, i) => <div key={i} className="border-l border-border/20" />)}
+                </div>
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  style={{ left: `${left}%`, width: `${width}%`, transformOrigin: "left" }}
+                  className={cn(
+                    "absolute top-2 h-5 rounded-md border",
+                    t.status === "completed" ? "bg-muted/60 border-border" : t.status === "live" ? "bg-[hsl(var(--win))]/20 border-[hsl(var(--win))]/50" : "bg-primary/20 border-primary/50",
+                  )}
+                />
+              </div>
+            </button>
+          );
+        })}
+        {yearTournaments.length === 0 && <div className="py-12 text-center text-sm font-mono text-muted-foreground">Brak turniejów w {year}.</div>}
+      </div>
+    </div>
+  );
+};
+
+const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const grouped = tournaments.reduce<Record<string, TournamentData[]>>((acc, t) => {
+    const key = monthKey(t.startDate);
+    (acc[key] ??= []).push(t);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      {Object.entries(grouped).map(([month, items]) => (
+        <div key={month}>
+          <h3 className="font-heading text-sm font-bold text-primary uppercase tracking-wider border-b border-border pb-2 mb-3 capitalize">{month}</h3>
+          <div className="space-y-2">
+            {items.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onSelect(t.id)}
+                className="w-full grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-secondary/30 transition-colors text-left"
+              >
+                <span className={cn("text-[10px] font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>{t.tier}-Tier</span>
+                <div className="min-w-0">
+                  <div className="font-heading font-bold text-foreground truncate">{t.name}</div>
+                  <div className="text-[10px] font-mono text-muted-foreground truncate">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {t.format} • {t.location || "—"}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono", t.status === "completed" ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", statusDot(t.status))} />
+                    {t.status === "completed" ? "wyniki" : statusLabel(t.status)}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>("ALL");
+  const [yearFilter, setYearFilter] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
 
   const counts = useMemo(() => ({
     live: tournaments.filter(t => t.status === "live").length,
@@ -434,36 +713,50 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
     completed: tournaments.filter(t => t.status === "completed").length,
   }), [tournaments]);
 
-  // Auto-fallback: if active tab is empty, switch to non-empty one
-  const effectiveStatus: StatusFilter = useMemo(() => {
-    if (counts[statusFilter] > 0) return statusFilter;
-    if (counts.live > 0) return "live";
-    if (counts.upcoming > 0) return "upcoming";
-    return "completed";
-  }, [statusFilter, counts]);
+  const availableYears = useMemo(
+    () => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(),
+    [tournaments],
+  );
+
+  const availableFormats = useMemo(
+    () => Array.from(new Set(tournaments.map(t => t.format).filter(Boolean))).sort(),
+    [tournaments],
+  );
 
   const filtered = useMemo(() => {
-    let list = tournaments.filter(t => t.status === effectiveStatus);
+    let list = [...tournaments];
+    if (statusFilter !== "ALL") list = list.filter(t => t.status === statusFilter);
     if (tierFilter !== "ALL") list = list.filter(t => t.tier === tierFilter);
-    // Sort: live first by start date desc, upcoming by start date asc, completed by end date desc
+    if (formatFilter !== "ALL") list = list.filter(t => t.format === formatFilter || t.format.toLowerCase().includes(String(formatFilter).toLowerCase()));
+    if (yearFilter !== "ALL") list = list.filter(t => formatYear(t.startDate) === yearFilter || formatYear(t.endDate) === yearFilter);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(t =>
+        t.name.toLowerCase().includes(q)
+        || t.organizer.toLowerCase().includes(q)
+        || t.location.toLowerCase().includes(q)
+        || t.format.toLowerCase().includes(q),
+      );
+    }
     list.sort((a, b) => {
-      if (effectiveStatus === "upcoming") {
-        return (a.startDate || "").localeCompare(b.startDate || "");
-      }
-      return (b.endDate || b.startDate || "").localeCompare(a.endDate || a.startDate || "");
+      const byDate = (a.startDate || "").localeCompare(b.startDate || "");
+      if (byDate !== 0) return byDate;
+      return a.name.localeCompare(b.name);
     });
     return list;
-  }, [tournaments, effectiveStatus, tierFilter]);
+  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, search]);
 
-  const featuredLive = effectiveStatus === "live" && filtered.length > 0
-    ? filtered.find(t => t.tier === "S") || filtered.find(t => t.tier === "A") || filtered[0]
-    : null;
-  const restList = featuredLive ? filtered.filter(t => t.id !== featuredLive.id) : filtered;
-
-  const tabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
+  const statusTabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
+    { key: "ALL", label: "Wszystkie", icon: CalendarDays, count: tournaments.length },
     { key: "live", label: "Na żywo", icon: Radio, count: counts.live },
     { key: "upcoming", label: "Nadchodzące", icon: Clock, count: counts.upcoming },
     { key: "completed", label: "Zakończone", icon: CheckCircle2, count: counts.completed },
+  ];
+
+  const viewModes: { key: ViewMode; label: string; icon: typeof CalendarDays }[] = [
+    { key: "month", label: "Kalendarz", icon: LayoutGrid },
+    { key: "year", label: "Rok", icon: CalendarDays },
+    { key: "list", label: "Lista", icon: List },
   ];
 
   return (
@@ -492,18 +785,41 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-4 border-b border-border overflow-x-auto pb-px">
-          {tabs.map(tab => {
+        {/* Calendar controls */}
+        <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-md bg-secondary/40 border border-border/60">
+            {viewModes.map(mode => {
+              const Icon = mode.icon;
+              const active = viewMode === mode.key;
+              return (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setViewMode(mode.key)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-mono font-bold transition-colors",
+                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary",
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
+            {statusTabs.map(tab => {
             const Icon = tab.icon;
-            const active = effectiveStatus === tab.key;
+            const active = statusFilter === tab.key;
             return (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setStatusFilter(tab.key)}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-2.5 text-sm font-heading font-bold transition-colors whitespace-nowrap",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "relative flex items-center gap-1.5 px-3 py-2 text-xs font-heading font-bold transition-colors whitespace-nowrap rounded-md border",
+                  active ? "text-primary bg-primary/10 border-primary/40" : "text-muted-foreground border-border hover:text-foreground hover:bg-secondary/40"
                 )}
               >
                 <Icon className={cn("w-4 h-4", active && tab.key === "live" && "animate-pulse")} />
@@ -514,22 +830,45 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                 )}>
                   {tab.count}
                 </span>
-                {active && (
-                  <motion.div
-                    layoutId="portal-tab-underline"
-                    className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-primary"
-                  />
-                )}
               </button>
             );
           })}
+          </div>
 
-          {/* Tier filter pills */}
-          <div className="ml-auto flex items-center gap-1 pl-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+            <label className="relative min-w-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Szukaj turnieju, organizatora, miasta, formatu..."
+                className="w-full h-9 pl-8 pr-3 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60"
+              />
+            </label>
+            <select
+              value={yearFilter}
+              onChange={e => setYearFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground"
+            >
+              <option value="ALL">Rok / sezon</option>
+              {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select
+              value={formatFilter}
+              onChange={e => setFormatFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground"
+            >
+              <option value="ALL">Format</option>
+              {availableFormats.map(format => <option key={format} value={format}>{format}</option>)}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
             {(["ALL", "S", "A", "B", "C"] as TierFilter[]).map(tier => (
               <button
                 key={tier}
+                type="button"
                 onClick={() => setTierFilter(tier)}
                 className={cn(
                   "text-[10px] font-mono font-bold px-2 py-1 rounded border transition-colors",
@@ -540,7 +879,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                {tier}
+                {tier === "ALL" ? "Tier" : `${tier}-Tier`}
               </button>
             ))}
           </div>
@@ -553,46 +892,14 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
             <p className="font-mono text-sm">
               {tournaments.length === 0
                 ? "Brak turniejów. Utwórz pierwszy!"
-                : `Brak turniejów w kategorii ${tabs.find(x => x.key === effectiveStatus)?.label}${tierFilter !== "ALL" ? ` • Tier ${tierFilter}` : ""}`}
+                : "Brak turniejów dla wybranych filtrów."}
             </p>
           </div>
         )}
 
-        {/* Featured live tournament */}
-        {featuredLive && (
-          <div className="mb-5">
-            <FeaturedLiveCard t={featuredLive} onClick={() => onSelect(featuredLive.id)} />
-          </div>
-        )}
-
-        {/* Grid of cards — qualifiers from the same parent are bundled together */}
-        <AnimatePresence mode="popLayout">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(() => {
-              const quals = restList.filter(isQualifierName);
-              const singles = restList.filter(t => !isQualifierName(t));
-              const bundles = quals.reduce<Record<string, TournamentData[]>>((acc, t) => {
-                const key = qualifierBundleKey(t);
-                (acc[key] ??= []).push(t);
-                return acc;
-              }, {});
-              const nodes: JSX.Element[] = [];
-              singles.forEach(t => {
-                nodes.push(<TournamentCard key={t.id} t={t} onClick={() => onSelect(t.id)} />);
-              });
-              Object.entries(bundles).forEach(([key, ts]) => {
-                if (ts.length === 1) {
-                  nodes.push(<TournamentCard key={ts[0].id} t={ts[0]} onClick={() => onSelect(ts[0].id)} />);
-                } else {
-                  nodes.push(
-                    <QualifierBundleCard key={`bundle-${key}`} bundleKey={key} tournaments={ts} onSelect={onSelect} />
-                  );
-                }
-              });
-              return nodes;
-            })()}
-          </div>
-        </AnimatePresence>
+        {filtered.length > 0 && viewMode === "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && viewMode === "year" && <TournamentYearTimeline tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && viewMode === "list" && <TournamentChronologicalList tournaments={filtered} onSelect={onSelect} />}
       </div>
     </section>
   );

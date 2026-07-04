@@ -21,6 +21,7 @@ import { SwissView } from "./SwissView";
 import { TournamentLineupPanel } from "./TournamentLineupPanel";
 import { TournamentStatsPanel } from "./TournamentStatsPanel";
 import { PickemPanel } from "./PickemPanel";
+import { TournamentFinalResultsPanel } from "./TournamentFinalResultsPanel";
 import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -342,7 +343,7 @@ export const TournamentDetailPage = ({
           onClick={onBack}
           className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do listy
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do kalendarza
         </Button>
 
         {/* Hero header — Liquipedia-style banner */}
@@ -467,6 +468,8 @@ export const TournamentDetailPage = ({
             </div>
           );
         })()}
+
+        <TournamentFinalResultsPanel tournament={t} />
 
         {/* View tabs: Rozgrywka vs Statystyki */}
         <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">
