@@ -700,8 +700,12 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
 };
 
 export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>("ALL");
+  const [yearFilter, setYearFilter] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
 
   const counts = useMemo(() => ({
     live: tournaments.filter(t => t.status === "live").length,
@@ -709,36 +713,50 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
     completed: tournaments.filter(t => t.status === "completed").length,
   }), [tournaments]);
 
-  // Auto-fallback: if active tab is empty, switch to non-empty one
-  const effectiveStatus: StatusFilter = useMemo(() => {
-    if (counts[statusFilter] > 0) return statusFilter;
-    if (counts.live > 0) return "live";
-    if (counts.upcoming > 0) return "upcoming";
-    return "completed";
-  }, [statusFilter, counts]);
+  const availableYears = useMemo(
+    () => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(),
+    [tournaments],
+  );
+
+  const availableFormats = useMemo(
+    () => Array.from(new Set(tournaments.map(t => t.format).filter(Boolean))).sort(),
+    [tournaments],
+  );
 
   const filtered = useMemo(() => {
-    let list = tournaments.filter(t => t.status === effectiveStatus);
+    let list = [...tournaments];
+    if (statusFilter !== "ALL") list = list.filter(t => t.status === statusFilter);
     if (tierFilter !== "ALL") list = list.filter(t => t.tier === tierFilter);
-    // Sort: live first by start date desc, upcoming by start date asc, completed by end date desc
+    if (formatFilter !== "ALL") list = list.filter(t => t.format === formatFilter || t.format.toLowerCase().includes(String(formatFilter).toLowerCase()));
+    if (yearFilter !== "ALL") list = list.filter(t => formatYear(t.startDate) === yearFilter || formatYear(t.endDate) === yearFilter);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(t =>
+        t.name.toLowerCase().includes(q)
+        || t.organizer.toLowerCase().includes(q)
+        || t.location.toLowerCase().includes(q)
+        || t.format.toLowerCase().includes(q),
+      );
+    }
     list.sort((a, b) => {
-      if (effectiveStatus === "upcoming") {
-        return (a.startDate || "").localeCompare(b.startDate || "");
-      }
-      return (b.endDate || b.startDate || "").localeCompare(a.endDate || a.startDate || "");
+      const byDate = (a.startDate || "").localeCompare(b.startDate || "");
+      if (byDate !== 0) return byDate;
+      return a.name.localeCompare(b.name);
     });
     return list;
-  }, [tournaments, effectiveStatus, tierFilter]);
+  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, search]);
 
-  const featuredLive = effectiveStatus === "live" && filtered.length > 0
-    ? filtered.find(t => t.tier === "S") || filtered.find(t => t.tier === "A") || filtered[0]
-    : null;
-  const restList = featuredLive ? filtered.filter(t => t.id !== featuredLive.id) : filtered;
-
-  const tabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
+  const statusTabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
+    { key: "ALL", label: "Wszystkie", icon: CalendarDays, count: tournaments.length },
     { key: "live", label: "Na żywo", icon: Radio, count: counts.live },
     { key: "upcoming", label: "Nadchodzące", icon: Clock, count: counts.upcoming },
     { key: "completed", label: "Zakończone", icon: CheckCircle2, count: counts.completed },
+  ];
+
+  const viewModes: { key: ViewMode; label: string; icon: typeof CalendarDays }[] = [
+    { key: "month", label: "Kalendarz", icon: LayoutGrid },
+    { key: "year", label: "Rok", icon: CalendarDays },
+    { key: "list", label: "Lista", icon: List },
   ];
 
   return (
@@ -767,18 +785,41 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-4 border-b border-border overflow-x-auto pb-px">
-          {tabs.map(tab => {
+        {/* Calendar controls */}
+        <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-md bg-secondary/40 border border-border/60">
+            {viewModes.map(mode => {
+              const Icon = mode.icon;
+              const active = viewMode === mode.key;
+              return (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setViewMode(mode.key)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-mono font-bold transition-colors",
+                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary",
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
+            {statusTabs.map(tab => {
             const Icon = tab.icon;
-            const active = effectiveStatus === tab.key;
+            const active = statusFilter === tab.key;
             return (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setStatusFilter(tab.key)}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-2.5 text-sm font-heading font-bold transition-colors whitespace-nowrap",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "relative flex items-center gap-1.5 px-3 py-2 text-xs font-heading font-bold transition-colors whitespace-nowrap rounded-md border",
+                  active ? "text-primary bg-primary/10 border-primary/40" : "text-muted-foreground border-border hover:text-foreground hover:bg-secondary/40"
                 )}
               >
                 <Icon className={cn("w-4 h-4", active && tab.key === "live" && "animate-pulse")} />
@@ -789,22 +830,45 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                 )}>
                   {tab.count}
                 </span>
-                {active && (
-                  <motion.div
-                    layoutId="portal-tab-underline"
-                    className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-primary"
-                  />
-                )}
               </button>
             );
           })}
+          </div>
 
-          {/* Tier filter pills */}
-          <div className="ml-auto flex items-center gap-1 pl-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+            <label className="relative min-w-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Szukaj turnieju, organizatora, miasta, formatu..."
+                className="w-full h-9 pl-8 pr-3 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60"
+              />
+            </label>
+            <select
+              value={yearFilter}
+              onChange={e => setYearFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground"
+            >
+              <option value="ALL">Rok / sezon</option>
+              {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select
+              value={formatFilter}
+              onChange={e => setFormatFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground"
+            >
+              <option value="ALL">Format</option>
+              {availableFormats.map(format => <option key={format} value={format}>{format}</option>)}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
             {(["ALL", "S", "A", "B", "C"] as TierFilter[]).map(tier => (
               <button
                 key={tier}
+                type="button"
                 onClick={() => setTierFilter(tier)}
                 className={cn(
                   "text-[10px] font-mono font-bold px-2 py-1 rounded border transition-colors",
@@ -815,7 +879,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                {tier}
+                {tier === "ALL" ? "Tier" : `${tier}-Tier`}
               </button>
             ))}
           </div>
@@ -828,46 +892,14 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
             <p className="font-mono text-sm">
               {tournaments.length === 0
                 ? "Brak turniejów. Utwórz pierwszy!"
-                : `Brak turniejów w kategorii ${tabs.find(x => x.key === effectiveStatus)?.label}${tierFilter !== "ALL" ? ` • Tier ${tierFilter}` : ""}`}
+                : "Brak turniejów dla wybranych filtrów."}
             </p>
           </div>
         )}
 
-        {/* Featured live tournament */}
-        {featuredLive && (
-          <div className="mb-5">
-            <FeaturedLiveCard t={featuredLive} onClick={() => onSelect(featuredLive.id)} />
-          </div>
-        )}
-
-        {/* Grid of cards — qualifiers from the same parent are bundled together */}
-        <AnimatePresence mode="popLayout">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(() => {
-              const quals = restList.filter(isQualifierName);
-              const singles = restList.filter(t => !isQualifierName(t));
-              const bundles = quals.reduce<Record<string, TournamentData[]>>((acc, t) => {
-                const key = qualifierBundleKey(t);
-                (acc[key] ??= []).push(t);
-                return acc;
-              }, {});
-              const nodes: JSX.Element[] = [];
-              singles.forEach(t => {
-                nodes.push(<TournamentCard key={t.id} t={t} onClick={() => onSelect(t.id)} />);
-              });
-              Object.entries(bundles).forEach(([key, ts]) => {
-                if (ts.length === 1) {
-                  nodes.push(<TournamentCard key={ts[0].id} t={ts[0]} onClick={() => onSelect(ts[0].id)} />);
-                } else {
-                  nodes.push(
-                    <QualifierBundleCard key={`bundle-${key}`} bundleKey={key} tournaments={ts} onSelect={onSelect} />
-                  );
-                }
-              });
-              return nodes;
-            })()}
-          </div>
-        </AnimatePresence>
+        {filtered.length > 0 && viewMode === "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && viewMode === "year" && <TournamentYearTimeline tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && viewMode === "list" && <TournamentChronologicalList tournaments={filtered} onSelect={onSelect} />}
       </div>
     </section>
   );
