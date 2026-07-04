@@ -393,7 +393,35 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
           </div>
         </div>
 
-        {/* Filters + view mode */}
+        {/* View mode switcher — prominent bar */}
+        <div className="mb-3 flex items-center gap-2 bg-card border border-border rounded-lg p-1.5">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground pl-2 hidden sm:inline">
+            Widok:
+          </span>
+          <div className="flex-1 grid grid-cols-3 gap-1">
+            {([
+              { mode: "list" as const, label: "Lista", Icon: List },
+              { mode: "month" as const, label: "Kalendarz", Icon: LayoutGrid },
+              { mode: "year" as const, label: "Oś roku", Icon: CalendarDays },
+            ]).map(({ mode, label, Icon }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-mono font-semibold rounded transition-colors",
+                  viewMode === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap mb-4">
           <Filter className="w-4 h-4 text-muted-foreground" />
           {(["all", "S", "A", "B", "C"] as TierFilter[]).map((t) => (
@@ -441,26 +469,6 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
             <option value="all">Rok</option>
             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-
-          <div className="ml-auto flex items-center gap-1 rounded-md border border-border bg-secondary/40 p-0.5">
-            {([
-              { mode: "list" as const, label: "Lista", Icon: List },
-              { mode: "month" as const, label: "Miesiąc", Icon: LayoutGrid },
-              { mode: "year" as const, label: "Rok", Icon: CalendarDays },
-            ]).map(({ mode, label, Icon }) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1 text-[11px] font-mono rounded transition-colors",
-                  viewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="w-3 h-3" />
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Calendar views */}
