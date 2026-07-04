@@ -468,6 +468,237 @@ const QualifierBundleCard = ({
   );
 };
 
+const CalendarEventButton = ({ t, onSelect, dense = false }: { t: TournamentData; onSelect: (id: string) => void; dense?: boolean }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(t.id)}
+    className={cn(
+      "w-full text-left rounded border transition-colors hover:border-primary/60 hover:bg-primary/10 min-w-0",
+      dense ? "px-1.5 py-1" : "px-2 py-1.5",
+      tierColor(t.tier),
+    )}
+    title={`${t.name} • ${fullDate(t.startDate)} → ${fullDate(t.endDate)}`}
+  >
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
+      <span className={cn("font-heading font-bold truncate", dense ? "text-[10px]" : "text-xs")}>{t.name}</span>
+      {t.status === "completed" && (
+        <span className="ml-auto shrink-0 text-[9px] font-mono text-[hsl(var(--win))]">wyniki</span>
+      )}
+    </div>
+    {!dense && (
+      <div className="mt-0.5 flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+        <span>{t.tier}-Tier</span>
+        <span>•</span>
+        <span className="truncate">{t.format}</span>
+      </div>
+    )}
+  </button>
+);
+
+const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const initial = initialCalendarDate(tournaments);
+  const [year, setYear] = useState(initial.getFullYear());
+  const [month, setMonth] = useState(initial.getMonth());
+
+  const dayIndex = useMemo(() => {
+    const map: Record<string, TournamentData[]> = {};
+    tournaments.forEach(t => {
+      dateRangeDays(t.startDate, t.endDate).forEach(day => {
+        (map[day] ??= []).push(t);
+      });
+    });
+    Object.values(map).forEach(items => items.sort((a, b) => a.startDate.localeCompare(b.startDate)));
+    return map;
+  }, [tournaments]);
+
+  const first = new Date(year, month, 1);
+  const startDow = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-border bg-secondary/40">
+        <button
+          type="button"
+          onClick={() => {
+            if (month === 0) { setMonth(11); setYear(v => v - 1); }
+            else setMonth(v => v - 1);
+          }}
+          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <div className="text-center">
+          <h3 className="font-heading font-black text-lg text-foreground capitalize">
+            {first.toLocaleDateString("pl-PL", { month: "long", year: "numeric" })}
+          </h3>
+          <p className="text-[10px] font-mono text-muted-foreground">Kliknij turniej, żeby otworzyć panel i wyniki</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (month === 11) { setMonth(0); setYear(v => v + 1); }
+            else setMonth(v => v + 1);
+          }}
+          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 border-b border-border/60 bg-background/40 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        {["Pon", "Wto", "Śro", "Czw", "Pią", "Sob", "Nie"].map(day => (
+          <div key={day} className="text-center py-2">{day}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7">
+        {cells.map((day, index) => {
+          if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
+          const iso = day.toISOString().slice(0, 10);
+          const events = dayIndex[iso] || [];
+          const today = iso === new Date().toISOString().slice(0, 10);
+          return (
+            <div
+              key={iso}
+              className={cn(
+                "min-h-24 sm:min-h-32 border-l border-t border-border/30 p-1.5 flex flex-col gap-1 min-w-0",
+                today && "bg-primary/10",
+              )}
+            >
+              <span className={cn("text-[10px] font-mono", today ? "text-primary font-black" : "text-muted-foreground")}>{day.getDate()}</span>
+              <div className="space-y-1 overflow-hidden">
+                {events.slice(0, 4).map(t => <CalendarEventButton key={t.id} t={t} onSelect={onSelect} dense />)}
+                {events.length > 4 && <span className="block text-[9px] font-mono text-muted-foreground px-1">+{events.length - 4} więcej</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const years = useMemo(() => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(), [tournaments]);
+  const [year, setYear] = useState(years[years.length - 1] || String(new Date().getFullYear()));
+  const yearTournaments = tournaments
+    .filter(t => formatYear(t.startDate) === year || formatYear(t.endDate) === year)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-border bg-secondary/40">
+        <button type="button" onClick={() => setYear(String(Number(year) - 1))} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <h3 className="font-heading font-black text-lg text-foreground">Sezon {year}</h3>
+        <button type="button" onClick={() => setYear(String(Number(year) + 1))} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="hidden md:grid grid-cols-[220px_1fr] border-b border-border/60 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="px-3 py-2">Turniej</div>
+        <div className="grid grid-cols-12">
+          {["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"].map(m => (
+            <div key={m} className="text-center py-2 border-l border-border/30">{m}</div>
+          ))}
+        </div>
+      </div>
+
+      <div className="divide-y divide-border/40">
+        {yearTournaments.map(t => {
+          const start = new Date(t.startDate);
+          const end = new Date(t.endDate || t.startDate);
+          const startDay = start.getFullYear() === Number(year) ? start.getMonth() * 30 + start.getDate() : 0;
+          const endDay = end.getFullYear() === Number(year) ? end.getMonth() * 30 + end.getDate() : 360;
+          const left = Math.max(0, Math.min(98, (startDay / 360) * 100));
+          const width = Math.max(2, Math.min(100 - left, ((endDay - startDay + 1) / 360) * 100));
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onSelect(t.id)}
+              className="w-full grid grid-cols-1 md:grid-cols-[220px_1fr] items-center text-left hover:bg-secondary/30 transition-colors"
+            >
+              <div className="px-3 py-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
+                  <span className="text-sm font-heading font-bold text-foreground truncate">{t.name}</span>
+                </div>
+                <div className="mt-0.5 text-[10px] font-mono text-muted-foreground">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {statusLabel(t.status)}</div>
+              </div>
+              <div className="relative h-9 px-3 hidden md:block">
+                <div className="absolute inset-y-0 left-3 right-3 grid grid-cols-12">
+                  {Array.from({ length: 12 }).map((_, i) => <div key={i} className="border-l border-border/20" />)}
+                </div>
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  style={{ left: `${left}%`, width: `${width}%`, transformOrigin: "left" }}
+                  className={cn(
+                    "absolute top-2 h-5 rounded-md border",
+                    t.status === "completed" ? "bg-muted/60 border-border" : t.status === "live" ? "bg-[hsl(var(--win))]/20 border-[hsl(var(--win))]/50" : "bg-primary/20 border-primary/50",
+                  )}
+                />
+              </div>
+            </button>
+          );
+        })}
+        {yearTournaments.length === 0 && <div className="py-12 text-center text-sm font-mono text-muted-foreground">Brak turniejów w {year}.</div>}
+      </div>
+    </div>
+  );
+};
+
+const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const grouped = tournaments.reduce<Record<string, TournamentData[]>>((acc, t) => {
+    const key = monthKey(t.startDate);
+    (acc[key] ??= []).push(t);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      {Object.entries(grouped).map(([month, items]) => (
+        <div key={month}>
+          <h3 className="font-heading text-sm font-bold text-primary uppercase tracking-wider border-b border-border pb-2 mb-3 capitalize">{month}</h3>
+          <div className="space-y-2">
+            {items.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onSelect(t.id)}
+                className="w-full grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-secondary/30 transition-colors text-left"
+              >
+                <span className={cn("text-[10px] font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>{t.tier}-Tier</span>
+                <div className="min-w-0">
+                  <div className="font-heading font-bold text-foreground truncate">{t.name}</div>
+                  <div className="text-[10px] font-mono text-muted-foreground truncate">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {t.format} • {t.location || "—"}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono", t.status === "completed" ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", statusDot(t.status))} />
+                    {t.status === "completed" ? "wyniki" : statusLabel(t.status)}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("live");
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
