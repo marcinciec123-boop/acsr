@@ -78,8 +78,37 @@ const medalFor = (place: number) => {
   return { Icon: null, className: "text-muted-foreground" };
 };
 
-export const TournamentFinalResultsPanel = ({ tournament }: Props) => {
+export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: Props) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [awardsDraft, setAwardsDraft] = useState(tournament.awards || {});
+  const [editingAwards, setEditingAwards] = useState(false);
+
+  useEffect(() => { setAwardsDraft(tournament.awards || {}); }, [tournament.awards, tournament.id]);
+
+  // Collect all players that appeared in this tournament (with their team)
+  const playerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    const collect = (list?: MapPlayerStats[], team?: string) => {
+      list?.forEach(p => { if (p.playerName && team) map.set(p.playerName, team); });
+    };
+    for (const phase of tournament.phases || []) {
+      const matches = [...(phase.bracket || []), ...(phase.groups?.flatMap(g => g.matches) || [])];
+      for (const m of matches) {
+        for (const mp of m.maps || []) {
+          collect(mp.team1Players, m.team1);
+          collect(mp.team2Players, m.team2);
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([name, team]) => ({ name, team })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tournament]);
+
+  const teamOptions = useMemo(() => {
+    const s = new Set<string>();
+    (tournament.placements || []).forEach(p => s.add(p.team));
+    (tournament.participants || []).forEach(t => s.add(t));
+    return Array.from(s).sort();
+  }, [tournament]);
 
   const placements = useMemo(() => {
     const source = tournament.placements?.length ? tournament.placements : derivePlacements(tournament);
