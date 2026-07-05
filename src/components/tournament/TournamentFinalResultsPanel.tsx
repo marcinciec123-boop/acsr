@@ -368,7 +368,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
             </div>
           ) : (
             <p className="text-[11px] font-mono text-muted-foreground italic">
-              Brak zapisanych wyróżnień. {onUpdateTournament && "Kliknij „Dodaj", aby wybrać MVP i inne nagrody."}
+              Brak zapisanych wyróżnień. {onUpdateTournament && 'Kliknij „Dodaj", aby wybrać MVP i inne nagrody.'}
             </p>
           )}
         </div>
