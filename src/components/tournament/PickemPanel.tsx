@@ -354,6 +354,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                       const standings = scoring ? computeGroupStandings(group) : null;
                       const actualFirst = standings?.[0]?.team;
                       const actualLast = standings?.[standings.length - 1]?.team;
+                      const locked = !canEdit || groupLocked(group);
                       const setPick = (patch: Partial<GroupPick>) => {
                         setDraft(d => ({
                           ...d,
@@ -371,11 +372,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                             )}
                           </div>
                           <select
-                            disabled={!canEdit}
+                            disabled={locked}
                             value={value}
                             onChange={e => onChange(e.target.value)}
                             className={cn("w-full px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                              canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
+                              !locked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
                           >
                             <option value="">— wybierz —</option>
                             {teams.map(team => <option key={team} value={team}>{team}</option>)}
@@ -386,7 +387,9 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                         <div key={group.id} className="bg-secondary/20 border border-border rounded-md p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-heading font-bold text-foreground">{group.name}</span>
-                            <span className="text-[10px] font-mono text-muted-foreground">{phaseName}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              {phaseName}{locked && groupLocked(group) ? " • 🔒" : ""}
+                            </span>
                           </div>
                           <Row label={`🥇 1 miejsce (+${SCORING.groupFirst})`} value={pick.first} onChange={(v: string) => setPick({ first: v })} actual={actualFirst} color="text-[hsl(var(--gold))]" />
                           <Row label={`💀 Ostatnie miejsce (+${SCORING.groupLast})`} value={pick.last} onChange={(v: string) => setPick({ last: v })} actual={actualLast} color="text-destructive" />
