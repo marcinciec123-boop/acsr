@@ -395,6 +395,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
       .sort((a, b) => b.matches - a.matches)
       .slice(0, 4),
     trophies,
+    mvpAwards,
     bestMatchRating,
     bestMapKills,
   };
