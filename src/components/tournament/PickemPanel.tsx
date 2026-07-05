@@ -115,8 +115,24 @@ export const PickemPanel = ({ tournament: t }: Props) => {
     setEditing(false);
   }, [t.id]);
 
-  const isLocked = t.status !== "upcoming";
+  // Tournament-level lock only when results have been confirmed.
+  const isLocked = !!t.resultsConfirmed;
   const canEdit = !isLocked && (editing || !data.lockedAt);
+
+  // Per-group lock: locked once ANY match in the group has been played.
+  const groupLocked = (group: PhaseGroup) =>
+    (group.matches || []).some(m => (m.score1 + m.score2) > 0);
+
+  // Per-swiss-phase lock: locked once ANY swiss match has been played
+  // (records can only meaningfully be predicted before the phase starts).
+  const swissPhaseLocked = (phase: TournamentPhase) =>
+    (phase.bracket || []).some(m => (m.score1 + m.score2) > 0);
+
+  // Per-bracket-match lock: only lock that specific match once it has been played.
+  const matchLocked = (m: MatchResult) => (m.score1 + m.score2) > 0;
+
+  // Champion/runnerUp: unlock until results are confirmed (still adjustable during playoffs).
+  const finalLocked = isLocked;
 
   // ===== Scoring =====
   const scoring = useMemo(() => {
