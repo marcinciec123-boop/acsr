@@ -331,6 +331,22 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
   }
   trophies.sort((a, b) => a.placement - b.placement || (b.endDate || "").localeCompare(a.endDate || ""));
 
+  // ===== MVP Awards =====
+  const mvpAwards: CareerStats["mvpAwards"] = [];
+  for (const t of ts) {
+    if (t.awards?.mvp === playerName) {
+      mvpAwards.push({
+        tournamentId: t.id,
+        tournamentName: t.name,
+        team: t.awards.mvpTeam || "",
+        endDate: t.endDate,
+      });
+    }
+  }
+  mvpAwards.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
+
+
+
   // ===== Best individual achievements =====
   let bestMatchRating: CareerStats["bestMatchRating"];
   matchEntries.forEach(m => {
