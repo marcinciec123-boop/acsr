@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { BarChart3, Trophy, Target, Skull, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BarChart3, Trophy, Target, Skull, Zap, Filter, X } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
