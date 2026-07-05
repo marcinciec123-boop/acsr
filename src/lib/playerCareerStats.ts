@@ -83,6 +83,8 @@ export interface CareerStats {
   topTeammates: { teammate: string; matches: number }[];
   /** Tournament placements where this player participated */
   trophies: PlayerTrophy[];
+  /** MVP awards from tournaments where this player was picked as MVP. */
+  mvpAwards: { tournamentId: string; tournamentName: string; team: string; endDate?: string }[];
   /** Highest single-match rating */
   bestMatchRating?: { rating: number; opponent: string; matchId: string };
   /** Highest single-map kills */
