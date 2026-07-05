@@ -871,6 +871,7 @@ const TournamentPanel = () => {
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
+        onUpdateTournament={(patch) => handleUpdateTournament(selectedTournament.id, patch)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => {
           saveTournamentScroll(selectedTournament.id);
