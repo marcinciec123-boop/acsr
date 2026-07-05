@@ -83,6 +83,8 @@ export interface CareerStats {
   topTeammates: { teammate: string; matches: number }[];
   /** Tournament placements where this player participated */
   trophies: PlayerTrophy[];
+  /** MVP awards from tournaments where this player was picked as MVP. */
+  mvpAwards: { tournamentId: string; tournamentName: string; team: string; endDate?: string }[];
   /** Highest single-match rating */
   bestMatchRating?: { rating: number; opponent: string; matchId: string };
   /** Highest single-map kills */
@@ -329,6 +331,22 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
   }
   trophies.sort((a, b) => a.placement - b.placement || (b.endDate || "").localeCompare(a.endDate || ""));
 
+  // ===== MVP Awards =====
+  const mvpAwards: CareerStats["mvpAwards"] = [];
+  for (const t of ts) {
+    if (t.awards?.mvp === playerName) {
+      mvpAwards.push({
+        tournamentId: t.id,
+        tournamentName: t.name,
+        team: t.awards.mvpTeam || "",
+        endDate: t.endDate,
+      });
+    }
+  }
+  mvpAwards.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
+
+
+
   // ===== Best individual achievements =====
   let bestMatchRating: CareerStats["bestMatchRating"];
   matchEntries.forEach(m => {
@@ -377,6 +395,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
       .sort((a, b) => b.matches - a.matches)
       .slice(0, 4),
     trophies,
+    mvpAwards,
     bestMatchRating,
     bestMapKills,
   };

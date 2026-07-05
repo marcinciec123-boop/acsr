@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { BarChart3, Trophy, Target, Skull, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BarChart3, Trophy, Target, Skull, Zap, Filter, X } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
@@ -146,25 +146,123 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
     return { players, teams };
   }, [tournament]);
 
+  // Placement-derived team sets for filter presets
+  const placedTeams = useMemo(() => {
+    const sorted = [...(tournament.placements || [])].sort((a, b) => a.placement - b.placement);
+    return {
+      top2: new Set(sorted.slice(0, 2).map(p => p.team)),
+      top4: new Set(sorted.slice(0, 4).map(p => p.team)),
+      top8: new Set(sorted.slice(0, 8).map(p => p.team)),
+    };
+  }, [tournament.placements]);
+
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
+  const [presetKey, setPresetKey] = useState<"all" | "top2" | "top4" | "top8" | "custom">("all");
+
+  const activeFilter = useMemo(() => {
+    if (presetKey === "top2") return placedTeams.top2;
+    if (presetKey === "top4") return placedTeams.top4;
+    if (presetKey === "top8") return placedTeams.top8;
+    if (presetKey === "custom" && selectedTeams.size > 0) return selectedTeams;
+    return null;
+  }, [presetKey, selectedTeams, placedTeams]);
+
+  const filteredPlayers = useMemo(
+    () => activeFilter ? players.filter(p => activeFilter.has(p.team)) : players,
+    [players, activeFilter],
+  );
+
   if (players.length === 0 && teams.length === 0) {
     return null;
   }
 
-  const topPlayers = players.slice(0, 10);
+  const topPlayers = filteredPlayers.slice(0, 10);
   const topByMetric = (metric: "kd" | "adr" | "kast", n = 5) =>
-    [...players].sort((a, b) => (b as any)[metric] - (a as any)[metric]).slice(0, n);
+    [...filteredPlayers].sort((a, b) => (b as any)[metric] - (a as any)[metric]).slice(0, n);
+
+  const toggleTeam = (team: string) => {
+    setPresetKey("custom");
+    setSelectedTeams(prev => {
+      const next = new Set(prev);
+      if (next.has(team)) next.delete(team); else next.add(team);
+      return next;
+    });
+  };
+
+  const presets: { key: typeof presetKey; label: string; disabled?: boolean }[] = [
+    { key: "all", label: "Wszystkie" },
+    { key: "top2", label: `Finał (${placedTeams.top2.size})`, disabled: placedTeams.top2.size === 0 },
+    { key: "top4", label: `Top 4 (${placedTeams.top4.size})`, disabled: placedTeams.top4.size === 0 },
+    { key: "top8", label: `Top 8 (${placedTeams.top8.size})`, disabled: placedTeams.top8.size === 0 },
+  ];
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 mb-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <BarChart3 className="w-4 h-4 text-primary" />
         <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
           Statystyki turnieju
         </h3>
         <span className="text-[10px] font-mono text-muted-foreground">
-          • {players.length} graczy • {teams.length} drużyn
+          • {filteredPlayers.length}/{players.length} graczy • {teams.length} drużyn
         </span>
       </div>
+
+      {/* Team / phase filter */}
+      <div className="mb-4 space-y-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Filter className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mr-1">Filtr MVP:</span>
+          {presets.map(p => (
+            <button
+              key={p.key}
+              type="button"
+              disabled={p.disabled}
+              onClick={() => { setPresetKey(p.key); if (p.key !== "custom") setSelectedTeams(new Set()); }}
+              className={cn(
+                "px-2 py-1 rounded text-[10px] font-mono border transition-colors",
+                presetKey === p.key
+                  ? "bg-primary/20 border-primary text-primary"
+                  : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40",
+                p.disabled && "opacity-40 cursor-not-allowed",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+          {presetKey === "custom" && selectedTeams.size > 0 && (
+            <button
+              type="button"
+              onClick={() => { setSelectedTeams(new Set()); setPresetKey("all"); }}
+              className="px-2 py-1 rounded text-[10px] font-mono border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Wyczyść ({selectedTeams.size})
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {teams.map(t => {
+            const active = presetKey === "custom" ? selectedTeams.has(t.team) : (activeFilter?.has(t.team) ?? false);
+            return (
+              <button
+                key={t.team}
+                type="button"
+                onClick={() => toggleTeam(t.team)}
+                className={cn(
+                  "px-2 py-0.5 rounded text-[10px] font-mono border transition-colors inline-flex items-center gap-1",
+                  active
+                    ? "bg-primary/15 border-primary/60 text-primary"
+                    : "bg-secondary/30 border-border text-muted-foreground hover:border-primary/40",
+                )}
+              >
+                <TeamLogo teamName={t.team} size={12} rounded="md" />
+                {t.team}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Top players by rating */}

@@ -49,6 +49,7 @@ interface Props {
   onShuffleGroups?: (phaseId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onConfirmResults?: () => void;
+  onUpdateTournament?: (patch: Partial<TournamentData>) => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
   mainTournaments?: TournamentData[];
@@ -251,7 +252,7 @@ const PhaseSeedingPanel = ({
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
   onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
-  onSetStatus, onConfirmResults, onDelete, onOpenMatch,
+  onSetStatus, onConfirmResults, onUpdateTournament, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
   activePhaseId: controlledActivePhaseId, onActivePhaseChange,
 }: Props) => {
@@ -469,7 +470,7 @@ export const TournamentDetailPage = ({
           );
         })()}
 
-        <TournamentFinalResultsPanel tournament={t} />
+        <TournamentFinalResultsPanel tournament={t} onUpdateTournament={onUpdateTournament} />
 
         {/* View tabs: Rozgrywka vs Statystyki */}
         <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">

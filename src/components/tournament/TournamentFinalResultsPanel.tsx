@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, TrendingUp, Users } from "lucide-react";
-import type { TeamData, TournamentData } from "@/lib/types";
+import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Sparkles, Star, TrendingUp, Users } from "lucide-react";
+import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
@@ -10,9 +10,12 @@ import { loadFromStorage } from "@/lib/storage";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 import TeamLogo from "@/components/TeamLogo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   tournament: TournamentData;
+  onUpdateTournament?: (patch: Partial<TournamentData>) => void;
 }
 
 const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
@@ -75,8 +78,37 @@ const medalFor = (place: number) => {
   return { Icon: null, className: "text-muted-foreground" };
 };
 
-export const TournamentFinalResultsPanel = ({ tournament }: Props) => {
+export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: Props) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [awardsDraft, setAwardsDraft] = useState(tournament.awards || {});
+  const [editingAwards, setEditingAwards] = useState(false);
+
+  useEffect(() => { setAwardsDraft(tournament.awards || {}); }, [tournament.awards, tournament.id]);
+
+  // Collect all players that appeared in this tournament (with their team)
+  const playerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    const collect = (list?: MapPlayerStats[], team?: string) => {
+      list?.forEach(p => { if (p.playerName && team) map.set(p.playerName, team); });
+    };
+    for (const phase of tournament.phases || []) {
+      const matches = [...(phase.bracket || []), ...(phase.groups?.flatMap(g => g.matches) || [])];
+      for (const m of matches) {
+        for (const mp of m.maps || []) {
+          collect(mp.team1Players, m.team1);
+          collect(mp.team2Players, m.team2);
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([name, team]) => ({ name, team })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [tournament]);
+
+  const teamOptions = useMemo(() => {
+    const s = new Set<string>();
+    (tournament.placements || []).forEach(p => s.add(p.team));
+    (tournament.participants || []).forEach(t => s.add(t));
+    return Array.from(s).sort();
+  }, [tournament]);
 
   const placements = useMemo(() => {
     const source = tournament.placements?.length ? tournament.placements : derivePlacements(tournament);
@@ -214,6 +246,133 @@ export const TournamentFinalResultsPanel = ({ tournament }: Props) => {
           );
         })}
       </div>
+
+      {/* === Awards / Wyróżnienia === */}
+      {tournament.resultsConfirmed && (
+        <div className="border-t border-border bg-gradient-to-br from-[hsl(var(--gold))]/5 to-transparent p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-[hsl(var(--gold))]" />
+            <h4 className="text-xs font-heading font-bold uppercase text-[hsl(var(--gold))] tracking-wider">
+              Wyróżnienia turnieju
+            </h4>
+            {onUpdateTournament && !editingAwards && (
+              <Button size="sm" variant="ghost" className="ml-auto h-7 text-[10px]" onClick={() => setEditingAwards(true)}>
+                {tournament.awards ? "Edytuj" : "Dodaj"}
+              </Button>
+            )}
+          </div>
+
+          {editingAwards && onUpdateTournament ? (
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="space-y-1 text-xs">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Star className="w-3 h-3 text-[hsl(var(--gold))]" /> MVP turnieju (trafia do gablotki gracza)
+                </span>
+                <select
+                  value={awardsDraft.mvp || ""}
+                  onChange={e => {
+                    const name = e.target.value;
+                    const team = playerOptions.find(p => p.name === name)?.team || "";
+                    setAwardsDraft(d => ({ ...d, mvp: name, mvpTeam: team }));
+                  }}
+                  className="w-full px-2 py-1.5 rounded bg-secondary/50 border border-border text-xs font-mono"
+                >
+                  <option value="">— wybierz gracza —</option>
+                  {playerOptions.map(p => <option key={p.name} value={p.name}>{p.name} ({p.team})</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  🚀 Największe zaskoczenie (drużyna)
+                </span>
+                <select
+                  value={awardsDraft.surprise || ""}
+                  onChange={e => setAwardsDraft(d => ({ ...d, surprise: e.target.value }))}
+                  className="w-full px-2 py-1.5 rounded bg-secondary/50 border border-border text-xs font-mono"
+                >
+                  <option value="">— wybierz drużynę —</option>
+                  {teamOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  📉 Największe rozczarowanie (drużyna)
+                </span>
+                <select
+                  value={awardsDraft.disappointment || ""}
+                  onChange={e => setAwardsDraft(d => ({ ...d, disappointment: e.target.value }))}
+                  className="w-full px-2 py-1.5 rounded bg-secondary/50 border border-border text-xs font-mono"
+                >
+                  <option value="">— wybierz drużynę —</option>
+                  {teamOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs md:col-span-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notatka</span>
+                <Input
+                  value={awardsDraft.note || ""}
+                  onChange={e => setAwardsDraft(d => ({ ...d, note: e.target.value }))}
+                  placeholder="np. najlepszy mecz turnieju..."
+                  className="h-8 text-xs"
+                />
+              </label>
+              <div className="md:col-span-2 flex gap-2 pt-1">
+                <Button size="sm" onClick={() => { onUpdateTournament({ awards: awardsDraft }); setEditingAwards(false); }}>
+                  Zapisz wyróżnienia
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setAwardsDraft(tournament.awards || {}); setEditingAwards(false); }}>
+                  Anuluj
+                </Button>
+              </div>
+              <p className="md:col-span-2 text-[10px] font-mono text-muted-foreground">
+                💡 Nagroda MVP zostanie dodana do gablotki gracza. Wyróżnienia drużynowe pozostają wyłącznie w podsumowaniu turnieju (nie są przenoszone na profil drużyny).
+              </p>
+            </div>
+          ) : tournament.awards && (tournament.awards.mvp || tournament.awards.surprise || tournament.awards.disappointment) ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {tournament.awards.mvp && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10">
+                  <Star className="w-4 h-4 text-[hsl(var(--gold))] shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-[hsl(var(--gold))]">MVP</p>
+                    <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.mvp}</p>
+                    {tournament.awards.mvpTeam && (
+                      <p className="text-[10px] font-mono text-muted-foreground truncate">{tournament.awards.mvpTeam}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {tournament.awards.surprise && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/10">
+                  <span className="text-lg leading-none">🚀</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-primary">Zaskoczenie</p>
+                    <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.surprise}</p>
+                  </div>
+                </div>
+              )}
+              {tournament.awards.disappointment && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-destructive/40 bg-destructive/10">
+                  <span className="text-lg leading-none">📉</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-destructive">Rozczarowanie</p>
+                    <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.disappointment}</p>
+                  </div>
+                </div>
+              )}
+              {tournament.awards.note && (
+                <p className="sm:col-span-2 lg:col-span-3 text-[11px] font-mono text-muted-foreground italic">
+                  „{tournament.awards.note}"
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] font-mono text-muted-foreground italic">
+              Brak zapisanych wyróżnień. {onUpdateTournament && 'Kliknij „Dodaj", aby wybrać MVP i inne nagrody.'}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -115,8 +115,24 @@ export const PickemPanel = ({ tournament: t }: Props) => {
     setEditing(false);
   }, [t.id]);
 
-  const isLocked = t.status !== "upcoming";
+  // Tournament-level lock only when results have been confirmed.
+  const isLocked = !!t.resultsConfirmed;
   const canEdit = !isLocked && (editing || !data.lockedAt);
+
+  // Per-group lock: locked once ANY match in the group has been played.
+  const groupLocked = (group: PhaseGroup) =>
+    (group.matches || []).some(m => (m.score1 + m.score2) > 0);
+
+  // Per-swiss-phase lock: locked once ANY swiss match has been played
+  // (records can only meaningfully be predicted before the phase starts).
+  const swissPhaseLocked = (phase: TournamentPhase) =>
+    (phase.bracket || []).some(m => (m.score1 + m.score2) > 0);
+
+  // Per-bracket-match lock: only lock that specific match once it has been played.
+  const matchLocked = (m: MatchResult) => (m.score1 + m.score2) > 0;
+
+  // Champion/runnerUp: unlock until results are confirmed (still adjustable during playoffs).
+  const finalLocked = isLocked;
 
   // ===== Scoring =====
   const scoring = useMemo(() => {
@@ -338,6 +354,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                       const standings = scoring ? computeGroupStandings(group) : null;
                       const actualFirst = standings?.[0]?.team;
                       const actualLast = standings?.[standings.length - 1]?.team;
+                      const locked = !canEdit || groupLocked(group);
                       const setPick = (patch: Partial<GroupPick>) => {
                         setDraft(d => ({
                           ...d,
@@ -355,11 +372,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                             )}
                           </div>
                           <select
-                            disabled={!canEdit}
+                            disabled={locked}
                             value={value}
                             onChange={e => onChange(e.target.value)}
                             className={cn("w-full px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                              canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
+                              !locked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
                           >
                             <option value="">— wybierz —</option>
                             {teams.map(team => <option key={team} value={team}>{team}</option>)}
@@ -370,7 +387,9 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                         <div key={group.id} className="bg-secondary/20 border border-border rounded-md p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-heading font-bold text-foreground">{group.name}</span>
-                            <span className="text-[10px] font-mono text-muted-foreground">{phaseName}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              {phaseName}{locked && groupLocked(group) ? " • 🔒" : ""}
+                            </span>
                           </div>
                           <Row label={`🥇 1 miejsce (+${SCORING.groupFirst})`} value={pick.first} onChange={(v: string) => setPick({ first: v })} actual={actualFirst} color="text-[hsl(var(--gold))]" />
                           <Row label={`💀 Ostatnie miejsce (+${SCORING.groupLast})`} value={pick.last} onChange={(v: string) => setPick({ last: v })} actual={actualLast} color="text-destructive" />
@@ -393,12 +412,13 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   actualByRec.get(key)!.push(s.team);
                 });
                 const phasePicks = pickSource.swiss[phase.id] || {};
+                const phaseLocked = !canEdit || swissPhaseLocked(phase);
                 return (
                   <div key={phase.id} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-primary" />
                       <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                        {phase.name} — Swiss rekordy (+{SCORING.swissRecord} pkt za trafienie)
+                        {phase.name} — Swiss rekordy (+{SCORING.swissRecord} pkt za trafienie){phaseLocked && swissPhaseLocked(phase) ? " 🔒" : ""}
                       </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
@@ -426,11 +446,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                     return (
                                       <select
                                         key={slotIdx}
-                                        disabled={!canEdit}
+                                        disabled={phaseLocked}
                                         value={value}
                                         onChange={e => setSwissPick(phase.id, b.key, slotIdx, e.target.value)}
                                         className={cn("w-full px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                                          canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed",
+                                          !phaseLocked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed",
                                           scoring && value ? (hit ? "border-[hsl(var(--win))]/40 text-[hsl(var(--win))]" : "border-destructive/40 text-destructive") : ""
                                         )}
                                       >
@@ -476,17 +496,18 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                           <div className="grid sm:grid-cols-2 gap-2">
                             {ms.map(m => {
                               const value = phasePicks[m.id] || "";
-                              const played = (m.score1 + m.score2) > 0;
+                              const played = matchLocked(m);
                               const actualWinner = played ? (m.score1 > m.score2 ? m.team1 : m.team2) : "";
                               const hit = scoring && value && actualWinner && value === actualWinner;
                               const wrong = scoring && value && actualWinner && value !== actualWinner;
+                              const mLocked = !canEdit || played;
                               return (
                                 <div key={m.id} className={cn("border rounded p-2 space-y-1.5 bg-card",
                                   hit ? "border-[hsl(var(--win))]/40" : wrong ? "border-destructive/40" : "border-border"
                                 )}>
                                   <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                                     <span className="flex items-center gap-1.5"><TeamLogo teamName={m.team1} size={16} rounded="md" />{m.team1}</span>
-                                    <span>vs</span>
+                                    <span>{played ? "🔒" : "vs"}</span>
                                     <span className="flex items-center gap-1.5">{m.team2}<TeamLogo teamName={m.team2} size={16} rounded="md" /></span>
                                   </div>
                                   <div className="grid grid-cols-2 gap-1">
@@ -496,13 +517,13 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                         <button
                                           key={team}
                                           type="button"
-                                          disabled={!canEdit}
+                                          disabled={mLocked}
                                           onClick={() => setBracketPick(phase.id, m.id, selected ? "" : team)}
                                           className={cn("px-2 py-1 rounded text-[11px] font-mono border transition-colors",
                                             selected
                                               ? "bg-primary/20 border-primary text-primary"
                                               : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40",
-                                            !canEdit && "opacity-70 cursor-not-allowed",
+                                            mLocked && "opacity-70 cursor-not-allowed",
                                             hit && selected && "border-[hsl(var(--win))] text-[hsl(var(--win))] bg-[hsl(var(--win))]/10",
                                             wrong && selected && "border-destructive text-destructive bg-destructive/10"
                                           )}
@@ -552,11 +573,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                       <div className="flex items-center gap-2">
                         {value && !isPlaceholder(value) && <TeamLogo teamName={value} size={22} rounded="md" />}
                         <select
-                          disabled={!canEdit}
+                          disabled={finalLocked}
                           value={value}
                           onChange={e => onChange(e.target.value)}
                           className={cn("flex-1 px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                            canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
+                            !finalLocked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
                         >
                           <option value="">— wybierz —</option>
                           {champOptions.map(team => <option key={team} value={team}>{team}</option>)}

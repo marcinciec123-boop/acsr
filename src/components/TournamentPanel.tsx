@@ -743,6 +743,10 @@ const TournamentPanel = () => {
     setTournaments(prev => prev.filter(t => t.id !== id));
   };
 
+  const handleUpdateTournament = (id: string, patch: Partial<TournamentData>) => {
+    setTournaments(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+  };
+
   const handlePromoteWinners = (qualifierId: string, winners: string[], targetId: string) => {
     setTournaments(prev => prev.map(t => {
       if (t.id === qualifierId && t.qualifierConfig) {
@@ -867,6 +871,7 @@ const TournamentPanel = () => {
         }
         onSetStatus={(s) => handleSetStatus(selectedTournament.id, s)}
         onConfirmResults={() => confirmTournamentResults(selectedTournament.id)}
+        onUpdateTournament={(patch) => handleUpdateTournament(selectedTournament.id, patch)}
         onDelete={() => handleDelete(selectedTournament.id)}
         onOpenMatch={(phaseId, matchId, groupId) => {
           saveTournamentScroll(selectedTournament.id);
