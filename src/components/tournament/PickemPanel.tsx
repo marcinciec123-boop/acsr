@@ -496,17 +496,18 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                           <div className="grid sm:grid-cols-2 gap-2">
                             {ms.map(m => {
                               const value = phasePicks[m.id] || "";
-                              const played = (m.score1 + m.score2) > 0;
+                              const played = matchLocked(m);
                               const actualWinner = played ? (m.score1 > m.score2 ? m.team1 : m.team2) : "";
                               const hit = scoring && value && actualWinner && value === actualWinner;
                               const wrong = scoring && value && actualWinner && value !== actualWinner;
+                              const mLocked = !canEdit || played;
                               return (
                                 <div key={m.id} className={cn("border rounded p-2 space-y-1.5 bg-card",
                                   hit ? "border-[hsl(var(--win))]/40" : wrong ? "border-destructive/40" : "border-border"
                                 )}>
                                   <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                                     <span className="flex items-center gap-1.5"><TeamLogo teamName={m.team1} size={16} rounded="md" />{m.team1}</span>
-                                    <span>vs</span>
+                                    <span>{played ? "🔒" : "vs"}</span>
                                     <span className="flex items-center gap-1.5">{m.team2}<TeamLogo teamName={m.team2} size={16} rounded="md" /></span>
                                   </div>
                                   <div className="grid grid-cols-2 gap-1">
@@ -516,13 +517,13 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                         <button
                                           key={team}
                                           type="button"
-                                          disabled={!canEdit}
+                                          disabled={mLocked}
                                           onClick={() => setBracketPick(phase.id, m.id, selected ? "" : team)}
                                           className={cn("px-2 py-1 rounded text-[11px] font-mono border transition-colors",
                                             selected
                                               ? "bg-primary/20 border-primary text-primary"
                                               : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40",
-                                            !canEdit && "opacity-70 cursor-not-allowed",
+                                            mLocked && "opacity-70 cursor-not-allowed",
                                             hit && selected && "border-[hsl(var(--win))] text-[hsl(var(--win))] bg-[hsl(var(--win))]/10",
                                             wrong && selected && "border-destructive text-destructive bg-destructive/10"
                                           )}
