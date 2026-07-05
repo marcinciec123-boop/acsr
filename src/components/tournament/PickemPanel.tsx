@@ -446,11 +446,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                     return (
                                       <select
                                         key={slotIdx}
-                                        disabled={!canEdit}
+                                        disabled={phaseLocked}
                                         value={value}
                                         onChange={e => setSwissPick(phase.id, b.key, slotIdx, e.target.value)}
                                         className={cn("w-full px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                                          canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed",
+                                          !phaseLocked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed",
                                           scoring && value ? (hit ? "border-[hsl(var(--win))]/40 text-[hsl(var(--win))]" : "border-destructive/40 text-destructive") : ""
                                         )}
                                       >
