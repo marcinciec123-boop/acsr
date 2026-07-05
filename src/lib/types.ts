@@ -141,6 +141,14 @@ export interface TournamentData {
   /** Ręczny przydział punktów za miejsca — klucz to placement (1-indexed jako string).
    *  Brak klucza = użyj domyślnej wartości dla tieru. */
   customPoints?: Record<string, number>;
+  /** Wyróżnienia po turnieju — MVP (gracz) trafia do gablotki gracza; nagrody drużynowe NIE trafiają na profil drużyny. */
+  awards?: {
+    mvp?: string;
+    mvpTeam?: string;
+    surprise?: string;
+    disappointment?: string;
+    note?: string;
+  };
 }
 
 export interface Transfer {
