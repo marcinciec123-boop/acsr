@@ -214,8 +214,31 @@ const PlayerProfile = ({
             </div>
 
             {/* === Trophies + best individual moments === */}
-            {(career.trophies.length > 0 || career.bestMatchRating || career.bestMapKills) && (
+            {(career.trophies.length > 0 || career.mvpAwards.length > 0 || career.bestMatchRating || career.bestMapKills) && (
               <div className="grid lg:grid-cols-3 gap-4 mb-6">
+                {career.mvpAwards.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    className="lg:col-span-3 bg-gradient-to-br from-[hsl(var(--gold))]/10 to-card border border-[hsl(var(--gold))]/40 rounded-lg p-4"
+                  >
+                    <h2 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-[hsl(var(--gold))]" /> Nagrody MVP ({career.mvpAwards.length})
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {career.mvpAwards.map(a => (
+                        <div key={a.tournamentId} className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[hsl(var(--gold))]/50 bg-[hsl(var(--gold))]/15">
+                          <span className="text-lg leading-none">⭐</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-heading font-bold text-foreground truncate max-w-[220px]">{a.tournamentName}</p>
+                            <p className="text-[10px] font-mono text-muted-foreground truncate">
+                              {a.team}{a.endDate ? ` • ${new Date(a.endDate).getFullYear()}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
                 {career.trophies.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
