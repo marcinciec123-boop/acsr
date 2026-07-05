@@ -49,6 +49,7 @@ interface Props {
   onShuffleGroups?: (phaseId: string) => void;
   onSetStatus: (status: "upcoming" | "live" | "completed") => void;
   onConfirmResults?: () => void;
+  onUpdateTournament?: (patch: Partial<TournamentData>) => void;
   onDelete: () => void;
   onOpenMatch: (phaseId: string, matchId: string, groupId?: string) => void;
   mainTournaments?: TournamentData[];
