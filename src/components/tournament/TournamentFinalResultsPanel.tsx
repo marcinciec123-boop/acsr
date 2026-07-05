@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, TrendingUp, Users } from "lucide-react";
-import type { TeamData, TournamentData } from "@/lib/types";
+import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Sparkles, Star, TrendingUp, Users } from "lucide-react";
+import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
@@ -10,9 +10,12 @@ import { loadFromStorage } from "@/lib/storage";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
 import TeamLogo from "@/components/TeamLogo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   tournament: TournamentData;
+  onUpdateTournament?: (patch: Partial<TournamentData>) => void;
 }
 
 const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
