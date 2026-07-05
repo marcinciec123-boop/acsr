@@ -412,12 +412,13 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   actualByRec.get(key)!.push(s.team);
                 });
                 const phasePicks = pickSource.swiss[phase.id] || {};
+                const phaseLocked = !canEdit || swissPhaseLocked(phase);
                 return (
                   <div key={phase.id} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-primary" />
                       <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                        {phase.name} — Swiss rekordy (+{SCORING.swissRecord} pkt za trafienie)
+                        {phase.name} — Swiss rekordy (+{SCORING.swissRecord} pkt za trafienie){phaseLocked && swissPhaseLocked(phase) ? " 🔒" : ""}
                       </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
