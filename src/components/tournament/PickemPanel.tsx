@@ -573,11 +573,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                       <div className="flex items-center gap-2">
                         {value && !isPlaceholder(value) && <TeamLogo teamName={value} size={22} rounded="md" />}
                         <select
-                          disabled={!canEdit}
+                          disabled={finalLocked}
                           value={value}
                           onChange={e => onChange(e.target.value)}
                           className={cn("flex-1 px-2 py-1.5 rounded bg-secondary/50 border text-xs font-mono",
-                            canEdit ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
+                            !finalLocked ? "border-border" : "border-border/50 opacity-80 cursor-not-allowed")}
                         >
                           <option value="">— wybierz —</option>
                           {champOptions.map(team => <option key={team} value={team}>{team}</option>)}
