@@ -255,7 +255,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                     : "bg-secondary/30 border-border text-muted-foreground hover:border-primary/40",
                 )}
               >
-                <TeamLogo teamName={t.team} size={12} rounded="sm" />
+                <TeamLogo teamName={t.team} size={12} rounded="md" />
                 {t.team}
               </button>
             );
