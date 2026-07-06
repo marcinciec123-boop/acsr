@@ -288,7 +288,7 @@ const TransferPanel = () => {
             <ArrowRightLeft className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Transfery</h2>
           </div>
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (o) { setPickerSearch(""); setPickerKind("all"); } }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
                 <Plus className="w-4 h-4" /> Nowy transfer
