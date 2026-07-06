@@ -651,6 +651,8 @@ const TournamentPanel = () => {
     for (let i = rounds.length - 1; i >= 0; i--) {
       bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => add(matchLoser(m), placements.length + 1));
     }
+    // Teams eliminated in earlier phases — sorted by their Swiss/group standing so bilans matters.
+    getPreFinalEliminatedOrder(t.phases).forEach(team => add(team, placements.length + 1));
     t.participants.forEach(team => add(team, placements.length + 1));
     return placements.sort((a, b) => a.placement - b.placement);
   };
