@@ -41,8 +41,8 @@ const oddsFromProb = (p: number, opts?: { floor?: number }) => {
   return Math.max(1.02, 1 / (clamped * margin));
 };
 
-// Shrink match-winner probability toward 0.5 (markets are less confident than pure Elo).
-const shrinkProb = (p: number, factor = 0.82) => 0.5 + (p - 0.5) * factor;
+// Shrink match-winner probability toward 0.5 (markets are far less confident than pure Elo).
+const shrinkProb = (p: number, factor = 0.6) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
