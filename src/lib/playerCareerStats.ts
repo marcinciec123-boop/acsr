@@ -240,6 +240,9 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         opponentCount.set(opponent, oc);
       }
 
+      const ownRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score1 : mp.score2), 0);
+      const oppRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score2 : mp.score1), 0);
+
       matchEntries.push({
         tournamentId: t.id,
         tournamentName: t.name,
@@ -248,6 +251,8 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         opponent,
         ownScore,
         oppScore,
+        ownRounds,
+        oppRounds,
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
@@ -428,12 +433,15 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       const oppScore = isTeam1 ? match.score2 : match.score1;
       let mKills = 0, mDeaths = 0, mAssists = 0, mUd = 0, mEf = 0;
       let mRounds = 0, mAdrW = 0, mKastW = 0;
+      let ownRounds = 0, oppRounds = 0;
       for (const { map, player } of inMaps) {
         const rounds = (map.score1 || 0) + (map.score2 || 0);
         if (rounds <= 0) continue;
         mKills += player.kills; mDeaths += player.deaths; mAssists += player.assists;
         mUd += player.ud; mEf += player.ef; mRounds += rounds;
         mAdrW += player.adr * rounds; mKastW += player.kast * rounds;
+        if (isTeam1) { ownRounds += map.score1 || 0; oppRounds += map.score2 || 0; }
+        else { ownRounds += map.score2 || 0; oppRounds += map.score1 || 0; }
       }
       if (mRounds === 0) continue;
       const rating = calculateRating({
@@ -443,7 +451,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       });
       entries.push({
         tournamentId: t.id, tournamentName: t.name, matchId: match.id,
-        team, opponent, ownScore, oppScore,
+        team, opponent, ownScore, oppScore, ownRounds, oppRounds,
         won: ownScore > oppScore && (ownScore + oppScore) > 0,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round, playedAt: match.playedAt || t.endDate,
