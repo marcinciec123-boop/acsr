@@ -4,6 +4,7 @@ import { type Tournament, type TournamentSimulation, type SwissResult, type Grou
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import FullResultsPanel from "@/components/tournament/FullResultsPanel";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface TournamentDetailProps {
   tournament: Tournament;
