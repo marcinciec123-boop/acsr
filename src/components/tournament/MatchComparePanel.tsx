@@ -450,7 +450,7 @@ const CompareRow = ({
 const OddsCard = ({
   team, rank, prob, odds, favored,
 }: {
-  team: string; rank: number; prob: number; odds: number; favored: boolean;
+  team: string; rank?: number | null; prob: number; odds: number; favored: boolean;
 }) => {
   return (
     <div className={cn(
@@ -463,7 +463,7 @@ const OddsCard = ({
         <TeamLogo teamName={team} size={24} rounded="md" />
         <div className="min-w-0 flex-1">
           <div className="text-xs font-bold truncate">{team}</div>
-          <div className="text-xs font-mono text-muted-foreground">#{rank} • {Math.round(prob * 100)}% szans</div>
+          <div className="text-xs font-mono text-muted-foreground">{rank != null ? `#${rank} • ` : ""}{Math.round(prob * 100)}% szans</div>
         </div>
       </div>
       <div className={cn(
