@@ -5,6 +5,7 @@ import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
+import { TeamLink } from "@/lib/profileNav";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { loadFromStorage } from "@/lib/storage";
