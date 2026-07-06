@@ -21,7 +21,7 @@ export const useProfileNav = (): ProfileNav | null => useContext(Ctx);
 const isReal = (name?: string) =>
   !!name && name !== "TBD" && name !== "BYE" && !name.startsWith("TBD");
 
-/** Inline clickable team name. Falls back to plain span when no nav is active. */
+/** Inline clickable team name (renders a span so it can nest inside other buttons). */
 export const TeamLink = ({
   name,
   className,
@@ -34,14 +34,17 @@ export const TeamLink = ({
   const nav = useProfileNav();
   const content = children ?? name;
   if (!nav || !isReal(name)) return <span className={className}>{content}</span>;
+  const activate = (e: React.SyntheticEvent) => { e.stopPropagation(); nav.openTeam(name!); };
   return (
-    <button
-      type="button"
-      onClick={e => { e.stopPropagation(); nav.openTeam(name!); }}
-      className={`${className ?? ""} hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer text-left`}
+    <span
+      role="link"
+      tabIndex={0}
+      onClick={activate}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(e); } }}
+      className={`${className ?? ""} hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer`}
     >
       {content}
-    </button>
+    </span>
   );
 };
 
@@ -58,13 +61,16 @@ export const PlayerLink = ({
   const nav = useProfileNav();
   const content = children ?? name;
   if (!nav || !isReal(name)) return <span className={className}>{content}</span>;
+  const activate = (e: React.SyntheticEvent) => { e.stopPropagation(); nav.openPlayer(name!); };
   return (
-    <button
-      type="button"
-      onClick={e => { e.stopPropagation(); nav.openPlayer(name!); }}
-      className={`${className ?? ""} hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer text-left`}
+    <span
+      role="link"
+      tabIndex={0}
+      onClick={activate}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(e); } }}
+      className={`${className ?? ""} hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer`}
     >
       {content}
-    </button>
+    </span>
   );
 };
