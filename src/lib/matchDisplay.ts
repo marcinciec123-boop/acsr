@@ -45,3 +45,30 @@ export function formatMatchScore(m: DisplayableMatch | null | undefined, sep = "
   if (a === 0 && b === 0) return "";
   return `${a}${sep}${b}`;
 }
+
+/**
+ * Build a patch for a Bo1 match when the user enters a round score (e.g. 13:5).
+ * Stores the round score in mapScore1/mapScore2 + maps[0], and sets
+ * score1/score2 to the series result (1:0 / 0:1 / 0:0) so standings still work.
+ */
+export function buildBo1RoundScorePatch(
+  match: { team1?: string; team2?: string; maps?: any[]; map?: string },
+  r1: number,
+  r2: number,
+): Record<string, any> {
+  const decided = r1 !== r2 && (r1 > 0 || r2 > 0);
+  const s1 = decided ? (r1 > r2 ? 1 : 0) : 0;
+  const s2 = decided ? (r2 > r1 ? 1 : 0) : 0;
+  const winner = decided ? (r1 > r2 ? (match.team1 || "") : (match.team2 || "")) : "";
+  const existingMap = (match.maps?.[0] as any) || {};
+  const mapEntry = { ...existingMap, score1: r1, score2: r2, map: existingMap.map || match.map || "TBD" };
+  const restMaps = (match.maps || []).slice(1);
+  return {
+    score1: s1,
+    score2: s2,
+    mapScore1: r1,
+    mapScore2: r2,
+    winner,
+    maps: [mapEntry, ...restMaps],
+  };
+}
