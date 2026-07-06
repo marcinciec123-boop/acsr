@@ -28,11 +28,11 @@ const offsetForDepth = (depth: number) =>
 
 const teamLabel = (name: string, isWinner: boolean) => {
   if (isPlaceholder(name) || !name)
-    return <span className="text-muted-foreground italic text-[11px]">{name || "TBD"}</span>;
+    return <span className="text-muted-foreground italic text-xs">{name || "TBD"}</span>;
   return (
     <span className={cn("inline-flex items-center gap-1 min-w-0", isWinner && "font-bold text-foreground")}>
       <TeamLogo teamName={name} size={16} rounded="md" />
-      <span className="truncate text-[11px]">{name}</span>
+      <span className="truncate text-xs">{name}</span>
     </span>
   );
 };
@@ -76,7 +76,7 @@ const MatchCard = ({
           : "border-border/70",
       )}
     >
-      <div className="flex items-center justify-between px-1.5 h-5 bg-secondary/40 border-b border-border/50 shrink-0 text-[8px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between px-1.5 h-5 bg-secondary/40 border-b border-border/50 shrink-0 text-xs font-mono uppercase tracking-wider text-muted-foreground">
         <span>BO{m.bo || 3}</span>
         {decided && <span className="text-[hsl(var(--win))]">✓</span>}
       </div>
@@ -88,7 +88,7 @@ const MatchCard = ({
           value={d1}
           onChange={(e) => handleChange(1, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-10 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
+          className={cn("w-10 h-5 text-center text-xs px-0.5 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
         />
       </div>
       <div className="h-px bg-border/40" />
@@ -100,7 +100,7 @@ const MatchCard = ({
           value={d2}
           onChange={(e) => handleChange(2, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-10 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
+          className={cn("w-10 h-5 text-center text-xs px-0.5 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
         />
         {onOpenMatch && (
           <Button
@@ -142,7 +142,7 @@ const RoundColumn = ({
       <div className="flex items-center px-1 mb-1.5" style={{ height: HEADER_H }}>
         <h6
           className={cn(
-            "text-[9px] font-mono uppercase font-bold tracking-wider truncate",
+            "text-xs font-mono uppercase font-bold tracking-wider truncate",
             isFinal ? "text-[hsl(var(--gold))]" : side === "ub" ? "text-[hsl(var(--win))]" : "text-destructive/80",
           )}
           title={title}
@@ -205,7 +205,7 @@ export const DoubleElimGroupBracket = ({ matches, format, onMatchUpdate, onOpenM
 
   const renderSection = (cols: ReturnType<typeof resolve>, side: "ub" | "lb", label: string, color: string) => (
     <div>
-      <div className={cn("text-[10px] font-mono uppercase font-bold tracking-wider mb-2 pb-1 border-b", color)}>
+      <div className={cn("text-xs font-mono uppercase font-bold tracking-wider mb-2 pb-1 border-b", color)}>
         {label}
       </div>
       <div className="overflow-x-auto pb-2">

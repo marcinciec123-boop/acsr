@@ -69,7 +69,7 @@ const OpponentCell = ({
   entry: { opponent: string | null; result: "W" | "L" | ""; score: string; decisive: boolean } | undefined;
 }) => {
   if (!entry || !entry.opponent) {
-    return <span className="text-muted-foreground/40 text-[10px]">—</span>;
+    return <span className="text-muted-foreground/40 text-xs">—</span>;
   }
   const won = entry.result === "W";
   const pending = !entry.result;
@@ -83,10 +83,10 @@ const OpponentCell = ({
     )}>
       <div className="flex items-center gap-1 min-w-0 max-w-full">
         <TeamLogo teamName={entry.opponent} size={14} rounded="md" />
-        <span className="text-[10px] truncate font-medium">{entry.opponent}</span>
+        <span className="text-xs truncate font-medium">{entry.opponent}</span>
       </div>
       <span className={cn(
-        "text-[10px] font-mono font-bold tabular-nums",
+        "text-xs font-mono font-bold tabular-nums",
         pending && "text-muted-foreground",
         won && "text-[hsl(var(--win))]",
         !won && !pending && "text-destructive",
@@ -129,7 +129,7 @@ const RoundMatchCard = ({
       title={onOpenMatch ? "Otwórz panel meczu" : undefined}
     >
       <div className="flex items-center justify-between px-2 py-1 bg-secondary/40 border-b border-border/50">
-        <span className="text-[9px] font-mono text-muted-foreground tracking-wider">
+        <span className="text-xs font-mono text-muted-foreground tracking-wider">
           BO{match.bo || 1}
           {decisive && <span className="ml-1.5 text-[hsl(var(--gold))]">★ KLUCZOWY</span>}
           {inProgress && <span className="ml-1.5 text-primary">● W TRAKCIE</span>}
@@ -224,18 +224,18 @@ export const SwissView = ({
         <div className="flex items-center gap-3 flex-wrap">
           <Layers className="w-4 h-4 text-primary" />
           <span className="text-xs font-heading font-bold tracking-wide">SWISS STAGE</span>
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground">
             Cel: {winCap} zwycięstw → awans • {winCap} porażek → eliminacja
           </span>
           <div className="flex gap-1.5">
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] border border-[hsl(var(--win))]/30">
+            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] border border-[hsl(var(--win))]/30">
               <Trophy className="w-2.5 h-2.5 inline -mt-0.5 mr-0.5" />
               {advancedCount} awans
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border">
+            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border">
               {playingCount} w grze
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/30">
+            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/30">
               <X className="w-2.5 h-2.5 inline -mt-0.5 mr-0.5" />
               {eliminatedCount} odpadło
             </span>
@@ -268,7 +268,7 @@ export const SwissView = ({
       <div className="border border-border rounded-md overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="bg-secondary/60 border-b border-border">
-            <tr className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">
+            <tr className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
               <th className="px-2 py-2 text-left w-8">#</th>
               <th className="px-2 py-2 text-left">Drużyna</th>
               <th className="px-2 py-2 text-center w-14">W-L</th>
@@ -311,7 +311,7 @@ export const SwissView = ({
                   </td>
                   <td className="px-2 py-1.5 text-center font-mono tabular-nums text-muted-foreground">{s.buchholz}</td>
                   <td className="px-2 py-1.5 text-center">
-                    <span className={cn("text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border", style.pill)}>
+                    <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border", style.pill)}>
                       {style.label}
                     </span>
                   </td>
@@ -348,12 +348,12 @@ export const SwissView = ({
                   <h5 className="text-xs font-heading font-bold tracking-wide">
                     Runda {round}
                     {decisiveSomewhere && (
-                      <span className="ml-2 text-[10px] font-mono text-[hsl(var(--gold))]">
+                      <span className="ml-2 text-xs font-mono text-[hsl(var(--gold))]">
                         ★ zawiera mecze decydujące
                       </span>
                     )}
                   </h5>
-                  <span className="text-[10px] font-mono text-muted-foreground">
+                  <span className="text-xs font-mono text-muted-foreground">
                     {rm.length} {rm.length === 1 ? "mecz" : "meczów"}
                   </span>
                 </div>

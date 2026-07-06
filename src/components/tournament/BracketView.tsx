@@ -151,7 +151,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
         )}
       >
         <div className={cn(
-          "px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] flex items-center justify-between border-b shrink-0",
+          "px-2.5 py-1 text-xs font-mono uppercase tracking-[0.18em] flex items-center justify-between border-b shrink-0",
           isLast
             ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
             : "bg-secondary/40 text-muted-foreground border-border/50"
@@ -177,13 +177,13 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                   }}
                   onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                   autoFocus
-                  className="h-7 text-[11px] font-mono"
+                  className="h-7 text-xs font-mono"
                 />
               </div>
             ) : (
               <button
                 onClick={() => setEditingRoundFor(m.id)}
-                className="text-[10px] font-mono text-muted-foreground hover:text-primary flex items-center gap-1 w-full"
+                className="text-xs font-mono text-muted-foreground hover:text-primary flex items-center gap-1 w-full"
               >
                 <Pencil className="w-2.5 h-2.5" /> Runda: {m.round || "Match"}
               </button>
@@ -192,7 +192,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
               <select
                 value={m.team1}
                 onChange={e => onUpdate(m.id, m.score1, m.score2, e.target.value, m.team2)}
-                className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
+                className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-xs font-mono"
               >
                 <option value="">—</option>
                 <option value="BYE">BYE</option>
@@ -206,7 +206,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
               <select
                 value={m.team2}
                 onChange={e => onUpdate(m.id, m.score1, m.score2, m.team1, e.target.value)}
-                className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-[11px] font-mono"
+                className="flex-1 px-1.5 py-1 rounded bg-card border border-border text-xs font-mono"
               >
                 <option value="">—</option>
                 <option value="BYE">BYE</option>
@@ -228,7 +228,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 </>
               )}
               {onOpenMatch && (
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary hover:text-primary"
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-primary hover:text-primary"
                   onClick={() => onOpenMatch(m.id)}>
                   <Maximize2 className="w-3 h-3 mr-1" /> Otwórz
                 </Button>
@@ -238,7 +238,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                   <Trash2 className="w-3 h-3" />
                 </Button>
               )}
-              <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]"
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs"
                 onClick={() => { setEditingId(null); setEditingRoundFor(null); }}>
                 OK
               </Button>
@@ -267,7 +267,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   const renderRoundHeader = (round: string, isLast: boolean, lower: boolean) => (
     <div className="flex items-center justify-between gap-1 px-1 h-6 mb-2">
       <h5 className={cn(
-        "text-[10px] font-mono uppercase font-bold tracking-[0.15em] truncate",
+        "text-xs font-mono uppercase font-bold tracking-[0.15em] truncate",
         isLast ? "text-[hsl(var(--gold))]" : lower ? "text-destructive/80" : "text-primary"
       )}>
         {isLast && "★ "}{round}
@@ -364,7 +364,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
           >
             <Plus className="w-3 h-3 mr-1" /> Nowa runda
           </Button>
-          <p className="text-[10px] font-mono text-muted-foreground self-center">
+          <p className="text-xs font-mono text-muted-foreground self-center">
             💡 PPM na meczu = szybka edycja • Klik na rundzie + = dodaj mecz
           </p>
         </div>

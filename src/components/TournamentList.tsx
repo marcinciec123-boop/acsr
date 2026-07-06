@@ -235,10 +235,10 @@ const QualifierBundleCard = ({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded border", status.className)}>
+                        <span className={cn("text-xs font-mono px-1.5 py-0.5 rounded border", status.className)}>
                           {status.label}
                         </span>
-                        <span className="text-[10px] font-mono text-muted-foreground">
+                        <span className="text-xs font-mono text-muted-foreground">
                           {t.teams} dr.
                         </span>
                       </div>
@@ -395,7 +395,7 @@ const TournamentList = ({ tournaments, simResults, onSimulateNext, onSimulateAll
 
         {/* View mode switcher — prominent bar */}
         <div className="mb-3 flex items-center gap-2 bg-card border border-border rounded-lg p-1.5">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground pl-2 hidden sm:inline">
+          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground pl-2 hidden sm:inline">
             Widok:
           </span>
           <div className="flex-1 grid grid-cols-3 gap-1">

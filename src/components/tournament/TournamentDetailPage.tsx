@@ -170,7 +170,7 @@ const PhaseSeedingPanel = ({
       <Button
         size="sm"
         variant="outline"
-        className="h-7 text-[11px] gap-1"
+        className="h-7 text-xs gap-1"
         onClick={() => setOpen(true)}
       >
         <UsersIcon className="w-3 h-3" /> Rozstaw drużyny ({phaseTeams.filter(x => x && !x.startsWith("TBD")).length}/{slotCount})
@@ -181,21 +181,21 @@ const PhaseSeedingPanel = ({
   return (
     <div className="bg-secondary/30 border border-primary/30 rounded-md p-3 mt-3 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-mono uppercase text-primary tracking-wider">
+        <span className="text-xs font-mono uppercase text-primary tracking-wider">
           Rozstawienie ({slotCount} slotów)
         </span>
         <div className="flex gap-1">
-          <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={shuffleDraft}>
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={shuffleDraft}>
             <Shuffle className="w-3 h-3" /> Losuj
           </Button>
           <Button
             size="sm"
-            className="h-7 text-[10px] gap-1"
+            className="h-7 text-xs gap-1"
             onClick={() => { onSave(draft); setOpen(false); }}
           >
             <Save className="w-3 h-3" /> Zapisz i zresetuj rundę 1
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setOpen(false)}>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setOpen(false)}>
             Anuluj
           </Button>
         </div>
@@ -211,11 +211,11 @@ const PhaseSeedingPanel = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[260px] overflow-y-auto pr-1">
         {draft.map((team, i) => (
           <div key={i} className="flex items-center gap-1 bg-card border border-border rounded px-1.5 py-1">
-            <span className="text-[10px] font-mono text-primary w-6 shrink-0">#{i + 1}</span>
+            <span className="text-xs font-mono text-primary w-6 shrink-0">#{i + 1}</span>
             <select
               value={team}
               onChange={e => setSlot(i, e.target.value)}
-              className="flex-1 min-w-0 px-1 py-0.5 rounded bg-secondary/50 border border-border text-[11px] font-mono"
+              className="flex-1 min-w-0 px-1 py-0.5 rounded bg-secondary/50 border border-border text-xs font-mono"
             >
               <option value="">— TBD —</option>
               <option value="BYE">BYE</option>
@@ -243,7 +243,7 @@ const PhaseSeedingPanel = ({
         ))}
       </div>
 
-      <p className="text-[10px] font-mono text-muted-foreground">
+      <p className="text-xs font-mono text-muted-foreground">
         💡 Zapisanie nadpisze drużyny w meczach pierwszej rundy tej fazy i wyzeruje wyniki rundy 1.
       </p>
     </div>
@@ -399,7 +399,7 @@ export const TournamentDetailPage = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-border/50">
               <div className="bg-card/40 border border-border/50 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   <Calendar className="w-3 h-3" /> Daty
                 </div>
                 {onUpdateTournament ? (
@@ -427,19 +427,19 @@ export const TournamentDetailPage = ({
                 )}
               </div>
               <div className="bg-card/40 border border-border/50 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   <MapPin className="w-3 h-3" /> Lokalizacja
                 </div>
                 <p className="text-sm font-mono text-foreground">{t.location || "—"}</p>
               </div>
               <div className="bg-[hsl(var(--gold))]/5 border border-[hsl(var(--gold))]/30 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[hsl(var(--gold))]/80 mb-1">
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-[hsl(var(--gold))]/80 mb-1">
                   <DollarSign className="w-3 h-3" /> Pula nagród
                 </div>
                 <p className="text-base font-heading font-bold text-[hsl(var(--gold))]">{t.prizePool}</p>
               </div>
               <div className="bg-card/40 border border-border/50 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   <UsersIcon className="w-3 h-3" /> Drużyny
                 </div>
                 <p className="text-base font-heading font-bold text-foreground">{t.teams}</p>
@@ -447,7 +447,7 @@ export const TournamentDetailPage = ({
             </div>
 
             <div className="mt-4 pt-4 border-t border-border/50">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Format</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Format</div>
               <p className="text-sm font-mono text-foreground">{t.format}</p>
             </div>
           </div>
@@ -484,7 +484,7 @@ export const TournamentDetailPage = ({
                       {p}
                       {rank && (
                         <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30"
+                          className="text-xs font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30"
                           title="Aktualne miejsce w rankingu"
                         >
                           WR #{rank}
@@ -546,7 +546,7 @@ export const TournamentDetailPage = ({
               <h3 className="text-xs font-heading font-bold uppercase text-[hsl(var(--gold))] tracking-wider">
                 Kwalifikacja {t.qualifierConfig!.scope === "global" ? "globalna" : "regionalna"}
               </h3>
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className="text-xs font-mono text-muted-foreground">
                 • {Object.values(t.qualifierConfig!.slotsPerRegion).reduce((a, b) => a + b, 0)} miejsc do zdobycia
               </span>
             </div>
@@ -561,26 +561,26 @@ export const TournamentDetailPage = ({
                       <span className="text-xs font-mono font-bold text-foreground">
                         {regionKey === "GLOBAL" ? "🌍 Globalna pula" : `📍 ${regionKey}`}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {winners.length}/{slots} miejsc obsadzonych
                       </span>
                     </div>
                     {winners.length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground font-mono italic">
+                      <p className="text-xs text-muted-foreground font-mono italic">
                         Brak rozegranych meczów — wpisz wyniki, aby wyłonić zwycięzców.
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {winners.map((w, i) => (
                           <span key={w} className={cn(
-                            "text-[11px] font-mono px-2 py-1 rounded border flex items-center gap-1.5",
+                            "text-xs font-mono px-2 py-1 rounded border flex items-center gap-1.5",
                             promoted.includes(w)
                               ? "bg-[hsl(var(--win))]/15 border-[hsl(var(--win))]/40 text-[hsl(var(--win))]"
                               : "bg-primary/10 border-primary/30 text-primary"
                           )}>
                             <span className="opacity-60">#{i + 1}</span>
                             {w}
-                            {promoted.includes(w) && <span className="text-[9px]">✓ awansował</span>}
+                            {promoted.includes(w) && <span className="text-xs">✓ awansował</span>}
                           </span>
                         ))}
                       </div>
@@ -592,7 +592,7 @@ export const TournamentDetailPage = ({
 
             {onPromoteWinners && (
               <div className="mt-4 pt-4 border-t border-[hsl(var(--gold))]/20 space-y-2">
-                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                   Awansuj zwycięzców do turnieju głównego
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -621,7 +621,7 @@ export const TournamentDetailPage = ({
                   </Button>
                 </div>
                 {pendingPromotion.length === 0 && allWinners.length > 0 && (
-                  <p className="text-[10px] font-mono text-muted-foreground">
+                  <p className="text-xs font-mono text-muted-foreground">
                     ✓ Wszyscy zwycięzcy zostali już awansowani.
                   </p>
                 )}
@@ -659,7 +659,7 @@ export const TournamentDetailPage = ({
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className={cn(
-                          "text-[10px] font-mono tracking-wider",
+                          "text-xs font-mono tracking-wider",
                           isActive ? "text-primary" : "text-muted-foreground"
                         )}>
                           FAZA {idx + 1}
@@ -673,12 +673,12 @@ export const TournamentDetailPage = ({
                         {phase.name}
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-muted-foreground truncate">
+                        <span className="text-xs font-mono text-muted-foreground truncate">
                           {formatLabel(phase.format)} • BO{phase.bo}
                         </span>
                         {total > 0 && (
                           <span className={cn(
-                            "text-[10px] font-mono tabular-nums shrink-0",
+                            "text-xs font-mono tabular-nums shrink-0",
                             isDone ? "text-[hsl(var(--win))]" : isActive ? "text-primary" : "text-muted-foreground"
                           )}>
                             {done}/{total}
@@ -722,17 +722,17 @@ export const TournamentDetailPage = ({
                       <div className="min-w-0">
                         <h4 className="text-lg font-heading font-bold text-foreground leading-tight truncate">{phase.name}</h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
                             {formatLabel(phase.format)}
                           </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">BO{phase.bo}</span>
+                          <span className="text-xs font-mono text-muted-foreground">BO{phase.bo}</span>
                           {phase.advanceCount ? (
-                            <span className="text-[10px] font-mono text-muted-foreground">
+                            <span className="text-xs font-mono text-muted-foreground">
                               • Awansuje: <span className="text-foreground">{phase.advanceCount}</span>
                             </span>
                           ) : null}
                           {phase.teams.length > 0 && (
-                            <span className="text-[10px] font-mono text-muted-foreground">
+                            <span className="text-xs font-mono text-muted-foreground">
                               • {phase.teams.filter(x => x && !x.startsWith("TBD")).length}/{phase.teams.length} drużyn
                             </span>
                           )}
@@ -770,7 +770,7 @@ export const TournamentDetailPage = ({
                                   ? `Faza zakończona — gotowe do awansu (${winners.length} drużyn)`
                                   : `Awansuje do: ${nextPhase.name}`}
                               </div>
-                              <div className="text-[10px] font-mono text-muted-foreground truncate">
+                              <div className="text-xs font-mono text-muted-foreground truncate">
                                 {winners.length > 0
                                   ? winners.join(" • ")
                                   : "Brak rozstrzygniętych zwycięzców."}

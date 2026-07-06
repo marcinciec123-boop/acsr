@@ -55,13 +55,13 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
         <h3 className="font-heading font-black text-sm text-foreground uppercase tracking-wider">
           Pełne wyniki turnieju
         </h3>
-        <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+        <span className="ml-auto text-xs font-mono text-muted-foreground">
           Pula: {tournament.prizePool}
         </span>
       </div>
 
       {/* Column headers — desktop */}
-      <div className="hidden md:grid grid-cols-[60px_1fr_90px_100px_120px_40px] gap-2 px-4 py-2 bg-secondary/40 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+      <div className="hidden md:grid grid-cols-[60px_1fr_90px_100px_120px_40px] gap-2 px-4 py-2 bg-secondary/40 text-xs font-mono text-muted-foreground uppercase tracking-widest">
         <div className="text-center">Miejsce</div>
         <div>Drużyna</div>
         <div className="text-right">Pkt VRS</div>
@@ -111,7 +111,7 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
                   <TeamLogo teamName={p.team} size={28} rounded="md" />
                   <div className="min-w-0">
                     <div className="font-heading font-bold text-foreground truncate">{p.team}</div>
-                    <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                    <div className="text-xs font-mono text-muted-foreground flex items-center gap-1">
                       {teamData && <span>{countryFlag(teamData.country)}</span>}
                       {teamData && <span>{teamData.country}</span>}
                       <span className="md:hidden text-border">•</span>
@@ -171,7 +171,7 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
               {isOpen && (
                 <div className="px-4 pb-3 pt-1 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
                   <div>
-                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                       <Users className="w-3 h-3" /> Skład grający w turnieju
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -205,7 +205,7 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
       </div>
 
       {totalPool > 0 && (
-        <div className="px-4 py-2 border-t border-border/60 bg-secondary/30 text-[10px] font-mono text-muted-foreground text-right">
+        <div className="px-4 py-2 border-t border-border/60 bg-secondary/30 text-xs font-mono text-muted-foreground text-right">
           Rozdystrybuowano: {formatMoney(
             Object.values(prizeMap).reduce((s, v) => s + v, 0)
           )} z {tournament.prizePool}

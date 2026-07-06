@@ -204,7 +204,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
 
           {editing ? (
             <div className="flex flex-col items-center gap-2">
-              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
+              {isBo1 && <span className="text-xs font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input
                   value={s1}
@@ -271,7 +271,7 @@ const MatchDetailPanel = ({ match, onUpdate, onSimulate, resolved, matchStats, o
         {pickedMaps.length > 0 && !resolved && (
           <div className="flex justify-center gap-2 mt-3">
             {pickedMaps.map((m, i) => (
-              <span key={i} className="text-[10px] font-mono text-win bg-win/5 px-2 py-1 rounded border border-win/20">
+              <span key={i} className="text-xs font-mono text-win bg-win/5 px-2 py-1 rounded border border-win/20">
                 Mapa {i + 1}: {m}
               </span>
             ))}
@@ -1297,7 +1297,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
                     const isResolved = !!m.winner;
                     return (
                       <div key={mi} className="space-y-1">
-                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{group.is3Team ? matchLabels3Team[mi] : matchLabels[mi]}</p>
+                        <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{group.is3Team ? matchLabels3Team[mi] : matchLabels[mi]}</p>
                         <div className={cn(
                           "bg-secondary/30 border rounded-md overflow-hidden text-sm",
                           isResolved ? "border-win/20" : "border-primary/30"
@@ -1327,10 +1327,10 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
                 {/* Group status */}
                 <div className="px-3 pb-3 flex flex-wrap gap-1">
                   {group.qualified.map(t => (
-                    <span key={t} className="text-[10px] font-mono text-win bg-win/10 px-2 py-0.5 rounded border border-win/30">✓ {t}</span>
+                    <span key={t} className="text-xs font-mono text-win bg-win/10 px-2 py-0.5 rounded border border-win/30">✓ {t}</span>
                   ))}
                   {group.eliminated.map(t => (
-                    <span key={t} className="text-[10px] font-mono text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">✗ {t}</span>
+                    <span key={t} className="text-xs font-mono text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">✗ {t}</span>
                   ))}
                 </div>
               </div>
@@ -1349,7 +1349,7 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
             <ArrowLeft className="w-4 h-4" />
             Powrót do listy turniejów
           </button>
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
             <Save className="w-3 h-3" />
             Postęp zapisywany automatycznie
           </div>

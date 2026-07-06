@@ -135,7 +135,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
             Porównanie graczy
           </h3>
           <div className="mx-3 flex-1 h-px bg-gradient-to-r from-primary/40 via-border to-primary/40" />
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground">
             Statystyki kariery
           </span>
         </div>
@@ -152,7 +152,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
             <PlayerHero name={currentP1} team={team1} stats={stats1} align="left" />
             <div className="flex flex-col items-center justify-center px-2 py-4 gap-2 border-x border-border/40 bg-background/40">
               <Swords className="w-5 h-5 text-primary" />
-              <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">vs</span>
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">vs</span>
             </div>
             <PlayerHero name={currentP2} team={team2} stats={stats2} align="right" />
           </div>
@@ -192,14 +192,14 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
           <h3 className="text-xs font-heading font-bold uppercase tracking-wider text-[hsl(var(--gold))]">
             Kursy bukmacherskie
           </h3>
-          <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+          <span className="text-xs font-mono text-muted-foreground ml-auto">
             Tier {tier} • BO{bo} • margin 6%
           </span>
         </div>
 
         {/* Match winner 1X2 (no draw in CS, so just 1/2) */}
         <div className="p-4 space-y-3">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
             Zwycięzca meczu
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -220,7 +220,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
           </div>
 
           {/* Correct score */}
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-2 flex items-center gap-1.5">
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground pt-2 flex items-center gap-1.5">
             <ArrowLeftRight className="w-3 h-3" /> Dokładny wynik
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -243,7 +243,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
             ))}
           </div>
 
-          <p className="text-[9px] font-mono text-muted-foreground/70 pt-1">
+          <p className="text-xs font-mono text-muted-foreground/70 pt-1">
             Kursy generowane na podstawie różnicy w rankingu VRS. To nie są prawdziwe kursy bukmacherskie.
           </p>
         </div>
@@ -278,7 +278,7 @@ const PlayerPicker = ({
               onClick={() => onSelect(name)}
               title={role ? `${role}` : undefined}
               className={cn(
-                "group px-2 py-1 rounded text-[10px] font-mono border transition-all flex items-center gap-1",
+                "group px-2 py-1 rounded text-xs font-mono border transition-all flex items-center gap-1",
                 isSelected
                   ? "bg-primary/20 text-primary border-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
                   : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
@@ -289,7 +289,7 @@ const PlayerPicker = ({
               {role && (
                 <span
                   className={cn(
-                    "ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] leading-none border",
+                    "ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-sm text-xs leading-none border",
                     roleColors[role],
                   )}
                 >
@@ -300,7 +300,7 @@ const PlayerPicker = ({
           );
         })}
         {roster.length === 0 && (
-          <span className="text-[10px] font-mono text-muted-foreground">Brak składu</span>
+          <span className="text-xs font-mono text-muted-foreground">Brak składu</span>
         )}
       </div>
     </div>
@@ -366,22 +366,22 @@ const PlayerHero = ({
         <div className={cn("flex items-center gap-1.5 flex-wrap", align === "right" && "justify-end")}>
           {role ? (
             <span className={cn(
-              "inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border",
+              "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border",
               roleColors[role],
             )}>
               <span>{roleIcons[role]}</span>
               <span>{role}</span>
             </span>
           ) : (
-            <span className="text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider">Rola nieznana</span>
+            <span className="text-xs font-mono text-muted-foreground/70 uppercase tracking-wider">Rola nieznana</span>
           )}
           <span className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60",
+            "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60",
             ratingColor,
           )}>
             {stats.careerRating.toFixed(2)} rtg
           </span>
-          <span className="text-[9px] font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground">
             {stats.matchesPlayed}m • {winPct}% W
           </span>
         </div>
@@ -422,7 +422,7 @@ const CompareRow = ({
         {fmt(v1)}
       </div>
       <div className="flex flex-col items-center gap-1 min-w-[110px]">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
           {label}
         </div>
         <div className="w-24 h-1 rounded-full bg-border/60 overflow-hidden flex">
@@ -463,7 +463,7 @@ const OddsCard = ({
         <TeamLogo teamName={team} size={24} rounded="md" />
         <div className="min-w-0 flex-1">
           <div className="text-xs font-bold truncate">{team}</div>
-          <div className="text-[9px] font-mono text-muted-foreground">#{rank} • {Math.round(prob * 100)}% szans</div>
+          <div className="text-xs font-mono text-muted-foreground">#{rank} • {Math.round(prob * 100)}% szans</div>
         </div>
       </div>
       <div className={cn(

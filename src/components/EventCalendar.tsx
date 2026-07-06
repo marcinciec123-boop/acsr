@@ -147,7 +147,7 @@ const EventCalendar = ({ tournaments, simResults }: EventCalendarProps) => {
       C: "text-muted-foreground bg-muted border-border",
     };
     return (
-      <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded border", colors[tier] || colors.C)}>
+      <span className={cn("text-xs font-mono px-1.5 py-0.5 rounded border", colors[tier] || colors.C)}>
         {tier}-Tier
       </span>
     );
@@ -274,7 +274,7 @@ const EventCalendar = ({ tournaments, simResults }: EventCalendarProps) => {
 
             {/* Legend */}
             <div className="mt-6 pt-4 border-t border-border/50 space-y-2">
-              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Legenda</p>
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Legenda</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-accent/50 border border-accent/30" />
@@ -289,7 +289,7 @@ const EventCalendar = ({ tournaments, simResults }: EventCalendarProps) => {
                   <span className="text-muted-foreground">Zakończony</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-accent font-bold font-mono text-[10px]">5</span>
+                  <span className="text-accent font-bold font-mono text-xs">5</span>
                   <span className="text-muted-foreground">Tier S</span>
                 </div>
               </div>

@@ -127,7 +127,7 @@ const TournamentSummary = ({ tournament, simulation, matchStats, onClose }: Tour
                 <Star className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <p className="text-[10px] font-mono text-accent uppercase tracking-widest">MVP Turnieju</p>
+                <p className="text-xs font-mono text-accent uppercase tracking-widest">MVP Turnieju</p>
                 <p className="text-xl font-heading font-bold text-foreground">{mvp.name}</p>
                 <p className="text-xs text-muted-foreground font-mono">{mvp.team} • Rating: {mvp.avgRating.toFixed(2)} • {mvp.totalKills}K/{mvp.totalDeaths}D</p>
               </div>
@@ -140,7 +140,7 @@ const TournamentSummary = ({ tournament, simulation, matchStats, onClose }: Tour
               <Target className="w-4 h-4 text-primary" />
               Top gracze turnieju
             </div>
-            <div className="grid grid-cols-12 gap-1 px-4 py-2 text-[10px] font-mono text-muted-foreground uppercase bg-secondary/30">
+            <div className="grid grid-cols-12 gap-1 px-4 py-2 text-xs font-mono text-muted-foreground uppercase bg-secondary/30">
               <div className="col-span-1">#</div>
               <div className="col-span-4">Gracz</div>
               <div className="col-span-3">Drużyna</div>
@@ -168,12 +168,12 @@ const TournamentSummary = ({ tournament, simulation, matchStats, onClose }: Tour
           {topFragger && topKD && (
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-card border border-border rounded-lg p-3">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">Top Fragger</p>
+                <p className="text-xs font-mono text-muted-foreground uppercase">Top Fragger</p>
                 <p className="font-heading font-bold text-foreground">{topFragger.name}</p>
                 <p className="text-xs text-muted-foreground font-mono">{topFragger.totalKills} kills • {topFragger.team}</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-3">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">Najlepszy K/D</p>
+                <p className="text-xs font-mono text-muted-foreground uppercase">Najlepszy K/D</p>
                 <p className="font-heading font-bold text-foreground">{topKD.name}</p>
                 <p className="text-xs text-muted-foreground font-mono">{topKD.kd.toFixed(2)} K/D • {topKD.team}</p>
               </div>

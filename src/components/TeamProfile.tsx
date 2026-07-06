@@ -233,7 +233,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <button
                   type="button"
                   onClick={handleUploadClick}
-                  className="text-[10px] font-mono uppercase text-foreground bg-primary/90 hover:bg-primary text-primary-foreground px-2 py-1 rounded flex items-center gap-1"
+                  className="text-xs font-mono uppercase text-foreground bg-primary/90 hover:bg-primary text-primary-foreground px-2 py-1 rounded flex items-center gap-1"
                 >
                   <Upload className="w-3 h-3" /> Logo
                 </button>
@@ -241,7 +241,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   <button
                     type="button"
                     onClick={handleRemoveLogo}
-                    className="text-[10px] font-mono uppercase text-destructive bg-destructive/10 hover:bg-destructive/20 px-2 py-1 rounded flex items-center gap-1"
+                    className="text-xs font-mono uppercase text-destructive bg-destructive/10 hover:bg-destructive/20 px-2 py-1 rounded flex items-center gap-1"
                   >
                     <X className="w-3 h-3" /> Usuń
                   </button>
@@ -287,7 +287,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
             {/* Rank badge */}
             <div className="text-right shrink-0 w-full md:w-auto">
-              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">World Rank</p>
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">World Rank</p>
               <p className={cn("text-5xl font-heading font-black", globalRank <= 3 ? "text-accent" : globalRank <= 10 ? "text-primary" : "text-foreground")}>
                 #{globalRank}
               </p>
@@ -315,7 +315,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 {t.label}
                 {typeof t.count === "number" && t.count > 0 && (
                   <span className={cn(
-                    "text-[10px] font-mono px-1.5 py-0.5 rounded-full",
+                    "text-xs font-mono px-1.5 py-0.5 rounded-full",
                     active ? "bg-primary/20 text-primary" : "bg-secondary/50 text-muted-foreground"
                   )}>
                     {t.count}
@@ -347,7 +347,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       <div className="min-w-0 flex-1">
                         <p className="font-heading font-bold text-foreground text-sm truncate">{team.coach}</p>
                         {playerRealNames[team.coach] && (
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {playerRealNames[team.coach].firstName} {playerRealNames[team.coach].lastName}
                           </p>
                         )}
@@ -355,7 +355,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       {playerNationalities[team.coach] && (
                         <span className="text-lg shrink-0">{countryFlag(playerNationalities[team.coach])}</span>
                       )}
-                      <span className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10 shrink-0">
+                      <span className="text-xs font-mono font-bold uppercase px-2 py-1 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10 shrink-0">
                         Coach
                       </span>
                     </button>
@@ -385,7 +385,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                           </span>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-heading text-foreground truncate">{tr.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-mono">
+                            <p className="text-xs text-muted-foreground font-mono">
                               {tr.endDate || "—"} {tr.tier ? `• Tier ${tr.tier}` : ""}
                             </p>
                           </div>
@@ -435,7 +435,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="font-heading text-foreground text-sm truncate">{tr.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground font-mono flex items-center gap-2">
                           <Calendar className="w-3 h-3" />{tr.endDate || "—"}
                           {tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
                         </p>
@@ -480,7 +480,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                               : t.newTeam === "-" ? "Odszedł → Free Agent" : `do ${t.newTeam}`}
                           </p>
                         </div>
-                        <span className="text-[10px] font-mono text-muted-foreground">{t.date}</span>
+                        <span className="text-xs font-mono text-muted-foreground">{t.date}</span>
                       </div>
                     );
                   })}
@@ -498,7 +498,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
 const StatCell = ({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: "win" | "loss" | "primary" }) => (
   <div className="bg-secondary/40 border border-border/50 rounded-lg px-3 py-2">
-    <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">{label}</p>
     <p className={cn(
       "text-lg font-heading font-bold",
       accent === "win" && "text-[hsl(var(--win))]",
@@ -506,7 +506,7 @@ const StatCell = ({ label, value, sub, accent }: { label: string; value: string;
       accent === "primary" && "text-primary",
       !accent && "text-foreground",
     )}>{value}</p>
-    {sub && <p className="text-[10px] font-mono text-muted-foreground">{sub}</p>}
+    {sub && <p className="text-xs font-mono text-muted-foreground">{sub}</p>}
   </div>
 );
 
@@ -590,21 +590,21 @@ const RosterGrid = ({
               </div>
               <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
               {realName && (
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   {realName.firstName} {realName.lastName}
                 </p>
               )}
               {playerRoles[player] && (
-                <span className={cn("inline-flex items-center gap-1 text-[10px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+                <span className={cn("inline-flex items-center gap-1 text-xs font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
                   {roleIcons[playerRoles[player]]} {playerRoles[player]}
                 </span>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
                 <span>{countryFlag(playerCountry)}</span>
                 <span className="truncate">{playerCountry}</span>
               </p>
               {stats && stats.matches > 0 ? (
-                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-[9px] font-mono">
+                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-xs font-mono">
                   <div className="flex flex-col items-center" title={`Rating (${stats.matches} meczów)`}>
                     <span className="text-muted-foreground uppercase">Rtg</span>
                     <span className={cn("font-bold tabular-nums", getRatingColor(stats.rating))}>{stats.rating.toFixed(2)}</span>
@@ -619,7 +619,7 @@ const RosterGrid = ({
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground/60 text-center">
+                <div className="mt-2 pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/60 text-center">
                   Brak statystyk
                 </div>
               )}
@@ -629,7 +629,7 @@ const RosterGrid = ({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onBench(player); }}
                 disabled={canBench === false}
-                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1 rounded border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-xs font-mono uppercase px-2 py-1 rounded border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 title={canBench === false ? "Skład musi mieć min. 1 aktywnego gracza" : "Wyślij na ławkę"}
               >
                 <ArrowDownCircle className="w-3 h-3" /> Na ławkę
@@ -639,7 +639,7 @@ const RosterGrid = ({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onActivate(player); }}
-                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1 rounded border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                className="mt-2 w-full inline-flex items-center justify-center gap-1 text-xs font-mono uppercase px-2 py-1 rounded border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
               >
                 <ArrowUpCircle className="w-3 h-3" /> Wstaw do składu
               </button>
@@ -688,17 +688,17 @@ const RosterTabContent = ({
             <div className="min-w-0 flex-1">
               <p className="font-heading font-bold text-foreground text-sm truncate">{team.coach}</p>
               {playerRealNames[team.coach] && (
-                <p className="text-[10px] text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {playerRealNames[team.coach].firstName} {playerRealNames[team.coach].lastName}
                 </p>
               )}
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                 {playerNationalities[team.coach] && (
                   <span>{countryFlag(playerNationalities[team.coach])} {playerNationalities[team.coach]}</span>
                 )}
               </p>
             </div>
-            <span className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
+            <span className="text-xs font-mono font-bold uppercase px-2 py-1 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
               Coach
             </span>
           </button>
@@ -750,7 +750,7 @@ const MatchList = ({
     {matches.map(m => (
       <li key={m.id} className="py-2 flex items-center gap-3 flex-wrap">
         <span className={cn(
-          "w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-bold shrink-0",
+          "w-6 h-6 rounded flex items-center justify-center text-xs font-mono font-bold shrink-0",
           m.won ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]" : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
         )}>{m.won ? "W" : "L"}</span>
         <TeamLogo teamName={teamName} size={22} rounded="md" />
@@ -762,14 +762,14 @@ const MatchList = ({
           m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
         )}>{m.ownScore}–{m.oppScore}</span>
         {m.bo && (
-          <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
+          <span className="text-xs font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
         )}
         {m.round && (
-          <span className="text-[10px] font-mono text-primary/80 border border-primary/30 bg-primary/5 rounded px-1.5 py-0.5 shrink-0 truncate max-w-[160px]" title={m.round}>
+          <span className="text-xs font-mono text-primary/80 border border-primary/30 bg-primary/5 rounded px-1.5 py-0.5 shrink-0 truncate max-w-[160px]" title={m.round}>
             {m.round}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
+        <span className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
       </li>
     ))}
   </ul>

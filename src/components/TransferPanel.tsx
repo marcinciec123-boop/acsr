@@ -303,7 +303,7 @@ const TransferPanel = () => {
               <div className="grid md:grid-cols-2 gap-4 pt-2">
                 {/* LEFT: searchable picker */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Wybierz osobę</label>
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Wybierz osobę</label>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <Input
@@ -325,7 +325,7 @@ const TransferPanel = () => {
                         key={o.v}
                         onClick={() => setPickerKind(o.v)}
                         className={cn(
-                          "px-2 py-1 text-[10px] font-mono rounded border transition-colors",
+                          "px-2 py-1 text-xs font-mono rounded border transition-colors",
                           pickerKind === o.v
                             ? "bg-primary/20 text-primary border-primary/40"
                             : "text-muted-foreground border-border hover:text-foreground",
@@ -360,7 +360,7 @@ const TransferPanel = () => {
                           <span className="text-sm font-heading text-foreground truncate flex-1">{e.name}</span>
                           {e.role && (
                             <span className={cn(
-                              "text-[9px] font-mono px-1 py-0.5 rounded border shrink-0",
+                              "text-xs font-mono px-1 py-0.5 rounded border shrink-0",
                               e.role === "Coach"
                                 ? "border-sky-500/40 text-sky-300 bg-sky-500/10"
                                 : "border-border text-muted-foreground",
@@ -369,9 +369,9 @@ const TransferPanel = () => {
                             </span>
                           )}
                           {e.team ? (
-                            <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[110px] shrink-0">{e.team}</span>
+                            <span className="text-xs font-mono text-muted-foreground truncate max-w-[110px] shrink-0">{e.team}</span>
                           ) : (
-                            <span className="text-[10px] font-mono text-amber-400 shrink-0">FA</span>
+                            <span className="text-xs font-mono text-amber-400 shrink-0">FA</span>
                           )}
                         </button>
                       );
@@ -382,7 +382,7 @@ const TransferPanel = () => {
                 {/* RIGHT: destination + summary */}
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">Wybrany</label>
+                    <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">Wybrany</label>
                     {transferPlayer ? (
                       <div className={cn(
                         "flex items-center gap-2 p-2 rounded border",
@@ -391,7 +391,7 @@ const TransferPanel = () => {
                         <span className="text-lg">{selectedEntry?.country ? countryFlag(selectedEntry.country) : "🏳️"}</span>
                         <div className="min-w-0 flex-1">
                           <p className="font-heading font-bold text-sm truncate">{transferPlayer}</p>
-                          <p className="text-[10px] font-mono text-muted-foreground truncate">
+                          <p className="text-xs font-mono text-muted-foreground truncate">
                             {isCoachPick && "🎓 Trener • "}
                             {transferFrom === "-" ? "Free Agent" : transferFrom}
                             {selectedEntry?.role && !isCoachPick && ` • ${selectedEntry.role}`}
@@ -406,14 +406,14 @@ const TransferPanel = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="p-3 rounded border border-dashed border-border text-center text-[11px] font-mono text-muted-foreground">
+                      <div className="p-3 rounded border border-dashed border-border text-center text-xs font-mono text-muted-foreground">
                         Wybierz osobę z listy →
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                    <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                       {isCoachPick ? "Nowy klub trenera" : "Do drużyny"}
                     </label>
                     <select
@@ -431,7 +431,7 @@ const TransferPanel = () => {
                       })}
                     </select>
                     {targetTeamHasCoach && (
-                      <p className="mt-1 text-[10px] font-mono text-amber-400">
+                      <p className="mt-1 text-xs font-mono text-amber-400">
                         ⚠ {transferTo} ma już trenera ({targetTeamHasCoach}). Zostanie zastąpiony.
                       </p>
                     )}
@@ -440,7 +440,7 @@ const TransferPanel = () => {
                   {transferPlayer && transferFrom !== "-" && (
                     <button
                       onClick={() => setTransferTo("-")}
-                      className="w-full text-[11px] font-mono py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                      className="w-full text-xs font-mono py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
                     >
                       Zwolnij do FA
                     </button>
@@ -557,7 +557,7 @@ const TransferPanel = () => {
                     {(() => { const c = resolvePlayerCountry(t.player); return c && <span className="text-xs">{countryFlag(c)}</span>; })()}
                     {t.player}
                     {playerRoles[t.player] === "Coach" && (
-                      <span className="text-[9px] font-mono px-1 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">🎓</span>
+                      <span className="text-xs font-mono px-1 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">🎓</span>
                     )}
                   </div>
                   <div className="col-span-3">
@@ -642,7 +642,7 @@ const TransferPanel = () => {
                       {new Date(entry.ts).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </div>
                     <div className="col-span-2">
-                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/10">
+                      <span className="text-xs font-mono uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/10">
                         {entry.kind}
                       </span>
                     </div>

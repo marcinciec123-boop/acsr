@@ -217,7 +217,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                     type="button"
                     onClick={() => picked ? removeCountry(c.code) : addCountry(c.code)}
                     className={cn(
-                      "text-[11px] px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1 min-w-0",
+                      "text-xs px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1 min-w-0",
                       picked
                         ? "bg-primary/20 text-primary border border-primary/40"
                         : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
@@ -226,7 +226,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                   >
                     <span className="text-base leading-none">{c.flag}</span>
                     <span className="truncate flex-1">{c.code}</span>
-                    <span className="text-[9px] opacity-70">{c.playerCount}</span>
+                    <span className="text-xs opacity-70">{c.playerCount}</span>
                   </button>
                 );
               })}
@@ -252,11 +252,11 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                             onChange={e => updateNation(n.code, { label: e.target.value })}
                             className="h-7 text-xs font-mono flex-1"
                           />
-                          <span className="text-[10px] font-mono text-muted-foreground shrink-0">{pool.length} dost.</span>
+                          <span className="text-xs font-mono text-muted-foreground shrink-0">{pool.length} dost.</span>
                         </div>
                         <button
                           onClick={() => autoFill(n.code)}
-                          className="text-[10px] font-mono text-primary hover:underline shrink-0"
+                          className="text-xs font-mono text-primary hover:underline shrink-0"
                           title="Wstaw pierwszych 5 dostępnych"
                         >auto</button>
                         <button
@@ -270,11 +270,11 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                       <div className="space-y-1">
                         {n.roster.map((p, i) => (
                           <div key={i} className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-mono text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                            <span className="text-xs font-mono text-muted-foreground w-4 shrink-0">{i + 1}</span>
                             <select
                               value={p}
                               onChange={e => setRosterSlot(n.code, i, e.target.value)}
-                              className="flex-1 text-[11px] font-mono bg-card border border-border rounded px-1.5 py-1 h-7"
+                              className="flex-1 text-xs font-mono bg-card border border-border rounded px-1.5 py-1 h-7"
                             >
                               <option value="">— wybierz gracza —</option>
                               {pool.map(pl => (
@@ -286,7 +286,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                               value={p}
                               onChange={e => setRosterSlot(n.code, i, e.target.value)}
                               placeholder="lub wpisz..."
-                              className="h-7 text-[11px] font-mono w-24 shrink-0"
+                              className="h-7 text-xs font-mono w-24 shrink-0"
                             />
                           </div>
                         ))}
@@ -342,7 +342,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
               return (
                 <div key={idx} className="bg-secondary/30 border border-border rounded p-3 space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-muted-foreground w-10 shrink-0">#{idx + 1}</span>
+                    <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">#{idx + 1}</span>
                     <Input
                       value={draft.name}
                       onChange={e => updatePhaseDraft(idx, { name: e.target.value })}
@@ -376,7 +376,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                       <option value={1}>Bo1</option><option value={3}>Bo3</option><option value={5}>Bo5</option>
                     </select>
                     {hasGroups ? (
-                      <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                      <label className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
                         Grupy
                         <Input
                           type="number" min={1} value={draft.groupCount}
@@ -389,7 +389,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {hasAdvance && (
-                      <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                      <label className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
                         Awans
                         <Input
                           type="number" min={0} value={draft.advanceCount}
@@ -398,7 +398,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         />
                       </label>
                     )}
-                    <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                    <label className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
                       Seed
                       <Input
                         type="number" min={0} value={draft.seededCount}
@@ -407,7 +407,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         title="Ile drużyn wchodzi z poprzedniej fazy (0 = wszystkie)"
                       />
                     </label>
-                    <label className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                    <label className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
                       Rozmiar
                       <Input
                         type="number" min={0} value={draft.teamCount}
@@ -420,11 +420,11 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
 
                   {hasGroups && (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-muted-foreground">Losowanie grup:</span>
+                      <span className="text-xs font-mono text-muted-foreground">Losowanie grup:</span>
                       <select
                         value={draft.groupAssignment ?? "random"}
                         onChange={e => updatePhaseDraft(idx, { groupAssignment: e.target.value as "random" | "manual" })}
-                        className="px-2 py-1 rounded bg-card border border-border text-foreground text-[11px] font-mono h-7"
+                        className="px-2 py-1 rounded bg-card border border-border text-foreground text-xs font-mono h-7"
                       >
                         <option value="random">Losowo (snake-seed)</option>
                         <option value="manual">Ręcznie (po utworzeniu)</option>
@@ -436,7 +436,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
             })}
           </section>
 
-          <p className="text-[10px] font-mono text-muted-foreground italic border-t border-border pt-2">
+          <p className="text-xs font-mono text-muted-foreground italic border-t border-border pt-2">
             ℹ️ Mistrzostwa świata <strong>nie wpływają na klubowy ranking</strong>. Reprezentacje są oddzielnie oznaczone i nie pojawią się na liście Pro Teams.
           </p>
         </div>

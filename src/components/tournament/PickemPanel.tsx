@@ -285,7 +285,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
           </div>
           <div className="text-left min-w-0">
             <h3 className="text-sm font-heading font-bold text-foreground leading-tight">Pick'em — Twoje typy</h3>
-            <p className="text-[10px] font-mono text-muted-foreground truncate">
+            <p className="text-xs font-mono text-muted-foreground truncate">
               {scoring ? `Wynik: ${scoring.points} / ${scoring.max} pkt`
                 : isLocked ? `Typy zablokowane • ${filledSlots}/${totalSlots} obstawionych`
                 : `${filledSlots}/${totalSlots} obstawionych • edytuj do startu każdej fazy / meczu`}
@@ -294,7 +294,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {scoring && (
-            <span className="text-[10px] font-mono px-2 py-1 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]">
+            <span className="text-xs font-mono px-2 py-1 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))]">
               {scoring.points} pkt
             </span>
           )}
@@ -317,13 +317,13 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   <div className="flex items-center gap-2 mb-2">
                     <Award className="w-4 h-4 text-[hsl(var(--gold))]" />
                     <span className="text-xs font-heading font-bold uppercase text-[hsl(var(--gold))] tracking-wider">Podsumowanie Pick'ema</span>
-                    <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+                    <span className="text-xs font-mono text-muted-foreground ml-auto">
                       Skuteczność: {scoring.max > 0 ? Math.round((scoring.points / scoring.max) * 100) : 0}%
                     </span>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-1.5">
                     {scoring.breakdown.map((b, i) => (
-                      <div key={i} className="flex items-center justify-between text-[11px] font-mono px-2 py-1 rounded bg-card border border-border">
+                      <div key={i} className="flex items-center justify-between text-xs font-mono px-2 py-1 rounded bg-card border border-border">
                         <span className="text-muted-foreground truncate pr-2">{b.label}</span>
                         <span className={cn("tabular-nums shrink-0",
                           b.got === b.max ? "text-[hsl(var(--win))]" :
@@ -338,7 +338,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
               {!scoring && isLocked && (
                 <div className="bg-secondary/30 border border-border rounded-md p-3 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                  <p className="text-[11px] font-mono text-muted-foreground">
+                  <p className="text-xs font-mono text-muted-foreground">
                     Turniej wystartował — typy są zablokowane do podliczenia po zatwierdzeniu wyników.
                   </p>
                 </div>
@@ -347,7 +347,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
               {/* RR/GSL Groups */}
               {drawnGroups.length > 0 && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Grupy</div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Grupy</div>
                   <div className="grid md:grid-cols-2 gap-3">
                     {drawnGroups.map(({ phaseName, group }) => {
                       const teams = group.teams.filter(x => x && !isPlaceholder(x));
@@ -365,9 +365,9 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                       const Row = ({ label, value, onChange, actual, color }: any) => (
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className={cn("text-[10px] font-mono uppercase tracking-wider", color)}>{label}</span>
+                            <span className={cn("text-xs font-mono uppercase tracking-wider", color)}>{label}</span>
                             {scoring && actual && (
-                              <span className={cn("text-[10px] font-mono", value === actual ? "text-[hsl(var(--win))]" : "text-destructive")}>
+                              <span className={cn("text-xs font-mono", value === actual ? "text-[hsl(var(--win))]" : "text-destructive")}>
                                 {value === actual ? "✓ trafione" : `✗ było: ${actual}`}
                               </span>
                             )}
@@ -388,7 +388,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                         <div key={group.id} className="bg-secondary/20 border border-border rounded-md p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-heading font-bold text-foreground">{group.name}</span>
-                            <span className="text-[10px] font-mono text-muted-foreground">
+                            <span className="text-xs font-mono text-muted-foreground">
                               {phaseName}{locked && groupLocked(group) ? " • 🔒" : ""}
                             </span>
                           </div>
@@ -418,7 +418,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   <div key={phase.id} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-primary" />
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                         {phase.name} — Swiss rekordy (+{SCORING.swissRecord} pkt za trafienie){phaseLocked && swissPhaseLocked(phase) ? " 🔒" : ""}
                       </div>
                     </div>
@@ -437,7 +437,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                             const actual = new Set(actualByRec.get(b.key) || []);
                             return (
                               <div key={b.key} className="space-y-1">
-                                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                                <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                                   Rekord {b.key} ({b.slots} {b.slots === 1 ? "drużyna" : "drużyny"})
                                 </div>
                                 <div className="grid grid-cols-1 gap-1.5">
@@ -486,14 +486,14 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   <div key={phase.id} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <GitBranch className="w-3.5 h-3.5 text-primary" />
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                         {phase.name} — mecze (+{SCORING.bracketMatch} pkt za trafienie)
                       </div>
                     </div>
                     <div className="space-y-3">
                       {Array.from(byRound.entries()).map(([roundLabel, ms]) => (
                         <div key={roundLabel} className="bg-secondary/20 border border-border rounded-md p-3">
-                          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">{roundLabel}</div>
+                          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">{roundLabel}</div>
                           <div className="grid sm:grid-cols-2 gap-2">
                             {ms.map(m => {
                               const value = phasePicks[m.id] || "";
@@ -506,7 +506,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                 <div key={m.id} className={cn("border rounded p-2 space-y-1.5 bg-card",
                                   hit ? "border-[hsl(var(--win))]/40" : wrong ? "border-destructive/40" : "border-border"
                                 )}>
-                                  <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                                     <span className="flex items-center gap-1.5"><TeamLogo teamName={m.team1} size={16} rounded="md" />{m.team1}</span>
                                     <span>{played ? "🔒" : "vs"}</span>
                                     <span className="flex items-center gap-1.5">{m.team2}<TeamLogo teamName={m.team2} size={16} rounded="md" /></span>
@@ -520,7 +520,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                           type="button"
                                           disabled={mLocked}
                                           onClick={() => setBracketPick(phase.id, m.id, selected ? "" : team)}
-                                          className={cn("px-2 py-1 rounded text-[11px] font-mono border transition-colors",
+                                          className={cn("px-2 py-1 rounded text-xs font-mono border transition-colors",
                                             selected
                                               ? "bg-primary/20 border-primary text-primary"
                                               : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40",
@@ -535,7 +535,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                     })}
                                   </div>
                                   {scoring && played && (
-                                    <div className={cn("text-[9px] font-mono text-right",
+                                    <div className={cn("text-xs font-mono text-right",
                                       hit ? "text-[hsl(var(--win))]" : "text-muted-foreground"
                                     )}>
                                       wygrał: {actualWinner} ({(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()})
@@ -564,9 +564,9 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                   const FinalRow = ({ label, value, onChange, actual, points }: any) => (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[hsl(var(--gold))]">{label} (+{points})</span>
+                        <span className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--gold))]">{label} (+{points})</span>
                         {scoring && actual && (
-                          <span className={cn("text-[10px] font-mono", value === actual ? "text-[hsl(var(--win))]" : "text-destructive")}>
+                          <span className={cn("text-xs font-mono", value === actual ? "text-[hsl(var(--win))]" : "text-destructive")}>
                             {value === actual ? "✓ trafione" : `✗ było: ${actual}`}
                           </span>
                         )}
@@ -610,7 +610,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                 )}
               </div>
 
-              <p className="text-[10px] font-mono text-muted-foreground">
+              <p className="text-xs font-mono text-muted-foreground">
                 💡 Typuj w stylu CS Major: wyniki Swiss (3-0, 3-1, 3-2, 0-3, 1-3, 2-3), zwycięzców meczów w playoff, oraz mistrza/wicemistrza. Punkty naliczają się po zatwierdzeniu wyników.
               </p>
             </div>

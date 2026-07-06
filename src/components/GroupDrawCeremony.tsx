@@ -181,7 +181,7 @@ const GroupDrawCeremony = ({ teams, groupCount, onComplete, onSkip }: GroupDrawC
       {/* Remaining teams pool */}
       {phase === "drawing" && currentTeamIdx < shuffledTeams.length && (
         <div className="bg-secondary/30 border border-border rounded-lg p-3">
-          <p className="text-[10px] font-mono text-muted-foreground uppercase mb-2">
+          <p className="text-xs font-mono text-muted-foreground uppercase mb-2">
             Pozostałe drużyny ({shuffledTeams.length - currentTeamIdx})
           </p>
           <div className="flex flex-wrap gap-1">

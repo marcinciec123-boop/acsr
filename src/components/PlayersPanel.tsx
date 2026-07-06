@@ -313,12 +313,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               ({filtered.length}/{counts.total})
             </span>
             {counts.fa > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
                 <UserMinus className="w-3 h-3" /> {counts.fa} FA
               </span>
             )}
             {coachCount > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded">
                 🎓 {coachCount} trenerów
               </span>
             )}
@@ -390,7 +390,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           {/* Row 2: chip filter groups */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Status</span>
+              <span className="text-xs font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Status</span>
               {([
                 { v: "all", label: "Wszyscy" },
                 { v: "team", label: `Z drużyną`, icon: <UserPlus className="w-3 h-3" /> },
@@ -417,13 +417,13 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             </div>
 
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Region</span>
+              <span className="text-xs font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Region</span>
               {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
                 <button
                   key={r}
                   onClick={() => setRegion(r)}
                   className={cn(
-                    "px-2 py-1 text-[11px] font-mono rounded border transition-colors",
+                    "px-2 py-1 text-xs font-mono rounded border transition-colors",
                     region === r
                       ? "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground"
@@ -435,7 +435,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             </div>
 
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Rating</span>
+              <span className="text-xs font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Rating</span>
               {([
                 { v: "all", label: "Kariera" },
                 { v: "year", label: "Rok" },
@@ -446,7 +446,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   key={opt.v}
                   onClick={() => setRatingPeriod(opt.v)}
                   className={cn(
-                    "px-2 py-1 text-[11px] font-mono rounded border transition-colors",
+                    "px-2 py-1 text-xs font-mono rounded border transition-colors",
                     ratingPeriod === opt.v
                       ? "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground",
@@ -490,7 +490,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     </div>
                     <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {p.isFA && (
-                        <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                        <span className="text-xs font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
                           FA
                         </span>
                       )}
@@ -500,7 +500,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           value={p.role || ""}
                           onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
                           onBlur={() => setRoleEditFor(null)}
-                          className="text-[9px] font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
+                          className="text-xs font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
                         >
                           <option value="">—</option>
                           {ROLE_OPTIONS.map(r => (
@@ -512,7 +512,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           onClick={() => setRoleEditFor(p.name)}
                           title="Kliknij aby zmienić rolę"
                           className={cn(
-                            "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
+                            "text-xs font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
                             roleColors[p.role] || "border-border text-muted-foreground",
                           )}
                         >
@@ -522,7 +522,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         <button
                           onClick={() => setRoleEditFor(p.name)}
                           title="Dodaj rolę"
-                          className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                          className="text-xs font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
                         >
                           + rola
                         </button>
@@ -530,20 +530,20 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     </div>
                   </div>
                   {p.realName && (
-                    <p className="text-[10px] text-muted-foreground font-mono truncate mb-1">
+                    <p className="text-xs text-muted-foreground font-mono truncate mb-1">
                       {p.realName.firstName} {p.realName.lastName}
                     </p>
                   )}
 
                   {p.isFA ? (
                     <div className="mb-2">
-                      <p className="text-[11px] font-mono text-amber-400/80 italic flex items-center gap-1">
+                      <p className="text-xs font-mono text-amber-400/80 italic flex items-center gap-1">
                         <UserMinus className="w-3 h-3" /> Wolny agent
                       </p>
                       {p.previousTeam && p.previousTeam !== "-" && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.previousTeam!); }}
-                          className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                          className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
                           title={`Poprzednio: ${p.previousTeam}`}
                         >
                           ex-{p.previousTeam}
@@ -557,7 +557,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                             setEditingFA(p.name);
                             setFaCountryDraft(p.country || "");
                           }}
-                          className="mt-1 text-[10px] font-mono text-amber-400 hover:text-amber-300 underline decoration-dotted"
+                          className="mt-1 text-xs font-mono text-amber-400 hover:text-amber-300 underline decoration-dotted"
                         >
                           {p.country ? "✎ zmień narodowość" : "+ dodaj narodowość"}
                         </button>
@@ -579,7 +579,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                               if (e.key === "Enter") saveFANationality(p.name);
                               if (e.key === "Escape") { setEditingFA(null); setFaCountryDraft(""); }
                             }}
-                            className="h-6 w-12 text-[10px] font-mono px-1.5 text-center uppercase"
+                            className="h-6 w-12 text-xs font-mono px-1.5 text-center uppercase"
                           />
                           <span className="text-base">{faCountryDraft.length === 2 ? countryFlag(faCountryDraft) : ""}</span>
                           <Button
@@ -596,7 +596,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       <div className="mt-1.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => openEditFA(p.name)}
-                          className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
                           title="Edytuj profil"
                         >
                           <Pencil className="w-2.5 h-2.5" /> edytuj
@@ -604,7 +604,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         {p.isManualFA && (
                           <button
                             onClick={() => deleteManualFA(p.name)}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-destructive transition-colors ml-2"
+                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors ml-2"
                             title="Usuń wolnego agenta"
                           >
                             <Trash2 className="w-2.5 h-2.5" /> usuń
@@ -615,7 +615,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
-                      className="text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
+                      className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
                       title={p.team!.name}
                     >
                       {countryFlag(p.team!.country)} {p.team!.name}
@@ -626,26 +626,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     {p.matches > 0 ? (
                       <>
                         <div className="text-center">
-                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">Rating</p>
+                          <p className="text-xs font-mono uppercase text-muted-foreground/60">Rating</p>
                           <p className={cn("text-sm font-bold tabular-nums leading-tight", getRatingColor(p.rating))}>
                             {p.rating.toFixed(2)}
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">K/D</p>
+                          <p className="text-xs font-mono uppercase text-muted-foreground/60">K/D</p>
                           <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
                             {p.kdr.toFixed(2)}
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-[9px] font-mono uppercase text-muted-foreground/60">M</p>
+                          <p className="text-xs font-mono uppercase text-muted-foreground/60">M</p>
                           <p className="text-sm font-bold tabular-nums text-foreground leading-tight">
                             {p.matches}
                           </p>
                         </div>
                       </>
                     ) : (
-                      <p className="text-[10px] font-mono text-muted-foreground/50 italic mx-auto">
+                      <p className="text-xs font-mono text-muted-foreground/50 italic mx-auto">
                         Brak meczów
                       </p>
                     )}
@@ -666,7 +666,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             </DialogHeader>
             <div className="space-y-3 pt-2">
               <div>
-                <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                   Nick *
                 </label>
                 <Input
@@ -678,7 +678,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                     Imię
                   </label>
                   <Input
@@ -688,7 +688,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                     Nazwisko
                   </label>
                   <Input
@@ -700,7 +700,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                     Narodowość (2-literowy kod ISO, np. PL, DE)
                   </label>
                   <Input
@@ -722,7 +722,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                     Rola
                   </label>
                   <select
@@ -746,7 +746,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 </div>
               </div>
               {faForm.country.length === 2 && (
-                <p className="text-[11px] font-mono text-muted-foreground">
+                <p className="text-xs font-mono text-muted-foreground">
                   Podgląd flagi: <span className="text-base">{countryFlag(faForm.country)}</span> {faForm.country}
                 </p>
               )}

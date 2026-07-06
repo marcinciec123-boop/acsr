@@ -65,7 +65,7 @@ export const GroupAssignmentPanel = ({ phase, availableTeams, onSave, onShuffle 
         </div>
       </div>
 
-      <p className="text-[10px] font-mono text-muted-foreground">
+      <p className="text-xs font-mono text-muted-foreground">
         Pula nieprzypisanych: <span className="text-foreground">{unassigned.length}</span> dr.
         {teamsPerGroup && (
           <> · format wymaga <span className="text-foreground">{teamsPerGroup}</span> dr./grupę</>
@@ -82,7 +82,7 @@ export const GroupAssignmentPanel = ({ phase, availableTeams, onSave, onShuffle 
               <div className="flex items-center justify-between">
                 <h6 className="text-xs font-heading font-bold">{g.name}</h6>
                 <span className={cn(
-                  "text-[10px] font-mono",
+                  "text-xs font-mono",
                   overflow ? "text-destructive" : underflow ? "text-muted-foreground" : "text-[hsl(var(--win))]"
                 )}>
                   {teams.length}{teamsPerGroup ? `/${teamsPerGroup}` : ""}
@@ -92,8 +92,8 @@ export const GroupAssignmentPanel = ({ phase, availableTeams, onSave, onShuffle 
               <div className="space-y-1">
                 {teams.map((t, i) => (
                   <div key={`${t}-${i}`} className="flex items-center gap-1 bg-secondary/50 rounded px-1.5 py-0.5">
-                    <span className="text-[10px] font-mono text-primary w-4 shrink-0">{i + 1}</span>
-                    <span className="text-[11px] font-mono flex-1 truncate">{t || "—"}</span>
+                    <span className="text-xs font-mono text-primary w-4 shrink-0">{i + 1}</span>
+                    <span className="text-xs font-mono flex-1 truncate">{t || "—"}</span>
                     <button
                       onClick={() => removeTeamFromGroup(g.id, i)}
                       className="text-muted-foreground hover:text-destructive shrink-0"
@@ -111,7 +111,7 @@ export const GroupAssignmentPanel = ({ phase, availableTeams, onSave, onShuffle 
                   <select
                     value=""
                     onChange={e => { if (e.target.value) addTeamToGroup(g.id, e.target.value); }}
-                    className="flex-1 text-[10px] font-mono bg-card border border-border rounded px-1 py-0.5 h-6"
+                    className="flex-1 text-xs font-mono bg-card border border-border rounded px-1 py-0.5 h-6"
                   >
                     <option value="">+ Dodaj drużynę...</option>
                     {unassigned.map(t => (

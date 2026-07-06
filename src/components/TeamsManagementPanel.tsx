@@ -182,7 +182,7 @@ const TeamsManagementPanel = () => {
                 ) : (
                   <div className="flex-1 min-w-0">
                     <div className="font-heading font-bold text-sm text-foreground truncate">{t.name}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground flex items-center gap-2">
+                    <div className="text-xs font-mono text-muted-foreground flex items-center gap-2">
                       <span>{countryFlag(t.country)} {t.country}</span>
                       <span className="text-border">•</span>
                       <span>{t.region}</span>

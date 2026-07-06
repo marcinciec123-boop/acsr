@@ -172,7 +172,7 @@ const PlayerProfile = ({
                     <span className="font-bold text-foreground group-hover:text-primary">{currentTeam.name}</span>
                     {teamRank && <span className="font-mono text-xs">(#{teamRank})</span>}
                     {isCoachOfTeam && (
-                      <span className="ml-1 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
+                      <span className="ml-1 text-xs font-mono uppercase px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
                         🎓 Coach
                       </span>
                     )}
@@ -191,12 +191,12 @@ const PlayerProfile = ({
 
             {/* Big career rating badge */}
             <div className="bg-card/60 border border-border rounded-xl p-4 text-center min-w-[120px]">
-              <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider mb-1">Rating 3.0</p>
+              <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider mb-1">Rating 3.0</p>
               <p className={cn("text-4xl font-heading font-bold tabular-nums", getRatingColor(career.careerRating))}>
                 {career.careerRating > 0 ? career.careerRating.toFixed(2) : "—"}
               </p>
               {career.matchesPlayed > 0 && (
-                <p className="text-[10px] font-mono text-muted-foreground mt-1">
+                <p className="text-xs font-mono text-muted-foreground mt-1">
                   W-L: <span className="text-[hsl(var(--win))] font-bold">{career.wins}</span>
                   <span className="mx-0.5">/</span>
                   <span className="text-[hsl(var(--loss))] font-bold">{career.losses}</span>
@@ -236,7 +236,7 @@ const PlayerProfile = ({
                           <span className="text-lg leading-none">⭐</span>
                           <div className="min-w-0">
                             <p className="text-xs font-heading font-bold text-foreground truncate max-w-[220px]">{a.tournamentName}</p>
-                            <p className="text-[10px] font-mono text-muted-foreground truncate">
+                            <p className="text-xs font-mono text-muted-foreground truncate">
                               {a.team}{a.endDate ? ` • ${new Date(a.endDate).getFullYear()}` : ""}
                             </p>
                           </div>
@@ -272,7 +272,7 @@ const PlayerProfile = ({
                               <p className="text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
                                 {tr.tournamentName}
                               </p>
-                              <p className="text-[10px] font-mono text-muted-foreground truncate">
+                              <p className="text-xs font-mono text-muted-foreground truncate">
                                 {tr.team}{tr.endDate ? ` • ${new Date(tr.endDate).getFullYear()}` : ""}
                               </p>
                             </div>
@@ -291,7 +291,7 @@ const PlayerProfile = ({
                     <div className="bg-card border border-primary/30 rounded-lg p-3 flex items-center gap-3">
                       <Star className="w-5 h-5 text-[hsl(var(--gold))] shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Najlepszy mecz</p>
+                        <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Najlepszy mecz</p>
                         <p className={cn("text-lg font-heading font-bold tabular-nums", getRatingColor(career.bestMatchRating.rating))}>
                           {career.bestMatchRating.rating.toFixed(2)}
                           <span className="text-xs font-mono text-muted-foreground ml-1.5">vs {career.bestMatchRating.opponent}</span>
@@ -303,7 +303,7 @@ const PlayerProfile = ({
                     <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3">
                       <Medal className="w-5 h-5 text-[hsl(var(--win))] shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Najwięcej killi (mapa)</p>
+                        <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Najwięcej killi (mapa)</p>
                         <p className="text-lg font-heading font-bold tabular-nums text-foreground">
                           {career.bestMapKills.kills}
                           <span className="text-xs font-mono text-muted-foreground ml-1.5">
@@ -327,7 +327,7 @@ const PlayerProfile = ({
                   <h2 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-primary" /> Forma — ostatnie {Math.min(career.recentMatches.length, 15)} meczów
                   </h2>
-                  <p className="text-[10px] font-mono text-muted-foreground">
+                  <p className="text-xs font-mono text-muted-foreground">
                     Średnia: <span className={cn("font-bold", getRatingColor(career.careerRating))}>{career.careerRating.toFixed(2)}</span>
                   </p>
                 </div>
@@ -393,12 +393,12 @@ const PlayerProfile = ({
                     <table className="w-full text-xs font-mono">
                       <thead>
                         <tr className="text-muted-foreground border-b border-border/50">
-                          <th className="text-left py-1.5 font-mono uppercase tracking-wider text-[10px]">Mapa</th>
-                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-[10px]">Map</th>
-                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-[10px]">Rating</th>
-                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-[10px]">KPR</th>
-                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-[10px]">ADR</th>
-                          <th className="text-right py-1.5 font-mono uppercase tracking-wider text-[10px]">Win%</th>
+                          <th className="text-left py-1.5 font-mono uppercase tracking-wider text-xs">Mapa</th>
+                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-xs">Map</th>
+                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-xs">Rating</th>
+                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-xs">KPR</th>
+                          <th className="text-center py-1.5 font-mono uppercase tracking-wider text-xs">ADR</th>
+                          <th className="text-right py-1.5 font-mono uppercase tracking-wider text-xs">Win%</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -431,7 +431,7 @@ const PlayerProfile = ({
               >
                 {career.bestMap && (
                   <div className="bg-card border border-[hsl(var(--win))]/30 rounded-lg p-4">
-                    <p className="text-[10px] font-mono uppercase text-[hsl(var(--win))] tracking-wider mb-1 flex items-center gap-1">
+                    <p className="text-xs font-mono uppercase text-[hsl(var(--win))] tracking-wider mb-1 flex items-center gap-1">
                       <TrendingUp className="w-3 h-3" /> Najlepsza mapa
                     </p>
                     <p className="text-2xl font-heading font-bold text-foreground">{career.bestMap.map}</p>
@@ -442,7 +442,7 @@ const PlayerProfile = ({
                 )}
                 {career.worstMap && career.worstMap.map !== career.bestMap?.map && (
                   <div className="bg-card border border-[hsl(var(--loss))]/30 rounded-lg p-4">
-                    <p className="text-[10px] font-mono uppercase text-[hsl(var(--loss))] tracking-wider mb-1 flex items-center gap-1">
+                    <p className="text-xs font-mono uppercase text-[hsl(var(--loss))] tracking-wider mb-1 flex items-center gap-1">
                       <BarChart3 className="w-3 h-3" /> Słabsza mapa
                     </p>
                     <p className="text-2xl font-heading font-bold text-foreground">{career.worstMap.map}</p>
@@ -455,7 +455,7 @@ const PlayerProfile = ({
                 {/* Top teammates */}
                 {career.topTeammates.length > 0 && onSelectPlayer && (
                   <div className="bg-card border border-border rounded-lg p-4">
-                    <p className="text-[10px] font-mono uppercase text-primary tracking-wider mb-2 flex items-center gap-1">
+                    <p className="text-xs font-mono uppercase text-primary tracking-wider mb-2 flex items-center gap-1">
                       <UsersIcon className="w-3 h-3" /> Częsti koledzy
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -463,7 +463,7 @@ const PlayerProfile = ({
                         <button
                           key={tm.teammate}
                           onClick={() => onSelectPlayer(tm.teammate)}
-                          className="text-[11px] font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                          className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground hover:border-primary/50 hover:text-primary transition-colors"
                         >
                           {tm.teammate} <span className="text-muted-foreground">({tm.matches})</span>
                         </button>
@@ -485,7 +485,7 @@ const PlayerProfile = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-xs font-mono">
                   <thead>
-                    <tr className="text-muted-foreground border-b border-border/50 text-[10px] uppercase tracking-wider">
+                    <tr className="text-muted-foreground border-b border-border/50 text-xs uppercase tracking-wider">
                       <th className="text-left py-1.5">Turniej</th>
                       <th className="text-left py-1.5">Runda</th>
                       <th className="text-left py-1.5">Przeciwnik</th>
@@ -502,7 +502,7 @@ const PlayerProfile = ({
                         <td className="py-2 text-muted-foreground truncate max-w-[160px]" title={m.tournamentName}>
                           {m.tournamentName}
                         </td>
-                        <td className="py-2 text-[10px] text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
+                        <td className="py-2 text-xs text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
                           {m.round || "—"}
                         </td>
                         <td className="py-2">
@@ -557,7 +557,7 @@ const PlayerProfile = ({
                         className="bg-secondary/30 border border-border rounded p-2 text-center hover:border-primary/50 transition-colors"
                       >
                         <p className="text-xs font-heading font-bold text-foreground truncate">{op.opponent}</p>
-                        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                        <p className="text-xs font-mono text-muted-foreground mt-0.5">
                           {op.matches} mecz(ów) •
                           <span className={cn("ml-1 font-bold", winRate >= 50 ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]")}>
                             {winRate}%
@@ -598,7 +598,7 @@ const PlayerProfile = ({
                     <span className="text-base">{h.placement === 1 ? "🥇" : h.placement === 2 ? "🥈" : h.placement <= 4 ? "🥉" : `#${h.placement}`}</span>
                     <div>
                       <p className="font-heading font-bold text-foreground text-xs">{h.tournamentName}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">Miejsce: #{h.placement}</p>
+                      <p className="text-xs text-muted-foreground font-mono">Miejsce: #{h.placement}</p>
                     </div>
                   </div>
                   <span className={cn("font-mono font-bold text-xs", h.points >= 0 ? "text-primary" : "text-destructive")}>
@@ -672,9 +672,9 @@ const StatCell = ({ icon: Icon, label, value, subtitle, accent }: StatCellProps)
       "w-4 h-4 mx-auto mb-1",
       accent === "win" ? "text-[hsl(var(--win))]" : accent === "loss" ? "text-[hsl(var(--loss))]" : "text-primary",
     )} />
-    <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">{label}</p>
     <p className="text-xl font-heading font-bold text-foreground tabular-nums">{value}</p>
-    {subtitle && <p className="text-[9px] font-mono text-muted-foreground/70">{subtitle}</p>}
+    {subtitle && <p className="text-xs font-mono text-muted-foreground/70">{subtitle}</p>}
   </div>
 );
 

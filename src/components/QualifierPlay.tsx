@@ -78,7 +78,7 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
           </div>
           {editing ? (
             <div className="flex flex-col items-center gap-2">
-              {isBo1 && <span className="text-[10px] font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
+              {isBo1 && <span className="text-xs font-mono text-muted-foreground">Wynik rundowy (np. 13:7, dogrywka: 16:14)</span>}
               <div className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-lg">
                 <Input value={s1} onChange={e => setS1(e.target.value)} className="w-14 h-10 text-center font-mono text-lg p-0 bg-background" type="number" min="0" />
                 <span className="text-muted-foreground text-xl font-mono">:</span>
@@ -322,7 +322,7 @@ const RegionalBracket = ({
           <div className="mt-3 border-t border-border/50 pt-3">
             {completedRounds.map((round, ri) => (
               <div key={ri} className="mb-2">
-                <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                   {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                     <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
@@ -348,7 +348,7 @@ const RegionalBracket = ({
           {regionNames[region] || region} — {slots} {slots === 1 ? "slot" : "sloty"}
         </h4>
       </div>
-      <p className="text-[10px] font-mono text-muted-foreground mb-3">{state.pool.length} drużyn w puli</p>
+      <p className="text-xs font-mono text-muted-foreground mb-3">{state.pool.length} drużyn w puli</p>
 
       {activeMatchDetail !== null && currentMatches[activeMatchDetail] && (
         <QualMatchDetail
@@ -367,11 +367,11 @@ const RegionalBracket = ({
           <div className="flex items-center justify-between mb-3">
             <h5 className="text-xs font-mono text-primary">{roundName}</h5>
             <div className="flex gap-2">
-              <button onClick={simulateAllCurrent} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
+              <button onClick={simulateAllCurrent} className="flex items-center gap-1 px-2 py-1 text-xs font-mono text-primary border border-primary/30 rounded hover:bg-primary/10 transition-colors">
                 <SkipForward className="w-3 h-3" /> Symuluj
               </button>
               {allResolved && (
-                <button onClick={advanceRound} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono gradient-primary text-primary-foreground rounded hover:opacity-90">
+                <button onClick={advanceRound} className="flex items-center gap-1 px-2 py-1 text-xs font-mono gradient-primary text-primary-foreground rounded hover:opacity-90">
                   Dalej →
                 </button>
               )}
@@ -397,7 +397,7 @@ const RegionalBracket = ({
             <div className="mt-3 border-t border-border/50 pt-3">
               {completedRounds.map((round, ri) => (
                 <div key={ri} className="mb-2">
-                  <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                  <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                     {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                       <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
@@ -592,7 +592,7 @@ const QualifierSetup = ({ tournament, invitedTeams, qualifierPool, qualifierSlot
           <div className="flex flex-wrap gap-1.5 mb-3">
             {customPool.map((t, i) => (
               <span key={t} className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-mono flex items-center gap-1">
-                <span className="text-muted-foreground text-[10px]">#{i + 1}</span>
+                <span className="text-muted-foreground text-xs">#{i + 1}</span>
                 {t}
                 <button onClick={() => removeFromPool(t)} className="hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
               </span>
@@ -1140,7 +1140,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-3.5 h-3.5 text-primary" />
                       <h4 className="font-heading font-bold text-foreground text-sm">{regionNames[region] || region}</h4>
-                      <span className="text-[10px] font-mono text-muted-foreground">({bracketState.qualifiedTeams.length} drużyn)</span>
+                      <span className="text-xs font-mono text-muted-foreground">({bracketState.qualifiedTeams.length} drużyn)</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {bracketState.qualifiedTeams.map((t, i) => (
@@ -1159,12 +1159,12 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                       <div className="mt-2 border-t border-border/30 pt-2">
                         {bracketState.completedRounds.map((round, ri) => (
                           <div key={ri} className="mb-1">
-                            <p className="text-[10px] font-mono text-primary mb-1">{round.name}</p>
+                            <p className="text-xs font-mono text-primary mb-1">{round.name}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                               {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                                 <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-0.5">
                                   <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                                  <span className="mx-1 font-mono text-muted-foreground text-[10px]">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
+                                  <span className="mx-1 font-mono text-muted-foreground text-xs">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                                   <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                                 </div>
                               ))}

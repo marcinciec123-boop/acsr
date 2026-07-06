@@ -253,9 +253,9 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       <div className={cn("text-2xl font-mono font-black tracking-tight", meta.color)}>
                         {team.points.toLocaleString()}
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">punktów rankingowych</div>
+                      <div className="text-xs text-muted-foreground font-mono uppercase tracking-wider">punktów rankingowych</div>
                     </div>
-                    <div className="text-right text-[10px] font-mono text-muted-foreground">
+                    <div className="text-right text-xs font-mono text-muted-foreground">
                       <div>{team.roster.length} graczy</div>
                     </div>
                   </div>
@@ -290,7 +290,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
               if (matches.length === 0) return null;
               return (
                 <div className="absolute z-20 left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-xl overflow-hidden">
-                  <div className="px-3 py-1.5 text-[10px] font-mono uppercase text-muted-foreground tracking-wider border-b border-border/50 bg-secondary/40">
+                  <div className="px-3 py-1.5 text-xs font-mono uppercase text-muted-foreground tracking-wider border-b border-border/50 bg-secondary/40">
                     Gracze ({matches.length})
                   </div>
                   {matches.map(m => (
@@ -357,7 +357,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
         {/* === MAIN TABLE === */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Header — desktop only */}
-          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-xs font-mono text-muted-foreground uppercase tracking-widest">
             <div className="text-center">#</div>
             <div className="text-center">Trend</div>
             <div>Drużyna</div>
@@ -403,7 +403,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                     : "bg-secondary/60 border-border text-foreground"
               )}>
                 <span className="text-sm font-black tracking-tight">{team.points.toLocaleString()}</span>
-                <span className="text-[9px] text-muted-foreground uppercase tracking-wider">pkt</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">pkt</span>
               </span>
             );
 
@@ -443,7 +443,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base">
                         {team.name}
                       </div>
-                      <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                      <div className="text-xs font-mono text-muted-foreground flex items-center gap-1">
                         <span>{countryFlag(team.country)}</span>
                         <span className="truncate">{team.country}</span>
                         <span className="md:hidden text-border">•</span>
@@ -564,7 +564,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
               {adjustments.length > 6 && (
                 <button
                   onClick={() => setShowHistory(s => !s)}
-                  className="text-[10px] font-mono uppercase text-muted-foreground hover:text-primary transition-colors"
+                  className="text-xs font-mono uppercase text-muted-foreground hover:text-primary transition-colors"
                 >
                   {showHistory ? "Zwiń" : "Pokaż wszystkie"}
                 </button>
@@ -595,7 +595,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       </span>
                       <span className="text-muted-foreground truncate">{adj.reason}</span>
                     </div>
-                    <span className="text-muted-foreground font-mono shrink-0 text-[10px]">
+                    <span className="text-muted-foreground font-mono shrink-0 text-xs">
                       {new Date(adj.date).toLocaleDateString("pl-PL", { day: "numeric", month: "short" })}
                     </span>
                   </div>
@@ -618,11 +618,11 @@ const StatCard = ({ icon, label, value, hint, accent }: {
     "rounded-xl border bg-card/80 backdrop-blur-sm p-3 transition-all hover:border-primary/40",
     accent ? "border-primary/30" : "border-border"
   )}>
-    <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1.5">
+    <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1.5">
       {icon} {label}
     </div>
     <div className="font-heading font-black text-foreground text-lg leading-tight truncate">{value}</div>
-    {hint && <div className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate">{hint}</div>}
+    {hint && <div className="text-xs font-mono text-muted-foreground mt-0.5 truncate">{hint}</div>}
   </div>
 );
 
@@ -634,7 +634,7 @@ const TrendBadge = ({ trend, compact }: {
     return (
       <span className={cn(
         "inline-flex items-center gap-0.5 rounded font-mono font-bold border",
-        compact ? "px-1 py-0 text-[9px]" : "px-1.5 py-0.5 text-[10px]",
+        compact ? "px-1 py-0 text-xs" : "px-1.5 py-0.5 text-xs",
         "bg-primary/15 text-primary border-primary/30"
       )}>NEW</span>
     );
@@ -647,7 +647,7 @@ const TrendBadge = ({ trend, compact }: {
   return (
     <span className={cn(
       "inline-flex items-center gap-0.5 rounded font-mono font-bold",
-      compact ? "px-1 py-0 text-[9px]" : "px-1.5 py-0.5 text-[10px]",
+      compact ? "px-1 py-0 text-xs" : "px-1.5 py-0.5 text-xs",
       isUp ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]"
     )}>
       <Icon className={cn(compact ? "w-2.5 h-2.5" : "w-3 h-3")} />

@@ -33,7 +33,7 @@ const TournamentRoster = ({ tournament, participants }: TournamentRosterProps) =
               transition={{ delay: i * 0.02 }}
               className="px-3 py-2 bg-secondary/50 border border-border/50 rounded text-sm font-mono text-foreground flex items-center gap-2"
             >
-              <span className="text-[10px] text-muted-foreground">#{i + 1}</span>
+              <span className="text-xs text-muted-foreground">#{i + 1}</span>
               {t}
             </motion.div>
           ))}

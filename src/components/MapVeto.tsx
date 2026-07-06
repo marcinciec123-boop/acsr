@@ -180,12 +180,12 @@ const MapVeto = ({ team1, team2, bo, onComplete, onSkip }: MapVetoProps) => {
             >
               {map}
               {banned && (
-                <span className="absolute top-0.5 right-0.5 text-[8px] font-mono text-destructive">
+                <span className="absolute top-0.5 right-0.5 text-xs font-mono text-destructive">
                   <Ban className="w-3 h-3" />
                 </span>
               )}
               {picked && (
-                <span className="absolute top-0.5 right-0.5 text-[8px] font-mono text-win">
+                <span className="absolute top-0.5 right-0.5 text-xs font-mono text-win">
                   <Check className="w-3 h-3" />
                 </span>
               )}
@@ -197,13 +197,13 @@ const MapVeto = ({ team1, team2, bo, onComplete, onSkip }: MapVetoProps) => {
       {/* Veto history */}
       {vetoHistory.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Historia veto</p>
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Historia veto</p>
           <div className="flex flex-wrap gap-1">
             {vetoHistory.map((v, i) => (
               <span
                 key={i}
                 className={cn(
-                  "text-[10px] font-mono px-2 py-0.5 rounded border",
+                  "text-xs font-mono px-2 py-0.5 rounded border",
                   v.action === "ban"
                     ? "text-destructive/80 bg-destructive/5 border-destructive/20"
                     : "text-win bg-win/5 border-win/20"
@@ -219,7 +219,7 @@ const MapVeto = ({ team1, team2, bo, onComplete, onSkip }: MapVetoProps) => {
       {/* Picked maps summary */}
       {pickedMaps.length > 0 && (
         <div className="pt-2 border-t border-border/50">
-          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Wybrane mapy</p>
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-1">Wybrane mapy</p>
           <div className="flex gap-2">
             {pickedMaps.map((m, i) => (
               <span key={i} className="text-xs font-mono font-bold text-win bg-win/10 px-2 py-1 rounded border border-win/20">
