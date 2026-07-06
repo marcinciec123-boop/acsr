@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import NavBar, { type Tab } from "@/components/NavBar";
 import NewsFeed from "@/components/NewsFeed";
 import RankingPanel from "@/components/RankingPanel";
@@ -14,6 +14,9 @@ import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { ProfileNavProvider } from "@/lib/profileNav";
+
+const loadRankingTeams = () =>
+  loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("news");
@@ -38,12 +41,22 @@ const Index = () => {
     setActiveTab(tab);
   };
 
-  // Re-read ranking whenever the profile stack changes so opened profiles see
-  // the latest points / positions after tournaments update the ranking.
-  const teams = useMemo(
-    () => loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t })),
-    [profileStack],
-  );
+  const [teams, setTeams] = useState<TeamData[]>(loadRankingTeams);
+
+  useEffect(() => {
+    const refreshTeams = () => setTeams(loadRankingTeams());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "csgo_hub_ranking_data") refreshTeams();
+    };
+    window.addEventListener("teams:update", refreshTeams);
+    window.addEventListener("ranking:update", refreshTeams);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("teams:update", refreshTeams);
+      window.removeEventListener("ranking:update", refreshTeams);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   const profileOpen = !!top;
 
