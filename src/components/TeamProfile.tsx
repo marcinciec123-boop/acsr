@@ -334,6 +334,31 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           {activeTab === "overview" && (
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-4">
+                {team.coach && (
+                  <Card title="Trener" icon={<span className="text-base leading-none">🎓</span>}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectPlayer?.(team.coach!)}
+                      className="flex items-center gap-3 w-full text-left p-2 rounded-lg bg-sky-500/5 border border-sky-500/30 hover:border-sky-400/60 transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-sky-500/15 border border-sky-500/40 flex items-center justify-center text-base shrink-0">🎓</div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-heading font-bold text-foreground text-sm truncate">{team.coach}</p>
+                        {playerRealNames[team.coach] && (
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {playerRealNames[team.coach].firstName} {playerRealNames[team.coach].lastName}
+                          </p>
+                        )}
+                      </div>
+                      {playerNationalities[team.coach] && (
+                        <span className="text-lg shrink-0">{countryFlag(playerNationalities[team.coach])}</span>
+                      )}
+                      <span className="text-[10px] font-mono font-bold uppercase px-2 py-1 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10 shrink-0">
+                        Coach
+                      </span>
+                    </button>
+                  </Card>
+                )}
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
                   <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
