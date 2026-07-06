@@ -35,7 +35,19 @@ export interface ExtraDisband {
 
 function loadTeamsRaw(): TeamData[] {
   const stored = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
-  if (stored && stored.length > 0) return stored;
+  if (stored && stored.length > 0) {
+    // one-time country fixups for teams whose country was wrong in older builds
+    let mutated = false;
+    const fixed = stored.map(t => {
+      if (t.name === "Rare Atom" && t.country !== "IDN") {
+        mutated = true;
+        return { ...t, country: "IDN" };
+      }
+      return t;
+    });
+    if (mutated) saveToStorage(RANKING_KEY, fixed);
+    return fixed;
+  }
   return teamDatabase.map(t => ({ ...t, roster: [...t.roster] }));
 }
 
