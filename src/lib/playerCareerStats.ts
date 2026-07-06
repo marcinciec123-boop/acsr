@@ -18,6 +18,8 @@ export interface CareerMatchEntry {
   oppScore: number;
   ownRounds: number;
   oppRounds: number;
+  /** Per-map round scores from player's perspective (e.g. ["13:10","16:14"]) */
+  mapScores: string[];
   won: boolean;
   bo: 1 | 3 | 5;
   /** Round label for display (e.g. "Quarterfinals", "Swiss R1") */
