@@ -36,6 +36,11 @@ interface SelectedMatchRef {
 
 const STORAGE_KEY = "tournaments_data";
 
+const loadLiveRanking = (): TeamData[] => {
+  const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
+  return stored && stored.length > 0 ? stored : (teamDatabase as TeamData[]).map(t => ({ ...t }));
+};
+
 const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch }[] = [
   { value: "single-elim", label: "Single Elimination", icon: GitBranch },
   { value: "double-elim", label: "Double Elimination", icon: GitBranch },
@@ -131,10 +136,23 @@ const TournamentPanel = () => {
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
   // Live ranking data (used for sorting & rank labels in team picker)
-  const liveRanking = useMemo(() => {
-    const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
-    return stored && stored.length > 0 ? stored : (teamDatabase as TeamData[]);
-  }, [tournaments]);
+  const [liveRanking, setLiveRanking] = useState<TeamData[]>(loadLiveRanking);
+
+  useEffect(() => {
+    const refreshRanking = () => setLiveRanking(loadLiveRanking());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "csgo_hub_ranking_data") refreshRanking();
+    };
+    refreshRanking();
+    window.addEventListener("teams:update", refreshRanking);
+    window.addEventListener("ranking:update", refreshRanking);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("teams:update", refreshRanking);
+      window.removeEventListener("ranking:update", refreshRanking);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   const rankMap = useMemo(() => {
     const sorted = [...liveRanking].sort((a, b) => (b.points || 0) - (a.points || 0));
