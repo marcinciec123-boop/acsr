@@ -712,6 +712,7 @@ export const roleColors: Record<PlayerRole, string> = {
   AWPer: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   Anchor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   IGL: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  Coach: "bg-sky-500/20 text-sky-300 border-sky-500/30",
 };
 
 export const roleIcons: Record<PlayerRole, string> = {
@@ -720,4 +721,5 @@ export const roleIcons: Record<PlayerRole, string> = {
   AWPer: "🎯",
   Anchor: "🛡️",
   IGL: "🧠",
+  Coach: "🎓",
 };
