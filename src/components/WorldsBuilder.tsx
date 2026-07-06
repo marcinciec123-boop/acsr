@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,15 @@ const ROLE_ORDER: PlayerRole[] = ["IGL", "AWPer", "Entry", "Lurker", "Anchor"];
  * Ranked list of all players (best first) — from live ranking if present,
  * otherwise from the master teamDatabase. Sorted by team points desc.
  */
-const rankedPlayers = (): string[] => {
-  const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase;
+const rankedPlayers = (teams: TeamData[]): string[] => {
   const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
   const out: string[] = [];
   sorted.forEach(t => (t.roster || []).forEach(p => { if (!out.includes(p)) out.push(p); }));
   return out;
 };
+
+const loadRankingTeams = () =>
+  loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase.map(t => ({ ...t }));
 
 interface Props {
   open: boolean;
@@ -66,6 +68,7 @@ const DEFAULT_PHASES: PhaseDraft[] = [
 ];
 
 export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
+  const [rankingTeams, setRankingTeams] = useState<TeamData[]>(loadRankingTeams);
   const [nations, setNations] = useState<NationDraft[]>([]);
   const [countrySearch, setCountrySearch] = useState("");
 
@@ -78,6 +81,23 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
   const [tier, setTier] = useState<"S" | "A" | "B" | "C">("S");
 
   const [phaseDrafts, setPhaseDrafts] = useState<PhaseDraft[]>(DEFAULT_PHASES);
+
+  useEffect(() => {
+    if (!open) return;
+    const refreshRanking = () => setRankingTeams(loadRankingTeams());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "csgo_hub_ranking_data") refreshRanking();
+    };
+    refreshRanking();
+    window.addEventListener("teams:update", refreshRanking);
+    window.addEventListener("ranking:update", refreshRanking);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("teams:update", refreshRanking);
+      window.removeEventListener("ranking:update", refreshRanking);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [open]);
 
   const countries = useMemo(() => availableCountries(), []);
   const playerPool = useMemo(() => playersByCountry(), []);
@@ -114,7 +134,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
    */
   const autoFill = (code: string) => {
     const pool = new Set(playerPool[code] || []);
-    const ranking = rankedPlayers();
+    const ranking = rankedPlayers(rankingTeams);
     const chosen: string[] = [];
     ROLE_ORDER.forEach(role => {
       const best = ranking.find(p => pool.has(p) && playerRoles[p] === role && !chosen.includes(p));

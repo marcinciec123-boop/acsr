@@ -6,6 +6,14 @@ import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceVal
 
 const STORAGE_PREFIX = "csgo_hub_";
 
+function notifyStorageUpdate(key: string): void {
+  if (typeof window === "undefined") return;
+  if (key === "ranking_data") {
+    window.dispatchEvent(new CustomEvent("teams:update"));
+    window.dispatchEvent(new CustomEvent("ranking:update"));
+  }
+}
+
 function normalizeStoredData<T>(key: string, data: T): T {
   if (key !== "ranking_data" || !Array.isArray(data)) return data;
 
@@ -38,6 +46,7 @@ export function saveToStorage<T>(key: string, data: T): boolean {
       } catch { /* device storage cache will still serve this session */ }
     }
     scheduleDeviceBackup();
+    notifyStorageUpdate(key);
     return true;
   } catch (e) {
     console.error("Failed to save storage marker:", key, e);
@@ -53,6 +62,7 @@ export async function saveToStorageAsync<T>(key: string, data: T): Promise<boole
     try { localStorage.setItem(storageKey, serialized.length > 120_000 ? DEVICE_STORE_REF : serialized); }
     catch { try { localStorage.setItem(storageKey, DEVICE_STORE_REF); } catch { /* device-only */ } }
     scheduleDeviceBackup();
+    notifyStorageUpdate(key);
     return true;
   } catch (e) {
     console.error("Failed to save to device storage:", key, e);
@@ -124,6 +134,7 @@ export function removeFromStorage(key: string): void {
   localStorage.removeItem(STORAGE_PREFIX + key);
   void removeDeviceValue(STORAGE_PREFIX + key).catch(() => undefined);
   scheduleDeviceBackup();
+  notifyStorageUpdate(key);
 }
 
 // --- IndexedDB for images ---
