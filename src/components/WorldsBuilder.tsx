@@ -4,10 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Globe, Users, Trophy, Trash2, Plus, GitBranch } from "lucide-react";
-import { availableCountries, playersByCountry, buildNationalTeamName, upsertNationalTeams, regionForCountry } from "@/lib/nationalTeams";
+import { availableCountries, playersByCountry, buildNationalTeamName, upsertNationalTeams, regionForCountry, countryName } from "@/lib/nationalTeams";
 import { buildPhase, formatLabel } from "@/lib/tournamentBuilder";
 import type { TournamentData, TournamentPhase, PhaseFormat, TeamData } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
+import { teamDatabase } from "@/data/tournaments";
+import { loadFromStorage } from "@/lib/storage";
+
+const ROLE_ORDER: PlayerRole[] = ["IGL", "AWPer", "Entry", "Lurker", "Anchor"];
+
+/**
+ * Ranked list of all players (best first) — from live ranking if present,
+ * otherwise from the master teamDatabase. Sorted by team points desc.
+ */
+const rankedPlayers = (): string[] => {
+  const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase;
+  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const out: string[] = [];
+  sorted.forEach(t => (t.roster || []).forEach(p => { if (!out.includes(p)) out.push(p); }));
+  return out;
+};
 
 interface Props {
   open: boolean;
