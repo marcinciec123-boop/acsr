@@ -466,19 +466,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             <p className="text-sm font-mono text-muted-foreground">Brak graczy spełniających filtry.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {filtered.map((p, i) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            {filtered.map((p) => {
               const isEditingThis = editingFA === p.name;
               return (
-                <motion.div
+                <div
                   key={`${p.team?.name || "FA"}-${p.name}`}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.005, 0.4) }}
                   onClick={() => { if (!isEditingThis) onSelectPlayer(p.name); }}
                   className={cn(
-                    "group bg-card border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 transition-all cursor-pointer",
+                    "group bg-card border rounded-lg p-2.5 text-left hover:border-primary/50 hover:bg-secondary/40 hover:-translate-y-0.5 transition-all cursor-pointer",
                     p.isFA ? "border-amber-500/30" : "border-border",
+                    p.role === "Coach" && "border-sky-500/40 bg-sky-500/[0.03]",
                   )}
                 >
                   <div className="flex items-start justify-between mb-2 gap-2">
