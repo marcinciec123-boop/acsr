@@ -92,9 +92,11 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
               {resolved ? (
                 <div className="flex items-center gap-3">
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  {(() => { const [d1, d2] = getDisplayScore(match); return (<>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{d1}</span>
                   <span className="text-muted-foreground text-xl">:</span>
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{d2}</span>
+                  </>); })()}
                 </div>
               ) : (
                 <span className="text-xl font-mono text-muted-foreground">vs</span>
