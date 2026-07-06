@@ -6,15 +6,18 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Coins, ArrowLeftRight } from "lucide-react";
+import { Users, Coins, ArrowLeftRight, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TeamLogo from "@/components/TeamLogo";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { teamDatabase } from "@/data/tournaments";
 import { computeCareerStats } from "@/lib/playerCareerStats";
+import { getRatingColor } from "@/lib/playerStats";
 import { predictBothOutcomes, getRankingSnapshot, getTeamRank } from "@/lib/vrsFormula";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag } from "@/lib/flags";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
+import { PlayerLink } from "@/lib/profileNav";
 
 interface Props {
   team1: string;
