@@ -106,18 +106,19 @@ export const PickemPanel = ({ tournament: t }: Props) => {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<PickemData>(() => loadPicks(t.id));
   const [draft, setDraft] = useState<PickemData>(data);
-  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const fresh = loadPicks(t.id);
     setData(fresh);
     setDraft(fresh);
-    setEditing(false);
   }, [t.id]);
 
   // Tournament-level lock only when results have been confirmed.
   const isLocked = !!t.resultsConfirmed;
-  const canEdit = !isLocked && (editing || !data.lockedAt);
+  // Individual items handle their own lock (group started / swiss started / match played).
+  // Global editing is unrestricted while results are not confirmed — this lets users
+  // edit playoff picks between phases, or right up until each individual match starts.
+  const canEdit = !isLocked;
 
   // Per-group lock: locked once ANY match in the group has been played.
   const groupLocked = (group: PhaseGroup) =>
