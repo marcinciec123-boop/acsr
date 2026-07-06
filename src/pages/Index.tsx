@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import NavBar, { type Tab } from "@/components/NavBar";
 import NewsFeed from "@/components/NewsFeed";
 import RankingPanel from "@/components/RankingPanel";
