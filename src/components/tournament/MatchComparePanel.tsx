@@ -31,12 +31,18 @@ const getRoster = (teamName: string, tournamentId?: string): string[] => {
   return (team?.roster || []).slice(0, 5);
 };
 
-// Decimal-odds from probability with a bookmaker margin (~6% overround).
-const oddsFromProb = (p: number) => {
-  const margin = 1.06;
-  const clamped = Math.max(0.02, Math.min(0.98, p));
-  return Math.max(1.01, 1 / (clamped * margin));
+// Decimal-odds from probability with a realistic bookmaker margin (~5% overround).
+// Probabilities are shrunk toward 0.5 so extreme mismatches don't blow the price
+// into 40+ territory — real CS markets rarely go past ~15-20 on the underdog.
+const oddsFromProb = (p: number, opts?: { floor?: number }) => {
+  const margin = 1.05;
+  const floor = opts?.floor ?? 0.06; // ~15.9 max odds after margin
+  const clamped = Math.max(floor, Math.min(1 - floor, p));
+  return Math.max(1.02, 1 / (clamped * margin));
 };
+
+// Shrink match-winner probability toward 0.5 (markets are less confident than pure Elo).
+const shrinkProb = (p: number, factor = 0.82) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
