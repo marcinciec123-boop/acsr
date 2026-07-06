@@ -214,12 +214,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
     const locked = { ...draft, lockedAt: new Date().toISOString() };
     savePicks(t.id, locked);
     setData(locked);
-    setEditing(false);
   };
   const handleReset = () => {
     const empty = emptyPicks();
     savePicks(t.id, empty);
-    setData(empty); setDraft(empty); setEditing(false);
+    setData(empty); setDraft(empty);
   };
 
   // Filled/total counter
