@@ -60,8 +60,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
   const team = sorted.find((t) => t.name === teamName);
   const globalRank = team ? sorted.indexOf(team) + 1 : 0;
-  const tier = globalRank <= 10 ? "Tier 1" : globalRank <= 30 ? "Tier 2" : globalRank <= 60 ? "Tier 3" : "Tier 4";
-  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 30 ? "text-primary" : globalRank <= 60 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
+  const tier = globalRank <= 10 ? "Tier S" : globalRank <= 25 ? "Tier A" : globalRank <= 50 ? "Tier B" : globalRank <= 100 ? "Tier C" : "Poza rankingiem";
+  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 25 ? "text-primary" : globalRank <= 50 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
 
   // Refresh logo presence flag
   useEffect(() => {

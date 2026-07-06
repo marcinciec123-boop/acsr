@@ -27,10 +27,11 @@ interface RankingPanelProps {
 }
 
 const tierFor = (rank: number) => {
-  if (rank <= 5) return { label: "S", color: "text-accent", bg: "bg-accent/15 border-accent/40" };
-  if (rank <= 15) return { label: "A", color: "text-primary", bg: "bg-primary/15 border-primary/40" };
-  if (rank <= 35) return { label: "B", color: "text-[hsl(var(--silver))]", bg: "bg-[hsl(var(--silver)/0.15)] border-[hsl(var(--silver)/0.4)]" };
-  return { label: "C", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
+  if (rank <= 10) return { label: "S", color: "text-accent", bg: "bg-accent/15 border-accent/40" };
+  if (rank <= 25) return { label: "A", color: "text-primary", bg: "bg-primary/15 border-primary/40" };
+  if (rank <= 50) return { label: "B", color: "text-[hsl(var(--silver))]", bg: "bg-[hsl(var(--silver)/0.15)] border-[hsl(var(--silver)/0.4)]" };
+  if (rank <= 100) return { label: "C", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
+  return { label: "—", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
 };
 
 const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {

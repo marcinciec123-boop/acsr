@@ -14,10 +14,11 @@ const getRankBadge = (rank: number) => {
 };
 
 const tierLabel = (rank: number) => {
-  if (rank <= 10) return { label: "Tier 1", color: "text-accent" };
-  if (rank <= 30) return { label: "Tier 2", color: "text-primary" };
-  if (rank <= 60) return { label: "Tier 3", color: "text-silver" };
-  return { label: "Tier 4", color: "text-muted-foreground" };
+  if (rank <= 10) return { label: "Tier S", color: "text-accent" };
+  if (rank <= 25) return { label: "Tier A", color: "text-primary" };
+  if (rank <= 50) return { label: "Tier B", color: "text-silver" };
+  if (rank <= 100) return { label: "Tier C", color: "text-muted-foreground" };
+  return { label: "—", color: "text-muted-foreground" };
 };
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
