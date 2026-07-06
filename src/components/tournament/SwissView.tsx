@@ -12,6 +12,7 @@ import {
 } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
 
