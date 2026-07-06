@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { User, Search, Globe, Filter, UserMinus, Check, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
+import { User, Search, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
