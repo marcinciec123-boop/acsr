@@ -294,47 +294,168 @@ const TransferPanel = () => {
                 <Plus className="w-4 h-4" /> Nowy transfer
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Dodaj transfer</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <ArrowRightLeft className="w-4 h-4 text-primary" /> Nowy transfer
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Gracz</label>
-                  <Input
-                    placeholder="Nick gracza..."
-                    value={transferPlayer}
-                    onChange={e => {
-                      setTransferPlayer(e.target.value);
-                      const team = teamDatabase.find(t => t.roster.includes(e.target.value));
-                      setTransferFrom(team ? team.name : "-");
-                    }}
-                    list="player-list-transfer"
-                  />
-                  <datalist id="player-list-transfer">
-                    {allPlayers.map(p => <option key={p} value={p} />)}
-                  </datalist>
-                </div>
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Z drużyny</label>
-                  <div className="w-full px-3 py-2 rounded-md bg-muted border border-border text-foreground text-sm font-mono opacity-70">
-                    {transferFrom === "-" ? "Free Agent" : transferFrom}
+              <div className="grid md:grid-cols-2 gap-4 pt-2">
+                {/* LEFT: searchable picker */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Wybierz osobę</label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      placeholder="Szukaj nicku, drużyny, roli..."
+                      value={pickerSearch}
+                      onChange={e => setPickerSearch(e.target.value)}
+                      className="pl-8 h-9 bg-secondary/40"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {([
+                      { v: "all", label: "Wszyscy", n: pickerCatalog.length },
+                      { v: "player", label: "Zawodnicy", n: pickerCatalog.filter(e => e.kind === "player").length },
+                      { v: "coach", label: "🎓 Trenerzy", n: pickerCatalog.filter(e => e.kind === "coach").length },
+                      { v: "fa", label: "FA", n: pickerCatalog.filter(e => e.kind === "fa").length },
+                    ] as { v: typeof pickerKind; label: string; n: number }[]).map(o => (
+                      <button
+                        key={o.v}
+                        onClick={() => setPickerKind(o.v)}
+                        className={cn(
+                          "px-2 py-1 text-[10px] font-mono rounded border transition-colors",
+                          pickerKind === o.v
+                            ? "bg-primary/20 text-primary border-primary/40"
+                            : "text-muted-foreground border-border hover:text-foreground",
+                        )}
+                      >
+                        {o.label} <span className="opacity-60">({o.n})</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-72 overflow-y-auto rounded border border-border bg-secondary/20">
+                    {filteredPicker.length === 0 ? (
+                      <div className="p-6 text-center text-xs font-mono text-muted-foreground">Brak wyników</div>
+                    ) : filteredPicker.map(e => {
+                      const active = transferPlayer === e.name;
+                      return (
+                        <button
+                          key={e.name}
+                          type="button"
+                          onClick={() => {
+                            setTransferPlayer(e.name);
+                            setTransferFrom(e.team || "-");
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2.5 py-1.5 text-left border-b border-border/40 last:border-b-0 transition-colors",
+                            active ? "bg-primary/15" : "hover:bg-secondary/50",
+                            e.kind === "coach" && "bg-sky-500/[0.04]",
+                          )}
+                        >
+                          <span className="w-4 text-center text-xs shrink-0">
+                            {e.country ? countryFlag(e.country) : "🏳️"}
+                          </span>
+                          <span className="text-sm font-heading text-foreground truncate flex-1">{e.name}</span>
+                          {e.role && (
+                            <span className={cn(
+                              "text-[9px] font-mono px-1 py-0.5 rounded border shrink-0",
+                              e.role === "Coach"
+                                ? "border-sky-500/40 text-sky-300 bg-sky-500/10"
+                                : "border-border text-muted-foreground",
+                            )}>
+                              {roleIcons[e.role] || ""} {e.role}
+                            </span>
+                          )}
+                          {e.team ? (
+                            <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[110px] shrink-0">{e.team}</span>
+                          ) : (
+                            <span className="text-[10px] font-mono text-amber-400 shrink-0">FA</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Do drużyny</label>
-                  <select
-                    value={transferTo}
-                    onChange={e => setTransferTo(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+
+                {/* RIGHT: destination + summary */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">Wybrany</label>
+                    {transferPlayer ? (
+                      <div className={cn(
+                        "flex items-center gap-2 p-2 rounded border",
+                        isCoachPick ? "border-sky-500/40 bg-sky-500/5" : "border-border bg-secondary/40",
+                      )}>
+                        <span className="text-lg">{selectedEntry?.country ? countryFlag(selectedEntry.country) : "🏳️"}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-heading font-bold text-sm truncate">{transferPlayer}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground truncate">
+                            {isCoachPick && "🎓 Trener • "}
+                            {transferFrom === "-" ? "Free Agent" : transferFrom}
+                            {selectedEntry?.role && !isCoachPick && ` • ${selectedEntry.role}`}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => { setTransferPlayer(""); setTransferFrom("-"); }}
+                          className="text-muted-foreground hover:text-destructive"
+                          title="Wyczyść wybór"
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded border border-dashed border-border text-center text-[11px] font-mono text-muted-foreground">
+                        Wybierz osobę z listy →
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                      {isCoachPick ? "Nowy klub trenera" : "Do drużyny"}
+                    </label>
+                    <select
+                      value={transferTo}
+                      onChange={e => setTransferTo(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+                    >
+                      <option value="-">— Free Agent</option>
+                      {allTeams.map(t => {
+                        const td = teamDatabase.find(x => x.name === t);
+                        const suffix = isCoachPick && td?.coach && td.coach !== transferPlayer
+                          ? `  (obecny trener: ${td.coach})`
+                          : "";
+                        return <option key={t} value={t}>{t}{suffix}</option>;
+                      })}
+                    </select>
+                    {targetTeamHasCoach && (
+                      <p className="mt-1 text-[10px] font-mono text-amber-400">
+                        ⚠ {transferTo} ma już trenera ({targetTeamHasCoach}). Zostanie zastąpiony.
+                      </p>
+                    )}
+                  </div>
+
+                  {transferPlayer && transferFrom !== "-" && (
+                    <button
+                      onClick={() => setTransferTo("-")}
+                      className="w-full text-[11px] font-mono py-1.5 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                    >
+                      Zwolnij do FA
+                    </button>
+                  )}
+
+                  <Button
+                    onClick={handleAddTransfer}
+                    disabled={!transferPlayer || (transferFrom === transferTo)}
+                    className="w-full"
                   >
-                    <option value="-">Free Agent</option>
-                    {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                    {transferFrom === "-" && transferTo !== "-" ? "Podpisz" :
+                      transferTo === "-" ? "Zwolnij" : "Przenieś"}
+                  </Button>
                 </div>
-                <Button onClick={handleAddTransfer} className="w-full">
-                  <ArrowRightLeft className="w-4 h-4 mr-2" /> Dodaj transfer
-                </Button>
               </div>
             </DialogContent>
           </Dialog>
