@@ -122,38 +122,45 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-xl overflow-hidden"
+        className="relative bg-gradient-to-br from-card via-card to-secondary/30 border border-border rounded-xl overflow-hidden shadow-lg"
       >
-        <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center gap-2">
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[520px] h-[220px] rounded-full bg-primary/20 blur-3xl" />
+        </div>
+
+        <div className="relative px-4 py-3 bg-secondary/50 border-b border-border/50 flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" />
           <h3 className="text-xs font-heading font-bold uppercase tracking-wider text-primary">
             Porównanie graczy
           </h3>
-          <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+          <div className="mx-3 flex-1 h-px bg-gradient-to-r from-primary/40 via-border to-primary/40" />
+          <span className="text-[10px] font-mono text-muted-foreground">
             Statystyki kariery
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-border">
-          <PlayerPicker
-            team={team1}
-            roster={roster1}
-            selected={currentP1}
-            onSelect={setP1}
-            align="left"
-          />
-          <PlayerPicker
-            team={team2}
-            roster={roster2}
-            selected={currentP2}
-            onSelect={setP2}
-            align="right"
-          />
+        {/* Roster pickers */}
+        <div className="relative grid grid-cols-2 gap-px bg-border/50">
+          <PlayerPicker team={team1} roster={roster1} selected={currentP1} onSelect={setP1} align="left" />
+          <PlayerPicker team={team2} roster={roster2} selected={currentP2} onSelect={setP2} align="right" />
         </div>
 
+        {/* Selected players hero */}
         {stats1 && stats2 && (
-          <div className="p-4">
-            <CompareRow label="RATING" v1={stats1.careerRating} v2={stats2.careerRating} fmt={v => v.toFixed(2)} higherBetter />
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-stretch gap-0 border-b border-border/50 bg-background/30">
+            <PlayerHero name={currentP1} team={team1} stats={stats1} align="left" />
+            <div className="flex flex-col items-center justify-center px-2 py-4 gap-2 border-x border-border/40 bg-background/40">
+              <Swords className="w-5 h-5 text-primary" />
+              <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">vs</span>
+            </div>
+            <PlayerHero name={currentP2} team={team2} stats={stats2} align="right" />
+          </div>
+        )}
+
+        {stats1 && stats2 && (
+          <div className="relative p-4">
+            <CompareRow label="RATING" v1={stats1.careerRating} v2={stats2.careerRating} fmt={v => v.toFixed(2)} higherBetter accent />
             <CompareRow label="K / D" v1={stats1.kdRatio} v2={stats2.kdRatio} fmt={v => v.toFixed(2)} higherBetter />
             <CompareRow label="KPR" v1={stats1.kpr} v2={stats2.kpr} fmt={v => v.toFixed(2)} higherBetter />
             <CompareRow label="DPR" v1={stats1.dpr} v2={stats2.dpr} fmt={v => v.toFixed(2)} higherBetter={false} />
@@ -171,6 +178,7 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
           </div>
         )}
       </motion.div>
+
 
       {/* ===== Bookmaker odds ===== */}
       <motion.div
