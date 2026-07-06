@@ -305,9 +305,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
             <div className={cn("flex items-center gap-3 justify-end min-w-0", winner1 && "text-foreground")}>
               {match.team1 && match.team1 !== "TBD" && <TeamLogo teamName={match.team1} size={44} rounded="lg" />}
-              <p className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
+              <TeamLink name={match.team1} className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team1 || "TBD"}
-              </p>
+              </TeamLink>
             </div>
             <div className="flex items-center gap-3 font-mono text-5xl font-bold">
               {(() => {
@@ -320,9 +320,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               })()}
             </div>
             <div className={cn("flex items-center gap-3 min-w-0", winner2 && "text-foreground")}>
-              <p className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
+              <TeamLink name={match.team2} className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team2 || "TBD"}
-              </p>
+              </TeamLink>
               {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
