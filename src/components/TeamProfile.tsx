@@ -22,6 +22,8 @@ import {
 import TeamLogo from "@/components/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { computeCareerStats } from "@/lib/playerCareerStats";
+import { getRatingColor } from "@/lib/playerStats";
 
 interface TeamProfileProps {
   teamName: string;
