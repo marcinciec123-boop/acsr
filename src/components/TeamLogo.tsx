@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { loadTeamLogo } from "@/lib/teamLogos";
 import { teamTag } from "@/lib/teamHelpers";
+import { teamDatabase } from "@/data/tournaments";
+import { loadFromStorage } from "@/lib/storage";
+import { countryFlag } from "@/lib/flags";
+import type { TeamData } from "@/lib/types";
 
 interface TeamLogoProps {
   teamName: string;
@@ -47,11 +51,17 @@ const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoPr
     rounded === "xl" ? "rounded-xl" :
     rounded === "lg" ? "rounded-lg" : "rounded-md";
 
-  // National team detection: name begins with a regional-indicator flag emoji.
+  // National team detection: name begins with a regional-indicator flag emoji,
+  // OR team is marked as `isNational` in ranking data / master roster.
   const firstCp = teamName ? teamName.codePointAt(0) ?? 0 : 0;
-  const isNationalFlag =
-    !logo &&
-    ((firstCp >= 0x1F1E6 && firstCp <= 0x1F1FF) || teamName.startsWith("🇽🇰"));
+  const nameStartsWithFlag =
+    (firstCp >= 0x1F1E6 && firstCp <= 0x1F1FF) || teamName.startsWith("🇽🇰");
+
+  const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase;
+  const teamRecord = teams.find(t => t.name === teamName);
+  const nationalCountry = teamRecord?.isNational ? teamRecord.country : undefined;
+
+  const isNationalFlag = !logo && (nameStartsWithFlag || !!nationalCountry);
 
   if (logo) {
     return (
