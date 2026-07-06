@@ -106,18 +106,19 @@ export const PickemPanel = ({ tournament: t }: Props) => {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<PickemData>(() => loadPicks(t.id));
   const [draft, setDraft] = useState<PickemData>(data);
-  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const fresh = loadPicks(t.id);
     setData(fresh);
     setDraft(fresh);
-    setEditing(false);
   }, [t.id]);
 
   // Tournament-level lock only when results have been confirmed.
   const isLocked = !!t.resultsConfirmed;
-  const canEdit = !isLocked && (editing || !data.lockedAt);
+  // Individual items handle their own lock (group started / swiss started / match played).
+  // Global editing is unrestricted while results are not confirmed — this lets users
+  // edit playoff picks between phases, or right up until each individual match starts.
+  const canEdit = !isLocked;
 
   // Per-group lock: locked once ANY match in the group has been played.
   const groupLocked = (group: PhaseGroup) =>
@@ -213,12 +214,11 @@ export const PickemPanel = ({ tournament: t }: Props) => {
     const locked = { ...draft, lockedAt: new Date().toISOString() };
     savePicks(t.id, locked);
     setData(locked);
-    setEditing(false);
   };
   const handleReset = () => {
     const empty = emptyPicks();
     savePicks(t.id, empty);
-    setData(empty); setDraft(empty); setEditing(false);
+    setData(empty); setDraft(empty);
   };
 
   // Filled/total counter
@@ -287,7 +287,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
             <p className="text-[10px] font-mono text-muted-foreground truncate">
               {scoring ? `Wynik: ${scoring.points} / ${scoring.max} pkt`
                 : isLocked ? `Typy zablokowane • ${filledSlots}/${totalSlots} obstawionych`
-                : `${filledSlots}/${totalSlots} obstawionych • zmiany aż do startu turnieju`}
+                : `${filledSlots}/${totalSlots} obstawionych • edytuj do startu każdej fazy / meczu`}
             </p>
           </div>
         </div>
@@ -596,19 +596,12 @@ export const PickemPanel = ({ tournament: t }: Props) => {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
-                {canEdit ? (
-                  <>
-                    <Button size="sm" onClick={handleSave} className="gap-1.5">
-                      <Save className="w-3.5 h-3.5" />
-                      {data.lockedAt ? "Aktualizuj typy" : "Zapisz typy"}
-                    </Button>
-                    {editing && (
-                      <Button size="sm" variant="ghost" onClick={() => { setDraft(data); setEditing(false); }}>Anuluj</Button>
-                    )}
-                  </>
-                ) : !isLocked && data.lockedAt ? (
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edytuj typy</Button>
-                ) : null}
+                {canEdit && (
+                  <Button size="sm" onClick={handleSave} className="gap-1.5">
+                    <Save className="w-3.5 h-3.5" />
+                    {data.lockedAt ? "Aktualizuj typy" : "Zapisz typy"}
+                  </Button>
+                )}
                 {(data.champion || Object.keys(data.groups).length > 0 || Object.keys(data.swiss).length > 0 || Object.keys(data.bracket).length > 0) && !isLocked && (
                   <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto gap-1.5" onClick={handleReset}>
                     <RotateCcw className="w-3.5 h-3.5" /> Resetuj
