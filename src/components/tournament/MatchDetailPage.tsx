@@ -979,7 +979,7 @@ const MatchPlayerTotals = ({
       <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <TeamLogo teamName={teamName} size={28} rounded="md" />
-          <h4 className="text-sm font-heading font-bold text-foreground truncate">{teamName}</h4>
+          <TeamLink name={teamName} className="text-sm font-heading font-bold text-foreground truncate">{teamName}</TeamLink>
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             • Statystyki łączne ({maps.length} {maps.length === 1 ? "mapa" : "map"})
           </span>
