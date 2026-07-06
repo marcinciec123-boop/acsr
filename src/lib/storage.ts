@@ -6,6 +6,20 @@ import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceVal
 
 const STORAGE_PREFIX = "csgo_hub_";
 
+function normalizeStoredData<T>(key: string, data: T): T {
+  if (key !== "ranking_data" || !Array.isArray(data)) return data;
+
+  return data.map(item => {
+    if (item && typeof item === "object" && "name" in item && "country" in item) {
+      const team = item as { name?: unknown; country?: unknown };
+      if (team.name === "Rare Atom" && team.country !== "IDN") {
+        return { ...item, country: "IDN" };
+      }
+    }
+    return item;
+  }) as T;
+}
+
 // --- localStorage helpers ---
 export function saveToStorage<T>(key: string, data: T): boolean {
   const storageKey = STORAGE_PREFIX + key;
@@ -52,13 +66,13 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
     const raw = localStorage.getItem(storageKey);
     if (!raw) {
       const cached = getCachedDeviceValue(storageKey);
-      return cached ? JSON.parse(cached) as T : fallback;
+      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
     }
     if (raw === DEVICE_STORE_REF) {
       const cached = getCachedDeviceValue(storageKey);
-      return cached ? JSON.parse(cached) as T : fallback;
+      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
     }
-    return JSON.parse(raw) as T;
+    return normalizeStoredData(key, JSON.parse(raw) as T);
   } catch {
     return fallback;
   }
@@ -70,13 +84,13 @@ export async function loadFromStorageAsync<T>(key: string, fallback: T): Promise
     const marker = localStorage.getItem(storageKey);
     if (marker === DEVICE_STORE_REF) {
       const raw = await getDeviceValue(storageKey);
-      return raw ? JSON.parse(raw) as T : fallback;
+      return raw ? normalizeStoredData(key, JSON.parse(raw) as T) : fallback;
     }
-    if (marker) return JSON.parse(marker) as T;
+    if (marker) return normalizeStoredData(key, JSON.parse(marker) as T);
     const raw = await getDeviceValue(storageKey);
     if (raw) {
       try { localStorage.setItem(storageKey, raw.length > 120_000 ? DEVICE_STORE_REF : raw); } catch { /* keep device-only */ }
-      return JSON.parse(raw) as T;
+      return normalizeStoredData(key, JSON.parse(raw) as T);
     }
     return fallback;
   } catch {
