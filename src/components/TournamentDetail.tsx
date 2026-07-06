@@ -143,15 +143,17 @@ const KnockoutView = ({ knockout }: { knockout: KnockoutResult }) => (
                   ri === knockout.rounds.filter(r => !r.matches.every(m => m.team2 === "BYE")).length - 1 ? "border-accent/30" : "border-border"
                 )}
               >
+                {(() => { const [d1, d2] = getDisplayScore(match); return (<>
                 <div className={cn("flex items-center justify-between px-3 py-2 text-sm", match.winner === match.team1 ? "bg-primary/10" : "opacity-60")}>
                   <span className={cn("font-medium truncate mr-2", match.winner === match.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team1}</span>
-                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{d1}</span>
                 </div>
                 <div className="h-px bg-border" />
                 <div className={cn("flex items-center justify-between px-3 py-2 text-sm", match.winner === match.team2 ? "bg-primary/10" : "opacity-60")}>
                   <span className={cn("font-medium truncate mr-2", match.winner === match.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team2}</span>
-                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{d2}</span>
                 </div>
+                </>); })()}
               </motion.div>
             ))}
           </div>
