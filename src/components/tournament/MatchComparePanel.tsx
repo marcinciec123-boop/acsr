@@ -89,10 +89,10 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
       const t1_21 = 2 * p * p * q;
       const t2_02 = q * q;
       const t2_12 = 2 * q * q * p;
-      out.push({ label: "2 – 0", prob: t1_20, odds: oddsFromProb(t1_20), favored: "t1" });
-      out.push({ label: "2 – 1", prob: t1_21, odds: oddsFromProb(t1_21), favored: "t1" });
-      out.push({ label: "1 – 2", prob: t2_12, odds: oddsFromProb(t2_12), favored: "t2" });
-      out.push({ label: "0 – 2", prob: t2_02, odds: oddsFromProb(t2_02), favored: "t2" });
+      out.push({ label: "2 – 0", prob: t1_20, odds: csOdds(t1_20), favored: "t1" });
+      out.push({ label: "2 – 1", prob: t1_21, odds: csOdds(t1_21), favored: "t1" });
+      out.push({ label: "1 – 2", prob: t2_12, odds: csOdds(t2_12), favored: "t2" });
+      out.push({ label: "0 – 2", prob: t2_02, odds: csOdds(t2_02), favored: "t2" });
       return out;
     }
     // BO5
@@ -104,12 +104,12 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
     const t2_03 = Math.pow(q, 3);
     const t2_13 = 3 * Math.pow(q, 3) * p;
     const t2_23 = 6 * Math.pow(q, 3) * p * p;
-    out.push({ label: "3 – 0", prob: t1_30, odds: oddsFromProb(t1_30), favored: "t1" });
-    out.push({ label: "3 – 1", prob: t1_31, odds: oddsFromProb(t1_31), favored: "t1" });
-    out.push({ label: "3 – 2", prob: t1_32, odds: oddsFromProb(t1_32), favored: "t1" });
-    out.push({ label: "2 – 3", prob: t2_23, odds: oddsFromProb(t2_23), favored: "t2" });
-    out.push({ label: "1 – 3", prob: t2_13, odds: oddsFromProb(t2_13), favored: "t2" });
-    out.push({ label: "0 – 3", prob: t2_03, odds: oddsFromProb(t2_03), favored: "t2" });
+    out.push({ label: "3 – 0", prob: t1_30, odds: csOdds(t1_30), favored: "t1" });
+    out.push({ label: "3 – 1", prob: t1_31, odds: csOdds(t1_31), favored: "t1" });
+    out.push({ label: "3 – 2", prob: t1_32, odds: csOdds(t1_32), favored: "t1" });
+    out.push({ label: "2 – 3", prob: t2_23, odds: csOdds(t2_23), favored: "t2" });
+    out.push({ label: "1 – 3", prob: t2_13, odds: csOdds(t2_13), favored: "t2" });
+    out.push({ label: "0 – 3", prob: t2_03, odds: csOdds(t2_03), favored: "t2" });
     return out;
   }, [probWin1, probWin2, bo]);
 
