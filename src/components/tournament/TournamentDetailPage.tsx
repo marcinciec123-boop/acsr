@@ -26,6 +26,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
+import { useProfileNav } from "@/lib/profileNav";
 
 interface Props {
   tournament: TournamentData;
