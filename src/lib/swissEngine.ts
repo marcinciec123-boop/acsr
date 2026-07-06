@@ -11,6 +11,7 @@
 // Round labels follow the convention "Swiss R<N>" so old data stays compatible.
 
 import type { MatchResult } from "./types";
+import { getDisplayScore } from "./matchDisplay";
 
 export interface SwissTeamStanding {
   team: string;
