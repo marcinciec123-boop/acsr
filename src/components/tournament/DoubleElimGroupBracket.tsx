@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, PhaseFormat } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
 
 interface Props {
   matches: MatchResult[];
   format: PhaseFormat; // "gsl-groups" | "gsl-de-groups"
-  onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
+  onMatchUpdate: (matchId: string, patch: Partial<MatchResult>) => void;
   onOpenMatch?: (matchId: string) => void;
 }
 
