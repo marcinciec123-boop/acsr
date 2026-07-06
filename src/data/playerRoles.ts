@@ -1,7 +1,7 @@
 // Player roles: Entry, Lurker, AWPer, Anchor, Closer
 // Each team has exactly one of each role
 
-export type PlayerRole = "Entry" | "Lurker" | "AWPer" | "Anchor" | "IGL";
+export type PlayerRole = "Entry" | "Lurker" | "AWPer" | "Anchor" | "IGL" | "Coach";
 
 export const playerRoles: Record<string, PlayerRole> = {
   // Team Falcons
