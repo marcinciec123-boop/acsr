@@ -7,6 +7,7 @@ import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 import TeamsManagementPanel from "./TeamsManagementPanel";
 import ThemeSwitcher from "./ThemeSwitcher";
+import FontSwitcher from "./FontSwitcher";
 
 interface SaveSlot {
   label: string;
@@ -106,6 +107,9 @@ const SettingsTab = ({
 
         {/* Theme picker */}
         <ThemeSwitcher />
+
+        {/* Font picker */}
+        <FontSwitcher />
 
         {/* Teams management */}
         <div className="mb-6">

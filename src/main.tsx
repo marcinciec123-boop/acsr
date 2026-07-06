@@ -6,8 +6,10 @@ import { createDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from
 import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
+import { initFont } from "./lib/font";
 
 initTheme();
+initFont();
 
 const startApp = async () => {
   await initializeDeviceStoreCache();
