@@ -8,6 +8,7 @@ import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { computeSwissStage } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface GroupPick { first: string; last: string; }
 /** Swiss picks: recordKey (e.g. "3-0") -> array of team names (fixed length). */
