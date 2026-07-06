@@ -6,6 +6,10 @@
 
 @layer base {
   :root {
+    --font-heading: "Rajdhani", sans-serif;
+    --font-body: "Inter", sans-serif;
+    --font-mono: "Share Tech Mono", monospace;
+
     --background: 220 20% 7%;
     --foreground: 210 20% 92%;
 
@@ -53,6 +57,22 @@
     --sidebar-accent-foreground: 210 20% 85%;
     --sidebar-border: 220 14% 18%;
     --sidebar-ring: 185 100% 50%;
+  }
+
+  [data-font="modern"] {
+    --font-heading: "Poppins", sans-serif;
+    --font-body: "Open Sans", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+  [data-font="gaming"] {
+    --font-heading: "Bebas Neue", sans-serif;
+    --font-body: "Roboto", sans-serif;
+    --font-mono: "Fira Code", monospace;
+  }
+  [data-font="scifi"] {
+    --font-heading: "Orbitron", sans-serif;
+    --font-body: "Nunito", sans-serif;
+    --font-mono: "Source Code Pro", monospace;
   }
 
   /* ===== Themes ===== */
