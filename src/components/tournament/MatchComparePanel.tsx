@@ -66,6 +66,8 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
   const ranking = useMemo(() => getRankingSnapshot(), [team1, team2]);
   const rank1 = useMemo(() => getTeamRank(team1, ranking), [team1, ranking]);
   const rank2 = useMemo(() => getTeamRank(team2, ranking), [team2, ranking]);
+  const isNat1 = useMemo(() => !!ranking.find(t => t.name === team1)?.isNational, [ranking, team1]);
+  const isNat2 = useMemo(() => !!ranking.find(t => t.name === team2)?.isNational, [ranking, team2]);
 
   const previews = useMemo(() => predictBothOutcomes(team1, team2, tier, ranking), [team1, team2, tier, ranking]);
 
@@ -205,14 +207,14 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
           <div className="grid grid-cols-2 gap-3">
             <OddsCard
               team={team1}
-              rank={rank1}
+              rank={isNat1 ? null : rank1}
               prob={probWin1}
               odds={odds1}
               favored={probWin1 >= probWin2}
             />
             <OddsCard
               team={team2}
-              rank={rank2}
+              rank={isNat2 ? null : rank2}
               prob={probWin2}
               odds={odds2}
               favored={probWin2 > probWin1}
@@ -450,7 +452,7 @@ const CompareRow = ({
 const OddsCard = ({
   team, rank, prob, odds, favored,
 }: {
-  team: string; rank: number; prob: number; odds: number; favored: boolean;
+  team: string; rank?: number | null; prob: number; odds: number; favored: boolean;
 }) => {
   return (
     <div className={cn(
@@ -463,7 +465,7 @@ const OddsCard = ({
         <TeamLogo teamName={team} size={24} rounded="md" />
         <div className="min-w-0 flex-1">
           <div className="text-xs font-bold truncate">{team}</div>
-          <div className="text-xs font-mono text-muted-foreground">#{rank} • {Math.round(prob * 100)}% szans</div>
+          <div className="text-xs font-mono text-muted-foreground">{rank != null ? `#${rank} • ` : ""}{Math.round(prob * 100)}% szans</div>
         </div>
       </div>
       <div className={cn(

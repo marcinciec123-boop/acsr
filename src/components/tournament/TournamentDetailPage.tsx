@@ -456,7 +456,7 @@ export const TournamentDetailPage = ({
         {/* Participants — with flags and current ranking position */}
         {t.participants.length > 0 && (() => {
           const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
-          const sorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
+          const sorted = [...ranking].filter(tm => !tm.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
           const rankMap = new Map(sorted.map((tm, i) => [tm.name, i + 1]));
           return (
             <div className="bg-card border border-border rounded-lg p-4 mb-6">
