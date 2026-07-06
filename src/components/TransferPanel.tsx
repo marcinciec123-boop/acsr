@@ -111,15 +111,23 @@ const TransferPanel = () => {
     // Snapshot BEFORE applying any mutation, for the change log.
     const before = captureSnapshot();
 
+    const isCoach = (playerRoles as Record<string, string>)[t.player] === "Coach";
+
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
       const fromTeam = teamDatabase.find(td => td.name === transferFrom);
-      if (fromTeam) fromTeam.roster = fromTeam.roster.filter(p => p !== t.player);
+      if (fromTeam) {
+        fromTeam.roster = fromTeam.roster.filter(p => p !== t.player);
+        if (fromTeam.coach === t.player) fromTeam.coach = undefined;
+      }
       removeFromAllBenches(t.player);
     }
     if (transferTo !== "-") {
       const toTeam = teamDatabase.find(td => td.name === transferTo);
-      if (toTeam && !toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
+      if (toTeam) {
+        if (isCoach) toTeam.coach = t.player;
+        else if (!toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
+      }
     }
 
     // Mirror the transfer into the global FA log so PlayersPanel/profile stay in sync.
@@ -137,10 +145,15 @@ const TransferPanel = () => {
     if (rankingData) {
       const updated = rankingData.map(team => {
         if (team.name === transferFrom) {
-          return { ...team, roster: team.roster.filter(p => p !== t.player) };
+          return {
+            ...team,
+            roster: team.roster.filter(p => p !== t.player),
+            coach: team.coach === t.player ? undefined : team.coach,
+          };
         }
-        if (team.name === transferTo && !team.roster.includes(t.player)) {
-          return { ...team, roster: [...team.roster, t.player] };
+        if (team.name === transferTo) {
+          if (isCoach) return { ...team, coach: t.player };
+          if (!team.roster.includes(t.player)) return { ...team, roster: [...team.roster, t.player] };
         }
         return team;
       });
