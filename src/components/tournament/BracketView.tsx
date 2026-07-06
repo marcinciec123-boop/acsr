@@ -252,9 +252,11 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             className="w-full text-left hover:brightness-110 transition-all flex-1 flex flex-col min-h-0"
           >
             <div className="flex-1 flex flex-col">
-              <TeamRow name={m.team1} score={m.score1} isWinner={winner1} isFinal={isLast} />
+              {(() => { const [d1, d2] = getDisplayScore(m); return (<>
+              <TeamRow name={m.team1} score={d1} isWinner={winner1} isFinal={isLast} />
               <div className="h-px bg-border/60" />
-              <TeamRow name={m.team2} score={m.score2} isWinner={winner2} isFinal={isLast} />
+              <TeamRow name={m.team2} score={d2} isWinner={winner2} isFinal={isLast} />
+              </>); })()}
             </div>
           </button>
         )}
