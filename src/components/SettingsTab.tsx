@@ -108,6 +108,9 @@ const SettingsTab = ({
         {/* Theme picker */}
         <ThemeSwitcher />
 
+        {/* Font picker */}
+        <FontSwitcher />
+
         {/* Teams management */}
         <div className="mb-6">
           <TeamsManagementPanel />
