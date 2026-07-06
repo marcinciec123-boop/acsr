@@ -24,7 +24,7 @@ import {
 import { captureSnapshot, recordChange, setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 
-const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
+const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 type TeamStatusFilter = "all" | "team" | "fa";
