@@ -10,6 +10,8 @@ export interface TeamData {
   roster: string[];
   /** Trener drużyny (nick). Nie liczy się do 5-osobowego składu. */
   coach?: string;
+  /** Reprezentacja narodowa (mistrzostwa świata) — nie liczy się do klubowego rankingu. */
+  isNational?: boolean;
 }
 
 export type QualifierType = "open" | "regional" | "none";
