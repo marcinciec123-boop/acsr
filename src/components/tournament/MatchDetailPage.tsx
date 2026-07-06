@@ -1008,7 +1008,7 @@ const MatchPlayerTotals = ({
           <tbody>
             {rows.map(r => (
               <tr key={r.name} className="border-b border-border/20 hover:bg-secondary/20 font-mono">
-                <td className="px-3 py-2 text-foreground">{r.name}</td>
+                <td className="px-3 py-2 text-foreground"><PlayerLink name={r.name}>{r.name}</PlayerLink></td>
                 <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.kills}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.assists}</td>
