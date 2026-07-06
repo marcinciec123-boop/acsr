@@ -18,6 +18,8 @@ export interface CareerMatchEntry {
   oppScore: number;
   ownRounds: number;
   oppRounds: number;
+  /** Per-map round scores from player's perspective (e.g. ["13:10","16:14"]) */
+  mapScores: string[];
   won: boolean;
   bo: 1 | 3 | 5;
   /** Round label for display (e.g. "Quarterfinals", "Swiss R1") */
@@ -242,6 +244,9 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
 
       const ownRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score1 : mp.score2), 0);
       const oppRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score2 : mp.score1), 0);
+      const mapScores = mapDetails.map(mp =>
+        `${isTeam1 ? mp.score1 : mp.score2}:${isTeam1 ? mp.score2 : mp.score1}`
+      );
 
       matchEntries.push({
         tournamentId: t.id,
@@ -253,6 +258,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         oppScore,
         ownRounds,
         oppRounds,
+        mapScores,
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
@@ -434,6 +440,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       let mKills = 0, mDeaths = 0, mAssists = 0, mUd = 0, mEf = 0;
       let mRounds = 0, mAdrW = 0, mKastW = 0;
       let ownRounds = 0, oppRounds = 0;
+      const mapScores: string[] = [];
       for (const { map, player } of inMaps) {
         const rounds = (map.score1 || 0) + (map.score2 || 0);
         if (rounds <= 0) continue;
@@ -442,6 +449,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
         mAdrW += player.adr * rounds; mKastW += player.kast * rounds;
         if (isTeam1) { ownRounds += map.score1 || 0; oppRounds += map.score2 || 0; }
         else { ownRounds += map.score2 || 0; oppRounds += map.score1 || 0; }
+        mapScores.push(`${isTeam1 ? (map.score1 || 0) : (map.score2 || 0)}:${isTeam1 ? (map.score2 || 0) : (map.score1 || 0)}`);
       }
       if (mRounds === 0) continue;
       const rating = calculateRating({
@@ -451,7 +459,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       });
       entries.push({
         tournamentId: t.id, tournamentName: t.name, matchId: match.id,
-        team, opponent, ownScore, oppScore, ownRounds, oppRounds,
+        team, opponent, ownScore, oppScore, ownRounds, oppRounds, mapScores,
         won: ownScore > oppScore && (ownScore + oppScore) > 0,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round, playedAt: match.playedAt || t.endDate,
