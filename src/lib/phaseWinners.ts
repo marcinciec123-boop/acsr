@@ -118,3 +118,50 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
 
   return [];
 }
+
+/**
+ * Returns the ordered list of teams eliminated in earlier (non-final) phases,
+ * best to worst. Uses Swiss / group standings so that e.g. 2-3 finishes above
+ * 1-3 and 0-3, and 2nd in a group is above 3rd/4th.
+ * Teams appearing multiple times (advanced further) are de-duplicated by first occurrence.
+ */
+export function getPreFinalEliminatedOrder(phases: TournamentPhase[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (team: string) => {
+    if (!isReal(team) || seen.has(team)) return;
+    seen.add(team);
+    out.push(team);
+  };
+
+  // Iterate phases from LAST-1 to first — later phases (deeper) rank higher.
+  for (let i = phases.length - 2; i >= 0; i--) {
+    const phase = phases[i];
+    if (phase.format === "swiss" && phase.bracket) {
+      const n = phase.teams.length;
+      const winCap = n >= 14 && n <= 18 ? 3 : n >= 6 && n <= 10 ? 2 : n >= 26 ? 4 : 3;
+      const stage = computeSwissStage(phase.teams, phase.bracket, { winCap });
+      // standings already sorted advanced > playing > eliminated, then wins desc / losses asc / buchholz / roundDiff
+      stage.standings.forEach(s => push(s.team));
+    } else if (phase.groups && phase.groups.length > 0) {
+      // Interleave groups by rank (all 1sts, then all 2nds...) so mid-group teams sort fairly
+      const perGroup = phase.groups.map(g => computeGroupStandings(g));
+      const maxLen = Math.max(0, ...perGroup.map(s => s.length));
+      for (let rank = 0; rank < maxLen; rank++) {
+        for (const st of perGroup) {
+          if (st[rank]) push(st[rank].team);
+        }
+      }
+    } else if (phase.bracket) {
+      // Bracket sub-phase — order losers by round from last to first
+      const rounds = Array.from(new Set(phase.bracket.map(m => m.round || "Match")));
+      for (let r = rounds.length - 1; r >= 0; r--) {
+        phase.bracket.filter(m => (m.round || "Match") === rounds[r]).forEach(m => {
+          const l = loserOf(m);
+          if (l) push(l);
+        });
+      }
+    }
+  }
+  return out;
+}
