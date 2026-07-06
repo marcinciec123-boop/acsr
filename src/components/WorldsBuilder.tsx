@@ -328,6 +328,12 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                               })}
                               {p && !pool.includes(p) && <option value={p}>{p}</option>}
                             </select>
+                            <Input
+                              value={p}
+                              onChange={e => setRosterSlot(n.code, i, e.target.value)}
+                              placeholder="lub wpisz..."
+                              className="h-7 text-xs font-mono w-24 shrink-0"
+                            />
                             {role && (
                               <span
                                 className={cn(
