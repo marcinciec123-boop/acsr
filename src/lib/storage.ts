@@ -13,7 +13,7 @@ function normalizeStoredData<T>(key: string, data: T): T {
     if (item && typeof item === "object" && "name" in item && "country" in item) {
       const team = item as { name?: unknown; country?: unknown };
       if (team.name === "Rare Atom" && team.country !== "IDN") {
-        return { ...item, country: "IDN" };
+        return { ...(item as Record<string, unknown>), country: "IDN" };
       }
     }
     return item;
