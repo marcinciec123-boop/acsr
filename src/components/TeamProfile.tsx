@@ -22,6 +22,8 @@ import {
 import TeamLogo from "@/components/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { computeCareerStats } from "@/lib/playerCareerStats";
+import { getRatingColor } from "@/lib/playerStats";
 
 interface TeamProfileProps {
   teamName: string;
@@ -543,11 +545,24 @@ const RosterGrid = ({
   canBench?: boolean;
 }) => {
   const list = players ?? team.roster;
+  const playerStats = useMemo(() => {
+    const map = new Map<string, { rating: number; kd: number; adr: number; matches: number }>();
+    list.forEach(p => {
+      try {
+        const s = computeCareerStats(p);
+        map.set(p, { rating: s.careerRating, kd: s.kdRatio, adr: s.avgAdr, matches: s.matchesPlayed });
+      } catch {
+        map.set(p, { rating: 0, kd: 0, adr: 0, matches: 0 });
+      }
+    });
+    return map;
+  }, [list.join("|")]);
   return (
     <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
       {list.map((player, i) => {
         const playerCountry = playerNationalities[player] || team.country;
         const realName = playerRealNames[player];
+        const stats = playerStats.get(player);
         return (
           <motion.div
             key={player}
@@ -588,6 +603,26 @@ const RosterGrid = ({
                 <span>{countryFlag(playerCountry)}</span>
                 <span className="truncate">{playerCountry}</span>
               </p>
+              {stats && stats.matches > 0 ? (
+                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-[9px] font-mono">
+                  <div className="flex flex-col items-center" title={`Rating (${stats.matches} meczów)`}>
+                    <span className="text-muted-foreground uppercase">Rtg</span>
+                    <span className={cn("font-bold tabular-nums", getRatingColor(stats.rating))}>{stats.rating.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col items-center" title="K/D">
+                    <span className="text-muted-foreground uppercase">K/D</span>
+                    <span className="font-bold tabular-nums text-foreground">{stats.kd.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col items-center" title="ADR">
+                    <span className="text-muted-foreground uppercase">ADR</span>
+                    <span className="font-bold tabular-nums text-foreground">{Math.round(stats.adr)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground/60 text-center">
+                  Brak statystyk
+                </div>
+              )}
             </button>
             {onBench && !benched && (
               <button

@@ -400,10 +400,29 @@ export const TournamentDetailPage = ({
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                   <Calendar className="w-3 h-3" /> Daty
                 </div>
-                <p className="text-sm font-mono text-foreground leading-tight">
-                  {t.startDate || "—"}<br/>
-                  <span className="text-muted-foreground">→</span> {t.endDate || "—"}
-                </p>
+                {onUpdateTournament ? (
+                  <div className="space-y-1">
+                    <input
+                      type="date"
+                      value={t.startDate || ""}
+                      onChange={e => onUpdateTournament({ startDate: e.target.value })}
+                      className="w-full h-7 px-1.5 rounded bg-background border border-border/60 text-xs font-mono text-foreground focus:outline-none focus:border-primary/60"
+                      title="Data rozpoczęcia"
+                    />
+                    <input
+                      type="date"
+                      value={t.endDate || ""}
+                      onChange={e => onUpdateTournament({ endDate: e.target.value })}
+                      className="w-full h-7 px-1.5 rounded bg-background border border-border/60 text-xs font-mono text-foreground focus:outline-none focus:border-primary/60"
+                      title="Data zakończenia"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm font-mono text-foreground leading-tight">
+                    {t.startDate || "—"}<br/>
+                    <span className="text-muted-foreground">→</span> {t.endDate || "—"}
+                  </p>
+                )}
               </div>
               <div className="bg-card/40 border border-border/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">

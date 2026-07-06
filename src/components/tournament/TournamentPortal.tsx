@@ -705,6 +705,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
   const [formatFilter, setFormatFilter] = useState<FormatFilter>("ALL");
   const [yearFilter, setYearFilter] = useState<string>("ALL");
+  const [organizerFilter, setOrganizerFilter] = useState<string>("ALL");
   const [search, setSearch] = useState("");
 
   const counts = useMemo(() => ({
@@ -723,12 +724,18 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
     [tournaments],
   );
 
+  const availableOrganizers = useMemo(
+    () => Array.from(new Set(tournaments.map(t => (t.organizer || "").trim()).filter(Boolean))).sort(),
+    [tournaments],
+  );
+
   const filtered = useMemo(() => {
     let list = [...tournaments];
     if (statusFilter !== "ALL") list = list.filter(t => t.status === statusFilter);
     if (tierFilter !== "ALL") list = list.filter(t => t.tier === tierFilter);
     if (formatFilter !== "ALL") list = list.filter(t => t.format === formatFilter || t.format.toLowerCase().includes(String(formatFilter).toLowerCase()));
     if (yearFilter !== "ALL") list = list.filter(t => formatYear(t.startDate) === yearFilter || formatYear(t.endDate) === yearFilter);
+    if (organizerFilter !== "ALL") list = list.filter(t => (t.organizer || "").trim() === organizerFilter);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(t =>
@@ -744,7 +751,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
       return a.name.localeCompare(b.name);
     });
     return list;
-  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, search]);
+  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, organizerFilter, search]);
 
   const statusTabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
     { key: "ALL", label: "Wszystkie", icon: CalendarDays, count: tournaments.length },
@@ -835,7 +842,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
           })}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
             <label className="relative min-w-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
@@ -852,6 +859,15 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
             >
               <option value="ALL">Rok / sezon</option>
               {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select
+              value={organizerFilter}
+              onChange={e => setOrganizerFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground max-w-[180px]"
+              title="Filtruj po organizatorze"
+            >
+              <option value="ALL">Organizator</option>
+              {availableOrganizers.map(org => <option key={org} value={org}>{org}</option>)}
             </select>
             <select
               value={formatFilter}
