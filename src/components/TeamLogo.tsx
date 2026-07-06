@@ -75,8 +75,12 @@ const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoPr
   }
 
   if (isNationalFlag) {
-    // Take the leading flag (one regional-indicator pair, or Kosovo special case)
-    const flag = teamName.startsWith("🇽🇰") ? "🇽🇰" : String.fromCodePoint(...[...teamName].slice(0, 2).map(c => c.codePointAt(0) ?? 0));
+    // Prefer the stored country code for national teams; only fall back to a flag already present in the name.
+    const flag = nationalCountry
+      ? countryFlag(nationalCountry)
+      : teamName.startsWith("🇽🇰")
+        ? "🇽🇰"
+        : String.fromCodePoint(...[...teamName].slice(0, 2).map(c => c.codePointAt(0) ?? 0));
     return (
       <div
         style={{ width: size, height: size, fontSize: Math.max(14, Math.round(size * 0.85)) }}
