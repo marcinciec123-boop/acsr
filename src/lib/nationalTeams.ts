@@ -40,12 +40,12 @@ export const countryName = (iso: string): string => {
   return COUNTRY_NAMES[up] || up;
 };
 
-/** Konwencja nazwy reprezentacji: "🇵🇱 Poland" — czytelne i unikalne. */
+/** Konwencja nazwy reprezentacji: "Poland" — flaga jest już renderowana przez UI
+ *  na podstawie `team.country`, więc nie dublujemy jej w samej nazwie. */
 export const buildNationalTeamName = (countryCode: string, customLabel?: string): string => {
   const iso = normalizeCountry(countryCode) || countryCode.toUpperCase();
-  const flag = countryFlag(iso);
   const label = customLabel?.trim() || COUNTRY_NAMES[iso] || iso;
-  return `${flag} ${label}`.trim();
+  return label;
 };
 
 /** Wszyscy zarejestrowani gracze (z mapy narodowości + wolni agenci) pogrupowani po ISO kraju. */
