@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        xs: ["0.8125rem", { lineHeight: "1.125rem" }],
+        "2xs": ["0.6875rem", { lineHeight: "1rem" }],
+      },
       fontFamily: {
         heading: ["Rajdhani", "sans-serif"],
         body: ["Inter", "sans-serif"],
