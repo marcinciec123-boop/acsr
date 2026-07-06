@@ -337,16 +337,20 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
         <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5" /> Predykcja VRS • Tier {tier}
+              <Sparkles className="w-3.5 h-3.5" /> {isNationalMatch ? "Mecz reprezentacji" : `Predykcja VRS • Tier ${tier}`}
             </h3>
-            {match.resultConfirmed && (
+            {match.resultConfirmed && !isNationalMatch && (
               <span className="text-xs font-mono text-[hsl(var(--win))] uppercase tracking-wider">
                 ✓ Zatwierdzone ({match.pointsWinner ?? pointsWin}/−{match.pointsLoser ?? pointsLose})
               </span>
             )}
           </div>
 
-          {previews ? (
+          {isNationalMatch ? (
+            <p className="text-xs font-mono text-muted-foreground">
+              Reprezentacje narodowe nie liczą się do rankingu VRS — predykcja niedostępna.
+            </p>
+          ) : previews ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <PredictionCard
                 team={match.team1}
@@ -391,6 +395,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             </Button>
           </div>
         </div>
+
 
         {/* Confirmation modal */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
