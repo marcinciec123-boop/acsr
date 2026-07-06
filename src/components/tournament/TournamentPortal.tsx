@@ -40,43 +40,58 @@ const tierBarColor = (tier: string) => {
   }
 };
 
+const parseLocalDate = (d: string): Date | null => {
+  if (!d) return null;
+  const iso = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const date = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toIsoLocal = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const formatDate = (d: string) => {
   if (!d) return "—";
   try {
-    return new Date(d).toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+    return (parseLocalDate(d) ?? new Date(d)).toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
   } catch { return d; }
 };
 
 const formatYear = (d: string) => {
   if (!d) return "";
   try {
-    return new Date(d).getFullYear().toString();
+    return (parseLocalDate(d) ?? new Date(d)).getFullYear().toString();
   } catch { return ""; }
 };
 
 const fullDate = (d: string) => {
   if (!d) return "—";
   try {
-    return new Date(d).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" });
+    return (parseLocalDate(d) ?? new Date(d)).toLocaleDateString("pl-PL", { day: "2-digit", month: "short", year: "numeric" });
   } catch { return d; }
 };
 
 const monthKey = (d: string) => {
   if (!d) return "Bez daty";
   try {
-    return new Date(d).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+    return (parseLocalDate(d) ?? new Date(d)).toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
   } catch { return "Bez daty"; }
 };
 
 const dateRangeDays = (start: string, end: string): string[] => {
   if (!start) return [];
   const out: string[] = [];
-  const s = new Date(start);
-  const e = new Date(end || start);
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end || start);
+  if (!s || !e) return [];
   const cur = new Date(s);
   if (Number.isNaN(cur.getTime())) return [];
   while (cur <= e) {
-    out.push(cur.toISOString().slice(0, 10));
+    out.push(toIsoLocal(cur));
     cur.setDate(cur.getDate() + 1);
   }
   return out.length ? out : [start];
@@ -91,7 +106,7 @@ const statusDot = (status: TournamentData["status"]) =>
 const initialCalendarDate = (tournaments: TournamentData[]) => {
   const sorted = [...tournaments].filter(t => t.startDate).sort((a, b) => a.startDate.localeCompare(b.startDate));
   const next = sorted.find(t => t.status !== "completed") || sorted[sorted.length - 1];
-  const date = next ? new Date(next.startDate) : new Date();
+  const date = next ? parseLocalDate(next.startDate) ?? new Date() : new Date();
   return Number.isNaN(date.getTime()) ? new Date() : date;
 };
 
@@ -560,9 +575,9 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
       <div className="grid grid-cols-7">
         {cells.map((day, index) => {
           if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
-          const iso = day.toISOString().slice(0, 10);
+          const iso = toIsoLocal(day);
           const events = dayIndex[iso] || [];
-          const today = iso === new Date().toISOString().slice(0, 10);
+          const today = iso === toIsoLocal(new Date());
           return (
             <div
               key={iso}
@@ -614,8 +629,8 @@ const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: Tourna
 
       <div className="divide-y divide-border/40">
         {yearTournaments.map(t => {
-          const start = new Date(t.startDate);
-          const end = new Date(t.endDate || t.startDate);
+          const start = parseLocalDate(t.startDate) ?? new Date();
+          const end = parseLocalDate(t.endDate || t.startDate) ?? start;
           const startDay = start.getFullYear() === Number(year) ? start.getMonth() * 30 + start.getDate() : 0;
           const endDay = end.getFullYear() === Number(year) ? end.getMonth() * 30 + end.getDate() : 360;
           const left = Math.max(0, Math.min(98, (startDay / 360) * 100));
