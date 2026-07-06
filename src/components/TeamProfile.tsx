@@ -545,11 +545,24 @@ const RosterGrid = ({
   canBench?: boolean;
 }) => {
   const list = players ?? team.roster;
+  const playerStats = useMemo(() => {
+    const map = new Map<string, { rating: number; kd: number; adr: number; matches: number }>();
+    list.forEach(p => {
+      try {
+        const s = computeCareerStats(p);
+        map.set(p, { rating: s.careerRating, kd: s.kdRatio, adr: s.avgAdr, matches: s.matchesPlayed });
+      } catch {
+        map.set(p, { rating: 0, kd: 0, adr: 0, matches: 0 });
+      }
+    });
+    return map;
+  }, [list.join("|")]);
   return (
     <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
       {list.map((player, i) => {
         const playerCountry = playerNationalities[player] || team.country;
         const realName = playerRealNames[player];
+        const stats = playerStats.get(player);
         return (
           <motion.div
             key={player}
