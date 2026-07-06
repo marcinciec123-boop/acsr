@@ -75,6 +75,74 @@ const TransferPanel = () => {
     return Array.from(players).sort();
   }, [transfers]);
 
+  /** Unified catalog of every person that can be transferred. */
+  interface PickerEntry {
+    name: string;
+    kind: "player" | "coach" | "fa";
+    team?: string;
+    teamCountry?: string;
+    role?: string;
+    country?: string;
+  }
+  const pickerCatalog = useMemo<PickerEntry[]>(() => {
+    const out: PickerEntry[] = [];
+    const seen = new Set<string>();
+    for (const t of teamDatabase) {
+      if (t.coach && !seen.has(t.coach)) {
+        seen.add(t.coach);
+        out.push({
+          name: t.coach, kind: "coach", team: t.name, teamCountry: t.country,
+          role: "Coach", country: playerNationalities[t.coach],
+        });
+      }
+      for (const p of t.roster) {
+        if (seen.has(p)) continue;
+        seen.add(p);
+        out.push({
+          name: p, kind: "player", team: t.name, teamCountry: t.country,
+          role: playerRoles[p], country: playerNationalities[p],
+        });
+      }
+    }
+    for (const fa of getFreeAgents()) {
+      if (seen.has(fa.player)) continue;
+      seen.add(fa.player);
+      out.push({
+        name: fa.player,
+        kind: fa.role === "Coach" ? "coach" : "fa",
+        role: fa.role,
+        country: fa.country || playerNationalities[fa.player],
+      });
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  }, [transfers]);
+
+  const filteredPicker = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    return pickerCatalog.filter(e => {
+      if (pickerKind !== "all") {
+        if (pickerKind === "coach" && e.kind !== "coach") return false;
+        if (pickerKind === "player" && e.kind !== "player") return false;
+        if (pickerKind === "fa" && e.kind !== "fa") return false;
+      }
+      if (q) {
+        const hay = `${e.name} ${e.team || ""} ${e.role || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).slice(0, 200);
+  }, [pickerCatalog, pickerSearch, pickerKind]);
+
+  const selectedEntry = pickerCatalog.find(e => e.name === transferPlayer);
+  const isCoachPick = selectedEntry?.role === "Coach";
+  const targetTeamHasCoach = useMemo(() => {
+    if (!isCoachPick || transferTo === "-") return null;
+    const tt = teamDatabase.find(t => t.name === transferTo);
+    return tt?.coach && tt.coach !== transferPlayer ? tt.coach : null;
+  }, [isCoachPick, transferTo, transferPlayer]);
+
+
+
   const freeAgents = useMemo(() => {
     const lastTransfer: Record<string, Transfer> = {};
     transfers.forEach(t => { lastTransfer[t.player] = t; });
