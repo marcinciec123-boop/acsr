@@ -261,29 +261,41 @@ const PlayerPicker = ({
   onSelect: (n: string) => void; align: "left" | "right";
 }) => {
   return (
-    <div className={cn("p-3 bg-card space-y-2", align === "right" ? "text-right" : "text-left")}>
+    <div className={cn("p-3 bg-card/60 backdrop-blur-sm space-y-2", align === "right" ? "text-right" : "text-left")}>
       <div className={cn("flex items-center gap-2", align === "right" && "flex-row-reverse")}>
         <TeamLogo teamName={team} size={22} rounded="md" />
         <span className="text-xs font-bold truncate">{team}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className={cn("flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
         {roster.map(name => {
           const country = resolvePlayerCountry(name);
           const flag = country ? countryFlag(country) : "";
           const isSelected = name === selected;
+          const role = playerRoles[name] as PlayerRole | undefined;
           return (
             <button
               key={name}
               onClick={() => onSelect(name)}
+              title={role ? `${role}` : undefined}
               className={cn(
-                "px-2 py-1 rounded text-[10px] font-mono border transition-colors",
+                "group px-2 py-1 rounded text-[10px] font-mono border transition-all flex items-center gap-1",
                 isSelected
-                  ? "bg-primary/20 text-primary border-primary/50"
-                  : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground hover:border-primary/30",
+                  ? "bg-primary/20 text-primary border-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
+                  : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
               )}
             >
-              {flag && <span className="mr-1">{flag}</span>}
-              {name}
+              {flag && <span>{flag}</span>}
+              <span>{name}</span>
+              {role && (
+                <span
+                  className={cn(
+                    "ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] leading-none border",
+                    roleColors[role],
+                  )}
+                >
+                  {roleIcons[role]}
+                </span>
+              )}
             </button>
           );
         })}
@@ -295,8 +307,91 @@ const PlayerPicker = ({
   );
 };
 
+// Deterministic gradient per player name (adds a jersey-like visual identity).
+const heroGradient = (name: string) => {
+  const palettes = [
+    "from-indigo-500/40 via-fuchsia-500/25 to-transparent",
+    "from-amber-500/40 via-red-500/25 to-transparent",
+    "from-emerald-500/40 via-cyan-500/25 to-transparent",
+    "from-sky-500/40 via-violet-500/25 to-transparent",
+    "from-rose-500/40 via-orange-500/25 to-transparent",
+    "from-teal-500/40 via-lime-500/25 to-transparent",
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return palettes[h % palettes.length];
+};
+
+const PlayerHero = ({
+  name, team, stats, align,
+}: {
+  name: string;
+  team: string;
+  stats: ReturnType<typeof computeCareerStats>;
+  align: "left" | "right";
+}) => {
+  const role = playerRoles[name] as PlayerRole | undefined;
+  const country = resolvePlayerCountry(name);
+  const flag = country ? countryFlag(country) : "";
+  const initial = (name || "?").charAt(0).toUpperCase();
+  const ratingColor = getRatingColor(stats.careerRating);
+  const winPct = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
+
+  return (
+    <div className={cn(
+      "relative overflow-hidden p-4 flex items-center gap-3",
+      align === "right" ? "flex-row-reverse text-right" : "text-left",
+    )}>
+      {/* Gradient backdrop */}
+      <div className={cn(
+        "absolute inset-0 bg-gradient-to-br opacity-70",
+        heroGradient(name),
+        align === "right" ? "bg-gradient-to-bl" : "bg-gradient-to-br",
+      )} />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+
+      {/* Jersey-style initial */}
+      <div className="relative shrink-0 w-16 h-16 rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm flex items-center justify-center shadow-inner">
+        <span className="font-heading font-black text-3xl text-foreground/90 leading-none">{initial}</span>
+        <TeamLogo teamName={team} size={18} rounded="md" className="absolute -bottom-1.5 -right-1.5 border-2 border-background rounded-md" />
+      </div>
+
+      <div className={cn("relative min-w-0 flex-1 space-y-1", align === "right" && "items-end flex flex-col")}>
+        <div className={cn("flex items-center gap-1.5", align === "right" && "flex-row-reverse")}>
+          {flag && <span className="text-sm leading-none">{flag}</span>}
+          <PlayerLink name={name} className="text-base font-heading font-bold text-foreground truncate">
+            {name}
+          </PlayerLink>
+        </div>
+        <div className={cn("flex items-center gap-1.5 flex-wrap", align === "right" && "justify-end")}>
+          {role ? (
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border",
+              roleColors[role],
+            )}>
+              <span>{roleIcons[role]}</span>
+              <span>{role}</span>
+            </span>
+          ) : (
+            <span className="text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wider">Rola nieznana</span>
+          )}
+          <span className={cn(
+            "inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60",
+            ratingColor,
+          )}>
+            {stats.careerRating.toFixed(2)} rtg
+          </span>
+          <span className="text-[9px] font-mono text-muted-foreground">
+            {stats.matchesPlayed}m • {winPct}% W
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CompareRow = ({
-  label, v1, v2, fmt, higherBetter,
+  label, v1, v2, fmt, higherBetter, accent = false,
 }: {
   label: string;
   v1: number;
@@ -304,21 +399,48 @@ const CompareRow = ({
   fmt: (v: number) => string;
   /** true = higher is better, false = lower is better, null = no winner */
   higherBetter: boolean | null;
+  accent?: boolean;
 }) => {
   let w1 = false, w2 = false;
   if (higherBetter !== null && v1 !== v2) {
     if (higherBetter) { w1 = v1 > v2; w2 = v2 > v1; }
     else { w1 = v1 < v2; w2 = v2 < v1; }
   }
+  // Bar visualization: proportion of each value
+  const total = Math.max(v1 + v2, 0.0001);
+  const pct1 = Math.max(4, Math.min(96, (v1 / total) * 100));
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-1.5 border-b border-border/30 last:border-0">
-      <div className={cn("text-right text-sm font-mono tabular-nums", w1 ? "font-bold text-foreground" : "text-muted-foreground")}>
+    <div className={cn(
+      "grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2 border-b border-border/30 last:border-0",
+      accent && "-mx-4 px-4 bg-primary/[0.03]",
+    )}>
+      <div className={cn(
+        "text-right font-mono tabular-nums",
+        accent ? "text-lg" : "text-sm",
+        w1 ? "font-bold text-foreground" : "text-muted-foreground",
+      )}>
         {fmt(v1)}
       </div>
-      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-3 min-w-[80px] text-center">
-        {label}
+      <div className="flex flex-col items-center gap-1 min-w-[110px]">
+        <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
+        <div className="w-24 h-1 rounded-full bg-border/60 overflow-hidden flex">
+          <div
+            className={cn("h-full transition-all", w1 ? "bg-primary" : "bg-muted-foreground/50")}
+            style={{ width: `${pct1}%` }}
+          />
+          <div
+            className={cn("h-full transition-all", w2 ? "bg-primary" : "bg-muted-foreground/50", "opacity-60")}
+            style={{ width: `${100 - pct1}%` }}
+          />
+        </div>
       </div>
-      <div className={cn("text-left text-sm font-mono tabular-nums", w2 ? "font-bold text-foreground" : "text-muted-foreground")}>
+      <div className={cn(
+        "text-left font-mono tabular-nums",
+        accent ? "text-lg" : "text-sm",
+        w2 ? "font-bold text-foreground" : "text-muted-foreground",
+      )}>
         {fmt(v2)}
       </div>
     </div>
