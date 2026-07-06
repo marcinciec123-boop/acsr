@@ -459,7 +459,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       });
       entries.push({
         tournamentId: t.id, tournamentName: t.name, matchId: match.id,
-        team, opponent, ownScore, oppScore, ownRounds, oppRounds,
+        team, opponent, ownScore, oppScore, ownRounds, oppRounds, mapScores,
         won: ownScore > oppScore && (ownScore + oppScore) > 0,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round, playedAt: match.playedAt || t.endDate,
