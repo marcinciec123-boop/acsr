@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface QualifierPlayProps {
   tournament: Tournament;
@@ -91,9 +92,11 @@ const QualMatchDetail = ({ match, onUpdate, onSimulate, resolved, matchStats, on
             <div className="px-6 py-3 bg-secondary rounded-lg min-w-[100px] text-center">
               {resolved ? (
                 <div className="flex items-center gap-3">
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  {(() => { const [d1, d2] = getDisplayScore(match); return (<>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{d1}</span>
                   <span className="text-muted-foreground text-xl">:</span>
-                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("text-2xl font-mono font-bold", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{d2}</span>
+                  </>); })()}
                 </div>
               ) : (
                 <span className="text-xl font-mono text-muted-foreground">vs</span>
@@ -164,13 +167,13 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       <div className="flex items-center">
         <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", resolved && match.winner === match.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team1}</div>
         <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-          {resolved ? (
+          {resolved ? (() => { const [d1, d2] = getDisplayScore(match); return (
             <>
-              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
+              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span>
               <span className="text-muted-foreground mx-1">:</span>
-              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span>
             </>
-          ) : <span className="text-muted-foreground">vs</span>}
+          ); })() : <span className="text-muted-foreground">vs</span>}
         </div>
         <div className={cn("flex-1 px-3 py-2 truncate font-medium", resolved && match.winner === match.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team2}</div>
       </div>
@@ -324,7 +327,7 @@ const RegionalBracket = ({
                   {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                     <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
                       <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                      <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                      <span className="mx-2 font-mono text-muted-foreground">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                       <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                     </div>
                   ))}
@@ -399,7 +402,7 @@ const RegionalBracket = ({
                     {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                       <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
                         <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                        <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                        <span className="mx-2 font-mono text-muted-foreground">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                         <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                       </div>
                     ))}
@@ -1104,7 +1107,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                               {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                                 <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
                                   <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                                  <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                                  <span className="mx-2 font-mono text-muted-foreground">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                                   <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                                 </div>
                               ))}
@@ -1161,7 +1164,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                               {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                                 <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-0.5">
                                   <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                                  <span className="mx-1 font-mono text-muted-foreground text-[10px]">{m.score1}:{m.score2}</span>
+                                  <span className="mx-1 font-mono text-muted-foreground text-[10px]">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                                   <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                                 </div>
                               ))}
@@ -1203,7 +1206,7 @@ const QualifierPlay = ({ tournament, invitedTeams, qualifierPool, qualifierSlots
                           {round.matches.filter(m => m.team2 !== "BYE").map((m, mi) => (
                             <div key={mi} className="flex items-center text-xs bg-secondary/50 rounded px-2 py-1">
                               <span className={cn("flex-1 text-right truncate", m.winner === m.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team1}</span>
-                              <span className="mx-2 font-mono text-muted-foreground">{m.score1}:{m.score2}</span>
+                              <span className="mx-2 font-mono text-muted-foreground">{(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()}</span>
                               <span className={cn("flex-1 truncate", m.winner === m.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{m.team2}</span>
                             </div>
                           ))}

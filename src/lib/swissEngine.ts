@@ -11,6 +11,7 @@
 // Round labels follow the convention "Swiss R<N>" so old data stays compatible.
 
 import type { MatchResult } from "./types";
+import { getDisplayScore } from "./matchDisplay";
 
 export interface SwissTeamStanding {
   team: string;
@@ -138,18 +139,19 @@ export function computeSwissStage(
       const played = (m.score1 + m.score2) > 0;
       const winner = played ? (m.score1 > m.score2 ? t1 : t2) : "";
 
+      const [ds1, ds2] = getDisplayScore(m);
       if (a) {
         if (b) a.pastOpponents.add(b.team);
         a.history.push({
           round,
           opponent: b ? b.team : null,
           result: played ? (winner === t1 ? "W" : "L") : "",
-          score: played ? `${m.score1}:${m.score2}` : "",
+          score: played ? `${ds1}:${ds2}` : "",
           decisive: false, // computed below
         });
         if (played) {
           if (winner === t1) a.wins += 1; else a.losses += 1;
-          a.roundDiff += (m.score1 - m.score2);
+          a.roundDiff += (ds1 - ds2);
         }
       }
       if (b) {
@@ -158,12 +160,12 @@ export function computeSwissStage(
           round,
           opponent: a ? a.team : null,
           result: played ? (winner === t2 ? "W" : "L") : "",
-          score: played ? `${m.score2}:${m.score1}` : "",
+          score: played ? `${ds2}:${ds1}` : "",
           decisive: false,
         });
         if (played) {
           if (winner === t2) b.wins += 1; else b.losses += 1;
-          b.roundDiff += (m.score2 - m.score1);
+          b.roundDiff += (ds2 - ds1);
         }
       }
     });

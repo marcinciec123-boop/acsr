@@ -4,6 +4,7 @@ import { type Tournament, type TournamentSimulation, type SwissResult, type Grou
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import FullResultsPanel from "@/components/tournament/FullResultsPanel";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface TournamentDetailProps {
   tournament: Tournament;
@@ -22,9 +23,11 @@ const MatchRow = ({ match }: { match: MatchResult }) => (
       {match.team1}
     </div>
     <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-      <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
-      <span className="text-muted-foreground mx-1">:</span>
-      <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+      {(() => { const [d1, d2] = getDisplayScore(match); return (<>
+        <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span>
+        <span className="text-muted-foreground mx-1">:</span>
+        <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span>
+      </>); })()}
     </div>
     <div className={cn(
       "flex-1 px-3 py-2 truncate font-medium",
@@ -140,15 +143,17 @@ const KnockoutView = ({ knockout }: { knockout: KnockoutResult }) => (
                   ri === knockout.rounds.filter(r => !r.matches.every(m => m.team2 === "BYE")).length - 1 ? "border-accent/30" : "border-border"
                 )}
               >
+                {(() => { const [d1, d2] = getDisplayScore(match); return (<>
                 <div className={cn("flex items-center justify-between px-3 py-2 text-sm", match.winner === match.team1 ? "bg-primary/10" : "opacity-60")}>
                   <span className={cn("font-medium truncate mr-2", match.winner === match.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team1}</span>
-                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{match.score1}</span>
+                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team1 ? "text-primary" : "text-muted-foreground")}>{d1}</span>
                 </div>
                 <div className="h-px bg-border" />
                 <div className={cn("flex items-center justify-between px-3 py-2 text-sm", match.winner === match.team2 ? "bg-primary/10" : "opacity-60")}>
                   <span className={cn("font-medium truncate mr-2", match.winner === match.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team2}</span>
-                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{match.score2}</span>
+                  <span className={cn("font-mono font-bold text-sm", match.winner === match.team2 ? "text-primary" : "text-muted-foreground")}>{d2}</span>
                 </div>
+                </>); })()}
               </motion.div>
             ))}
           </div>

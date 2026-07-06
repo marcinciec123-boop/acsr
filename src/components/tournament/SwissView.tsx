@@ -12,6 +12,7 @@ import {
 } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
 
@@ -146,9 +147,9 @@ const RoundMatchCard = ({
           )}
         </div>
       </div>
-      {[1, 2].map((slot) => {
+      {(() => { const [dScore1, dScore2] = getDisplayScore(match); return [1, 2].map((slot) => {
         const name = slot === 1 ? match.team1 : match.team2;
-        const score = slot === 1 ? match.score1 : match.score2;
+        const score = slot === 1 ? dScore1 : dScore2;
         const isWinner = winner === slot;
         return (
           <div key={slot} className={cn(
@@ -164,7 +165,7 @@ const RoundMatchCard = ({
             </span>
           </div>
         );
-      })}
+      }); })()}
       <MatchPredictionBadge team1={match.team1} team2={match.team2} tier={tier || "B"} decided={played} compact />
     </div>
   );

@@ -134,8 +134,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       maps: result.maps,
     });
     setActiveMapIdx(0);
+    const shown = bo === 1 && result.maps[0]
+      ? `${result.maps[0].score1}-${result.maps[0].score2}`
+      : `${result.score1}-${result.score2}`;
     toast({
-      title: `Symulacja: ${match.team1} ${result.score1}-${result.score2} ${match.team2}`,
+      title: `Symulacja: ${match.team1} ${shown} ${match.team2}`,
       description: `Wygenerowano ${result.maps.length} map ze statystykami zgodnymi z siłą drużyn.`,
     });
   };

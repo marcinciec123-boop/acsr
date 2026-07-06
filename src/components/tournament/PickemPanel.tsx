@@ -8,6 +8,7 @@ import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { computeSwissStage } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface GroupPick { first: string; last: string; }
 /** Swiss picks: recordKey (e.g. "3-0") -> array of team names (fixed length). */
@@ -537,7 +538,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                     <div className={cn("text-[9px] font-mono text-right",
                                       hit ? "text-[hsl(var(--win))]" : "text-muted-foreground"
                                     )}>
-                                      wygrał: {actualWinner} ({m.score1}:{m.score2})
+                                      wygrał: {actualWinner} ({(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()})
                                     </div>
                                   )}
                                 </div>
