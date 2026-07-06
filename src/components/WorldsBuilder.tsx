@@ -287,7 +287,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <Input
                             value={n.label ?? ""}
-                            placeholder={`Team ${n.code}`}
+                            placeholder={countryName(n.code)}
                             onChange={e => updateNation(n.code, { label: e.target.value })}
                             className="h-7 text-xs font-mono flex-1"
                           />
@@ -296,7 +296,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         <button
                           onClick={() => autoFill(n.code)}
                           className="text-xs font-mono text-primary hover:underline shrink-0"
-                          title="Wstaw pierwszych 5 dostępnych"
+                          title="Najlepszy gracz na każdą z 5 pozycji"
                         >auto</button>
                         <button
                           onClick={() => removeCountry(n.code)}
@@ -307,7 +307,9 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         </button>
                       </div>
                       <div className="space-y-1">
-                        {n.roster.map((p, i) => (
+                        {n.roster.map((p, i) => {
+                          const role = p ? playerRoles[p] : undefined;
+                          return (
                           <div key={i} className="flex items-center gap-1.5">
                             <span className="text-xs font-mono text-muted-foreground w-4 shrink-0">{i + 1}</span>
                             <select
@@ -316,19 +318,27 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                               className="flex-1 text-xs font-mono bg-card border border-border rounded px-1.5 py-1 h-7"
                             >
                               <option value="">— wybierz gracza —</option>
-                              {pool.map(pl => (
-                                <option key={pl} value={pl}>{pl}</option>
-                              ))}
+                              {pool.map(pl => {
+                                const r = playerRoles[pl];
+                                return (
+                                  <option key={pl} value={pl}>
+                                    {pl}{r ? ` — ${roleIcons[r]} ${r}` : ""}
+                                  </option>
+                                );
+                              })}
                               {p && !pool.includes(p) && <option value={p}>{p}</option>}
                             </select>
-                            <Input
-                              value={p}
-                              onChange={e => setRosterSlot(n.code, i, e.target.value)}
-                              placeholder="lub wpisz..."
-                              className="h-7 text-xs font-mono w-24 shrink-0"
-                            />
-                          </div>
-                        ))}
+                            {role && (
+                              <span
+                                className={cn(
+                                  "text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0",
+                                  roleColors[role],
+                                )}
+                                title={role}
+                              >
+                                {roleIcons[role]} {role}
+                              </span>
+                            )}
                       </div>
                     </div>
                   );
