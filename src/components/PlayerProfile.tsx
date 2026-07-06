@@ -338,7 +338,7 @@ const PlayerProfile = ({
                         idx: i + 1,
                         rating: m.rating,
                         opp: m.opponent,
-                        score: `${m.ownScore}-${m.oppScore}`,
+                        score: `${m.ownRounds}:${m.oppRounds}`,
                         won: m.won,
                       }))}
                       margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
