@@ -285,7 +285,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto pb-3 px-1">
-        <div className="flex items-start justify-center min-w-fit gap-0 mx-auto">
+        <div className="flex items-start min-w-fit gap-0">
           {rounds.map((round, ri) => {
             const matchesInRound = grouped[round];
             const isLast = isFinalRound(ri);
@@ -299,21 +299,20 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 {/* Connector column to PREVIOUS round */}
                 {showConnector && (
                   <div
-                    className="flex flex-col w-10 shrink-0"
+                    className="flex flex-col w-7 shrink-0"
                     style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
                   >
                     {Array.from({ length: matchesInRound.length }).map((_, i) => {
                       // Each connector spans from match (2i) center to match (2i+1) center in previous round
                       const span = MATCH_H + gapForDepth(depth - 1);
                       return (
-                        <div key={i} className="relative" style={{ height: span }}>
-                          {/* left stub from source cards */}
-                          <div className="absolute left-0 top-0 w-3 h-px bg-primary/50" />
-                          <div className="absolute left-0 bottom-0 w-3 h-px bg-primary/50" />
-                          {/* vertical bracket line */}
-                          <div className="absolute left-3 top-0 bottom-0 w-px bg-primary/50" />
+                        <div
+                          key={i}
+                          style={{ height: span }}
+                          className="border-l border-t border-b border-border/70 rounded-l-sm relative"
+                        >
                           {/* horizontal stub into next match */}
-                          <div className="absolute left-3 top-1/2 right-0 h-px bg-primary/50 -translate-y-px" />
+                          <div className="absolute top-1/2 -right-0 w-[14px] h-px bg-border/70 -translate-y-1/2" />
                         </div>
                       );
                     })}
@@ -352,7 +351,6 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
           )}
         </div>
       </div>
-
       {onAdd && (
         <div className="flex gap-2 pt-2 border-t border-border/40">
           <Button
