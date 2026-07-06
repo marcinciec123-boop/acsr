@@ -25,13 +25,21 @@ const statusDot: Record<string, string> = {
   completed: "bg-[hsl(var(--win))]",
 };
 
+const toIsoLocal = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const parseIsoLocal = (s: string): Date => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
 const dateRangeDays = (start: string, end: string): string[] => {
   const out: string[] = [];
-  const s = new Date(start);
-  const e = new Date(end);
+  const s = parseIsoLocal(start);
+  const e = parseIsoLocal(end);
   const cur = new Date(s);
   while (cur <= e) {
-    out.push(cur.toISOString().slice(0, 10));
+    out.push(toIsoLocal(cur));
     cur.setDate(cur.getDate() + 1);
   }
   return out;
@@ -188,9 +196,9 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
       <div className="grid grid-cols-7">
         {cells.map((day, i) => {
           if (!day) return <div key={i} className="min-h-20 md:min-h-24 border-t border-l border-border/30 bg-secondary/10" />;
-          const iso = day.toISOString().slice(0, 10);
+          const iso = toIsoLocal(day);
           const items = dayIndex[iso] || [];
-          const isToday = iso === new Date().toISOString().slice(0, 10);
+          const isToday = iso === toIsoLocal(new Date());
           return (
             <div
               key={i}
