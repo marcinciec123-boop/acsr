@@ -91,7 +91,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
 
   const addCountry = (code: string) => {
     if (nationCodes.has(code)) return;
-    setNations(prev => [...prev, { code, roster: [...EMPTY_ROSTER] }]);
+    setNations(prev => [...prev, { code, label: countryName(code), roster: [...EMPTY_ROSTER] }]);
   };
   const removeCountry = (code: string) =>
     setNations(prev => prev.filter(n => n.code !== code));
@@ -107,11 +107,33 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
       return { ...n, roster: r };
     }));
 
+  /**
+   * Best-of-country pick: for each of the 5 roles, take the highest-ranked
+   * player of that country holding that role. Falls back to remaining top
+   * players from the country pool to fill any missing slots.
+   */
   const autoFill = (code: string) => {
-    const pool = playerPool[code] || [];
-    setNations(prev => prev.map(n =>
-      n.code === code ? { ...n, roster: [...pool.slice(0, 5), "", "", "", "", ""].slice(0, 5) } : n
-    ));
+    const pool = new Set(playerPool[code] || []);
+    const ranking = rankedPlayers();
+    const chosen: string[] = [];
+    ROLE_ORDER.forEach(role => {
+      const best = ranking.find(p => pool.has(p) && playerRoles[p] === role && !chosen.includes(p));
+      if (best) chosen.push(best);
+    });
+    if (chosen.length < 5) {
+      for (const p of ranking) {
+        if (chosen.length >= 5) break;
+        if (pool.has(p) && !chosen.includes(p)) chosen.push(p);
+      }
+    }
+    if (chosen.length < 5) {
+      for (const p of pool) {
+        if (chosen.length >= 5) break;
+        if (!chosen.includes(p)) chosen.push(p);
+      }
+    }
+    const filled = [...chosen, "", "", "", "", ""].slice(0, 5);
+    setNations(prev => prev.map(n => n.code === code ? { ...n, roster: filled } : n));
   };
 
   const addPhaseDraft = () => {
