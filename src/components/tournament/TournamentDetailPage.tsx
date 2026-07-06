@@ -257,6 +257,7 @@ export const TournamentDetailPage = ({
   mainTournaments = [], onPromoteWinners,
   activePhaseId: controlledActivePhaseId, onActivePhaseChange,
 }: Props) => {
+  const profileNav = useProfileNav();
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
