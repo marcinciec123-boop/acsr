@@ -16,6 +16,8 @@ export interface CareerMatchEntry {
   opponent: string;
   ownScore: number;
   oppScore: number;
+  ownRounds: number;
+  oppRounds: number;
   won: boolean;
   bo: 1 | 3 | 5;
   /** Round label for display (e.g. "Quarterfinals", "Swiss R1") */
