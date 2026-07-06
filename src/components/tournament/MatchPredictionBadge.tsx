@@ -22,6 +22,9 @@ export const MatchPredictionBadge = ({ team1, team2, tier, decided, compact }: P
   if (decided) return null;
   if (!team1 || !team2 || team1 === "BYE" || team2 === "BYE") return null;
   if (isPlaceholder(team1) || isPlaceholder(team2)) return null;
+  const isNat1 = !!ranking.find(t => t.name === team1)?.isNational;
+  const isNat2 = !!ranking.find(t => t.name === team2)?.isNational;
+  if (isNat1 || isNat2) return null;
 
   const { team1Wins, team2Wins } = predictBothOutcomes(team1, team2, tier, ranking);
 

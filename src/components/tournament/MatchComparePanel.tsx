@@ -200,6 +200,13 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
         </div>
 
         {/* Match winner 1X2 (no draw in CS, so just 1/2) */}
+        {(isNat1 || isNat2) ? (
+          <div className="p-4">
+            <p className="text-xs font-mono text-muted-foreground">
+              Kursy niedostępne dla meczów reprezentacji narodowych — nie liczą się do rankingu VRS.
+            </p>
+          </div>
+        ) : (
         <div className="p-4 space-y-3">
           <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
             Zwycięzca meczu
@@ -249,6 +256,8 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
             Kursy generowane na podstawie różnicy w rankingu VRS. To nie są prawdziwe kursy bukmacherskie.
           </p>
         </div>
+        )}
+
       </motion.div>
     </div>
   );
