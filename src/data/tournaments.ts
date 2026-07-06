@@ -687,10 +687,11 @@ export const teamDatabase: TeamData[] = [
 ];
 
 // Tier helpers
+// Tier distribution: S = top 10, A = 11-25, B = 26-50, C = 51-100
 export const tier1Teams = teamDatabase.slice(0, 10).map(t => t.name);
-export const tier2Teams = teamDatabase.slice(10, 30).map(t => t.name);
-export const tier3Teams = teamDatabase.slice(30, 60).map(t => t.name);
-export const tier4Teams = teamDatabase.slice(60).map(t => t.name);
+export const tier2Teams = teamDatabase.slice(10, 25).map(t => t.name);
+export const tier3Teams = teamDatabase.slice(25, 50).map(t => t.name);
+export const tier4Teams = teamDatabase.slice(50, 100).map(t => t.name);
 
 export function teamsByRegion(region: string): string[] {
   return teamDatabase.filter(t => t.region === region).map(t => t.name);
