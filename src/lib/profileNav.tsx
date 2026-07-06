@@ -3,7 +3,7 @@
 // profile without prop-drilling. When no provider is present, hooks return
 // no-ops so components fall back to plain text.
 
-import { createContext, useContext, type ReactNode } from "react";
+import React, { createContext, useContext, type ReactNode } from "react";
 
 export interface ProfileNav {
   openTeam: (name: string) => void;
