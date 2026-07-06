@@ -102,7 +102,10 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
     parts.push(`\nTop gracze (rating):\n${body.topPlayers.slice(0, 12).map(p => `${p.player} (${p.team})${p.role ? ` [${p.role}]` : ""} — ${p.rating.toFixed(2)}`).join("\n")}`);
   }
 
-  parts.push(`\nUŻYWAJ WYŁĄCZNIE NAZW Z POWYŻSZYCH DANYCH. Jeśli post dotyczy turnieju, sprawdź że drużyna jest na liście "uczestnicy" tego turnieju — inaczej nie pisz o niej w kontekście tego turnieju. Każdy post musi mieć inny temat lub inny ton.`);
+  parts.push(`\nUŻYWAJ WYŁĄCZNIE NAZW Z POWYŻSZYCH DANYCH. \
+Każdy post musi mieć INNY temat, INNY lead (pierwsze zdanie), INNĄ formę (notka / analiza / lista / cytat / felieton / plotka / statystyka) i INNY rejestr (chłodny / zaczepny / ironiczny / analityczny / nostalgiczny). \
+Zanim napiszesz kolejny post, sprawdź w pamięci że nie powtarza otwarcia ani struktury poprzedniego. Zakazane frazy-wypełniacze: "warto śledzić", "czas pokaże", "będzie się działo", "trzymamy kciuki", "jedno jest pewne". \
+Post ma brzmieć jak akapit z artykułu esportowego, a nie jak podpis pod obrazkiem.`);
 
   return parts.join("\n");
 }
