@@ -4,6 +4,7 @@ import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Sparkle
 import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
+import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { loadFromStorage } from "@/lib/storage";
@@ -67,6 +68,8 @@ const derivePlacements = (tournament: TournamentData): TournamentData["placement
       .forEach(m => add(loserOf(m.score1, m.score2, m.team1, m.team2), out.length + 1));
   }
 
+  // Teams eliminated in earlier phases — order by Swiss/group standings (bilans matters).
+  getPreFinalEliminatedOrder(tournament.phases).forEach(team => add(team, out.length + 1));
   tournament.participants.forEach(team => add(team, out.length + 1));
   return out.sort((a, b) => a.placement - b.placement || a.team.localeCompare(b.team));
 };
