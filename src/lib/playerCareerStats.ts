@@ -440,6 +440,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
       let mKills = 0, mDeaths = 0, mAssists = 0, mUd = 0, mEf = 0;
       let mRounds = 0, mAdrW = 0, mKastW = 0;
       let ownRounds = 0, oppRounds = 0;
+      const mapScores: string[] = [];
       for (const { map, player } of inMaps) {
         const rounds = (map.score1 || 0) + (map.score2 || 0);
         if (rounds <= 0) continue;
@@ -448,6 +449,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
         mAdrW += player.adr * rounds; mKastW += player.kast * rounds;
         if (isTeam1) { ownRounds += map.score1 || 0; oppRounds += map.score2 || 0; }
         else { ownRounds += map.score2 || 0; oppRounds += map.score1 || 0; }
+        mapScores.push(`${isTeam1 ? (map.score1 || 0) : (map.score2 || 0)}:${isTeam1 ? (map.score2 || 0) : (map.score1 || 0)}`);
       }
       if (mRounds === 0) continue;
       const rating = calculateRating({
