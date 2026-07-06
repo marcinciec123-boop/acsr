@@ -56,9 +56,10 @@ const PlayerProfile = ({
   const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
 
   const currentTeam = useMemo(
-    () => rankingSource.find(t => t.roster.includes(playerName)),
+    () => rankingSource.find(t => t.roster.includes(playerName) || t.coach === playerName),
     [playerName, rankingSource],
   );
+  const isCoachOfTeam = !!(currentTeam && currentTeam.coach === playerName);
   const teamRank = currentTeam ? rankingSource.indexOf(currentTeam) + 1 : null;
 
   const playerTransfers = useMemo(
