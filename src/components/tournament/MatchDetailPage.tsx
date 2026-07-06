@@ -170,6 +170,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
   // ===== VRS-style ranking points =====
   const ranking = useMemo(() => getRankingSnapshot(), [match.id]);
+  const isNationalMatch = useMemo(() => {
+    const t1 = ranking.find(t => t.name === match.team1);
+    const t2 = ranking.find(t => t.name === match.team2);
+    return !!(t1?.isNational || t2?.isNational);
+  }, [ranking, match.team1, match.team2]);
   const previews = useMemo(() => {
     if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD" || match.team2 === "BYE") {
       return null;
