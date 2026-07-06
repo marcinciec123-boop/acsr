@@ -66,6 +66,8 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
   const ranking = useMemo(() => getRankingSnapshot(), [team1, team2]);
   const rank1 = useMemo(() => getTeamRank(team1, ranking), [team1, ranking]);
   const rank2 = useMemo(() => getTeamRank(team2, ranking), [team2, ranking]);
+  const isNat1 = useMemo(() => !!ranking.find(t => t.name === team1)?.isNational, [ranking, team1]);
+  const isNat2 = useMemo(() => !!ranking.find(t => t.name === team2)?.isNational, [ranking, team2]);
 
   const previews = useMemo(() => predictBothOutcomes(team1, team2, tier, ranking), [team1, team2, tier, ranking]);
 
