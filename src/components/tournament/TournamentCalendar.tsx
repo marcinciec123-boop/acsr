@@ -48,7 +48,7 @@ const dateRangeDays = (start: string, end: string): string[] => {
 const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
   const years = useMemo(() => {
     const set = new Set<number>();
-    tournaments.forEach(t => set.add(new Date(t.startDate).getFullYear()));
+    tournaments.forEach(t => set.add(parseIsoLocal(t.startDate).getFullYear()));
     return Array.from(set).sort();
   }, [tournaments]);
 
@@ -70,8 +70,8 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
   if (view === "year") {
     // Timeline: 12 months × horizontal bars per tournament
     const yearTournaments = tournaments
-      .filter(t => new Date(t.startDate).getFullYear() === year || new Date(t.endDate).getFullYear() === year)
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      .filter(t => parseIsoLocal(t.startDate).getFullYear() === year || parseIsoLocal(t.endDate).getFullYear() === year)
+      .sort((a, b) => parseIsoLocal(a.startDate).getTime() - parseIsoLocal(b.startDate).getTime());
 
     return (
       <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -108,8 +108,8 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
             </div>
           )}
           {yearTournaments.map(t => {
-            const s = new Date(t.startDate);
-            const e = new Date(t.endDate);
+            const s = parseIsoLocal(t.startDate);
+            const e = parseIsoLocal(t.endDate);
             const startDay = s.getFullYear() === year ? s.getMonth() * 30 + s.getDate() : 0;
             const endDay = e.getFullYear() === year ? e.getMonth() * 30 + e.getDate() : 360;
             const left = (startDay / 360) * 100;
