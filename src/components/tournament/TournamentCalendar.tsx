@@ -196,9 +196,9 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
       <div className="grid grid-cols-7">
         {cells.map((day, i) => {
           if (!day) return <div key={i} className="min-h-20 md:min-h-24 border-t border-l border-border/30 bg-secondary/10" />;
-          const iso = day.toISOString().slice(0, 10);
+          const iso = toIsoLocal(day);
           const items = dayIndex[iso] || [];
-          const isToday = iso === new Date().toISOString().slice(0, 10);
+          const isToday = iso === toIsoLocal(new Date());
           return (
             <div
               key={i}
