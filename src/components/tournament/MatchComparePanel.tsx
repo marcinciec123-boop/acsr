@@ -66,19 +66,19 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
 
   const previews = useMemo(() => predictBothOutcomes(team1, team2, tier, ranking), [team1, team2, tier, ranking]);
 
-  // Match-winner odds
-  const probWin1 = previews.team1Wins.expectedWinner;
+  // Match-winner odds — use shrunk probabilities for realism.
+  const probWin1 = shrinkProb(previews.team1Wins.expectedWinner);
   const probWin2 = 1 - probWin1;
   const odds1 = oddsFromProb(probWin1);
   const odds2 = oddsFromProb(probWin2);
 
-  // Correct-score / handicap odds for BO3 & BO5 derived from team strength.
-  // We model maps as independent Bernoulli trials with per-map prob = probWin1.
+  // Correct-score / handicap odds — per-outcome floor keeps prices in a realistic band.
+  const csOdds = (p: number) => oddsFromProb(p, { floor: 0.025 }); // ~38 max
   const correctScores = useMemo(() => {
     const out: { label: string; prob: number; odds: number; favored: "t1" | "t2" }[] = [];
     if (bo === 1) {
-      out.push({ label: "1 – 0", prob: probWin1, odds: oddsFromProb(probWin1), favored: "t1" });
-      out.push({ label: "0 – 1", prob: probWin2, odds: oddsFromProb(probWin2), favored: "t2" });
+      out.push({ label: "1 – 0", prob: probWin1, odds: csOdds(probWin1), favored: "t1" });
+      out.push({ label: "0 – 1", prob: probWin2, odds: csOdds(probWin2), favored: "t2" });
       return out;
     }
     if (bo === 3) {
