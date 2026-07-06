@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { type MatchStats, generateMatchStats } from "@/lib/playerStats";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 interface QualifierPlayProps {
   tournament: Tournament;
