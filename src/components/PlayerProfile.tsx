@@ -54,13 +54,19 @@ const PlayerProfile = ({
   const country = playerNationalities[playerName] || "??";
   const realName = playerRealNames[playerName];
   const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
+  const sortedRanking = useMemo(
+    () => [...rankingSource].filter(t => !t.isNational).sort((a, b) => b.points - a.points),
+    [rankingSource],
+  );
 
   const currentTeam = useMemo(
     () => rankingSource.find(t => t.roster.includes(playerName) || t.coach === playerName),
     [playerName, rankingSource],
   );
   const isCoachOfTeam = !!(currentTeam && currentTeam.coach === playerName);
-  const teamRank = currentTeam ? rankingSource.indexOf(currentTeam) + 1 : null;
+  const teamRank = currentTeam && !currentTeam.isNational
+    ? sortedRanking.findIndex(t => t.name === currentTeam.name) + 1 || null
+    : null;
 
   const playerTransfers = useMemo(
     () => getAllTransfers().filter(t => t.player === playerName),
