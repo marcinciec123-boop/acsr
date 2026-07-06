@@ -801,8 +801,8 @@ export const TournamentDetailPage = ({
                               advancePerGroup={perGroup}
                               key={g.id}
                               group={g}
-                              onMatchUpdate={(mid, s1, s2) =>
-                                onUpdateMatch(phase.id, mid, { score1: s1, score2: s2 }, g.id)
+                              onMatchUpdate={(mid, patch) =>
+                                onUpdateMatch(phase.id, mid, patch, g.id)
                               }
                               onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
                             />

@@ -7,12 +7,13 @@ import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
+import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
 
 interface Props {
   group: PhaseGroup;
   format?: PhaseFormat;
   advancePerGroup?: number;
-  onMatchUpdate: (matchId: string, score1: number, score2: number) => void;
+  onMatchUpdate: (matchId: string, patch: Partial<MatchResult>) => void;
   onOpenMatch?: (matchId: string) => void;
 }
 
@@ -34,6 +35,18 @@ const renderMatchRow = (
   const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
   const w1 = decided && m.score1 > m.score2;
   const w2 = decided && m.score2 > m.score1;
+  const isBo1 = (m.bo || 1) === 1;
+  const [d1, d2] = getDisplayScore(m);
+  const handleChange = (side: 1 | 2, val: number) => {
+    if (isBo1) {
+      const r1 = side === 1 ? val : d1;
+      const r2 = side === 2 ? val : d2;
+      onMatchUpdate(m.id, buildBo1RoundScorePatch(m, r1, r2));
+    } else {
+      const patch = side === 1 ? { score1: val } : { score2: val };
+      onMatchUpdate(m.id, patch);
+    }
+  };
   return (
     <div key={m.id} className="flex items-center gap-1.5 text-xs bg-card/50 rounded px-1.5 py-1 border border-border/40 hover:border-border transition-colors">
       <span className={cn("flex-1 text-right truncate min-w-0", w1 ? "text-foreground font-bold" : "text-muted-foreground")}>
@@ -42,19 +55,21 @@ const renderMatchRow = (
       <Input
         type="number"
         min="0"
-        value={m.score1}
-        onChange={e => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
-        className={cn("w-9 h-6 text-center text-xs px-1 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
+        value={d1}
+        onChange={e => handleChange(1, parseInt(e.target.value) || 0)}
+        className={cn("w-11 h-6 text-center text-xs px-1 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
         disabled={isPlaceholder(m.team1) || isPlaceholder(m.team2)}
+        title={isBo1 ? "Wynik rundowy (np. 13)" : "Mapy wygrane"}
       />
       <span className="text-muted-foreground">:</span>
       <Input
         type="number"
         min="0"
-        value={m.score2}
-        onChange={e => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
-        className={cn("w-9 h-6 text-center text-xs px-1 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
+        value={d2}
+        onChange={e => handleChange(2, parseInt(e.target.value) || 0)}
+        className={cn("w-11 h-6 text-center text-xs px-1 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
         disabled={isPlaceholder(m.team1) || isPlaceholder(m.team2)}
+        title={isBo1 ? "Wynik rundowy (np. 5)" : "Mapy wygrane"}
       />
       <span className={cn("flex-1 truncate min-w-0", w2 ? "text-foreground font-bold" : "text-muted-foreground")}>
         {teamLabel(m.team2)}

@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
 import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
 import { MatchComparePanel } from "./MatchComparePanel";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -308,9 +309,14 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               </p>
             </div>
             <div className="flex items-center gap-3 font-mono text-5xl font-bold">
-              <span className={winner1 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{computedScore.s1}</span>
-              <span className="text-muted-foreground text-3xl">:</span>
-              <span className={winner2 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{computedScore.s2}</span>
+              {(() => {
+                const [hs1, hs2] = bo === 1 ? getDisplayScore(match) : [computedScore.s1, computedScore.s2];
+                return (<>
+                  <span className={winner1 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{hs1}</span>
+                  <span className="text-muted-foreground text-3xl">:</span>
+                  <span className={winner2 ? "text-[hsl(var(--win))]" : "text-muted-foreground"}>{hs2}</span>
+                </>);
+              })()}
             </div>
             <div className={cn("flex items-center gap-3 min-w-0", winner2 && "text-foreground")}>
               <p className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
