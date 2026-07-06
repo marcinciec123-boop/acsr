@@ -171,6 +171,11 @@ const PlayerProfile = ({
                     {countryFlag(currentTeam.country)}
                     <span className="font-bold text-foreground group-hover:text-primary">{currentTeam.name}</span>
                     {teamRank && <span className="font-mono text-xs">(#{teamRank})</span>}
+                    {isCoachOfTeam && (
+                      <span className="ml-1 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
+                        🎓 Coach
+                      </span>
+                    )}
                   </button>
                 ) : (
                   <span className="flex items-center gap-1 italic">
