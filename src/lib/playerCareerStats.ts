@@ -258,6 +258,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         oppScore,
         ownRounds,
         oppRounds,
+        mapScores,
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
