@@ -28,7 +28,7 @@ export const MatchPredictionBadge = ({ team1, team2, tier, decided, compact }: P
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 text-[9px] font-mono px-2 py-1 bg-secondary/30 border-t border-border/40",
+        "flex items-center justify-between gap-2 text-xs font-mono px-2 py-1 bg-secondary/30 border-t border-border/40",
         compact && "py-0.5",
       )}
       title={`VRS: jeśli ${team1} wygra +${team1Wins.winPoints}/−${team1Wins.lossPoints} • jeśli ${team2} wygra +${team2Wins.winPoints}/−${team2Wins.lossPoints}`}
@@ -39,7 +39,7 @@ export const MatchPredictionBadge = ({ team1, team2, tier, decided, compact }: P
           <TrendingDown className="w-2.5 h-2.5 inline" />−{team2Wins.lossPoints}
         </span>
       </span>
-      <span className="text-muted-foreground/60 text-[8px] uppercase tracking-wider">VRS</span>
+      <span className="text-muted-foreground/60 text-xs uppercase tracking-wider">VRS</span>
       <span className="flex items-center gap-0.5 text-[hsl(var(--win))]/90">
         +{team2Wins.winPoints}
         <TrendingUp className="w-2.5 h-2.5" />

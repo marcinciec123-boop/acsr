@@ -961,14 +961,14 @@ const TournamentPanel = () => {
                 </label>
                 {customPointsEnabled && (
                   <>
-                    <p className="text-[10px] font-mono text-muted-foreground">
+                    <p className="text-xs font-mono text-muted-foreground">
                       Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = wartość domyślna dla tieru.
                       Liczba miejsc = liczba uczestników ({selectedTeams.length}).
                     </p>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-60 overflow-y-auto pr-1">
                       {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
                         <div key={p} className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-mono text-muted-foreground w-10 shrink-0">
+                          <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">
                             #{p}
                           </span>
                           <Input
@@ -1005,7 +1005,7 @@ const TournamentPanel = () => {
                 </div>
                 {selectedTeams.length > 0 && (
                   <div className="bg-secondary/30 border border-border rounded-md p-2">
-                    <p className="text-[10px] font-mono text-muted-foreground mb-1.5">
+                    <p className="text-xs font-mono text-muted-foreground mb-1.5">
                       Rozstawienie (kolejność = seed). Użyj ↑↓ aby przesunąć, ✕ aby usunąć:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
@@ -1014,8 +1014,8 @@ const TournamentPanel = () => {
                           key={t}
                           className="flex items-center gap-1 bg-card border border-border rounded px-2 py-1"
                         >
-                          <span className="text-[10px] font-mono text-primary w-6 shrink-0">#{i + 1}</span>
-                          <span className="text-[11px] font-mono flex-1 truncate text-foreground">{t}</span>
+                          <span className="text-xs font-mono text-primary w-6 shrink-0">#{i + 1}</span>
+                          <span className="text-xs font-mono flex-1 truncate text-foreground">{t}</span>
                           <button
                             onClick={() => moveSeed(i, -1)}
                             disabled={i === 0}
@@ -1065,7 +1065,7 @@ const TournamentPanel = () => {
                     <option value="country">Sort: Kraj</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                   <span>Pokazano: {filteredTeams.length}</span>
                   <div className="flex gap-2">
                     <button
@@ -1095,7 +1095,7 @@ const TournamentPanel = () => {
                         type="button"
                         onClick={() => toggleTeam(name)}
                         className={cn(
-                          "text-[11px] text-left px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1.5 min-w-0",
+                          "text-xs text-left px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1.5 min-w-0",
                           checked
                             ? "bg-primary/20 text-primary border border-primary/40"
                             : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
@@ -1104,7 +1104,7 @@ const TournamentPanel = () => {
                       >
                         {rank && (
                           <span className={cn(
-                            "text-[9px] tabular-nums shrink-0 px-1 rounded",
+                            "text-xs tabular-nums shrink-0 px-1 rounded",
                             rank <= 10 ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]" :
                             rank <= 30 ? "bg-primary/20 text-primary" :
                             "bg-muted/40 text-muted-foreground"
@@ -1168,7 +1168,7 @@ const TournamentPanel = () => {
 
                     {qualScope === "regional" ? (
                       <div className="space-y-2">
-                        <p className="text-[10px] font-mono text-muted-foreground">
+                        <p className="text-xs font-mono text-muted-foreground">
                           Wybierz regiony i liczbę slotów awansu z każdego:
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1187,7 +1187,7 @@ const TournamentPanel = () => {
                                     className="accent-primary"
                                   />
                                   <span className={active ? "text-foreground" : "text-muted-foreground"}>
-                                    {r.label} <span className="text-[10px] opacity-60">({r.code})</span>
+                                    {r.label} <span className="text-xs opacity-60">({r.code})</span>
                                   </span>
                                 </label>
                                 {active && (
@@ -1199,7 +1199,7 @@ const TournamentPanel = () => {
                                       onChange={e => setQualSlots(s => ({ ...s, [r.code]: parseInt(e.target.value) || 1 }))}
                                       className="w-14 h-7 text-center text-xs"
                                     />
-                                    <span className="text-[10px] font-mono text-muted-foreground">slot</span>
+                                    <span className="text-xs font-mono text-muted-foreground">slot</span>
                                   </div>
                                 )}
                               </div>
@@ -1221,7 +1221,7 @@ const TournamentPanel = () => {
                     )}
 
                     <div>
-                      <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block mb-1">
+                      <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
                         Powiązany turniej główny (opcjonalnie)
                       </label>
                       <select
@@ -1260,7 +1260,7 @@ const TournamentPanel = () => {
                     return (
                       <div key={idx} className="bg-secondary/30 border border-border rounded-md p-3 space-y-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono text-muted-foreground shrink-0">FAZA {idx + 1}</span>
+                          <span className="text-xs font-mono text-muted-foreground shrink-0">FAZA {idx + 1}</span>
                           <Input
                             placeholder="Nazwa fazy (np. Group Stage, Playoffs)..."
                             value={draft.name}
@@ -1276,7 +1276,7 @@ const TournamentPanel = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                               Format rozgrywki
                             </label>
                             <select
@@ -1290,7 +1290,7 @@ const TournamentPanel = () => {
                             </select>
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                               Best-of (długość serii)
                             </label>
                             <select
@@ -1308,7 +1308,7 @@ const TournamentPanel = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           {showGroups && (
                             <div className="space-y-1">
-                              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                                 Liczba grup {teamsPerGroup && <span className="opacity-60">({teamsPerGroup} dr./grupę)</span>}
                               </label>
                               <Input
@@ -1319,7 +1319,7 @@ const TournamentPanel = () => {
                                 className="h-8 text-xs"
                               />
                               {recommendedGroups && (
-                                <p className="text-[9px] font-mono text-muted-foreground">
+                                <p className="text-xs font-mono text-muted-foreground">
                                   Sugerowane przy {selectedTeams.length} drużynach: {recommendedGroups}
                                 </p>
                               )}
@@ -1327,7 +1327,7 @@ const TournamentPanel = () => {
                           )}
                           {showAdvance && (
                             <div className="space-y-1">
-                              <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                              <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                                 Awans do następnej fazy
                               </label>
                               <Input
@@ -1338,11 +1338,11 @@ const TournamentPanel = () => {
                                 className="h-8 text-xs"
                                 title="Ile drużyn z tej fazy przechodzi dalej"
                               />
-                              <p className="text-[9px] font-mono text-muted-foreground">Liczba drużyn awansujących</p>
+                              <p className="text-xs font-mono text-muted-foreground">Liczba drużyn awansujących</p>
                             </div>
                           )}
                           <div className="space-y-1">
-                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                               Pre-seedy (0 = wszystkie)
                             </label>
                             <Input
@@ -1353,12 +1353,12 @@ const TournamentPanel = () => {
                               className="h-8 text-xs"
                               title="Ile drużyn jest już znanych w tej fazie. Reszta = TBD (np. zwycięzcy kwalifikacji)"
                             />
-                            <p className="text-[9px] font-mono text-muted-foreground">Znanych drużyn (reszta TBD)</p>
+                            <p className="text-xs font-mono text-muted-foreground">Znanych drużyn (reszta TBD)</p>
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                          <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                             Rozmiar fazy (0 = auto)
                           </label>
                           <Input
@@ -1369,7 +1369,7 @@ const TournamentPanel = () => {
                             className="h-8 text-xs"
                             title="Łączna liczba slotów w tej fazie. Np. Swiss 16 drużyn = 8 rozstawionych + 8 z kwalifikacji."
                           />
-                          <p className="text-[9px] font-mono text-muted-foreground">
+                          <p className="text-xs font-mono text-muted-foreground">
                             {draft.format === "swiss"
                               ? `Łącznie drużyn w Swiss (np. 16 = ${Math.max(0, draft.teamCount - draft.seededCount)} TBD + ${draft.seededCount} rozstawionych)`
                               : "Łączna liczba slotów (puste = liczba uczestników)"}
@@ -1378,7 +1378,7 @@ const TournamentPanel = () => {
 
                         {showGroups && (
                           <div className="space-y-1 pt-1 border-t border-border/40">
-                            <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                            <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                               Przypisanie drużyn do grup
                             </label>
                             <div className="flex gap-2">
@@ -1386,7 +1386,7 @@ const TournamentPanel = () => {
                                 type="button"
                                 onClick={() => updatePhaseDraft(idx, { groupAssignment: "random" })}
                                 className={cn(
-                                  "flex-1 px-2 py-1.5 rounded text-[11px] font-mono border transition-colors",
+                                  "flex-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors",
                                   (draft.groupAssignment ?? "random") === "random"
                                     ? "bg-primary/15 text-primary border-primary/40"
                                     : "bg-card text-muted-foreground border-border hover:text-foreground"
@@ -1398,7 +1398,7 @@ const TournamentPanel = () => {
                                 type="button"
                                 onClick={() => updatePhaseDraft(idx, { groupAssignment: "manual" })}
                                 className={cn(
-                                  "flex-1 px-2 py-1.5 rounded text-[11px] font-mono border transition-colors",
+                                  "flex-1 px-2 py-1.5 rounded text-xs font-mono border transition-colors",
                                   draft.groupAssignment === "manual"
                                     ? "bg-primary/15 text-primary border-primary/40"
                                     : "bg-card text-muted-foreground border-border hover:text-foreground"
@@ -1407,7 +1407,7 @@ const TournamentPanel = () => {
                                 ✋ Manualnie (po utworzeniu)
                               </button>
                             </div>
-                            <p className="text-[9px] font-mono text-muted-foreground">
+                            <p className="text-xs font-mono text-muted-foreground">
                               {draft.groupAssignment === "manual"
                                 ? "Po utworzeniu turnieju przypiszesz drużyny do konkretnych grup."
                                 : "Drużyny zostaną podzielone po seedingu (1 do A, 2 do B, 3 do A...)."}
@@ -1418,7 +1418,7 @@ const TournamentPanel = () => {
                     );
                   })}
                 </div>
-                <p className="text-[10px] font-mono text-muted-foreground">
+                <p className="text-xs font-mono text-muted-foreground">
                   💡 Możesz łączyć fazy: np. <span className="text-primary">Swiss → Single Elim</span> (Major), <span className="text-primary">Round Robin → Double Elim</span>, <span className="text-primary">GSL Groups → Single Elim</span>.
                 </p>
               </section>

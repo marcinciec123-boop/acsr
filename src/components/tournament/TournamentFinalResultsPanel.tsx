@@ -143,12 +143,12 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
         <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
           Pełne rezultaty końcowe
         </h3>
-        <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+        <span className="ml-auto text-xs font-mono text-muted-foreground">
           {placements.length} miejsc • pula {tournament.prizePool || "$0"}
         </span>
       </div>
 
-      <div className="hidden md:grid grid-cols-[70px_1fr_90px_110px_120px_36px] gap-2 px-4 py-2 bg-background/40 border-b border-border/60 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="hidden md:grid grid-cols-[70px_1fr_90px_110px_120px_36px] gap-2 px-4 py-2 bg-background/40 border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground">
         <div className="text-center">Miejsce</div>
         <div>Drużyna i skład</div>
         <div className="text-right">Pkt VRS</div>
@@ -196,10 +196,10 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                       {meta?.country && <span className="text-xs">{countryFlag(meta.country)}</span>}
                       <span className="truncate">{placement.team}</span>
                     </TeamLink>
-                    <div className="text-[10px] font-mono text-muted-foreground truncate">
+                    <div className="text-xs font-mono text-muted-foreground truncate">
                       {lineup.length ? lineup.join(" • ") : "Brak zapisanego składu"}
                     </div>
-                    <div className="md:hidden text-[10px] font-mono text-muted-foreground mt-0.5">
+                    <div className="md:hidden text-xs font-mono text-muted-foreground mt-0.5">
                       <span className={placement.points >= 0 ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]"}>
                         {placement.points > 0 ? "+" : ""}{placement.points} pkt
                       </span>
@@ -232,7 +232,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
 
               {isOpen && (
                 <div className="px-4 pb-4 pt-1">
-                  <div className="flex items-center gap-1.5 mb-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  <div className="flex items-center gap-1.5 mb-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                     <Users className="w-3 h-3" /> Skład grający w tym turnieju
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -260,7 +260,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
               Wyróżnienia turnieju
             </h4>
             {onUpdateTournament && !editingAwards && (
-              <Button size="sm" variant="ghost" className="ml-auto h-7 text-[10px]" onClick={() => setEditingAwards(true)}>
+              <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setEditingAwards(true)}>
                 {tournament.awards ? "Edytuj" : "Dodaj"}
               </Button>
             )}
@@ -269,7 +269,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
           {editingAwards && onUpdateTournament ? (
             <div className="grid md:grid-cols-2 gap-3">
               <label className="space-y-1 text-xs">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                   <Star className="w-3 h-3 text-[hsl(var(--gold))]" /> MVP turnieju (trafia do gablotki gracza)
                 </span>
                 <select
@@ -286,7 +286,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 </select>
               </label>
               <label className="space-y-1 text-xs">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                   🚀 Największe zaskoczenie (drużyna)
                 </span>
                 <select
@@ -299,7 +299,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 </select>
               </label>
               <label className="space-y-1 text-xs">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                   📉 Największe rozczarowanie (drużyna)
                 </span>
                 <select
@@ -312,7 +312,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 </select>
               </label>
               <label className="space-y-1 text-xs md:col-span-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notatka</span>
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Notatka</span>
                 <Input
                   value={awardsDraft.note || ""}
                   onChange={e => setAwardsDraft(d => ({ ...d, note: e.target.value }))}
@@ -328,7 +328,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                   Anuluj
                 </Button>
               </div>
-              <p className="md:col-span-2 text-[10px] font-mono text-muted-foreground">
+              <p className="md:col-span-2 text-xs font-mono text-muted-foreground">
                 💡 Nagroda MVP zostanie dodana do gablotki gracza. Wyróżnienia drużynowe pozostają wyłącznie w podsumowaniu turnieju (nie są przenoszone na profil drużyny).
               </p>
             </div>
@@ -338,10 +338,10 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10">
                   <Star className="w-4 h-4 text-[hsl(var(--gold))] shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-[hsl(var(--gold))]">MVP</p>
+                    <p className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--gold))]">MVP</p>
                     <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.mvp}</p>
                     {tournament.awards.mvpTeam && (
-                      <p className="text-[10px] font-mono text-muted-foreground truncate">{tournament.awards.mvpTeam}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate">{tournament.awards.mvpTeam}</p>
                     )}
                   </div>
                 </div>
@@ -350,7 +350,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/10">
                   <span className="text-lg leading-none">🚀</span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-primary">Zaskoczenie</p>
+                    <p className="text-xs font-mono uppercase tracking-wider text-primary">Zaskoczenie</p>
                     <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.surprise}</p>
                   </div>
                 </div>
@@ -359,19 +359,19 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-destructive/40 bg-destructive/10">
                   <span className="text-lg leading-none">📉</span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-destructive">Rozczarowanie</p>
+                    <p className="text-xs font-mono uppercase tracking-wider text-destructive">Rozczarowanie</p>
                     <p className="text-sm font-heading font-bold text-foreground truncate">{tournament.awards.disappointment}</p>
                   </div>
                 </div>
               )}
               {tournament.awards.note && (
-                <p className="sm:col-span-2 lg:col-span-3 text-[11px] font-mono text-muted-foreground italic">
+                <p className="sm:col-span-2 lg:col-span-3 text-xs font-mono text-muted-foreground italic">
                   „{tournament.awards.note}"
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-[11px] font-mono text-muted-foreground italic">
+            <p className="text-xs font-mono text-muted-foreground italic">
               Brak zapisanych wyróżnień. {onUpdateTournament && 'Kliknij „Dodaj", aby wybrać MVP i inne nagrody.'}
             </p>
           )}

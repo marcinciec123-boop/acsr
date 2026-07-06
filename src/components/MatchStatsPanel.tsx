@@ -90,13 +90,13 @@ const TeamStatsTable = ({ players, teamName, editing, onUpdatePlayer, roundsInfo
       <div className="flex items-center justify-between px-3 py-2 bg-secondary/50">
         <div className="flex items-center gap-2">
           <span className="font-heading font-bold text-sm text-foreground">{teamName}</span>
-          {roundsInfo && <span className="text-[10px] font-mono text-muted-foreground">{roundsInfo}</span>}
+          {roundsInfo && <span className="text-xs font-mono text-muted-foreground">{roundsInfo}</span>}
         </div>
         <span className={cn("font-mono text-xs font-bold", getRatingColor(avgRating))}>
           Avg: {avgRating.toFixed(2)}
         </span>
       </div>
-      <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 text-[10px] font-mono text-muted-foreground uppercase">
+      <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 text-xs font-mono text-muted-foreground uppercase">
         <div>Gracz</div>
         <div className="text-center">K</div>
         <div className="text-center">A</div>
@@ -157,7 +157,7 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
         <div className="flex">
           <button
             onClick={() => { if (onCreateStats) onCreateStats(); }}
-            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1.5 hover:bg-accent/5"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-mono text-accent hover:text-accent/80 transition-colors px-2 py-1.5 hover:bg-accent/5"
           >
             <PlusCircle className="w-3 h-3" />
             Generuj statystyki
@@ -165,7 +165,7 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
           <div className="w-px bg-border/30" />
           <button
             onClick={createBlankStats}
-            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1.5 hover:bg-primary/5"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1.5 hover:bg-primary/5"
           >
             <Keyboard className="w-3 h-3" />
             Wpisz ręcznie
@@ -216,7 +216,7 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
     <div className="mt-1">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors px-2 py-1 w-full justify-center"
+        className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-primary transition-colors px-2 py-1 w-full justify-center"
       >
         <BarChart3 className="w-3 h-3" />
         Statystyki {hasMaps ? `(${localStats.maps!.length} mapy)` : ""}
@@ -231,7 +231,7 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
               <button
                 onClick={() => setSelectedMap("total")}
                 className={cn(
-                  "px-2.5 py-1 rounded text-[10px] font-mono transition-colors border",
+                  "px-2.5 py-1 rounded text-xs font-mono transition-colors border",
                   selectedMap === "total"
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border/50 hover:text-foreground"
@@ -244,7 +244,7 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
                   key={i}
                   onClick={() => setSelectedMap(i)}
                   className={cn(
-                    "px-2.5 py-1 rounded text-[10px] font-mono transition-colors border flex items-center gap-1",
+                    "px-2.5 py-1 rounded text-xs font-mono transition-colors border flex items-center gap-1",
                     selectedMap === i
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-secondary/50 text-muted-foreground border-border/50 hover:text-foreground"
@@ -262,16 +262,16 @@ const MatchStatsPanel = ({ stats, team1, team2, bo, onUpdateStats, onCreateStats
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
-                className="flex items-center gap-1 text-[10px] font-mono text-accent hover:text-accent/80 transition-colors px-2 py-0.5 border border-accent/30 rounded"
+                className="flex items-center gap-1 text-xs font-mono text-accent hover:text-accent/80 transition-colors px-2 py-0.5 border border-accent/30 rounded"
               >
                 <Edit3 className="w-2.5 h-2.5" /> Edytuj
               </button>
             ) : (
               <>
-                <button onClick={handleSave} className="flex items-center gap-1 text-[10px] font-mono text-win hover:text-win/80 px-2 py-0.5 border border-win/30 rounded">
+                <button onClick={handleSave} className="flex items-center gap-1 text-xs font-mono text-win hover:text-win/80 px-2 py-0.5 border border-win/30 rounded">
                   <Check className="w-2.5 h-2.5" /> Zapisz
                 </button>
-                <button onClick={handleCancel} className="flex items-center gap-1 text-[10px] font-mono text-destructive hover:text-destructive/80 px-2 py-0.5 border border-destructive/30 rounded">
+                <button onClick={handleCancel} className="flex items-center gap-1 text-xs font-mono text-destructive hover:text-destructive/80 px-2 py-0.5 border border-destructive/30 rounded">
                   <X className="w-2.5 h-2.5" /> Anuluj
                 </button>
               </>

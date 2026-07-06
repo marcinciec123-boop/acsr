@@ -203,7 +203,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
           Statystyki turnieju
         </h3>
-        <span className="text-[10px] font-mono text-muted-foreground">
+        <span className="text-xs font-mono text-muted-foreground">
           • {filteredPlayers.length}/{players.length} graczy • {teams.length} drużyn
         </span>
       </div>
@@ -212,7 +212,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Filter className="w-3 h-3 text-muted-foreground" />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mr-1">Filtr MVP:</span>
+          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground mr-1">Filtr MVP:</span>
           {presets.map(p => (
             <button
               key={p.key}
@@ -220,7 +220,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
               disabled={p.disabled}
               onClick={() => { setPresetKey(p.key); if (p.key !== "custom") setSelectedTeams(new Set()); }}
               className={cn(
-                "px-2 py-1 rounded text-[10px] font-mono border transition-colors",
+                "px-2 py-1 rounded text-xs font-mono border transition-colors",
                 presetKey === p.key
                   ? "bg-primary/20 border-primary text-primary"
                   : "bg-secondary/40 border-border text-muted-foreground hover:border-primary/40",
@@ -234,7 +234,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             <button
               type="button"
               onClick={() => { setSelectedTeams(new Set()); setPresetKey("all"); }}
-              className="px-2 py-1 rounded text-[10px] font-mono border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
+              className="px-2 py-1 rounded text-xs font-mono border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
             >
               <X className="w-3 h-3" /> Wyczyść ({selectedTeams.size})
             </button>
@@ -249,7 +249,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                 type="button"
                 onClick={() => toggleTeam(t.team)}
                 className={cn(
-                  "px-2 py-0.5 rounded text-[10px] font-mono border transition-colors inline-flex items-center gap-1",
+                  "px-2 py-0.5 rounded text-xs font-mono border transition-colors inline-flex items-center gap-1",
                   active
                     ? "bg-primary/15 border-primary/60 text-primary"
                     : "bg-secondary/30 border-border text-muted-foreground hover:border-primary/40",
@@ -269,10 +269,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <div className="bg-secondary/20 border border-border rounded-md overflow-hidden">
           <div className="px-3 py-2 bg-secondary/40 border-b border-border flex items-center gap-1.5">
             <Trophy className="w-3 h-3 text-[hsl(var(--gold))]" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-foreground">Najlepsze ratingi</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-foreground">Najlepsze ratingi</span>
           </div>
           <div className="divide-y divide-border/50">
-            <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
               <span className="col-span-1">#</span>
               <span className="col-span-4">Gracz</span>
               <span className="col-span-3">Drużyna</span>
@@ -281,7 +281,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
               <span className="col-span-2 text-right">Rating</span>
             </div>
             {topPlayers.map((p, i) => (
-              <div key={`${p.team}-${p.name}`} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[11px] font-mono items-center hover:bg-secondary/30">
+              <div key={`${p.team}-${p.name}`} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
                 <span className={cn("col-span-1", i < 3 ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground")}>{i + 1}</span>
                 <span className="col-span-4 truncate text-foreground">{p.name}</span>
                 <span className="col-span-3 min-w-0 inline-flex items-center gap-1.5 text-muted-foreground">
@@ -300,10 +300,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <div className="bg-secondary/20 border border-border rounded-md overflow-hidden">
           <div className="px-3 py-2 bg-secondary/40 border-b border-border flex items-center gap-1.5">
             <Target className="w-3 h-3 text-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-wider text-foreground">Drużyny — performance</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-foreground">Drużyny — performance</span>
           </div>
           <div className="divide-y divide-border/50">
-            <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
               <span className="col-span-1">#</span>
               <span className="col-span-5">Drużyna</span>
               <span className="col-span-2 text-right">W-L</span>
@@ -311,7 +311,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
               <span className="col-span-2 text-right">Ø Rating</span>
             </div>
             {teams.slice(0, 10).map((t, i) => (
-              <div key={t.team} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-[11px] font-mono items-center hover:bg-secondary/30">
+              <div key={t.team} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
                 <span className={cn("col-span-1", i < 3 ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground")}>{i + 1}</span>
                 <span className="col-span-5 min-w-0 inline-flex items-center gap-1.5 text-foreground">
                   <TeamLogo teamName={t.team} size={18} rounded="md" />
@@ -342,22 +342,22 @@ const MiniBoard = ({ title, icon, entries }: { title: string; icon: React.ReactN
   <div className="bg-secondary/20 border border-border rounded-md overflow-hidden">
     <div className="px-3 py-1.5 bg-secondary/40 border-b border-border flex items-center gap-1.5">
       {icon}
-      <span className="text-[10px] font-mono uppercase tracking-wider text-foreground">{title}</span>
+      <span className="text-xs font-mono uppercase tracking-wider text-foreground">{title}</span>
     </div>
     <div className="divide-y divide-border/50">
       {entries.map((e, i) => (
         <div key={`${e.team}-${e.name}`} className="px-3 py-1.5 flex items-center justify-between gap-2">
           <div className="min-w-0 flex items-center gap-1.5">
-            <span className="text-[10px] font-mono text-muted-foreground w-3">{i + 1}</span>
-            <span className="text-[11px] font-mono text-foreground truncate">{e.name}</span>
+            <span className="text-xs font-mono text-muted-foreground w-3">{i + 1}</span>
+            <span className="text-xs font-mono text-foreground truncate">{e.name}</span>
             <TeamLogo teamName={e.team} size={14} rounded="md" className="hidden sm:flex" />
-            <span className="text-[10px] font-mono text-muted-foreground truncate hidden sm:inline">· {e.team}</span>
+            <span className="text-xs font-mono text-muted-foreground truncate hidden sm:inline">· {e.team}</span>
           </div>
-          <span className="text-[11px] font-mono font-bold text-primary tabular-nums">{e.value}</span>
+          <span className="text-xs font-mono font-bold text-primary tabular-nums">{e.value}</span>
         </div>
       ))}
       {entries.length === 0 && (
-        <div className="px-3 py-2 text-[10px] font-mono text-muted-foreground italic">Brak danych</div>
+        <div className="px-3 py-2 text-xs font-mono text-muted-foreground italic">Brak danych</div>
       )}
     </div>
   </div>

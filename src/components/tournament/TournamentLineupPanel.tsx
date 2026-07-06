@@ -80,7 +80,7 @@ export const TournamentLineupPanel = ({ tournamentId, participants }: Props) => 
           <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
             Składy na turniej
           </h3>
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground">
             {teamsWithBench.length} {teamsWithBench.length === 1 ? "drużyna z ławką" : "drużyn z ławką"}
             {customisedCount > 0 && (
               <span className="ml-2 text-accent">• {customisedCount} z zastępstwem</span>
@@ -176,7 +176,7 @@ const TeamLineupRow = ({
         <TeamLogo teamName={teamName} size={32} rounded="md" />
         <div className="flex-1 min-w-0">
           <p className="font-heading font-bold text-foreground text-sm truncate">{teamName}</p>
-          <p className="text-[10px] font-mono text-muted-foreground">
+          <p className="text-xs font-mono text-muted-foreground">
             {customised ? "Zastępstwo aktywne" : "Domyślny skład"} • Ławka: {bench.length}
           </p>
         </div>
@@ -221,7 +221,7 @@ const TeamLineupRow = ({
                 {p}
                 {onBench && <Armchair className="w-3 h-3" />}
                 {role && (
-                  <span className={cn("text-[9px] px-1 rounded border", roleColors[role])}>
+                  <span className={cn("text-xs px-1 rounded border", roleColors[role])}>
                     {roleIcons[role]} {role}
                   </span>
                 )}
@@ -256,7 +256,7 @@ const TeamLineupRow = ({
                   {onBench && <Armchair className="w-3 h-3 text-muted-foreground shrink-0" />}
                 </div>
                 {role && (
-                  <span className={cn("inline-block mt-1 text-[9px] font-mono px-1 rounded border", roleColors[role])}>
+                  <span className={cn("inline-block mt-1 text-xs font-mono px-1 rounded border", roleColors[role])}>
                     {roleIcons[role]} {role}
                   </span>
                 )}

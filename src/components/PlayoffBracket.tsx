@@ -85,7 +85,7 @@ const BracketMatch = ({
       </div>
       {/* BO indicator */}
       <div className="bg-secondary/50 px-2 py-0.5 text-center">
-        <span className="text-[9px] font-mono text-muted-foreground">BO{match.bo}</span>
+        <span className="text-xs font-mono text-muted-foreground">BO{match.bo}</span>
       </div>
     </button>
   );

@@ -45,7 +45,7 @@ const ThemeSwitcher = () => {
                 ))}
               </div>
               <p className="font-heading font-bold text-foreground text-sm">{theme.name}</p>
-              <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{theme.description}</p>
+              <p className="text-xs text-muted-foreground leading-tight mt-0.5">{theme.description}</p>
             </button>
           );
         })}

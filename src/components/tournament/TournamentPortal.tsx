@@ -143,16 +143,16 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         {/* Header row */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(t.tier))}>
+            <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(t.tier))}>
               {t.tier}-TIER
             </span>
             {t.kind === "qualifier" && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] font-mono font-bold">
+              <span className="text-xs px-1.5 py-0.5 rounded border border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] font-mono font-bold">
                 QUAL
               </span>
             )}
             {t.status === "live" && (
-              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] font-mono font-bold">
+              <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--win))] animate-pulse" />
                 LIVE
               </span>
@@ -165,7 +165,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         <h3 className="font-heading font-bold text-foreground text-base mb-0.5 line-clamp-2 leading-tight">
           {t.name}
         </h3>
-        <p className="text-[11px] text-muted-foreground mb-3 truncate">
+        <p className="text-xs text-muted-foreground mb-3 truncate">
           {t.organizer || "—"} {formatYear(t.startDate) && `• ${formatYear(t.startDate)}`}
         </p>
 
@@ -173,13 +173,13 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         <div className="flex items-baseline gap-2 mb-3">
           <DollarSign className="w-4 h-4 text-[hsl(var(--gold))] shrink-0" />
           <span className="text-lg font-heading font-bold text-[hsl(var(--gold))]">{t.prizePool}</span>
-          <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+          <span className="text-xs font-mono text-muted-foreground ml-auto">
             {t.teams} drużyn
           </span>
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-2 mb-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-mono text-muted-foreground border-t border-border/40 pt-2 mb-3">
           <div className="flex items-center gap-1.5 truncate">
             <Calendar className="w-3 h-3 shrink-0" />
             <span className="truncate">{formatDate(t.startDate)} → {formatDate(t.endDate)}</span>
@@ -193,7 +193,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         {/* Progress bar (for live) */}
         {t.status === "live" && totalMatches > 0 && (
           <div className="mb-3">
-            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-1">
+            <div className="flex items-center justify-between text-xs font-mono text-muted-foreground mb-1">
               <span>Postęp</span>
               <span>{playedMatches}/{totalMatches} ({progress}%)</span>
             </div>
@@ -212,7 +212,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         {winner && (
           <div className="mb-3 px-2 py-1.5 rounded bg-[hsl(var(--gold))]/10 border border-[hsl(var(--gold))]/30 flex items-center gap-2">
             <Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />
-            <span className="text-[10px] font-mono uppercase text-[hsl(var(--gold))] tracking-wider">Mistrz</span>
+            <span className="text-xs font-mono uppercase text-[hsl(var(--gold))] tracking-wider">Mistrz</span>
             <span className="text-xs font-heading font-bold text-foreground truncate ml-auto">
               {getTeamFlag(winner) && <span className="mr-1">{getTeamFlag(winner)}</span>}
               {winner}
@@ -226,7 +226,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
             {topTeams.slice(0, 5).map(team => (
               <span
                 key={team}
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary/50 border border-border/50 text-muted-foreground truncate max-w-[110px]"
+                className="text-xs font-mono px-1.5 py-0.5 rounded bg-secondary/50 border border-border/50 text-muted-foreground truncate max-w-[110px]"
                 title={team}
               >
                 {getTeamFlag(team) && <span className="mr-0.5">{getTeamFlag(team)}</span>}
@@ -234,7 +234,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
               </span>
             ))}
             {t.participants.length > 5 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary/30 text-muted-foreground">
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-secondary/30 text-muted-foreground">
                 +{t.participants.length - 5}
               </span>
             )}
@@ -285,19 +285,19 @@ const FeaturedLiveCard = ({ t, onClick }: { t: TournamentData; onClick: () => vo
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 mb-4">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Pula</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">Pula</div>
             <div className="text-lg font-heading font-bold text-[hsl(var(--gold))]">{t.prizePool}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Drużyny</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">Drużyny</div>
             <div className="text-lg font-heading font-bold text-foreground">{t.teams}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Mecze</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">Mecze</div>
             <div className="text-lg font-heading font-bold text-foreground">{playedMatches}/{totalMatches}</div>
           </div>
           <div className="hidden sm:block">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Daty</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">Daty</div>
             <div className="text-sm font-mono text-foreground">{formatDate(t.startDate)} → {formatDate(t.endDate)}</div>
           </div>
         </div>
@@ -312,7 +312,7 @@ const FeaturedLiveCard = ({ t, onClick }: { t: TournamentData; onClick: () => vo
                 className="h-full bg-gradient-to-r from-[hsl(var(--win))] to-primary"
               />
             </div>
-            <div className="text-[10px] font-mono text-muted-foreground mt-1 text-right">
+            <div className="text-xs font-mono text-muted-foreground mt-1 text-right">
               {progress}% rozegrane
             </div>
           </div>
@@ -376,17 +376,17 @@ const QualifierBundleCard = ({
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(tier))}>
+            <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border", tierColor(tier))}>
               {tier}-TIER
             </span>
-            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary font-mono font-bold">
+            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary font-mono font-bold">
               <Layers className="w-3 h-3" /> KWALIFIKACJE
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+            <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
               {total} {total === 1 ? "region" : "regiony"}
             </span>
             {live && (
-              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] font-mono font-bold">
+              <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--win))] animate-pulse" />
                 LIVE
               </span>
@@ -398,11 +398,11 @@ const QualifierBundleCard = ({
         <h3 className="font-heading font-bold text-foreground text-base mb-0.5 leading-tight">
           {bundleKey} — Kwalifikacje
         </h3>
-        <p className="text-[11px] text-muted-foreground mb-3 truncate">
+        <p className="text-xs text-muted-foreground mb-3 truncate">
           {first.organizer || "—"}
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1 text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1 text-xs font-mono text-muted-foreground border-t border-border/40 pt-2">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3 h-3 shrink-0" />
             <span>{completed}/{total} rozegranych</span>
@@ -441,19 +441,19 @@ const QualifierBundleCard = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className={cn(
-                        "text-[10px] font-mono px-1.5 py-0.5 rounded border",
+                        "text-xs font-mono px-1.5 py-0.5 rounded border",
                         t.status === "live" && "border-[hsl(var(--win))]/50 bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]",
                         t.status === "upcoming" && "border-primary/40 bg-primary/10 text-primary",
                         t.status === "completed" && "border-[hsl(var(--win))]/30 bg-[hsl(var(--win))]/10 text-[hsl(var(--win))]",
                       )}>
                         {t.status === "live" ? "LIVE" : t.status === "upcoming" ? "SOON" : "DONE"}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground">{t.teams} dr.</span>
+                      <span className="text-xs font-mono text-muted-foreground">{t.teams} dr.</span>
                     </div>
                     <div className="font-heading text-sm font-semibold text-foreground truncate">
                       {regionLabel(t.name)}
                     </div>
-                    <div className="text-[10px] font-mono text-muted-foreground">
+                    <div className="text-xs font-mono text-muted-foreground">
                       {formatDate(t.startDate)} → {formatDate(t.endDate)}
                     </div>
                   </div>
@@ -481,13 +481,13 @@ const CalendarEventButton = ({ t, onSelect, dense = false }: { t: TournamentData
   >
     <div className="flex items-center gap-1.5 min-w-0">
       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
-      <span className={cn("font-heading font-bold truncate", dense ? "text-[10px]" : "text-xs")}>{t.name}</span>
+      <span className={cn("font-heading font-bold truncate", dense ? "text-xs" : "text-xs")}>{t.name}</span>
       {t.status === "completed" && (
-        <span className="ml-auto shrink-0 text-[9px] font-mono text-[hsl(var(--win))]">wyniki</span>
+        <span className="ml-auto shrink-0 text-xs font-mono text-[hsl(var(--win))]">wyniki</span>
       )}
     </div>
     {!dense && (
-      <div className="mt-0.5 flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+      <div className="mt-0.5 flex items-center gap-2 text-xs font-mono text-muted-foreground">
         <span>{t.tier}-Tier</span>
         <span>•</span>
         <span className="truncate">{t.format}</span>
@@ -537,7 +537,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
           <h3 className="font-heading font-black text-lg text-foreground capitalize">
             {first.toLocaleDateString("pl-PL", { month: "long", year: "numeric" })}
           </h3>
-          <p className="text-[10px] font-mono text-muted-foreground">Kliknij turniej, żeby otworzyć panel i wyniki</p>
+          <p className="text-xs font-mono text-muted-foreground">Kliknij turniej, żeby otworzyć panel i wyniki</p>
         </div>
         <button
           type="button"
@@ -551,7 +551,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
         </button>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-border/60 bg-background/40 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-7 border-b border-border/60 bg-background/40 text-xs sm:text-xs font-mono uppercase tracking-wider text-muted-foreground">
         {["Pon", "Wto", "Śro", "Czw", "Pią", "Sob", "Nie"].map(day => (
           <div key={day} className="text-center py-2">{day}</div>
         ))}
@@ -571,10 +571,10 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
                 today && "bg-primary/10",
               )}
             >
-              <span className={cn("text-[10px] font-mono", today ? "text-primary font-black" : "text-muted-foreground")}>{day.getDate()}</span>
+              <span className={cn("text-xs font-mono", today ? "text-primary font-black" : "text-muted-foreground")}>{day.getDate()}</span>
               <div className="space-y-1 overflow-hidden">
                 {events.slice(0, 4).map(t => <CalendarEventButton key={t.id} t={t} onSelect={onSelect} dense />)}
-                {events.length > 4 && <span className="block text-[9px] font-mono text-muted-foreground px-1">+{events.length - 4} więcej</span>}
+                {events.length > 4 && <span className="block text-xs font-mono text-muted-foreground px-1">+{events.length - 4} więcej</span>}
               </div>
             </div>
           );
@@ -603,7 +603,7 @@ const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: Tourna
         </button>
       </div>
 
-      <div className="hidden md:grid grid-cols-[220px_1fr] border-b border-border/60 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="hidden md:grid grid-cols-[220px_1fr] border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground">
         <div className="px-3 py-2">Turniej</div>
         <div className="grid grid-cols-12">
           {["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"].map(m => (
@@ -629,11 +629,11 @@ const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: Tourna
             >
               <div className="px-3 py-2 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={cn("text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
+                  <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
                   <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
                   <span className="text-sm font-heading font-bold text-foreground truncate">{t.name}</span>
                 </div>
-                <div className="mt-0.5 text-[10px] font-mono text-muted-foreground">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {statusLabel(t.status)}</div>
+                <div className="mt-0.5 text-xs font-mono text-muted-foreground">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {statusLabel(t.status)}</div>
               </div>
               <div className="relative h-9 px-3 hidden md:block">
                 <div className="absolute inset-y-0 left-3 right-3 grid grid-cols-12">
@@ -678,13 +678,13 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
                 onClick={() => onSelect(t.id)}
                 className="w-full grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-secondary/30 transition-colors text-left"
               >
-                <span className={cn("text-[10px] font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>{t.tier}-Tier</span>
+                <span className={cn("text-xs font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>{t.tier}-Tier</span>
                 <div className="min-w-0">
                   <div className="font-heading font-bold text-foreground truncate">{t.name}</div>
-                  <div className="text-[10px] font-mono text-muted-foreground truncate">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {t.format} • {t.location || "—"}</div>
+                  <div className="text-xs font-mono text-muted-foreground truncate">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {t.format} • {t.location || "—"}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono", t.status === "completed" ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>
+                  <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-xs font-mono", t.status === "completed" ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>
                     <span className={cn("w-1.5 h-1.5 rounded-full", statusDot(t.status))} />
                     {t.status === "completed" ? "wyniki" : statusLabel(t.status)}
                   </span>
@@ -832,7 +832,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                 <Icon className={cn("w-4 h-4", active && tab.key === "live" && "animate-pulse")} />
                 {tab.label}
                 <span className={cn(
-                  "text-[10px] font-mono px-1.5 py-0.5 rounded",
+                  "text-xs font-mono px-1.5 py-0.5 rounded",
                   active ? "bg-primary/20 text-primary" : "bg-secondary/60 text-muted-foreground"
                 )}>
                   {tab.count}
@@ -887,7 +887,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
                 type="button"
                 onClick={() => setTierFilter(tier)}
                 className={cn(
-                  "text-[10px] font-mono font-bold px-2 py-1 rounded border transition-colors",
+                  "text-xs font-mono font-bold px-2 py-1 rounded border transition-colors",
                   tierFilter === tier
                     ? tier === "ALL"
                       ? "bg-foreground/10 text-foreground border-foreground/30"

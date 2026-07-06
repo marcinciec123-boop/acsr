@@ -250,11 +250,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <Sword className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 {phaseName} • {match.round || "Mecz"}
               </span>
               <div className="flex items-center gap-1.5 ml-1">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format:</span>
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Format:</span>
                 {(() => {
                   const isFinal = /final/i.test(match.round || "") && !/semi/i.test(match.round || "");
                   const options: (1 | 3 | 5)[] = isFinal ? [3, 5] : [1, 3, 5];
@@ -283,7 +283,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                         onUpdate(patch);
                         toast({ title: `Format meczu: BO${newBo}`, description: `Mecz rozgrywany do ${mapsToWinNew} wygranych map.` });
                       }}
-                      className="h-6 px-1.5 rounded bg-secondary/40 border border-border text-[11px] font-mono text-foreground"
+                      className="h-6 px-1.5 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
                     >
                       {options.map(o => <option key={o} value={o}>BO{o}</option>)}
                     </select>
@@ -335,7 +335,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               <Sparkles className="w-3.5 h-3.5" /> Predykcja VRS • Tier {tier}
             </h3>
             {match.resultConfirmed && (
-              <span className="text-[10px] font-mono text-[hsl(var(--win))] uppercase tracking-wider">
+              <span className="text-xs font-mono text-[hsl(var(--win))] uppercase tracking-wider">
                 ✓ Zatwierdzone ({match.pointsWinner ?? pointsWin}/−{match.pointsLoser ?? pointsLose})
               </span>
             )}
@@ -365,7 +365,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               />
             </div>
           ) : (
-            <p className="text-[11px] font-mono text-muted-foreground">
+            <p className="text-xs font-mono text-muted-foreground">
               Predykcja dostępna po przypisaniu obu drużyn.
             </p>
           )}
@@ -412,7 +412,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                     Punkty dla zwycięzcy
                   </label>
                   <div className="flex items-center gap-1">
@@ -425,7 +425,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                     />
                   </div>
                   {winnerRankDelta && winnerRankDelta.from > 0 && (
-                    <p className="text-[10px] font-mono text-muted-foreground text-center">
+                    <p className="text-xs font-mono text-muted-foreground text-center">
                       Miejsce #{winnerRankDelta.from} → #{winnerRankDelta.to}
                       {winnerRankDelta.delta !== 0 && (
                         <span className={cn("ml-1 font-bold", winnerRankDelta.delta > 0 ? "text-[hsl(var(--win))]" : "text-destructive")}>
@@ -438,7 +438,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                   )}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block">
+                  <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                     Punkty odjęte przegranemu
                   </label>
                   <div className="flex items-center gap-1">
@@ -451,7 +451,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                     />
                   </div>
                   {loserRankDelta && loserRankDelta.from > 0 && (
-                    <p className="text-[10px] font-mono text-muted-foreground text-center">
+                    <p className="text-xs font-mono text-muted-foreground text-center">
                       Miejsce #{loserRankDelta.from} → #{loserRankDelta.to}
                       {loserRankDelta.delta !== 0 && (
                         <span className={cn("ml-1 font-bold", loserRankDelta.delta > 0 ? "text-[hsl(var(--win))]" : "text-destructive")}>
@@ -468,7 +468,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               <button
                 type="button"
                 onClick={resetToVrs}
-                className="text-[10px] font-mono text-primary hover:underline w-full text-center"
+                className="text-xs font-mono text-primary hover:underline w-full text-center"
               >
                 ↺ Przywróć wartości VRS ({vrsDefaults.win} / {vrsDefaults.lose})
               </button>
@@ -566,7 +566,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 <div className="space-y-2">
                   {maps.map((m, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm font-mono p-2 rounded bg-secondary/30">
-                      <span className="text-[10px] text-muted-foreground w-6">M{i + 1}</span>
+                      <span className="text-xs text-muted-foreground w-6">M{i + 1}</span>
                       <span className="text-primary w-24 truncate">{m.map}</span>
                       <div className={cn("flex-1 flex items-center justify-end gap-2 min-w-0", m.score1 > m.score2 && "text-foreground font-bold")}>
                         <span className="truncate">{match.team1}</span>
@@ -615,7 +615,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             </div>
 
             {seriesDecided && maps.length < bo && (
-              <p className="text-[11px] font-mono text-[hsl(var(--win))] -mt-1">
+              <p className="text-xs font-mono text-[hsl(var(--win))] -mt-1">
                 ✓ BO{bo} rozstrzygnięte ({computedScore.s1}:{computedScore.s2}) — gramy do {mapsToWin} wygranych map.
               </p>
             )}
@@ -644,7 +644,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-muted-foreground mb-1 block">Mapa</label>
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">Mapa</label>
                     <select
                       value={maps[activeMapIdx].map}
                       onChange={e => updateMap(activeMapIdx, { map: e.target.value })}
@@ -654,7 +654,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-muted-foreground mb-1 block">
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">
                       Rundy {match.team1}
                     </label>
                     <Input
@@ -665,7 +665,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-muted-foreground mb-1 block">
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">
                       Rundy {match.team2}
                     </label>
                     <Input
@@ -759,7 +759,7 @@ const PredictionCard = ({
           <span className="text-xs font-bold truncate">{team}</span>
         </div>
         <span className={cn(
-          "text-[9px] font-mono px-1.5 py-0.5 rounded border",
+          "text-xs font-mono px-1.5 py-0.5 rounded border",
           upset
             ? "bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/40"
             : "bg-secondary text-muted-foreground border-border",
@@ -767,16 +767,16 @@ const PredictionCard = ({
           {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
         <div className="space-y-0.5">
-          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli wygra</div>
+          <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli wygra</div>
           <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
           </div>
           <RankDelta d={rankIfWin} />
         </div>
         <div className="space-y-0.5">
-          <div className="text-muted-foreground uppercase tracking-wider text-[9px]">Jeśli przegra</div>
+          <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli przegra</div>
           <div className="text-destructive font-bold flex items-center gap-1">
             <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
           </div>
@@ -839,14 +839,14 @@ const PlayerStatsTab = ({
             {teamName && teamName !== "TBD" && <TeamLogo teamName={teamName} size={28} rounded="md" />}
             <h4 className="text-sm font-heading font-bold text-foreground truncate">{teamName || "Drużyna"}</h4>
           </div>
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground">
             Mapa {activeMapIdx + 1} • Rundy: {totalRounds}
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
+              <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
                 <th className="text-left px-3 py-2">Gracz</th>
                 <th className="text-center px-2 py-2">K</th>
                 <th className="text-center px-2 py-2">A</th>
@@ -980,18 +980,18 @@ const MatchPlayerTotals = ({
         <div className="flex items-center gap-2.5 min-w-0">
           <TeamLogo teamName={teamName} size={28} rounded="md" />
           <TeamLink name={teamName} className="text-sm font-heading font-bold text-foreground truncate">{teamName}</TeamLink>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
             • Statystyki łączne ({maps.length} {maps.length === 1 ? "mapa" : "map"})
           </span>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground">
+        <span className="text-xs font-mono text-muted-foreground">
           K/A/D/UD/EF: suma · ADR/KAST/Rating: średnia
         </span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
+            <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
               <th className="text-left px-3 py-2">Gracz</th>
               <th className="text-center px-2 py-2">Mapy</th>
               <th className="text-center px-2 py-2">K</th>

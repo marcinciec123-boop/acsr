@@ -111,7 +111,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
       {/* Group header */}
       <div className="bg-secondary/60 px-3 py-2 flex items-center justify-between border-b border-border">
         <h5 className="text-xs font-heading font-bold text-foreground uppercase tracking-wider">{group.name}</h5>
-        <span className="text-[10px] font-mono text-muted-foreground">{group.teams.length} drużyn</span>
+        <span className="text-xs font-mono text-muted-foreground">{group.teams.length} drużyn</span>
       </div>
 
       <div className="p-3 space-y-3">
@@ -119,7 +119,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-[10px] font-mono uppercase text-muted-foreground border-b border-border">
+              <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border">
                 <th className="text-left py-1.5 px-1 w-6">#</th>
                 <th className="text-left py-1.5">Drużyna</th>
                 <th className="text-center py-1.5 px-1.5" title="Mecze">M</th>
@@ -177,12 +177,12 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
                     </td>
                     <td className="text-center py-1.5 px-1">
                       {advances && (
-                        <span className="text-[9px] font-mono font-bold text-[hsl(var(--win))] bg-[hsl(var(--win))]/15 border border-[hsl(var(--win))]/30 rounded px-1 py-0.5">
+                        <span className="text-xs font-mono font-bold text-[hsl(var(--win))] bg-[hsl(var(--win))]/15 border border-[hsl(var(--win))]/30 rounded px-1 py-0.5">
                           AWA
                         </span>
                       )}
                       {eliminated && (
-                        <span className="text-[9px] font-mono font-bold text-destructive bg-destructive/15 border border-destructive/30 rounded px-1 py-0.5">
+                        <span className="text-xs font-mono font-bold text-destructive bg-destructive/15 border border-destructive/30 rounded px-1 py-0.5">
                           ELI
                         </span>
                       )}
@@ -193,7 +193,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
             </tbody>
           </table>
           {/* Legend */}
-          <div className="flex items-center gap-3 mt-2 text-[9px] font-mono text-muted-foreground">
+          <div className="flex items-center gap-3 mt-2 text-xs font-mono text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 bg-[hsl(var(--win))] rounded-sm" /> awansuje
             </span>
@@ -220,7 +220,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
           <div className="space-y-2 pt-2 border-t border-border/40">
             {Array.from(groupByRound(group.matches).entries()).map(([roundName, ms]) => (
               <div key={roundName} className="space-y-1">
-                <h6 className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">{roundName}</h6>
+                <h6 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">{roundName}</h6>
                 {ms.map(m => renderMatchRow(m, onMatchUpdate, onOpenMatch))}
               </div>
             ))}

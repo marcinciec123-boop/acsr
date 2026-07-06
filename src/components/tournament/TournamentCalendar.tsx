@@ -84,7 +84,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
         </div>
 
         {/* Month header */}
-        <div className="grid grid-cols-[180px_1fr] border-b border-border/60 text-[10px] font-mono uppercase text-muted-foreground">
+        <div className="grid grid-cols-[180px_1fr] border-b border-border/60 text-xs font-mono uppercase text-muted-foreground">
           <div className="px-3 py-2">Turniej</div>
           <div className="grid grid-cols-12">
             {["Sty","Lut","Mar","Kwi","Maj","Cze","Lip","Sie","Wrz","Paź","Lis","Gru"].map(m => (
@@ -114,7 +114,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
               >
                 <div className="px-3 py-2 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className={cn("text-[10px] font-mono font-black px-1 rounded border", tierBg[t.tier])}>{t.tier}</span>
+                    <span className={cn("text-xs font-mono font-black px-1 rounded border", tierBg[t.tier])}>{t.tier}</span>
                     <span className={cn("w-1.5 h-1.5 rounded-full", statusDot[t.status])} />
                     <span className="text-xs font-heading font-bold text-foreground truncate">{t.name}</span>
                   </div>
@@ -179,7 +179,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-7 text-[10px] font-mono uppercase text-muted-foreground border-b border-border/60">
+      <div className="grid grid-cols-7 text-xs font-mono uppercase text-muted-foreground border-b border-border/60">
         {["Pon","Wto","Śro","Czw","Pią","Sob","Nie"].map(d => (
           <div key={d} className="text-center py-2">{d}</div>
         ))}
@@ -200,7 +200,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
               )}
             >
               <div className={cn(
-                "text-[10px] font-mono",
+                "text-xs font-mono",
                 isToday ? "text-primary font-black" : "text-muted-foreground"
               )}>
                 {day.getDate()}
@@ -211,7 +211,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
                     key={t.id}
                     onClick={() => onOpen(t.id)}
                     className={cn(
-                      "w-full text-left text-[10px] font-mono px-1 py-0.5 rounded border truncate hover:brightness-125 transition-all",
+                      "w-full text-left text-xs font-mono px-1 py-0.5 rounded border truncate hover:brightness-125 transition-all",
                       tierBg[t.tier],
                     )}
                     title={t.name}
@@ -221,7 +221,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
                   </button>
                 ))}
                 {items.length > 3 && (
-                  <div className="text-[9px] font-mono text-muted-foreground pl-1">
+                  <div className="text-xs font-mono text-muted-foreground pl-1">
                     +{items.length - 3} więcej
                   </div>
                 )}
