@@ -596,19 +596,12 @@ export const PickemPanel = ({ tournament: t }: Props) => {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
-                {canEdit ? (
-                  <>
-                    <Button size="sm" onClick={handleSave} className="gap-1.5">
-                      <Save className="w-3.5 h-3.5" />
-                      {data.lockedAt ? "Aktualizuj typy" : "Zapisz typy"}
-                    </Button>
-                    {editing && (
-                      <Button size="sm" variant="ghost" onClick={() => { setDraft(data); setEditing(false); }}>Anuluj</Button>
-                    )}
-                  </>
-                ) : !isLocked && data.lockedAt ? (
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edytuj typy</Button>
-                ) : null}
+                {canEdit && (
+                  <Button size="sm" onClick={handleSave} className="gap-1.5">
+                    <Save className="w-3.5 h-3.5" />
+                    {data.lockedAt ? "Aktualizuj typy" : "Zapisz typy"}
+                  </Button>
+                )}
                 {(data.champion || Object.keys(data.groups).length > 0 || Object.keys(data.swiss).length > 0 || Object.keys(data.bracket).length > 0) && !isLocked && (
                   <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto gap-1.5" onClick={handleReset}>
                     <RotateCcw className="w-3.5 h-3.5" /> Resetuj
