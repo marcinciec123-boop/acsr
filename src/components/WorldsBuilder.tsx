@@ -339,6 +339,9 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                                 {roleIcons[role]} {role}
                               </span>
                             )}
+                          </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
