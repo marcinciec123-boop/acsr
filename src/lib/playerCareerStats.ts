@@ -244,6 +244,9 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
 
       const ownRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score1 : mp.score2), 0);
       const oppRounds = mapDetails.reduce((sum, mp) => sum + (isTeam1 ? mp.score2 : mp.score1), 0);
+      const mapScores = mapDetails.map(mp =>
+        `${isTeam1 ? mp.score1 : mp.score2}:${isTeam1 ? mp.score2 : mp.score1}`
+      );
 
       matchEntries.push({
         tournamentId: t.id,
