@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import NavBar, { type Tab } from "@/components/NavBar";
 import NewsFeed from "@/components/NewsFeed";
 import RankingPanel from "@/components/RankingPanel";
@@ -38,8 +38,12 @@ const Index = () => {
     setActiveTab(tab);
   };
 
-  // Get current ranking data for profiles
-  const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
+  // Re-read ranking whenever the profile stack changes so opened profiles see
+  // the latest points / positions after tournaments update the ranking.
+  const teams = useMemo(
+    () => loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t })),
+    [profileStack],
+  );
 
   const profileOpen = !!top;
 
