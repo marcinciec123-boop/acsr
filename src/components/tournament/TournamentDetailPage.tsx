@@ -26,6 +26,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
+import { useProfileNav } from "@/lib/profileNav";
 
 interface Props {
   tournament: TournamentData;
@@ -256,6 +257,7 @@ export const TournamentDetailPage = ({
   mainTournaments = [], onPromoteWinners,
   activePhaseId: controlledActivePhaseId, onActivePhaseChange,
 }: Props) => {
+  const profileNav = useProfileNav();
   const totalMatches = t.phases.reduce((sum, p) =>
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
@@ -465,13 +467,20 @@ export const TournamentDetailPage = ({
               <div className="flex flex-wrap gap-1.5">
                 {t.participants.map((p, i) => {
                   const rank = rankMap.get(p);
+                  const clickable = !isPlaceholder(p);
                   return (
-                    <span
+                    <button
+                      type="button"
                       key={p}
-                      className="text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 hover:border-primary/40 transition-colors"
+                      disabled={!clickable}
+                      onClick={() => clickable && profileNav?.openTeam(p)}
+                      className={cn(
+                        "text-xs font-mono px-2 py-1 rounded border border-border bg-secondary/40 text-foreground flex items-center gap-1.5 transition-colors",
+                        clickable && "hover:border-primary/60 hover:bg-secondary/70 cursor-pointer",
+                      )}
                     >
                       <span className="text-muted-foreground">#{i + 1}</span>
-                      {!isPlaceholder(p) && <TeamLogo teamName={p} size={18} rounded="md" />}
+                      {clickable && <TeamLogo teamName={p} size={18} rounded="md" />}
                       {p}
                       {rank && (
                         <span
@@ -481,7 +490,7 @@ export const TournamentDetailPage = ({
                           WR #{rank}
                         </span>
                       )}
-                    </span>
+                    </button>
                   );
                 })}
               </div>

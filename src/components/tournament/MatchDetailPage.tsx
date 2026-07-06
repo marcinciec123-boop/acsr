@@ -16,6 +16,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
 import { MatchComparePanel } from "./MatchComparePanel";
 import { getDisplayScore } from "@/lib/matchDisplay";
+import { TeamLink, PlayerLink } from "@/lib/profileNav";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Vertigo"];
 
@@ -304,9 +305,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
             <div className={cn("flex items-center gap-3 justify-end min-w-0", winner1 && "text-foreground")}>
               {match.team1 && match.team1 !== "TBD" && <TeamLogo teamName={match.team1} size={44} rounded="lg" />}
-              <p className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
+              <TeamLink name={match.team1} className={cn("text-2xl font-heading font-bold truncate", winner1 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team1 || "TBD"}
-              </p>
+              </TeamLink>
             </div>
             <div className="flex items-center gap-3 font-mono text-5xl font-bold">
               {(() => {
@@ -319,9 +320,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               })()}
             </div>
             <div className={cn("flex items-center gap-3 min-w-0", winner2 && "text-foreground")}>
-              <p className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
+              <TeamLink name={match.team2} className={cn("text-2xl font-heading font-bold truncate", winner2 ? "text-foreground" : "text-muted-foreground")}>
                 {match.team2 || "TBD"}
-              </p>
+              </TeamLink>
               {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
@@ -978,7 +979,7 @@ const MatchPlayerTotals = ({
       <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <TeamLogo teamName={teamName} size={28} rounded="md" />
-          <h4 className="text-sm font-heading font-bold text-foreground truncate">{teamName}</h4>
+          <TeamLink name={teamName} className="text-sm font-heading font-bold text-foreground truncate">{teamName}</TeamLink>
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             • Statystyki łączne ({maps.length} {maps.length === 1 ? "mapa" : "map"})
           </span>
@@ -1007,7 +1008,7 @@ const MatchPlayerTotals = ({
           <tbody>
             {rows.map(r => (
               <tr key={r.name} className="border-b border-border/20 hover:bg-secondary/20 font-mono">
-                <td className="px-3 py-2 text-foreground">{r.name}</td>
+                <td className="px-3 py-2 text-foreground"><PlayerLink name={r.name}>{r.name}</PlayerLink></td>
                 <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.kills}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.assists}</td>

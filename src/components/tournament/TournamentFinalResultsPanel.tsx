@@ -5,6 +5,7 @@ import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
+import { TeamLink } from "@/lib/profileNav";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { loadFromStorage } from "@/lib/storage";
@@ -191,10 +192,10 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
                 <div className="min-w-0 flex items-center gap-2.5">
                   <TeamLogo teamName={placement.team} size={30} rounded="md" />
                   <div className="min-w-0">
-                    <div className="font-heading font-bold text-foreground truncate flex items-center gap-1.5">
+                    <TeamLink name={placement.team} className="font-heading font-bold text-foreground truncate flex items-center gap-1.5">
                       {meta?.country && <span className="text-xs">{countryFlag(meta.country)}</span>}
                       <span className="truncate">{placement.team}</span>
-                    </div>
+                    </TeamLink>
                     <div className="text-[10px] font-mono text-muted-foreground truncate">
                       {lineup.length ? lineup.join(" • ") : "Brak zapisanego składu"}
                     </div>
