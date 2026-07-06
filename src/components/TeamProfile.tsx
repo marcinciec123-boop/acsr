@@ -603,6 +603,26 @@ const RosterGrid = ({
                 <span>{countryFlag(playerCountry)}</span>
                 <span className="truncate">{playerCountry}</span>
               </p>
+              {stats && stats.matches > 0 ? (
+                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-[9px] font-mono">
+                  <div className="flex flex-col items-center" title={`Rating (${stats.matches} meczów)`}>
+                    <span className="text-muted-foreground uppercase">Rtg</span>
+                    <span className={cn("font-bold tabular-nums", getRatingColor(stats.rating))}>{stats.rating.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col items-center" title="K/D">
+                    <span className="text-muted-foreground uppercase">K/D</span>
+                    <span className="font-bold tabular-nums text-foreground">{stats.kd.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col items-center" title="ADR">
+                    <span className="text-muted-foreground uppercase">ADR</span>
+                    <span className="font-bold tabular-nums text-foreground">{Math.round(stats.adr)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 pt-2 border-t border-border/40 text-[9px] font-mono text-muted-foreground/60 text-center">
+                  Brak statystyk
+                </div>
+              )}
             </button>
             {onBench && !benched && (
               <button
