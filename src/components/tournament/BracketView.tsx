@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
 
