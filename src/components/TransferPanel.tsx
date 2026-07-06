@@ -53,6 +53,8 @@ const TransferPanel = () => {
   const [transferPlayer, setTransferPlayer] = useState("");
   const [transferFrom, setTransferFrom] = useState("-");
   const [transferTo, setTransferTo] = useState("-");
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerKind, setPickerKind] = useState<"all" | "player" | "coach" | "fa">("all");
 
   useEffect(() => { saveToStorage(TRANSFERS_KEY, transfers); }, [transfers]);
 
