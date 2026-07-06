@@ -23,9 +23,11 @@ const MatchRow = ({ match }: { match: MatchResult }) => (
       {match.team1}
     </div>
     <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-      <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
-      <span className="text-muted-foreground mx-1">:</span>
-      <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+      {(() => { const [d1, d2] = getDisplayScore(match); return (<>
+        <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span>
+        <span className="text-muted-foreground mx-1">:</span>
+        <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span>
+      </>); })()}
     </div>
     <div className={cn(
       "flex-1 px-3 py-2 truncate font-medium",
