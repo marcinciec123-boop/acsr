@@ -39,7 +39,7 @@ const PlayerRankings = ({ onSelectTeam, onSelectPlayer, dynamicRanking }: Player
   const [showPlayerSearch, setShowPlayerSearch] = useState(false);
 
   // Use dynamic ranking if available, otherwise base teamDatabase
-  const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
+  const rankingSource = (dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase).filter(t => !t.isNational);
 
   // Player search results
   const playerResults = useMemo(() => {
