@@ -165,7 +165,7 @@ const RoundMatchCard = ({
             </span>
           </div>
         );
-      })}
+      }); })()}
       <MatchPredictionBadge team1={match.team1} team2={match.team2} tier={tier || "B"} decided={played} compact />
     </div>
   );
