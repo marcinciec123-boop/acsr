@@ -842,7 +842,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
           })}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
             <label className="relative min-w-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
@@ -859,6 +859,15 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
             >
               <option value="ALL">Rok / sezon</option>
               {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select
+              value={organizerFilter}
+              onChange={e => setOrganizerFilter(e.target.value)}
+              className="h-9 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground max-w-[180px]"
+              title="Filtruj po organizatorze"
+            >
+              <option value="ALL">Organizator</option>
+              {availableOrganizers.map(org => <option key={org} value={org}>{org}</option>)}
             </select>
             <select
               value={formatFilter}
