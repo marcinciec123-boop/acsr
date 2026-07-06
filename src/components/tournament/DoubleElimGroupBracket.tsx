@@ -52,6 +52,17 @@ const MatchCard = ({
   const w1 = decided && m.score1 > m.score2;
   const w2 = decided && m.score2 > m.score1;
   const disabled = isPlaceholder(m.team1) || isPlaceholder(m.team2) || !m.team1 || !m.team2;
+  const isBo1 = (m.bo || 1) === 1;
+  const [d1, d2] = getDisplayScore(m);
+  const handleChange = (side: 1 | 2, val: number) => {
+    if (isBo1) {
+      const r1 = side === 1 ? val : d1;
+      const r2 = side === 2 ? val : d2;
+      onMatchUpdate(m.id, buildBo1RoundScorePatch(m, r1, r2));
+    } else {
+      onMatchUpdate(m.id, side === 1 ? { score1: val } : { score2: val });
+    }
+  };
 
   return (
     <div
@@ -74,10 +85,10 @@ const MatchCard = ({
         <Input
           type="number"
           min="0"
-          value={m.score1}
-          onChange={(e) => onMatchUpdate(m.id, parseInt(e.target.value) || 0, m.score2)}
+          value={d1}
+          onChange={(e) => handleChange(1, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-8 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
+          className={cn("w-10 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
         />
       </div>
       <div className="h-px bg-border/40" />
@@ -86,10 +97,10 @@ const MatchCard = ({
         <Input
           type="number"
           min="0"
-          value={m.score2}
-          onChange={(e) => onMatchUpdate(m.id, m.score1, parseInt(e.target.value) || 0)}
+          value={d2}
+          onChange={(e) => handleChange(2, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-8 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
+          className={cn("w-10 h-5 text-center text-[10px] px-0.5 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
         />
         {onOpenMatch && (
           <Button
