@@ -548,11 +548,15 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
     }
   });
   return Array.from(standings.values()).sort((a, b) => {
+    // 1. Liczba zwycięstw (mecze wygrane)
     if (b.wins !== a.wins) return b.wins - a.wins;
-    // Head-to-head: jeśli A wygrał z B, A wyżej
+    // 2. Bilans rund (in-game CS rounds diff)
+    if (b.roundDiff !== a.roundDiff) return b.roundDiff - a.roundDiff;
+    // 3. Bezpośrednie starcie
     const aOverB = h2h[a.team]?.[b.team] || 0;
     const bOverA = h2h[b.team]?.[a.team] || 0;
     if (aOverB !== bOverA) return bOverA - aOverB;
+    // Fallback: różnica map, potem alfabet
     if (b.mapDiff !== a.mapDiff) return b.mapDiff - a.mapDiff;
     return a.team.localeCompare(b.team);
   });
