@@ -4,10 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Globe, Users, Trophy, Trash2, Plus, GitBranch } from "lucide-react";
-import { availableCountries, playersByCountry, buildNationalTeamName, upsertNationalTeams, regionForCountry } from "@/lib/nationalTeams";
+import { availableCountries, playersByCountry, buildNationalTeamName, upsertNationalTeams, regionForCountry, countryName } from "@/lib/nationalTeams";
 import { buildPhase, formatLabel } from "@/lib/tournamentBuilder";
 import type { TournamentData, TournamentPhase, PhaseFormat, TeamData } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
+import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
+import { teamDatabase } from "@/data/tournaments";
+import { loadFromStorage } from "@/lib/storage";
+
+const ROLE_ORDER: PlayerRole[] = ["IGL", "AWPer", "Entry", "Lurker", "Anchor"];
+
+/**
+ * Ranked list of all players (best first) — from live ranking if present,
+ * otherwise from the master teamDatabase. Sorted by team points desc.
+ */
+const rankedPlayers = (): string[] => {
+  const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase;
+  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const out: string[] = [];
+  sorted.forEach(t => (t.roster || []).forEach(p => { if (!out.includes(p)) out.push(p); }));
+  return out;
+};
 
 interface Props {
   open: boolean;
@@ -74,7 +91,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
 
   const addCountry = (code: string) => {
     if (nationCodes.has(code)) return;
-    setNations(prev => [...prev, { code, roster: [...EMPTY_ROSTER] }]);
+    setNations(prev => [...prev, { code, label: countryName(code), roster: [...EMPTY_ROSTER] }]);
   };
   const removeCountry = (code: string) =>
     setNations(prev => prev.filter(n => n.code !== code));
@@ -90,11 +107,33 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
       return { ...n, roster: r };
     }));
 
+  /**
+   * Best-of-country pick: for each of the 5 roles, take the highest-ranked
+   * player of that country holding that role. Falls back to remaining top
+   * players from the country pool to fill any missing slots.
+   */
   const autoFill = (code: string) => {
-    const pool = playerPool[code] || [];
-    setNations(prev => prev.map(n =>
-      n.code === code ? { ...n, roster: [...pool.slice(0, 5), "", "", "", "", ""].slice(0, 5) } : n
-    ));
+    const pool = new Set(playerPool[code] || []);
+    const ranking = rankedPlayers();
+    const chosen: string[] = [];
+    ROLE_ORDER.forEach(role => {
+      const best = ranking.find(p => pool.has(p) && playerRoles[p] === role && !chosen.includes(p));
+      if (best) chosen.push(best);
+    });
+    if (chosen.length < 5) {
+      for (const p of ranking) {
+        if (chosen.length >= 5) break;
+        if (pool.has(p) && !chosen.includes(p)) chosen.push(p);
+      }
+    }
+    if (chosen.length < 5) {
+      for (const p of pool) {
+        if (chosen.length >= 5) break;
+        if (!chosen.includes(p)) chosen.push(p);
+      }
+    }
+    const filled = [...chosen, "", "", "", "", ""].slice(0, 5);
+    setNations(prev => prev.map(n => n.code === code ? { ...n, roster: filled } : n));
   };
 
   const addPhaseDraft = () => {
@@ -248,7 +287,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <Input
                             value={n.label ?? ""}
-                            placeholder={`Team ${n.code}`}
+                            placeholder={countryName(n.code)}
                             onChange={e => updateNation(n.code, { label: e.target.value })}
                             className="h-7 text-xs font-mono flex-1"
                           />
@@ -257,7 +296,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         <button
                           onClick={() => autoFill(n.code)}
                           className="text-xs font-mono text-primary hover:underline shrink-0"
-                          title="Wstaw pierwszych 5 dostępnych"
+                          title="Najlepszy gracz na każdą z 5 pozycji"
                         >auto</button>
                         <button
                           onClick={() => removeCountry(n.code)}
@@ -268,7 +307,9 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                         </button>
                       </div>
                       <div className="space-y-1">
-                        {n.roster.map((p, i) => (
+                        {n.roster.map((p, i) => {
+                          const role = p ? playerRoles[p] : undefined;
+                          return (
                           <div key={i} className="flex items-center gap-1.5">
                             <span className="text-xs font-mono text-muted-foreground w-4 shrink-0">{i + 1}</span>
                             <select
@@ -277,19 +318,30 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
                               className="flex-1 text-xs font-mono bg-card border border-border rounded px-1.5 py-1 h-7"
                             >
                               <option value="">— wybierz gracza —</option>
-                              {pool.map(pl => (
-                                <option key={pl} value={pl}>{pl}</option>
-                              ))}
+                              {pool.map(pl => {
+                                const r = playerRoles[pl];
+                                return (
+                                  <option key={pl} value={pl}>
+                                    {pl}{r ? ` — ${roleIcons[r]} ${r}` : ""}
+                                  </option>
+                                );
+                              })}
                               {p && !pool.includes(p) && <option value={p}>{p}</option>}
                             </select>
-                            <Input
-                              value={p}
-                              onChange={e => setRosterSlot(n.code, i, e.target.value)}
-                              placeholder="lub wpisz..."
-                              className="h-7 text-xs font-mono w-24 shrink-0"
-                            />
+                            {role && (
+                              <span
+                                className={cn(
+                                  "text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0",
+                                  roleColors[role],
+                                )}
+                                title={role}
+                              >
+                                {roleIcons[role]} {role}
+                              </span>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
