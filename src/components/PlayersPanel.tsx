@@ -650,7 +650,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       </p>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
