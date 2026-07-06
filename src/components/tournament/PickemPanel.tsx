@@ -538,7 +538,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
                                     <div className={cn("text-[9px] font-mono text-right",
                                       hit ? "text-[hsl(var(--win))]" : "text-muted-foreground"
                                     )}>
-                                      wygrał: {actualWinner} ({m.score1}:{m.score2})
+                                      wygrał: {actualWinner} ({(() => { const [a,b] = getDisplayScore(m); return `${a}:${b}`; })()})
                                     </div>
                                   )}
                                 </div>
