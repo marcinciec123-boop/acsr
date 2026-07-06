@@ -207,14 +207,14 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
           <div className="grid grid-cols-2 gap-3">
             <OddsCard
               team={team1}
-              rank={rank1}
+              rank={isNat1 ? null : rank1}
               prob={probWin1}
               odds={odds1}
               favored={probWin1 >= probWin2}
             />
             <OddsCard
               team={team2}
-              rank={rank2}
+              rank={isNat2 ? null : rank2}
               prob={probWin2}
               odds={odds2}
               favored={probWin2 > probWin1}
