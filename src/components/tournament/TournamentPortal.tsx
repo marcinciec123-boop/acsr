@@ -705,6 +705,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
   const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
   const [formatFilter, setFormatFilter] = useState<FormatFilter>("ALL");
   const [yearFilter, setYearFilter] = useState<string>("ALL");
+  const [organizerFilter, setOrganizerFilter] = useState<string>("ALL");
   const [search, setSearch] = useState("");
 
   const counts = useMemo(() => ({
@@ -723,12 +724,18 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
     [tournaments],
   );
 
+  const availableOrganizers = useMemo(
+    () => Array.from(new Set(tournaments.map(t => (t.organizer || "").trim()).filter(Boolean))).sort(),
+    [tournaments],
+  );
+
   const filtered = useMemo(() => {
     let list = [...tournaments];
     if (statusFilter !== "ALL") list = list.filter(t => t.status === statusFilter);
     if (tierFilter !== "ALL") list = list.filter(t => t.tier === tierFilter);
     if (formatFilter !== "ALL") list = list.filter(t => t.format === formatFilter || t.format.toLowerCase().includes(String(formatFilter).toLowerCase()));
     if (yearFilter !== "ALL") list = list.filter(t => formatYear(t.startDate) === yearFilter || formatYear(t.endDate) === yearFilter);
+    if (organizerFilter !== "ALL") list = list.filter(t => (t.organizer || "").trim() === organizerFilter);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(t =>
@@ -744,7 +751,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
       return a.name.localeCompare(b.name);
     });
     return list;
-  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, search]);
+  }, [tournaments, statusFilter, tierFilter, formatFilter, yearFilter, organizerFilter, search]);
 
   const statusTabs: { key: StatusFilter; label: string; icon: typeof Radio; count: number }[] = [
     { key: "ALL", label: "Wszystkie", icon: CalendarDays, count: tournaments.length },
