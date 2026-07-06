@@ -292,10 +292,21 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     toast({ title: "Rola zaktualizowana", description: `${player}: ${role || "—"}` });
   };
 
+  const openCreateCoach = () => {
+    setEditingFANick(null);
+    setFaForm({ ...emptyFAForm(), role: "Coach" });
+    setFaDialogOpen(true);
+  };
+
+  const coachCount = useMemo(
+    () => rows.filter(r => r.role === "Coach").length,
+    [rows],
+  );
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <User className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-heading font-bold text-foreground">Gracze</h2>
@@ -304,33 +315,87 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             </span>
             {counts.fa > 0 && (
               <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
-                <UserMinus className="w-3 h-3" /> {counts.fa} wolnych agentów
+                <UserMinus className="w-3 h-3" /> {counts.fa} FA
+              </span>
+            )}
+            {coachCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded">
+                🎓 {coachCount} trenerów
               </span>
             )}
           </div>
-          <Button size="sm" onClick={openCreateFA} className="gap-1.5">
-            <UserPlus className="w-4 h-4" /> Dodaj wolnego agenta
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={openCreateCoach} className="gap-1.5">
+              🎓 Dodaj trenera
+            </Button>
+            <Button size="sm" onClick={openCreateFA} className="gap-1.5">
+              <UserPlus className="w-4 h-4" /> Dodaj FA
+            </Button>
+          </div>
         </div>
 
-        {/* Search + filters */}
-        <div className="space-y-3 mb-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Szukaj nicku, imienia lub drużyny..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 bg-card border-border"
-            />
+        {/* Filters card */}
+        <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
+          {/* Row 1: search + sort + only-with-stats */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Szukaj nicku, imienia lub drużyny..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 bg-secondary/40 border-border h-9"
+              />
+            </div>
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as SortMode)}
+              className="h-9 px-2 text-xs font-mono rounded border border-border bg-secondary/40 text-foreground"
+            >
+              <option value="rating">↕ Rating</option>
+              <option value="matches">↕ Mecze</option>
+              <option value="team">↕ Drużyna</option>
+              <option value="name">↕ Nick A-Z</option>
+            </select>
+            <select
+              value={nationality}
+              onChange={e => setNationality(e.target.value)}
+              className="h-9 px-2 text-xs font-mono rounded border border-border bg-secondary/40 text-foreground max-w-[180px]"
+            >
+              <option value="all">🌍 Wszystkie narodowości</option>
+              {allNationalities.map(n => (
+                <option key={n} value={n}>{countryFlag(n)} {n}</option>
+              ))}
+            </select>
+            {allRoles.length > 0 && (
+              <select
+                value={roleFilter}
+                onChange={e => setRoleFilter(e.target.value)}
+                className="h-9 px-2 text-xs font-mono rounded border border-border bg-secondary/40 text-foreground"
+              >
+                <option value="all">Wszystkie role</option>
+                {allRoles.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            )}
+            <label className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground cursor-pointer select-none px-2">
+              <input
+                type="checkbox"
+                checked={onlyWithStats}
+                onChange={e => setOnlyWithStats(e.target.checked)}
+                className="accent-primary"
+              />
+              Ze statystykami
+            </label>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Row 2: chip filter groups */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Status</span>
               {([
                 { v: "all", label: "Wszyscy" },
-                { v: "team", label: `Z drużyną (${counts.total - counts.fa})`, icon: <UserPlus className="w-3 h-3" /> },
-                { v: "fa", label: `FA (${counts.fa})`, icon: <UserMinus className="w-3 h-3" /> },
+                { v: "team", label: `Z drużyną`, icon: <UserPlus className="w-3 h-3" /> },
+                { v: "fa", label: `FA`, icon: <UserMinus className="w-3 h-3" /> },
               ] as { v: TeamStatusFilter; label: string; icon?: JSX.Element }[]).map(opt => (
                 <button
                   key={opt.v}
@@ -352,14 +417,14 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               ))}
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Globe className="w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Region</span>
               {(["all", "EU", "US", "LATAM", "ASIA", "OCE", "AFR"] as RegionFilter[]).map(r => (
                 <button
                   key={r}
                   onClick={() => setRegion(r)}
                   className={cn(
-                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    "px-2 py-1 text-[11px] font-mono rounded border transition-colors",
                     region === r
                       ? "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground"
@@ -370,60 +435,19 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
               ))}
             </div>
 
-
-            <div className="flex items-center gap-2">
-              <select
-                value={nationality}
-                onChange={e => setNationality(e.target.value)}
-                className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/50 text-foreground"
-              >
-                <option value="all">Wszystkie narodowości</option>
-                {allNationalities.map(n => (
-                  <option key={n} value={n}>{countryFlag(n)} {n}</option>
-                ))}
-              </select>
-            </div>
-
-            {allRoles.length > 0 && (
-              <div className="flex items-center gap-2">
-                <select
-                  value={roleFilter}
-                  onChange={e => setRoleFilter(e.target.value)}
-                  className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/50 text-foreground"
-                >
-                  <option value="all">Wszystkie role</option>
-                  {allRoles.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <select
-                value={sort}
-                onChange={e => setSort(e.target.value as SortMode)}
-                className="px-2 py-1 text-xs font-mono rounded border border-border bg-secondary/50 text-foreground"
-              >
-                <option value="rating">Sortuj: Rating</option>
-                <option value="matches">Sortuj: Mecze</option>
-                <option value="team">Sortuj: Drużyna</option>
-                <option value="name">Sortuj: Nick A-Z</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Rating:</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[9px] font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Rating</span>
               {([
-                { v: "all", label: "Cała kariera" },
+                { v: "all", label: "Kariera" },
                 { v: "year", label: "Rok" },
                 { v: "month", label: "Miesiąc" },
-                { v: "lastTournament", label: "Ostatni turniej" },
+                { v: "lastTournament", label: "Ost. turniej" },
               ] as { v: RatingPeriod; label: string }[]).map(opt => (
                 <button
                   key={opt.v}
                   onClick={() => setRatingPeriod(opt.v)}
                   className={cn(
-                    "px-2.5 py-1 text-xs font-mono rounded border transition-colors",
+                    "px-2 py-1 text-[11px] font-mono rounded border transition-colors",
                     ratingPeriod === opt.v
                       ? "bg-primary/20 text-primary border-primary/40"
                       : "text-muted-foreground border-border hover:text-foreground",
@@ -433,16 +457,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 </button>
               ))}
             </div>
-
-            <label className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={onlyWithStats}
-                onChange={e => setOnlyWithStats(e.target.checked)}
-                className="accent-primary"
-              />
-              Tylko ze statystykami
-            </label>
           </div>
         </div>
 
