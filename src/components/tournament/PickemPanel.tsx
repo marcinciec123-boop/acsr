@@ -287,7 +287,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
             <p className="text-[10px] font-mono text-muted-foreground truncate">
               {scoring ? `Wynik: ${scoring.points} / ${scoring.max} pkt`
                 : isLocked ? `Typy zablokowane • ${filledSlots}/${totalSlots} obstawionych`
-                : `${filledSlots}/${totalSlots} obstawionych • zmiany aż do startu turnieju`}
+                : `${filledSlots}/${totalSlots} obstawionych • edytuj do startu każdej fazy / meczu`}
             </p>
           </div>
         </div>
