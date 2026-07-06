@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { loadTeamLogo } from "@/lib/teamLogos";
 import { teamTag } from "@/lib/teamHelpers";
+import { teamDatabase } from "@/data/tournaments";
+import { loadFromStorage } from "@/lib/storage";
+import { countryFlag } from "@/lib/flags";
+import type { TeamData } from "@/lib/types";
 
 interface TeamLogoProps {
   teamName: string;
