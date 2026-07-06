@@ -19,15 +19,15 @@ const TIER_MULT: Record<string, number> = {
 // Linear rank-diff curve (matches user spec):
 // adjacent (~1) → ~10, 10 apart → ~15, 20 apart → ~20, 30 apart → ~25 ...
 const WIN_BASE = 10;
-const WIN_PER_RANK = 0.5;   // upset slope (worse beats better)
-const WIN_FAV_SLOPE = 0.3;  // favorite-win decay
+const WIN_PER_RANK = 0.42;  // upset slope (worse beats better) — łagodniejszy spread
+const WIN_FAV_SLOPE = 0.2;  // favorite-win decay — mniej stromy: bicie słabszych daje więcej
 const LOSS_BASE = 6;
-const LOSS_UPSET_SLOPE = 0.28;  // łagodniejsza kara dla faworyta który przegrał
-const LOSS_EXPECTED_SLOPE = 0.32; // szybszy zanik kary dla underdoga
+const LOSS_UPSET_SLOPE = 0.24;  // łagodniejsza kara dla faworyta który przegrał
+const LOSS_EXPECTED_SLOPE = 0.28; // wolniejszy zanik kary dla underdoga
 
-const WIN_MIN = 5;
+const WIN_MIN = 6;
 const WIN_MAX = 70;
-const LOSS_MIN = 5;
+const LOSS_MIN = 4;
 const LOSS_MAX = 40;
 
 export interface VrsPrediction {

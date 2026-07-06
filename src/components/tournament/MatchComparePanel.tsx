@@ -31,12 +31,18 @@ const getRoster = (teamName: string, tournamentId?: string): string[] => {
   return (team?.roster || []).slice(0, 5);
 };
 
-// Decimal-odds from probability with a bookmaker margin (~6% overround).
-const oddsFromProb = (p: number) => {
-  const margin = 1.06;
-  const clamped = Math.max(0.02, Math.min(0.98, p));
-  return Math.max(1.01, 1 / (clamped * margin));
+// Decimal-odds from probability with a realistic bookmaker margin (~5% overround).
+// Probabilities are shrunk toward 0.5 so extreme mismatches don't blow the price
+// into 40+ territory — real CS markets rarely go past ~15-20 on the underdog.
+const oddsFromProb = (p: number, opts?: { floor?: number }) => {
+  const margin = 1.05;
+  const floor = opts?.floor ?? 0.06; // ~15.9 max odds after margin
+  const clamped = Math.max(floor, Math.min(1 - floor, p));
+  return Math.max(1.02, 1 / (clamped * margin));
 };
+
+// Shrink match-winner probability toward 0.5 (markets are less confident than pure Elo).
+const shrinkProb = (p: number, factor = 0.82) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
@@ -60,19 +66,19 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
 
   const previews = useMemo(() => predictBothOutcomes(team1, team2, tier, ranking), [team1, team2, tier, ranking]);
 
-  // Match-winner odds
-  const probWin1 = previews.team1Wins.expectedWinner;
+  // Match-winner odds — use shrunk probabilities for realism.
+  const probWin1 = shrinkProb(previews.team1Wins.expectedWinner);
   const probWin2 = 1 - probWin1;
   const odds1 = oddsFromProb(probWin1);
   const odds2 = oddsFromProb(probWin2);
 
-  // Correct-score / handicap odds for BO3 & BO5 derived from team strength.
-  // We model maps as independent Bernoulli trials with per-map prob = probWin1.
+  // Correct-score / handicap odds — per-outcome floor keeps prices in a realistic band.
+  const csOdds = (p: number) => oddsFromProb(p, { floor: 0.025 }); // ~38 max
   const correctScores = useMemo(() => {
     const out: { label: string; prob: number; odds: number; favored: "t1" | "t2" }[] = [];
     if (bo === 1) {
-      out.push({ label: "1 – 0", prob: probWin1, odds: oddsFromProb(probWin1), favored: "t1" });
-      out.push({ label: "0 – 1", prob: probWin2, odds: oddsFromProb(probWin2), favored: "t2" });
+      out.push({ label: "1 – 0", prob: probWin1, odds: csOdds(probWin1), favored: "t1" });
+      out.push({ label: "0 – 1", prob: probWin2, odds: csOdds(probWin2), favored: "t2" });
       return out;
     }
     if (bo === 3) {
@@ -83,10 +89,10 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
       const t1_21 = 2 * p * p * q;
       const t2_02 = q * q;
       const t2_12 = 2 * q * q * p;
-      out.push({ label: "2 – 0", prob: t1_20, odds: oddsFromProb(t1_20), favored: "t1" });
-      out.push({ label: "2 – 1", prob: t1_21, odds: oddsFromProb(t1_21), favored: "t1" });
-      out.push({ label: "1 – 2", prob: t2_12, odds: oddsFromProb(t2_12), favored: "t2" });
-      out.push({ label: "0 – 2", prob: t2_02, odds: oddsFromProb(t2_02), favored: "t2" });
+      out.push({ label: "2 – 0", prob: t1_20, odds: csOdds(t1_20), favored: "t1" });
+      out.push({ label: "2 – 1", prob: t1_21, odds: csOdds(t1_21), favored: "t1" });
+      out.push({ label: "1 – 2", prob: t2_12, odds: csOdds(t2_12), favored: "t2" });
+      out.push({ label: "0 – 2", prob: t2_02, odds: csOdds(t2_02), favored: "t2" });
       return out;
     }
     // BO5
@@ -98,12 +104,12 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
     const t2_03 = Math.pow(q, 3);
     const t2_13 = 3 * Math.pow(q, 3) * p;
     const t2_23 = 6 * Math.pow(q, 3) * p * p;
-    out.push({ label: "3 – 0", prob: t1_30, odds: oddsFromProb(t1_30), favored: "t1" });
-    out.push({ label: "3 – 1", prob: t1_31, odds: oddsFromProb(t1_31), favored: "t1" });
-    out.push({ label: "3 – 2", prob: t1_32, odds: oddsFromProb(t1_32), favored: "t1" });
-    out.push({ label: "2 – 3", prob: t2_23, odds: oddsFromProb(t2_23), favored: "t2" });
-    out.push({ label: "1 – 3", prob: t2_13, odds: oddsFromProb(t2_13), favored: "t2" });
-    out.push({ label: "0 – 3", prob: t2_03, odds: oddsFromProb(t2_03), favored: "t2" });
+    out.push({ label: "3 – 0", prob: t1_30, odds: csOdds(t1_30), favored: "t1" });
+    out.push({ label: "3 – 1", prob: t1_31, odds: csOdds(t1_31), favored: "t1" });
+    out.push({ label: "3 – 2", prob: t1_32, odds: csOdds(t1_32), favored: "t1" });
+    out.push({ label: "2 – 3", prob: t2_23, odds: csOdds(t2_23), favored: "t2" });
+    out.push({ label: "1 – 3", prob: t2_13, odds: csOdds(t2_13), favored: "t2" });
+    out.push({ label: "0 – 3", prob: t2_03, odds: csOdds(t2_03), favored: "t2" });
     return out;
   }, [probWin1, probWin2, bo]);
 
