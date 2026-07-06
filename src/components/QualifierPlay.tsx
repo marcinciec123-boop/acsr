@@ -167,13 +167,13 @@ const EditableMatch = ({ match, index, onUpdate, onSimulate, resolved, matchStat
       <div className="flex items-center">
         <div className={cn("flex-1 px-3 py-2 text-right truncate font-medium", resolved && match.winner === match.team1 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team1}</div>
         <div className="px-3 py-2 font-mono text-xs bg-secondary min-w-[60px] text-center">
-          {resolved ? (
+          {resolved ? (() => { const [d1, d2] = getDisplayScore(match); return (
             <>
-              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score1}</span>
+              <span className={match.winner === match.team1 ? "text-primary font-bold" : "text-muted-foreground"}>{d1}</span>
               <span className="text-muted-foreground mx-1">:</span>
-              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{match.score2}</span>
+              <span className={match.winner === match.team2 ? "text-primary font-bold" : "text-muted-foreground"}>{d2}</span>
             </>
-          ) : <span className="text-muted-foreground">vs</span>}
+          ); })() : <span className="text-muted-foreground">vs</span>}
         </div>
         <div className={cn("flex-1 px-3 py-2 truncate font-medium", resolved && match.winner === match.team2 ? "text-foreground font-bold" : "text-muted-foreground")}>{match.team2}</div>
       </div>
