@@ -556,6 +556,9 @@ const TransferPanel = () => {
                   <div className="col-span-3 font-medium text-foreground flex items-center gap-1.5">
                     {(() => { const c = resolvePlayerCountry(t.player); return c && <span className="text-xs">{countryFlag(c)}</span>; })()}
                     {t.player}
+                    {playerRoles[t.player] === "Coach" && (
+                      <span className="text-[9px] font-mono px-1 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">🎓</span>
+                    )}
                   </div>
                   <div className="col-span-3">
                     {t.oldTeam === "-" ? (
