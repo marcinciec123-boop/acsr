@@ -261,6 +261,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             </div>
           </button>
         )}
+        </div>
       </div>
     );
   };
