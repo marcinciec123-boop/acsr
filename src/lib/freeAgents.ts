@@ -197,7 +197,11 @@ export function getFreeAgents(): FreeAgent[] {
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const teams = stored && stored.length > 0 ? stored : teamDatabase;
   const onAnyRoster = new Set<string>();
-  teams.forEach(t => t.roster.forEach(p => onAnyRoster.add(p)));
+  teams.forEach(t => {
+    t.roster.forEach(p => onAnyRoster.add(p));
+    if (t.coach) onAnyRoster.add(t.coach);
+  });
+
 
   const out: FreeAgent[] = [];
   const seen = new Set<string>();
