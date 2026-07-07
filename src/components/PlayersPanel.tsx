@@ -433,6 +433,18 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   {opt.label}
                 </button>
               ))}
+              <button
+                onClick={() => setRoleFilter(roleFilter === "Coach" ? "all" : "Coach")}
+                className={cn(
+                  "px-2.5 py-1 text-xs font-mono rounded border transition-colors inline-flex items-center gap-1",
+                  roleFilter === "Coach"
+                    ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                    : "text-muted-foreground border-border hover:text-foreground",
+                )}
+                title="Pokaż tylko trenerów"
+              >
+                🎓 Tylko trenerzy
+              </button>
             </div>
 
             <div className="flex items-center gap-1 flex-wrap">
@@ -452,6 +464,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 </button>
               ))}
             </div>
+
 
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Rating</span>
