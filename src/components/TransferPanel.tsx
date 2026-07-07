@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon } from "lucide-react";
-import { getFreeAgents } from "@/lib/freeAgents";
+import { getFreeAgents, removeManualFreeAgent } from "@/lib/freeAgents";
 import { roleIcons } from "@/data/playerRoles";
 import TeamLogo from "@/components/TeamLogo";
 import { teamDatabase } from "@/data/tournaments";
@@ -202,7 +202,11 @@ const TransferPanel = () => {
         if (isCoach) toTeam.coach = t.player;
         else if (!toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
       }
+      // If the player was a manual free agent, remove that entry so they no
+      // longer appear as FA after joining a team.
+      removeManualFreeAgent(t.player);
     }
+
 
     // Mirror the transfer into the global FA log so PlayersPanel/profile stay in sync.
     const raw: RawTransfer = { player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam };

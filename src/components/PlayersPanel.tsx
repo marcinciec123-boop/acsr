@@ -112,7 +112,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           adr: career.avgAdr,
         });
       }
+      // Coaches are stored separately (not on roster) — surface them here.
+      if (t.coach && !seen.has(t.coach)) {
+        seen.add(t.coach);
+        const career = computeCareerStats(t.coach);
+        out.push({
+          name: t.coach,
+          team: t,
+          region: t.region,
+          isFA: false,
+          country: normalizeCountry(playerNationalities[t.coach] || t.country),
+          realName: playerRealNames[t.coach],
+          role: "Coach",
+          rating: career.careerRating,
+          matches: career.matchesPlayed,
+          kdr: career.kdRatio,
+          adr: career.avgAdr,
+        });
+      }
     }
+
     // Free agents (manual + transfer-derived)
     for (const fa of getFreeAgents()) {
       if (seen.has(fa.player)) continue;
@@ -414,6 +433,18 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   {opt.label}
                 </button>
               ))}
+              <button
+                onClick={() => setRoleFilter(roleFilter === "Coach" ? "all" : "Coach")}
+                className={cn(
+                  "px-2.5 py-1 text-xs font-mono rounded border transition-colors inline-flex items-center gap-1",
+                  roleFilter === "Coach"
+                    ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                    : "text-muted-foreground border-border hover:text-foreground",
+                )}
+                title="Pokaż tylko trenerów"
+              >
+                🎓 Tylko trenerzy
+              </button>
             </div>
 
             <div className="flex items-center gap-1 flex-wrap">
@@ -433,6 +464,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 </button>
               ))}
             </div>
+
 
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs font-mono uppercase text-muted-foreground/70 tracking-wider mr-1">Rating</span>
