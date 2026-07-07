@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon } from "lucide-react";
-import { getFreeAgents } from "@/lib/freeAgents";
+import { getFreeAgents, removeManualFreeAgent } from "@/lib/freeAgents";
 import { roleIcons } from "@/data/playerRoles";
 import TeamLogo from "@/components/TeamLogo";
 import { teamDatabase } from "@/data/tournaments";
