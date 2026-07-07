@@ -141,29 +141,30 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
       <div
         key={m.id}
         style={!isEditing ? { height: MATCH_H } : undefined}
-        className={cn(
-          "relative group border rounded-md overflow-visible text-xs shadow-md bg-card/60 backdrop-blur-sm flex flex-col",
+        className="relative group text-xs flex flex-col"
+      >
+        <div className={cn(
+          "border rounded-md overflow-hidden shadow-md bg-card/60 backdrop-blur-sm flex flex-col flex-1",
           isLast
             ? "border-[hsl(var(--gold))]/50 shadow-[0_0_16px_hsl(var(--gold)/0.18)]"
             : decided
               ? "border-primary/40"
               : "border-border/70"
-        )}
-      >
-        <div className={cn(
-          "px-2.5 py-1 text-xs font-mono uppercase tracking-[0.18em] flex items-center justify-between border-b shrink-0",
-          isLast
-            ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
-            : "bg-secondary/40 text-muted-foreground border-border/50"
         )}>
-          <span>BO{m.bo || 3}</span>
-          {decided && <span className="text-[hsl(var(--win))]">✓</span>}
-        </div>
-        {showPrediction && (
-          <div className="absolute top-full left-0 right-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity rounded-b-md border border-t-0 border-primary/40 bg-card shadow-lg overflow-hidden">
-            <MatchPredictionBadge team1={m.team1} team2={m.team2} tier={tier || "B"} />
+          <div className={cn(
+            "px-2.5 py-1 text-xs font-mono uppercase tracking-[0.18em] flex items-center justify-between border-b shrink-0",
+            isLast
+              ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
+              : "bg-secondary/40 text-muted-foreground border-border/50"
+          )}>
+            <span>BO{m.bo || 3}</span>
+            {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           </div>
-        )}
+          {showPrediction && (
+            <div className="absolute top-full left-0 right-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity rounded-b-md border border-t-0 border-primary/40 bg-card shadow-lg overflow-hidden">
+              <MatchPredictionBadge team1={m.team1} team2={m.team2} tier={tier || "B"} />
+            </div>
+          )}
         {isEditing ? (
           <div className="p-2 space-y-1.5 bg-card min-h-[128px]">
             {editingRound ? (
@@ -260,6 +261,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             </div>
           </button>
         )}
+        </div>
       </div>
     );
   };
