@@ -98,7 +98,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   const isLowerRound = (round: string) => /lower|low|losers/i.test(round);
 
   // Fixed dimensions so cards never clip and connector math stays stable.
-  const MATCH_H = 92;
+  const MATCH_H = 112;
   const BASE_GAP = 14;
   const HEADER_H = 32;
   const gapForDepth = (depth: number) => BASE_GAP + (Math.pow(2, depth) - 1) * (MATCH_H + BASE_GAP);
@@ -144,7 +144,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
         className="relative group text-xs flex flex-col"
       >
         <div className={cn(
-          "border rounded-md overflow-hidden shadow-md bg-card/60 backdrop-blur-sm flex flex-col flex-1",
+          "border rounded-md shadow-md bg-card/60 backdrop-blur-sm flex flex-col flex-1",
           isLast
             ? "border-[hsl(var(--gold))]/50 shadow-[0_0_16px_hsl(var(--gold)/0.18)]"
             : decided
