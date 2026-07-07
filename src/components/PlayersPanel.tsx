@@ -112,7 +112,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           adr: career.avgAdr,
         });
       }
+      // Coaches are stored separately (not on roster) — surface them here.
+      if (t.coach && !seen.has(t.coach)) {
+        seen.add(t.coach);
+        const career = computeCareerStats(t.coach);
+        out.push({
+          name: t.coach,
+          team: t,
+          region: t.region,
+          isFA: false,
+          country: normalizeCountry(playerNationalities[t.coach] || t.country),
+          realName: playerRealNames[t.coach],
+          role: "Coach",
+          rating: career.careerRating,
+          matches: career.matchesPlayed,
+          kdr: career.kdRatio,
+          adr: career.avgAdr,
+        });
+      }
     }
+
     // Free agents (manual + transfer-derived)
     for (const fa of getFreeAgents()) {
       if (seen.has(fa.player)) continue;
