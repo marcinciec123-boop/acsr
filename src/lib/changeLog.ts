@@ -22,6 +22,7 @@ import {
 
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
+const COACH_OVERRIDE_KEY = "coach_overrides";
 const PLAYER_ROLE_OVERRIDE_KEY = "player_role_overrides";
 const PLAYER_NAT_OVERRIDE_KEY = "player_nat_overrides";
 const PLAYER_REALNAME_OVERRIDE_KEY = "player_realname_overrides";
