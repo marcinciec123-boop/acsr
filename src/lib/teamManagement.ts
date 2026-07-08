@@ -25,6 +25,7 @@ const TRANSFERS_KEY = "transfers_data";
 const CUSTOM_TRANSFERS_KEY = "custom_transfers";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
 const COACH_OVERRIDE_KEY = "coach_overrides";
+const TEAM_NAME_OVERRIDE_KEY = "team_name_overrides";
 
 export interface ExtraDisband {
   team: string;
