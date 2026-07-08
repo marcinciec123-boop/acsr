@@ -25,6 +25,7 @@ const TRANSFERS_KEY = "transfers_data";
 const CUSTOM_TRANSFERS_KEY = "custom_transfers";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
 const COACH_OVERRIDE_KEY = "coach_overrides";
+const TEAM_NAME_OVERRIDE_KEY = "team_name_overrides";
 
 export interface ExtraDisband {
   team: string;
@@ -153,6 +154,17 @@ function propagateRename(oldName: string, newName: string): void {
   // 0) In-memory teamDatabase — inne komponenty czytają wprost stąd.
   const memTeam = teamDatabase.find(t => t.name === oldName);
   if (memTeam) memTeam.name = newName;
+
+  // 0b) Persist name override so rename survives page reload (teamDatabase is
+  // re-imported fresh each load with hardcoded names).
+  const nameOv = loadFromStorage<Record<string, string>>(TEAM_NAME_OVERRIDE_KEY, {});
+  // Find original key mapping to oldName (in case of chained renames)
+  let originalKey = oldName;
+  for (const [orig, cur] of Object.entries(nameOv)) {
+    if (cur === oldName) { originalKey = orig; break; }
+  }
+  nameOv[originalKey] = newName;
+  saveToStorage(TEAM_NAME_OVERRIDE_KEY, nameOv);
 
   // 1) Bench map
   const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});
