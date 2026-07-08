@@ -192,11 +192,24 @@ export function saveRosterOverrides(map: Record<string, string[]>): void {
   saveToStorage(ROSTER_OVERRIDE_KEY, map);
 }
 
-/** Persist the current state of teamDatabase rosters. */
+export function loadCoachOverrides(): Record<string, string | undefined> {
+  return loadFromStorage<Record<string, string | undefined>>(COACH_OVERRIDE_KEY, {});
+}
+
+export function saveCoachOverrides(map: Record<string, string | undefined>): void {
+  saveToStorage(COACH_OVERRIDE_KEY, map);
+}
+
+/** Persist the current state of teamDatabase rosters + coaches. */
 export function persistCurrentRosters(): void {
-  const map: Record<string, string[]> = {};
-  for (const t of teamDatabase) map[t.name] = [...t.roster];
-  saveRosterOverrides(map);
+  const rosters: Record<string, string[]> = {};
+  const coaches: Record<string, string | undefined> = {};
+  for (const t of teamDatabase) {
+    rosters[t.name] = [...t.roster];
+    coaches[t.name] = t.coach;
+  }
+  saveRosterOverrides(rosters);
+  saveCoachOverrides(coaches);
 }
 
 // ----------------- player-wide overrides -----------------
