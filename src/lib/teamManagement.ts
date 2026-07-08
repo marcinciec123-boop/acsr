@@ -11,15 +11,20 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
-import type { TeamData, TournamentData } from "./types";
+import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent } from "./freeAgents";
 import { loadBenched } from "./benchedPlayers";
+import { customTransfersGlobal } from "@/data/history";
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
 const BENCH_KEY = "benched_players";
 const DISBANDS_EXTRA_KEY = "disbands_extra";
 const ARCHIVED_TEAMS_KEY = "archived_teams";
+const TRANSFERS_KEY = "transfers_data";
+const CUSTOM_TRANSFERS_KEY = "custom_transfers";
+const ROSTER_OVERRIDE_KEY = "roster_overrides";
+const COACH_OVERRIDE_KEY = "coach_overrides";
 
 export interface ExtraDisband {
   team: string;
