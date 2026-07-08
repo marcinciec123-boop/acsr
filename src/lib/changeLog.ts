@@ -307,6 +307,14 @@ export function setPlayerRealName(player: string, firstName: string, lastName: s
  * - Re-applies player overrides into the static maps.
  */
 export function bootstrapPersistedState(): void {
+  // Team name overrides — apply FIRST so subsequent lookups use current names.
+  const nameOv = loadFromStorage<Record<string, string>>("team_name_overrides", {});
+  if (Object.keys(nameOv).length > 0) {
+    for (const t of teamDatabase) {
+      if (nameOv[t.name]) t.name = nameOv[t.name];
+    }
+  }
+
   // Custom transfers
   const persistedTransfers = loadFromStorage<Transfer[]>("custom_transfers", []);
   if (persistedTransfers.length > 0 && customTransfersGlobal.length === 0) {
