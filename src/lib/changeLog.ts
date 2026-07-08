@@ -38,6 +38,7 @@ export type ChangeKind =
 
 export interface DatabaseSnapshot {
   rosters: Record<string, string[]>;
+  coaches: Record<string, string | undefined>;
   customTransfers: Transfer[];
   manualFAs: ReturnType<typeof loadManualFreeAgents>;
   faNatOverrides: Record<string, string>;
