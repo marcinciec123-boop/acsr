@@ -313,12 +313,15 @@ export function bootstrapPersistedState(): void {
     persistedTransfers.forEach(t => customTransfersGlobal.push({ ...t }));
   }
 
-  // Roster overrides
+  // Roster + coach overrides
   const rosters = loadRosterOverrides();
-  if (Object.keys(rosters).length > 0) {
+  const coaches = loadCoachOverrides();
+  const hasRosters = Object.keys(rosters).length > 0;
+  const hasCoaches = Object.keys(coaches).length > 0;
+  if (hasRosters || hasCoaches) {
     for (const t of teamDatabase) {
-      const r = rosters[t.name];
-      if (r) t.roster = [...r];
+      if (hasRosters && rosters[t.name]) t.roster = [...rosters[t.name]];
+      if (hasCoaches && t.name in coaches) t.coach = coaches[t.name];
     }
   }
 
