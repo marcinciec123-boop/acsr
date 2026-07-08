@@ -65,6 +65,9 @@ export function captureSnapshot(): DatabaseSnapshot {
     rosters: Object.fromEntries(
       teamDatabase.map(t => [t.name, [...t.roster]]),
     ),
+    coaches: Object.fromEntries(
+      teamDatabase.map(t => [t.name, t.coach]),
+    ),
     customTransfers: customTransfersGlobal.map(t => ({ ...t })),
     manualFAs: loadManualFreeAgents().map(f => ({ ...f })),
     faNatOverrides: { ...loadFreeAgentNationalityOverrides() },
