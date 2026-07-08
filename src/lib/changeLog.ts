@@ -81,12 +81,14 @@ export function captureSnapshot(): DatabaseSnapshot {
 
 /** Restore the database in-memory + localStorage from a snapshot. */
 export function restoreSnapshot(snap: DatabaseSnapshot): void {
-  // Rosters
+  // Rosters + coaches
   for (const t of teamDatabase) {
     const r = snap.rosters[t.name];
     if (r) t.roster = [...r];
+    if (snap.coaches && t.name in snap.coaches) t.coach = snap.coaches[t.name];
   }
   saveRosterOverrides(snap.rosters);
+  saveCoachOverrides(snap.coaches || {});
 
   // Custom transfers
   customTransfersGlobal.length = 0;
