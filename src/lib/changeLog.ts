@@ -22,6 +22,7 @@ import {
 
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
+const COACH_OVERRIDE_KEY = "coach_overrides";
 const PLAYER_ROLE_OVERRIDE_KEY = "player_role_overrides";
 const PLAYER_NAT_OVERRIDE_KEY = "player_nat_overrides";
 const PLAYER_REALNAME_OVERRIDE_KEY = "player_realname_overrides";
@@ -37,6 +38,7 @@ export type ChangeKind =
 
 export interface DatabaseSnapshot {
   rosters: Record<string, string[]>;
+  coaches: Record<string, string | undefined>;
   customTransfers: Transfer[];
   manualFAs: ReturnType<typeof loadManualFreeAgents>;
   faNatOverrides: Record<string, string>;
@@ -63,6 +65,9 @@ export function captureSnapshot(): DatabaseSnapshot {
     rosters: Object.fromEntries(
       teamDatabase.map(t => [t.name, [...t.roster]]),
     ),
+    coaches: Object.fromEntries(
+      teamDatabase.map(t => [t.name, t.coach]),
+    ),
     customTransfers: customTransfersGlobal.map(t => ({ ...t })),
     manualFAs: loadManualFreeAgents().map(f => ({ ...f })),
     faNatOverrides: { ...loadFreeAgentNationalityOverrides() },
@@ -76,12 +81,14 @@ export function captureSnapshot(): DatabaseSnapshot {
 
 /** Restore the database in-memory + localStorage from a snapshot. */
 export function restoreSnapshot(snap: DatabaseSnapshot): void {
-  // Rosters
+  // Rosters + coaches
   for (const t of teamDatabase) {
     const r = snap.rosters[t.name];
     if (r) t.roster = [...r];
+    if (snap.coaches && t.name in snap.coaches) t.coach = snap.coaches[t.name];
   }
   saveRosterOverrides(snap.rosters);
+  saveCoachOverrides(snap.coaches || {});
 
   // Custom transfers
   customTransfersGlobal.length = 0;
@@ -185,11 +192,24 @@ export function saveRosterOverrides(map: Record<string, string[]>): void {
   saveToStorage(ROSTER_OVERRIDE_KEY, map);
 }
 
-/** Persist the current state of teamDatabase rosters. */
+export function loadCoachOverrides(): Record<string, string | undefined> {
+  return loadFromStorage<Record<string, string | undefined>>(COACH_OVERRIDE_KEY, {});
+}
+
+export function saveCoachOverrides(map: Record<string, string | undefined>): void {
+  saveToStorage(COACH_OVERRIDE_KEY, map);
+}
+
+/** Persist the current state of teamDatabase rosters + coaches. */
 export function persistCurrentRosters(): void {
-  const map: Record<string, string[]> = {};
-  for (const t of teamDatabase) map[t.name] = [...t.roster];
-  saveRosterOverrides(map);
+  const rosters: Record<string, string[]> = {};
+  const coaches: Record<string, string | undefined> = {};
+  for (const t of teamDatabase) {
+    rosters[t.name] = [...t.roster];
+    coaches[t.name] = t.coach;
+  }
+  saveRosterOverrides(rosters);
+  saveCoachOverrides(coaches);
 }
 
 // ----------------- player-wide overrides -----------------
@@ -293,12 +313,15 @@ export function bootstrapPersistedState(): void {
     persistedTransfers.forEach(t => customTransfersGlobal.push({ ...t }));
   }
 
-  // Roster overrides
+  // Roster + coach overrides
   const rosters = loadRosterOverrides();
-  if (Object.keys(rosters).length > 0) {
+  const coaches = loadCoachOverrides();
+  const hasRosters = Object.keys(rosters).length > 0;
+  const hasCoaches = Object.keys(coaches).length > 0;
+  if (hasRosters || hasCoaches) {
     for (const t of teamDatabase) {
-      const r = rosters[t.name];
-      if (r) t.roster = [...r];
+      if (hasRosters && rosters[t.name]) t.roster = [...rosters[t.name]];
+      if (hasCoaches && t.name in coaches) t.coach = coaches[t.name];
     }
   }
 

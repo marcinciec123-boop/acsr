@@ -11,15 +11,20 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
-import type { TeamData, TournamentData } from "./types";
+import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent } from "./freeAgents";
 import { loadBenched } from "./benchedPlayers";
+import { customTransfersGlobal } from "@/data/history";
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
 const BENCH_KEY = "benched_players";
 const DISBANDS_EXTRA_KEY = "disbands_extra";
 const ARCHIVED_TEAMS_KEY = "archived_teams";
+const TRANSFERS_KEY = "transfers_data";
+const CUSTOM_TRANSFERS_KEY = "custom_transfers";
+const ROSTER_OVERRIDE_KEY = "roster_overrides";
+const COACH_OVERRIDE_KEY = "coach_overrides";
 
 export interface ExtraDisband {
   team: string;
@@ -145,6 +150,10 @@ export function updateTeam(oldName: string, patch: UpdateTeamPatch): { ok: boole
 }
 
 function propagateRename(oldName: string, newName: string): void {
+  // 0) In-memory teamDatabase — inne komponenty czytają wprost stąd.
+  const memTeam = teamDatabase.find(t => t.name === oldName);
+  if (memTeam) memTeam.name = newName;
+
   // 1) Bench map
   const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});
   if (bench[oldName]) {
@@ -154,17 +163,61 @@ function propagateRename(oldName: string, newName: string): void {
     window.dispatchEvent(new CustomEvent("bench:update"));
   }
 
-  // 2) Tournaments — tylko bieżące (upcoming / live / nie-zatwierdzone)
+  // 1b) Roster / coach override maps (persistCurrentRosters używa nazwy jako klucza)
+  const rosterOv = loadFromStorage<Record<string, string[]>>(ROSTER_OVERRIDE_KEY, {});
+  if (rosterOv[oldName]) {
+    rosterOv[newName] = rosterOv[oldName];
+    delete rosterOv[oldName];
+    saveToStorage(ROSTER_OVERRIDE_KEY, rosterOv);
+  }
+  const coachOv = loadFromStorage<Record<string, string>>(COACH_OVERRIDE_KEY, {});
+  if (coachOv[oldName] !== undefined) {
+    coachOv[newName] = coachOv[oldName];
+    delete coachOv[oldName];
+    saveToStorage(COACH_OVERRIDE_KEY, coachOv);
+  }
+
+  // 1c) Transfery — TRANSFERS_KEY oraz global custom transfers
+  const transfers = loadFromStorage<Transfer[]>(TRANSFERS_KEY, []);
+  let tChanged = false;
+  const newTransfers = transfers.map(tr => {
+    let x = tr;
+    if (tr.oldTeam === oldName) { x = { ...x, oldTeam: newName }; tChanged = true; }
+    if (tr.newTeam === oldName) { x = { ...x, newTeam: newName }; tChanged = true; }
+    return x;
+  });
+  if (tChanged) saveToStorage(TRANSFERS_KEY, newTransfers);
+
+  let ctChanged = false;
+  for (const ct of customTransfersGlobal) {
+    if (ct.oldTeam === oldName) { ct.oldTeam = newName; ctChanged = true; }
+    if (ct.newTeam === oldName) { ct.newTeam = newName; ctChanged = true; }
+  }
+  if (ctChanged) saveToStorage(CUSTOM_TRANSFERS_KEY, customTransfersGlobal);
+
+  // 1d) Disbandy / archiwum
+  const disbands = loadFromStorage<ExtraDisband[]>(DISBANDS_EXTRA_KEY, []);
+  let dChanged = false;
+  const newDisbands = disbands.map(d => {
+    if (d.team === oldName) { dChanged = true; return { ...d, team: newName }; }
+    return d;
+  });
+  if (dChanged) saveToStorage(DISBANDS_EXTRA_KEY, newDisbands);
+
+  const archived = loadFromStorage<string[]>(ARCHIVED_TEAMS_KEY, []);
+  if (archived.includes(oldName)) {
+    saveToStorage(ARCHIVED_TEAMS_KEY, archived.map(n => n === oldName ? newName : n));
+  }
+
+  // 2) Tournaments — WSZYSTKIE (także zakończone), żeby historia była spójna
   const tournaments = loadFromStorage<TournamentData[]>(TOURNAMENTS_KEY, []);
   let touched = false;
   const updated = tournaments.map(t => {
-    if (t.resultsConfirmed || t.status === "completed") return t;
     let changed = false;
 
     const renameInArr = (arr: string[] | undefined) => {
       if (!arr) return arr;
-      const out = arr.map(x => (x === oldName ? (changed = true, newName) : x));
-      return out;
+      return arr.map(x => (x === oldName ? (changed = true, newName) : x));
     };
 
     const newParticipants = renameInArr(t.participants) || [];
@@ -193,6 +246,7 @@ function propagateRename(oldName: string, newName: string): void {
   });
   if (touched) saveToStorage(TOURNAMENTS_KEY, updated);
   window.dispatchEvent(new CustomEvent("tournaments:update"));
+  window.dispatchEvent(new CustomEvent("transfers:update"));
 }
 
 // ---------- disband ----------
