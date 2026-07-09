@@ -210,6 +210,22 @@ export function persistCurrentRosters(): void {
   }
   saveRosterOverrides(rosters);
   saveCoachOverrides(coaches);
+
+  // Mirror into ranking_data so all reads (PlayersPanel, TeamLogo, TeamProfile)
+  // see the same coach — this is the authoritative source in most panels.
+  try {
+    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>("ranking_data", null);
+    if (ranking && ranking.length > 0) {
+      const patched = ranking.map(team => ({
+        ...team,
+        coach: team.name in coaches ? coaches[team.name] : team.coach,
+        roster: rosters[team.name] ? [...rosters[team.name]] : team.roster,
+      }));
+      saveToStorage("ranking_data", patched);
+    }
+  } catch (e) {
+    console.warn("Failed to mirror rosters into ranking_data:", e);
+  }
 }
 
 // ----------------- player-wide overrides -----------------
