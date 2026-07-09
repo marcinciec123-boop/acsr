@@ -333,6 +333,31 @@ export function bootstrapPersistedState(): void {
     }
   }
 
+  // Also propagate coach + roster overrides into `ranking_data` snapshot
+  // so components that read from it (PlayersPanel, TeamLogo, RankingPanel)
+  // see the same coach as teamDatabase across sessions.
+  try {
+    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>("ranking_data", null);
+    if (ranking && ranking.length > 0 && (hasRosters || hasCoaches)) {
+      let touched = false;
+      const patched = ranking.map(team => {
+        let next = team;
+        if (hasRosters && rosters[team.name]) {
+          next = { ...next, roster: [...rosters[team.name]] };
+          touched = true;
+        }
+        if (hasCoaches && team.name in coaches) {
+          next = { ...next, coach: coaches[team.name] };
+          touched = true;
+        }
+        return next;
+      });
+      if (touched) saveToStorage("ranking_data", patched);
+    }
+  } catch (e) {
+    console.warn("Failed to sync coach overrides into ranking_data:", e);
+  }
+
   // Player-wide overrides
   Object.entries(loadPlayerRoleOverrides()).forEach(([p, r]) => { playerRoles[p] = r; });
   Object.entries(loadPlayerNatOverrides()).forEach(([p, c]) => { playerNationalities[p] = c; });
