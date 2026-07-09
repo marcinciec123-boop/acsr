@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { User, Search, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
   removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
 } from "@/lib/freeAgents";
-import { captureSnapshot, recordChange, setPlayerRole } from "@/lib/changeLog";
+import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
@@ -83,12 +83,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [faDialogOpen, setFaDialogOpen] = useState(false);
   /** When set we're editing an existing manual FA. */
   const [editingFANick, setEditingFANick] = useState<string | null>(null);
+  /** When set we're editing a rostered coach (player-wide overrides). */
+  const [editingRosteredCoach, setEditingRosteredCoach] = useState<string | null>(null);
   const [faForm, setFaForm] = useState<FAFormState>(emptyFAForm());
+
+  const [teamsTick, setTeamsTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTeamsTick(k => k + 1);
+    window.addEventListener("teams:update", bump);
+    window.addEventListener("ranking:update", bump);
+    return () => {
+      window.removeEventListener("teams:update", bump);
+      window.removeEventListener("ranking:update", bump);
+    };
+  }, []);
 
   const teams = useMemo(() => {
     const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
     return stored && stored.length > 0 ? stored : teamDatabase.map(t => ({ ...t }));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamsTick]);
 
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
@@ -236,6 +250,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   // ===== Manual FA dialog handlers =====
   const openCreateFA = () => {
     setEditingFANick(null);
+    setEditingRosteredCoach(null);
     setFaForm(emptyFAForm());
     setFaDialogOpen(true);
   };
@@ -245,10 +260,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     const role = (manual?.role || playerRoles[nick] || "") as PlayerRole | "";
     const real = playerRealNames[nick];
     setEditingFANick(nick);
+    setEditingRosteredCoach(null);
     setFaForm({
       player: nick,
       firstName: manual?.firstName ?? real?.firstName ?? "",
       lastName: manual?.lastName ?? real?.lastName ?? "",
+      country,
+      role,
+    });
+    setFaDialogOpen(true);
+  };
+  const openEditCoach = (nick: string) => {
+    const country = playerNationalities[nick] || "";
+    const role = (playerRoles[nick] || "Coach") as PlayerRole | "";
+    const real = playerRealNames[nick];
+    setEditingFANick(null);
+    setEditingRosteredCoach(nick);
+    setFaForm({
+      player: nick,
+      firstName: real?.firstName ?? "",
+      lastName: real?.lastName ?? "",
       country,
       role,
     });
@@ -261,7 +292,14 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       return;
     }
     const before = captureSnapshot();
-    if (editingFANick) {
+    if (editingRosteredCoach) {
+      const country = faForm.country.trim().toUpperCase().slice(0, 2);
+      if (country) setPlayerNationality(editingRosteredCoach, country);
+      setPlayerRealName(editingRosteredCoach, faForm.firstName.trim(), faForm.lastName.trim());
+      setPlayerRole(editingRosteredCoach, faForm.role || "Coach");
+      recordChange("fa-edit", `Edytowano trenera: ${editingRosteredCoach}`, before);
+      toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingRosteredCoach}.` });
+    } else if (editingFANick) {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
         lastName: faForm.lastName.trim(),
@@ -645,13 +683,24 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       </div>
                     </div>
                   ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
-                      className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
-                      title={p.team!.name}
-                    >
-                      {countryFlag(p.team!.country)} {p.team!.name}
-                    </button>
+                    <div className="mb-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
+                        className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                        title={p.team!.name}
+                      >
+                        {countryFlag(p.team!.country)} {p.team!.name}
+                      </button>
+                      {p.role === "Coach" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditCoach(p.name); }}
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
+                          title="Edytuj profil trenera"
+                        >
+                          <Pencil className="w-2.5 h-2.5" /> edytuj trenera
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/40">
@@ -693,7 +742,11 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="font-heading">
-                {editingFANick ? `Edytuj wolnego agenta: ${editingFANick}` : "Dodaj wolnego agenta"}
+                {editingRosteredCoach
+                  ? `Edytuj trenera: ${editingRosteredCoach}`
+                  : editingFANick
+                    ? `Edytuj wolnego agenta: ${editingFANick}`
+                    : "Dodaj wolnego agenta"}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 pt-2">

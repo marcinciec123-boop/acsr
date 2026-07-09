@@ -210,6 +210,22 @@ export function persistCurrentRosters(): void {
   }
   saveRosterOverrides(rosters);
   saveCoachOverrides(coaches);
+
+  // Mirror into ranking_data so all reads (PlayersPanel, TeamLogo, TeamProfile)
+  // see the same coach — this is the authoritative source in most panels.
+  try {
+    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>("ranking_data", null);
+    if (ranking && ranking.length > 0) {
+      const patched = ranking.map(team => ({
+        ...team,
+        coach: team.name in coaches ? coaches[team.name] : team.coach,
+        roster: rosters[team.name] ? [...rosters[team.name]] : team.roster,
+      }));
+      saveToStorage("ranking_data", patched);
+    }
+  } catch (e) {
+    console.warn("Failed to mirror rosters into ranking_data:", e);
+  }
 }
 
 // ----------------- player-wide overrides -----------------
@@ -331,6 +347,31 @@ export function bootstrapPersistedState(): void {
       if (hasRosters && rosters[t.name]) t.roster = [...rosters[t.name]];
       if (hasCoaches && t.name in coaches) t.coach = coaches[t.name];
     }
+  }
+
+  // Also propagate coach + roster overrides into `ranking_data` snapshot
+  // so components that read from it (PlayersPanel, TeamLogo, RankingPanel)
+  // see the same coach as teamDatabase across sessions.
+  try {
+    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>("ranking_data", null);
+    if (ranking && ranking.length > 0 && (hasRosters || hasCoaches)) {
+      let touched = false;
+      const patched = ranking.map(team => {
+        let next = team;
+        if (hasRosters && rosters[team.name]) {
+          next = { ...next, roster: [...rosters[team.name]] };
+          touched = true;
+        }
+        if (hasCoaches && team.name in coaches) {
+          next = { ...next, coach: coaches[team.name] };
+          touched = true;
+        }
+        return next;
+      });
+      if (touched) saveToStorage("ranking_data", patched);
+    }
+  } catch (e) {
+    console.warn("Failed to sync coach overrides into ranking_data:", e);
   }
 
   // Player-wide overrides
