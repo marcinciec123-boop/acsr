@@ -295,10 +295,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     if (editingRosteredCoach) {
       const country = faForm.country.trim().toUpperCase().slice(0, 2);
       if (country) setPlayerNationality(editingRosteredCoach, country);
-      setPlayerRealName(editingRosteredCoach, {
-        firstName: faForm.firstName.trim(),
-        lastName: faForm.lastName.trim(),
-      });
+      setPlayerRealName(editingRosteredCoach, faForm.firstName.trim(), faForm.lastName.trim());
       setPlayerRole(editingRosteredCoach, faForm.role || "Coach");
       recordChange("fa-edit", `Edytowano trenera: ${editingRosteredCoach}`, before);
       toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingRosteredCoach}.` });
