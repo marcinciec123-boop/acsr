@@ -1,11 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon } from "lucide-react";
-import { getFreeAgents, removeManualFreeAgent } from "@/lib/freeAgents";
+import {
+  getFreeAgents,
+  removeManualFreeAgent,
+  loadFreeAgentNationalityOverrides,
+  loadFreeAgentRealNameOverrides,
+  loadFreeAgentRoleOverrides,
+  loadManualFreeAgents,
+} from "@/lib/freeAgents";
 import { roleIcons } from "@/data/playerRoles";
 import TeamLogo from "@/components/TeamLogo";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
+import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles } from "@/data/playerRoles";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag } from "@/lib/flags";
@@ -19,6 +27,9 @@ import { transfers as seedTransfers, customTransfersGlobal, type Transfer as Raw
 import {
   captureSnapshot, recordChange, loadChangeLog, revertTo, clearChangeLog,
   persistCurrentRosters, type ChangeLogEntry,
+  loadPlayerNatOverrides, savePlayerNatOverrides,
+  loadPlayerRealnameOverrides, savePlayerRealnameOverrides,
+  loadPlayerRoleOverrides, savePlayerRoleOverrides,
 } from "@/lib/changeLog";
 import { removeFromAllBenches } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
@@ -27,6 +38,41 @@ type TransferType = "all" | "join" | "leave" | "move";
 type Section = "transfers" | "freeAgents" | "changes";
 
 const TRANSFERS_KEY = "transfers_data";
+
+const persistPersonMetadataAfterSigning = (player: string) => {
+  const manual = loadManualFreeAgents().find(f => f.player === player);
+  const faNat = loadFreeAgentNationalityOverrides();
+  const faNames = loadFreeAgentRealNameOverrides();
+  const faRoles = loadFreeAgentRoleOverrides();
+
+  const country = (faNat[player] || manual?.country || playerNationalities[player] || "").trim().toUpperCase();
+  if (country) {
+    const natOv = loadPlayerNatOverrides();
+    natOv[player] = country;
+    savePlayerNatOverrides(natOv);
+    playerNationalities[player] = country;
+  }
+
+  const role = faRoles[player] || manual?.role || playerRoles[player];
+  if (role) {
+    const roleOv = loadPlayerRoleOverrides();
+    roleOv[player] = role;
+    savePlayerRoleOverrides(roleOv);
+    playerRoles[player] = role;
+  }
+
+  const realName = faNames[player] || (
+    manual && (manual.firstName || manual.lastName)
+      ? { firstName: manual.firstName || "", lastName: manual.lastName || "" }
+      : playerRealNames[player]
+  );
+  if (realName && (realName.firstName || realName.lastName)) {
+    const nameOv = loadPlayerRealnameOverrides();
+    nameOv[player] = realName;
+    savePlayerRealnameOverrides(nameOv);
+    playerRealNames[player] = realName;
+  }
+};
 
 const TransferPanel = () => {
   const [transfers, setTransfers] = useState<Transfer[]>(() => {
@@ -203,8 +249,10 @@ const TransferPanel = () => {
         else if (!toTeam.roster.includes(t.player)) toTeam.roster.push(t.player);
       }
       // If the player was a manual free agent, remove that entry so they no
-      // longer appear as FA after joining a team.
-      removeManualFreeAgent(t.player);
+      // longer appear as FA after joining a team, but keep/copy their database
+      // metadata (nationality, real name, role) as normal player overrides.
+      persistPersonMetadataAfterSigning(t.player);
+      removeManualFreeAgent(t.player, { clearOverrides: false });
     }
 
 
