@@ -83,6 +83,8 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [faDialogOpen, setFaDialogOpen] = useState(false);
   /** When set we're editing an existing manual FA. */
   const [editingFANick, setEditingFANick] = useState<string | null>(null);
+  /** When set we're editing a rostered coach (player-wide overrides). */
+  const [editingRosteredCoach, setEditingRosteredCoach] = useState<string | null>(null);
   const [faForm, setFaForm] = useState<FAFormState>(emptyFAForm());
 
   const [teamsTick, setTeamsTick] = useState(0);
