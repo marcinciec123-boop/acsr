@@ -250,6 +250,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   // ===== Manual FA dialog handlers =====
   const openCreateFA = () => {
     setEditingFANick(null);
+    setEditingRosteredCoach(null);
     setFaForm(emptyFAForm());
     setFaDialogOpen(true);
   };
@@ -259,10 +260,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     const role = (manual?.role || playerRoles[nick] || "") as PlayerRole | "";
     const real = playerRealNames[nick];
     setEditingFANick(nick);
+    setEditingRosteredCoach(null);
     setFaForm({
       player: nick,
       firstName: manual?.firstName ?? real?.firstName ?? "",
       lastName: manual?.lastName ?? real?.lastName ?? "",
+      country,
+      role,
+    });
+    setFaDialogOpen(true);
+  };
+  const openEditCoach = (nick: string) => {
+    const country = playerNationalities[nick] || "";
+    const role = (playerRoles[nick] || "Coach") as PlayerRole | "";
+    const real = playerRealNames[nick];
+    setEditingFANick(null);
+    setEditingRosteredCoach(nick);
+    setFaForm({
+      player: nick,
+      firstName: real?.firstName ?? "",
+      lastName: real?.lastName ?? "",
       country,
       role,
     });
@@ -275,7 +292,17 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       return;
     }
     const before = captureSnapshot();
-    if (editingFANick) {
+    if (editingRosteredCoach) {
+      const country = faForm.country.trim().toUpperCase().slice(0, 2);
+      if (country) setPlayerNationality(editingRosteredCoach, country);
+      setPlayerRealName(editingRosteredCoach, {
+        firstName: faForm.firstName.trim(),
+        lastName: faForm.lastName.trim(),
+      });
+      setPlayerRole(editingRosteredCoach, faForm.role || "Coach");
+      recordChange("fa-edit", `Edytowano trenera: ${editingRosteredCoach}`, before);
+      toast({ title: "Zapisano", description: `Zaktualizowano profil ${editingRosteredCoach}.` });
+    } else if (editingFANick) {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
         lastName: faForm.lastName.trim(),
