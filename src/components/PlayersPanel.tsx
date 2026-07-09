@@ -742,7 +742,11 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="font-heading">
-                {editingFANick ? `Edytuj wolnego agenta: ${editingFANick}` : "Dodaj wolnego agenta"}
+                {editingRosteredCoach
+                  ? `Edytuj trenera: ${editingRosteredCoach}`
+                  : editingFANick
+                    ? `Edytuj wolnego agenta: ${editingFANick}`
+                    : "Dodaj wolnego agenta"}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 pt-2">
