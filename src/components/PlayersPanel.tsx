@@ -683,13 +683,24 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       </div>
                     </div>
                   ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
-                      className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left mb-2"
-                      title={p.team!.name}
-                    >
-                      {countryFlag(p.team!.country)} {p.team!.name}
-                    </button>
+                    <div className="mb-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
+                        className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                        title={p.team!.name}
+                      >
+                        {countryFlag(p.team!.country)} {p.team!.name}
+                      </button>
+                      {p.role === "Coach" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditCoach(p.name); }}
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
+                          title="Edytuj profil trenera"
+                        >
+                          <Pencil className="w-2.5 h-2.5" /> edytuj trenera
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/40">
