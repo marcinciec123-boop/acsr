@@ -85,10 +85,22 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [editingFANick, setEditingFANick] = useState<string | null>(null);
   const [faForm, setFaForm] = useState<FAFormState>(emptyFAForm());
 
+  const [teamsTick, setTeamsTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTeamsTick(k => k + 1);
+    window.addEventListener("teams:update", bump);
+    window.addEventListener("ranking:update", bump);
+    return () => {
+      window.removeEventListener("teams:update", bump);
+      window.removeEventListener("ranking:update", bump);
+    };
+  }, []);
+
   const teams = useMemo(() => {
     const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
     return stored && stored.length > 0 ? stored : teamDatabase.map(t => ({ ...t }));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamsTick]);
 
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
