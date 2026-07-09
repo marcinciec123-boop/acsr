@@ -20,7 +20,7 @@ import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
   removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
 } from "@/lib/freeAgents";
-import { captureSnapshot, recordChange, setPlayerRole } from "@/lib/changeLog";
+import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
