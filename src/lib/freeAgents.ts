@@ -141,13 +141,17 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   return true;
 }
 
-/** Remove a manual FA entirely (also clears overrides). */
-export function removeManualFreeAgent(player: string): void {
+/** Remove a manual FA entry. By default this is a delete action and clears FA-only overrides.
+ *  Transfer signing uses clearOverrides=false so nationality/real name/role survive after joining a team. */
+export function removeManualFreeAgent(player: string, options: { clearOverrides?: boolean } = {}): void {
+  const { clearOverrides = true } = options;
   const list = loadManualFreeAgents().filter(f => f.player !== player);
   saveManualFreeAgents(list);
-  setFreeAgentNationality(player, "");
-  setFreeAgentRole(player, "");
-  setFreeAgentRealName(player, "", "");
+  if (clearOverrides) {
+    setFreeAgentNationality(player, "");
+    setFreeAgentRole(player, "");
+    setFreeAgentRealName(player, "", "");
+  }
 }
 
 /** Patch an existing FA. Works for both manual entries and transfer-derived FAs
