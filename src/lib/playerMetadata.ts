@@ -8,6 +8,10 @@ const PLAYER_ROLE_OVERRIDE_KEY = "player_role_overrides";
 const PLAYER_NAT_OVERRIDE_KEY = "player_nat_overrides";
 const PLAYER_REALNAME_OVERRIDE_KEY = "player_realname_overrides";
 
+const defaultPlayerNationalities = { ...playerNationalities };
+const defaultPlayerRoles = { ...playerRoles };
+const defaultPlayerRealNames = { ...playerRealNames };
+
 export function loadPlayerRoleOverrides(): Record<string, PlayerRole> {
   return loadFromStorage<Record<string, PlayerRole>>(PLAYER_ROLE_OVERRIDE_KEY, {});
 }
@@ -64,7 +68,8 @@ export function persistPlayerMetadata(player: string, input: PersistPlayerMetada
       playerNationalities[nick] = country;
     } else {
       delete cur[nick];
-      delete playerNationalities[nick];
+      if (defaultPlayerNationalities[nick]) playerNationalities[nick] = defaultPlayerNationalities[nick];
+      else delete playerNationalities[nick];
     }
     savePlayerNatOverrides(cur);
   }
@@ -76,7 +81,8 @@ export function persistPlayerMetadata(player: string, input: PersistPlayerMetada
       playerRoles[nick] = input.role;
     } else {
       delete cur[nick];
-      delete playerRoles[nick];
+      if (defaultPlayerRoles[nick]) playerRoles[nick] = defaultPlayerRoles[nick];
+      else delete playerRoles[nick];
     }
     savePlayerRoleOverrides(cur);
   }
@@ -90,7 +96,8 @@ export function persistPlayerMetadata(player: string, input: PersistPlayerMetada
       playerRealNames[nick] = { firstName, lastName };
     } else {
       delete cur[nick];
-      delete playerRealNames[nick];
+      if (defaultPlayerRealNames[nick]) playerRealNames[nick] = defaultPlayerRealNames[nick];
+      else delete playerRealNames[nick];
     }
     savePlayerRealnameOverrides(cur);
   }
