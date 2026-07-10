@@ -238,7 +238,7 @@ export function persistCurrentRosters(): void {
   // Mirror into ranking_data so all reads (PlayersPanel, TeamLogo, TeamProfile)
   // see the same coach — this is the authoritative source in most panels.
   try {
-    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>("ranking_data", null);
+    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>(RANKING_KEY, null);
     if (ranking && ranking.length > 0) {
       const patched = ranking.map(team => ({
         ...team,
@@ -341,7 +341,7 @@ export function bootstrapPersistedState(): void {
   // so components that read from it (PlayersPanel, TeamLogo, RankingPanel)
   // see the same coach as teamDatabase across sessions.
   try {
-    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>("ranking_data", null);
+    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>(RANKING_KEY, null);
     if (ranking && ranking.length > 0 && (hasRosters || hasCoaches)) {
       let touched = false;
       const patched = ranking.map(team => {
@@ -356,7 +356,7 @@ export function bootstrapPersistedState(): void {
         }
         return next;
       });
-      if (touched) saveToStorage("ranking_data", patched);
+      if (touched) saveToStorage(RANKING_KEY, patched);
     }
   } catch (e) {
     console.warn("Failed to sync coach overrides into ranking_data:", e);
