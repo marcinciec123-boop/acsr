@@ -235,7 +235,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   }, [periodRows, search, region, teamStatus, nationality, roleFilter, sort, onlyWithStats]);
 
   const saveFANationality = (player: string, codeOverride?: string) => {
-    const raw = (codeOverride ?? faCountryDraft).trim().toUpperCase().slice(0, 2);
+    const raw = normalizeCountry((codeOverride ?? faCountryDraft).trim().toUpperCase());
     if (raw.length === 2) {
       const before = captureSnapshot();
       const old = playerNationalities[player] || "—";
@@ -293,7 +293,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     }
     const before = captureSnapshot();
     if (editingRosteredCoach) {
-      const country = faForm.country.trim().toUpperCase().slice(0, 2);
+      const country = normalizeCountry(faForm.country.trim().toUpperCase());
       if (country) setPlayerNationality(editingRosteredCoach, country);
       setPlayerRealName(editingRosteredCoach, faForm.firstName.trim(), faForm.lastName.trim());
       setPlayerRole(editingRosteredCoach, faForm.role || "Coach");
@@ -303,7 +303,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       updateManualFreeAgent(editingFANick, {
         firstName: faForm.firstName.trim(),
         lastName: faForm.lastName.trim(),
-        country: faForm.country.trim().toUpperCase().slice(0, 2),
+        country: normalizeCountry(faForm.country.trim().toUpperCase()),
         role: faForm.role || undefined,
       });
       recordChange("fa-edit", `Edytowano FA: ${editingFANick}`, before);

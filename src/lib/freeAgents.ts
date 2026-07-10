@@ -15,6 +15,7 @@ import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { normalizeCountry } from "./flags";
+import { coercePlayerCountry, persistPlayerMetadata } from "./playerMetadata";
 
 export interface FreeAgent {
   player: string;
@@ -51,10 +52,11 @@ export function loadFreeAgentNationalityOverrides(): Record<string, string> {
 /** Save a single nationality override for a free agent. */
 export function setFreeAgentNationality(player: string, code: string): void {
   const cur = loadFreeAgentNationalityOverrides();
-  if (code) cur[player] = code.toUpperCase();
+  const country = coercePlayerCountry(code);
+  if (country) cur[player] = country;
   else delete cur[player];
   saveToStorage(FA_NATIONALITY_OVERRIDE_KEY, cur);
-  if (code) playerNationalities[player] = code.toUpperCase();
+  persistPlayerMetadata(player, { country });
 }
 
 // ---------- role / realname overrides ----------
@@ -68,7 +70,7 @@ export function setFreeAgentRole(player: string, role: PlayerRole | ""): void {
   if (role) cur[player] = role;
   else delete cur[player];
   saveToStorage(FA_ROLE_OVERRIDE_KEY, cur);
-  if (role) playerRoles[player] = role;
+  persistPlayerMetadata(player, { role });
 }
 
 export function loadFreeAgentRealNameOverrides(): Record<string, { firstName: string; lastName: string }> {
@@ -80,7 +82,7 @@ export function setFreeAgentRealName(player: string, firstName: string, lastName
   if (firstName || lastName) cur[player] = { firstName, lastName };
   else delete cur[player];
   saveToStorage(FA_REALNAME_OVERRIDE_KEY, cur);
-  if (firstName || lastName) playerRealNames[player] = { firstName, lastName };
+  persistPlayerMetadata(player, { firstName, lastName });
 }
 
 // ---------- manual FAs ----------
@@ -108,9 +110,13 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   const list = loadManualFreeAgents();
   if (list.some(f => f.player.toLowerCase() === nick.toLowerCase())) return false;
   // Also avoid clashes with rostered / transferred players
-  for (const t of teamDatabase) if (t.roster.includes(nick)) return false;
+  const storedTeams = loadFromStorage<TeamData[] | null>("ranking_data", null);
+  const teams = storedTeams && storedTeams.length > 0 ? storedTeams : teamDatabase;
+  for (const t of teams) {
+    if (t.roster.includes(nick) || t.coach === nick) return false;
+  }
 
-  const country = (input.country || "").trim().toUpperCase().slice(0, 2);
+  const country = coercePlayerCountry(input.country || "");
   const role = input.role;
 
   list.push({
@@ -122,19 +128,8 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   });
   saveManualFreeAgents(list);
 
-  if (country) {
-    // Only backfill nationality when the player has no known nationality yet.
-    // Prevents disband/manual-FA flows from silently overwriting a player's
-    // real nationality with the last team's country.
-    if (!playerNationalities[nick]) {
-      playerNationalities[nick] = country;
-      setFreeAgentNationality(nick, country);
-    }
-  }
-  if (role) {
-    playerRoles[nick] = role;
-    setFreeAgentRole(nick, role);
-  }
+  if (country && !playerNationalities[nick]) setFreeAgentNationality(nick, country);
+  if (role) setFreeAgentRole(nick, role);
   if (input.firstName || input.lastName) {
     setFreeAgentRealName(nick, input.firstName?.trim() || "", input.lastName?.trim() || "");
   }

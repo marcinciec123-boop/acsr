@@ -10,9 +10,21 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
+import type { TeamData } from "./types";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, type PlayerRole } from "@/data/playerRoles";
+import {
+  applyPlayerMetadataOverrides,
+  coercePlayerCountry,
+  loadPlayerNatOverrides,
+  loadPlayerRealnameOverrides,
+  loadPlayerRoleOverrides,
+  persistPlayerMetadata,
+  savePlayerNatOverrides,
+  savePlayerRealnameOverrides,
+  savePlayerRoleOverrides,
+} from "./playerMetadata";
 import {
   loadManualFreeAgents,
   loadFreeAgentNationalityOverrides,
@@ -23,9 +35,7 @@ import {
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
 const COACH_OVERRIDE_KEY = "coach_overrides";
-const PLAYER_ROLE_OVERRIDE_KEY = "player_role_overrides";
-const PLAYER_NAT_OVERRIDE_KEY = "player_nat_overrides";
-const PLAYER_REALNAME_OVERRIDE_KEY = "player_realname_overrides";
+const RANKING_KEY = "ranking_data";
 
 export type ChangeKind =
   | "transfer"
@@ -61,12 +71,14 @@ export interface ChangeLogEntry {
 // ----------------- snapshot helpers -----------------
 
 export function captureSnapshot(): DatabaseSnapshot {
+  const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+  const teams = ranking && ranking.length > 0 ? ranking : teamDatabase;
   return {
     rosters: Object.fromEntries(
-      teamDatabase.map(t => [t.name, [...t.roster]]),
+      teams.map(t => [t.name, [...t.roster]]),
     ),
     coaches: Object.fromEntries(
-      teamDatabase.map(t => [t.name, t.coach]),
+      teams.map(t => [t.name, t.coach]),
     ),
     customTransfers: customTransfersGlobal.map(t => ({ ...t })),
     manualFAs: loadManualFreeAgents().map(f => ({ ...f })),
@@ -89,6 +101,18 @@ export function restoreSnapshot(snap: DatabaseSnapshot): void {
   }
   saveRosterOverrides(snap.rosters);
   saveCoachOverrides(snap.coaches || {});
+
+  const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+  if (ranking && ranking.length > 0) {
+    saveToStorage(
+      RANKING_KEY,
+      ranking.map(team => ({
+        ...team,
+        roster: snap.rosters[team.name] ? [...snap.rosters[team.name]] : team.roster,
+        coach: snap.coaches && team.name in snap.coaches ? snap.coaches[team.name] : team.coach,
+      })),
+    );
+  }
 
   // Custom transfers
   customTransfersGlobal.length = 0;
@@ -214,59 +238,37 @@ export function persistCurrentRosters(): void {
   // Mirror into ranking_data so all reads (PlayersPanel, TeamLogo, TeamProfile)
   // see the same coach — this is the authoritative source in most panels.
   try {
-    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>("ranking_data", null);
+    const ranking = loadFromStorage<Array<{ name: string; coach?: string; roster?: string[] }> | null>(RANKING_KEY, null);
     if (ranking && ranking.length > 0) {
       const patched = ranking.map(team => ({
         ...team,
         coach: team.name in coaches ? coaches[team.name] : team.coach,
         roster: rosters[team.name] ? [...rosters[team.name]] : team.roster,
       }));
-      saveToStorage("ranking_data", patched);
+      saveToStorage(RANKING_KEY, patched);
     }
   } catch (e) {
     console.warn("Failed to mirror rosters into ranking_data:", e);
   }
 }
 
-// ----------------- player-wide overrides -----------------
-
-export function loadPlayerRoleOverrides(): Record<string, PlayerRole> {
-  return loadFromStorage<Record<string, PlayerRole>>(PLAYER_ROLE_OVERRIDE_KEY, {});
-}
-export function savePlayerRoleOverrides(map: Record<string, PlayerRole>): void {
-  saveToStorage(PLAYER_ROLE_OVERRIDE_KEY, map);
-}
-export function loadPlayerNatOverrides(): Record<string, string> {
-  return loadFromStorage<Record<string, string>>(PLAYER_NAT_OVERRIDE_KEY, {});
-}
-export function savePlayerNatOverrides(map: Record<string, string>): void {
-  saveToStorage(PLAYER_NAT_OVERRIDE_KEY, map);
-}
-export function loadPlayerRealnameOverrides(): Record<string, { firstName: string; lastName: string }> {
-  return loadFromStorage<Record<string, { firstName: string; lastName: string }>>(PLAYER_REALNAME_OVERRIDE_KEY, {});
-}
-export function savePlayerRealnameOverrides(
-  map: Record<string, { firstName: string; lastName: string }>,
-): void {
-  saveToStorage(PLAYER_REALNAME_OVERRIDE_KEY, map);
-}
+export {
+  loadPlayerNatOverrides,
+  loadPlayerRealnameOverrides,
+  loadPlayerRoleOverrides,
+  persistPlayerMetadata,
+  savePlayerNatOverrides,
+  savePlayerRealnameOverrides,
+  savePlayerRoleOverrides,
+} from "./playerMetadata";
 
 // ----------------- public mutators (with logging) -----------------
 
 /** Set role for any player (rostered or FA). Persists + logs. */
 export function setPlayerRole(player: string, role: PlayerRole | ""): void {
   const before = captureSnapshot();
-  const cur = loadPlayerRoleOverrides();
   const oldRole = playerRoles[player] || "—";
-  if (role) {
-    cur[player] = role;
-    playerRoles[player] = role;
-  } else {
-    delete cur[player];
-    // Best-effort: clear in-memory only if it was an override; static defaults
-    // get re-read after revert anyway via snapshot restore.
-  }
-  savePlayerRoleOverrides(cur);
+  persistPlayerMetadata(player, { role });
   recordChange(
     "role",
     `Rola: ${player} ${oldRole} → ${role || "—"}`,
@@ -277,16 +279,9 @@ export function setPlayerRole(player: string, role: PlayerRole | ""): void {
 /** Set nationality for any player. */
 export function setPlayerNationality(player: string, code: string): void {
   const before = captureSnapshot();
-  const cur = loadPlayerNatOverrides();
   const oldCode = playerNationalities[player] || "—";
-  const c = code.trim().toUpperCase().slice(0, 2);
-  if (c) {
-    cur[player] = c;
-    playerNationalities[player] = c;
-  } else {
-    delete cur[player];
-  }
-  savePlayerNatOverrides(cur);
+  const c = coercePlayerCountry(code);
+  persistPlayerMetadata(player, { country: c });
   recordChange(
     "nationality",
     `Narodowość: ${player} ${oldCode} → ${c || "—"}`,
@@ -297,16 +292,9 @@ export function setPlayerNationality(player: string, code: string): void {
 /** Set real name for any player. */
 export function setPlayerRealName(player: string, firstName: string, lastName: string): void {
   const before = captureSnapshot();
-  const cur = loadPlayerRealnameOverrides();
   const fn = firstName.trim();
   const ln = lastName.trim();
-  if (fn || ln) {
-    cur[player] = { firstName: fn, lastName: ln };
-    playerRealNames[player] = { firstName: fn, lastName: ln };
-  } else {
-    delete cur[player];
-  }
-  savePlayerRealnameOverrides(cur);
+  persistPlayerMetadata(player, { firstName: fn, lastName: ln });
   recordChange(
     "realname",
     `Imię i nazwisko: ${player} → ${fn} ${ln}`.trim(),
@@ -353,7 +341,7 @@ export function bootstrapPersistedState(): void {
   // so components that read from it (PlayersPanel, TeamLogo, RankingPanel)
   // see the same coach as teamDatabase across sessions.
   try {
-    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>("ranking_data", null);
+    const ranking = loadFromStorage<Array<{ name: string; roster?: string[]; coach?: string }> | null>(RANKING_KEY, null);
     if (ranking && ranking.length > 0 && (hasRosters || hasCoaches)) {
       let touched = false;
       const patched = ranking.map(team => {
@@ -368,25 +356,24 @@ export function bootstrapPersistedState(): void {
         }
         return next;
       });
-      if (touched) saveToStorage("ranking_data", patched);
+      if (touched) saveToStorage(RANKING_KEY, patched);
     }
   } catch (e) {
     console.warn("Failed to sync coach overrides into ranking_data:", e);
   }
 
   // Player-wide overrides
-  Object.entries(loadPlayerRoleOverrides()).forEach(([p, r]) => { playerRoles[p] = r; });
-  Object.entries(loadPlayerNatOverrides()).forEach(([p, c]) => { playerNationalities[p] = c; });
-  Object.entries(loadPlayerRealnameOverrides()).forEach(([p, n]) => { playerRealNames[p] = n; });
+  applyPlayerMetadataOverrides();
 
-  // FA overrides (also hydrate static maps)
+  // FA overrides (also hydrate static maps). These must win too, because a FA
+  // may be an existing player whose country/name was corrected manually.
   Object.entries(loadFreeAgentNationalityOverrides()).forEach(([p, c]) => {
-    if (!playerNationalities[p]) playerNationalities[p] = c;
+    playerNationalities[p] = c;
   });
   Object.entries(loadFreeAgentRoleOverrides()).forEach(([p, r]) => {
-    if (!playerRoles[p]) playerRoles[p] = r;
+    playerRoles[p] = r;
   });
   Object.entries(loadFreeAgentRealNameOverrides()).forEach(([p, n]) => {
-    if (!playerRealNames[p]) playerRealNames[p] = n;
+    playerRealNames[p] = n;
   });
 }

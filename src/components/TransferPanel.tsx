@@ -27,9 +27,7 @@ import { transfers as seedTransfers, customTransfersGlobal, type Transfer as Raw
 import {
   captureSnapshot, recordChange, loadChangeLog, revertTo, clearChangeLog,
   persistCurrentRosters, type ChangeLogEntry,
-  loadPlayerNatOverrides, savePlayerNatOverrides,
-  loadPlayerRealnameOverrides, savePlayerRealnameOverrides,
-  loadPlayerRoleOverrides, savePlayerRoleOverrides,
+  persistPlayerMetadata,
 } from "@/lib/changeLog";
 import { removeFromAllBenches } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
@@ -38,6 +36,12 @@ type TransferType = "all" | "join" | "leave" | "move";
 type Section = "transfers" | "freeAgents" | "changes";
 
 const TRANSFERS_KEY = "transfers_data";
+const RANKING_KEY = "ranking_data";
+
+const loadLiveTeams = (): TeamData[] => {
+  const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+  return rankingData && rankingData.length > 0 ? rankingData : teamDatabase;
+};
 
 const persistPersonMetadataAfterSigning = (player: string) => {
   const manual = loadManualFreeAgents().find(f => f.player === player);
@@ -45,33 +49,18 @@ const persistPersonMetadataAfterSigning = (player: string) => {
   const faNames = loadFreeAgentRealNameOverrides();
   const faRoles = loadFreeAgentRoleOverrides();
 
-  const country = (faNat[player] || manual?.country || playerNationalities[player] || "").trim().toUpperCase();
-  if (country) {
-    const natOv = loadPlayerNatOverrides();
-    natOv[player] = country;
-    savePlayerNatOverrides(natOv);
-    playerNationalities[player] = country;
-  }
-
   const role = faRoles[player] || manual?.role || playerRoles[player];
-  if (role) {
-    const roleOv = loadPlayerRoleOverrides();
-    roleOv[player] = role;
-    savePlayerRoleOverrides(roleOv);
-    playerRoles[player] = role;
-  }
-
   const realName = faNames[player] || (
     manual && (manual.firstName || manual.lastName)
       ? { firstName: manual.firstName || "", lastName: manual.lastName || "" }
       : playerRealNames[player]
   );
-  if (realName && (realName.firstName || realName.lastName)) {
-    const nameOv = loadPlayerRealnameOverrides();
-    nameOv[player] = realName;
-    savePlayerRealnameOverrides(nameOv);
-    playerRealNames[player] = realName;
-  }
+  persistPlayerMetadata(player, {
+    country: faNat[player] || manual?.country || playerNationalities[player] || "",
+    role: role || "",
+    firstName: realName?.firstName || "",
+    lastName: realName?.lastName || "",
+  });
 };
 
 const TransferPanel = () => {
@@ -94,6 +83,7 @@ const TransferPanel = () => {
   const [teamFilter, setTeamFilter] = useState("");
   const [reversed, setReversed] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TransferType>("all");
+  const [dataVersion, setDataVersion] = useState(0);
 
   const [showDialog, setShowDialog] = useState(false);
   const [transferPlayer, setTransferPlayer] = useState("");
@@ -104,22 +94,39 @@ const TransferPanel = () => {
 
   useEffect(() => { saveToStorage(TRANSFERS_KEY, transfers); }, [transfers]);
 
+  useEffect(() => {
+    const refresh = () => setDataVersion(v => v + 1);
+    window.addEventListener("teams:update", refresh);
+    window.addEventListener("ranking:update", refresh);
+    window.addEventListener("transfers:update", refresh);
+    return () => {
+      window.removeEventListener("teams:update", refresh);
+      window.removeEventListener("ranking:update", refresh);
+      window.removeEventListener("transfers:update", refresh);
+    };
+  }, []);
+
+  const liveTeams = useMemo(() => loadLiveTeams(), [dataVersion, transfers]);
+
   const allTeams = useMemo(() => {
     const teams = new Set<string>();
     transfers.forEach(t => {
       if (t.oldTeam !== "-") teams.add(t.oldTeam);
       if (t.newTeam !== "-") teams.add(t.newTeam);
     });
-    teamDatabase.forEach(t => teams.add(t.name));
+    liveTeams.forEach(t => teams.add(t.name));
     return Array.from(teams).sort();
-  }, [transfers]);
+  }, [liveTeams, transfers]);
 
   const allPlayers = useMemo(() => {
     const players = new Set<string>();
-    teamDatabase.forEach(t => t.roster.forEach(p => players.add(p)));
+    liveTeams.forEach(t => {
+      t.roster.forEach(p => players.add(p));
+      if (t.coach) players.add(t.coach);
+    });
     transfers.forEach(t => players.add(t.player));
     return Array.from(players).sort();
-  }, [transfers]);
+  }, [liveTeams, transfers]);
 
   /** Unified catalog of every person that can be transferred. */
   interface PickerEntry {
@@ -133,7 +140,7 @@ const TransferPanel = () => {
   const pickerCatalog = useMemo<PickerEntry[]>(() => {
     const out: PickerEntry[] = [];
     const seen = new Set<string>();
-    for (const t of teamDatabase) {
+    for (const t of liveTeams) {
       if (t.coach && !seen.has(t.coach)) {
         seen.add(t.coach);
         out.push({
@@ -161,7 +168,7 @@ const TransferPanel = () => {
       });
     }
     return out.sort((a, b) => a.name.localeCompare(b.name));
-  }, [transfers]);
+  }, [liveTeams, transfers]);
 
   const filteredPicker = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
@@ -183,23 +190,19 @@ const TransferPanel = () => {
   const isCoachPick = selectedEntry?.role === "Coach";
   const targetTeamHasCoach = useMemo(() => {
     if (!isCoachPick || transferTo === "-") return null;
-    const tt = teamDatabase.find(t => t.name === transferTo);
+    const tt = liveTeams.find(t => t.name === transferTo);
     return tt?.coach && tt.coach !== transferPlayer ? tt.coach : null;
-  }, [isCoachPick, transferTo, transferPlayer]);
+  }, [isCoachPick, liveTeams, transferTo, transferPlayer]);
 
 
 
-  const freeAgents = useMemo(() => {
-    const lastTransfer: Record<string, Transfer> = {};
-    transfers.forEach(t => { lastTransfer[t.player] = t; });
-    return Object.values(lastTransfer)
-      .filter(t => t.newTeam === "-")
-      .map(t => ({
-        player: t.player,
-        previousTeam: t.oldTeam,
-        nationality: playerNationalities[t.player] || "",
-      }));
-  }, [transfers]);
+  const freeAgents = useMemo(() => (
+    getFreeAgents().map(fa => ({
+      player: fa.player,
+      previousTeam: fa.previousTeam,
+      nationality: fa.country || playerNationalities[fa.player] || "",
+    }))
+  ), [dataVersion, transfers]);
 
   const filtered = useMemo(() => {
     let result = transfers.filter(t => {
@@ -231,7 +234,7 @@ const TransferPanel = () => {
     // Snapshot BEFORE applying any mutation, for the change log.
     const before = captureSnapshot();
 
-    const isCoach = (playerRoles as Record<string, string>)[t.player] === "Coach";
+    const isCoach = selectedEntry?.kind === "coach" || (playerRoles as Record<string, string>)[t.player] === "Coach";
 
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
@@ -266,7 +269,6 @@ const TransferPanel = () => {
 
     // Persist roster changes everywhere they need to live.
     persistCurrentRosters();
-    const RANKING_KEY = "ranking_data";
     const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
     if (rankingData) {
       const updated = rankingData.map(team => {
@@ -285,6 +287,8 @@ const TransferPanel = () => {
       });
       saveToStorage(RANKING_KEY, updated);
     }
+    window.dispatchEvent(new CustomEvent("teams:update"));
+    window.dispatchEvent(new CustomEvent("ranking:update"));
 
     setTransfers(prev => [t, ...prev]);
     recordChange(
@@ -322,6 +326,9 @@ const TransferPanel = () => {
       setTransfers(rebuilt);
       saveToStorage(TRANSFERS_KEY, rebuilt);
       refreshChangeLog();
+      window.dispatchEvent(new CustomEvent("teams:update"));
+      window.dispatchEvent(new CustomEvent("ranking:update"));
+      window.dispatchEvent(new CustomEvent("transfers:update"));
       toast({ title: "Cofnięto zmianę", description: label });
     }
   };
@@ -475,7 +482,7 @@ const TransferPanel = () => {
                     >
                       <option value="-">— Free Agent</option>
                       {allTeams.map(t => {
-                        const td = teamDatabase.find(x => x.name === t);
+                        const td = liveTeams.find(x => x.name === t);
                         const suffix = isCoachPick && td?.coach && td.coach !== transferPlayer
                           ? `  (obecny trener: ${td.coach})`
                           : "";
