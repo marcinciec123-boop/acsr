@@ -110,7 +110,11 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   const list = loadManualFreeAgents();
   if (list.some(f => f.player.toLowerCase() === nick.toLowerCase())) return false;
   // Also avoid clashes with rostered / transferred players
-  for (const t of teamDatabase) if (t.roster.includes(nick)) return false;
+  const storedTeams = loadFromStorage<TeamData[] | null>("ranking_data", null);
+  const teams = storedTeams && storedTeams.length > 0 ? storedTeams : teamDatabase;
+  for (const t of teams) {
+    if (t.roster.includes(nick) || t.coach === nick) return false;
+  }
 
   const country = coercePlayerCountry(input.country || "");
   const role = input.role;
