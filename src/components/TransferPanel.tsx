@@ -196,17 +196,13 @@ const TransferPanel = () => {
 
 
 
-  const freeAgents = useMemo(() => {
-    const lastTransfer: Record<string, Transfer> = {};
-    transfers.forEach(t => { lastTransfer[t.player] = t; });
-    return Object.values(lastTransfer)
-      .filter(t => t.newTeam === "-")
-      .map(t => ({
-        player: t.player,
-        previousTeam: t.oldTeam,
-        nationality: playerNationalities[t.player] || "",
-      }));
-  }, [transfers]);
+  const freeAgents = useMemo(() => (
+    getFreeAgents().map(fa => ({
+      player: fa.player,
+      previousTeam: fa.previousTeam,
+      nationality: fa.country || playerNationalities[fa.player] || "",
+    }))
+  ), [dataVersion, transfers]);
 
   const filtered = useMemo(() => {
     let result = transfers.filter(t => {
@@ -330,6 +326,9 @@ const TransferPanel = () => {
       setTransfers(rebuilt);
       saveToStorage(TRANSFERS_KEY, rebuilt);
       refreshChangeLog();
+      window.dispatchEvent(new CustomEvent("teams:update"));
+      window.dispatchEvent(new CustomEvent("ranking:update"));
+      window.dispatchEvent(new CustomEvent("transfers:update"));
       toast({ title: "Cofnięto zmianę", description: label });
     }
   };
@@ -483,7 +482,7 @@ const TransferPanel = () => {
                     >
                       <option value="-">— Free Agent</option>
                       {allTeams.map(t => {
-                        const td = teamDatabase.find(x => x.name === t);
+                        const td = liveTeams.find(x => x.name === t);
                         const suffix = isCoachPick && td?.coach && td.coach !== transferPlayer
                           ? `  (obecny trener: ${td.coach})`
                           : "";

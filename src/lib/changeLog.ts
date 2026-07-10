@@ -10,6 +10,7 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
+import type { TeamData } from "./types";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, type PlayerRole } from "@/data/playerRoles";
@@ -34,6 +35,7 @@ import {
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
 const COACH_OVERRIDE_KEY = "coach_overrides";
+const RANKING_KEY = "ranking_data";
 
 export type ChangeKind =
   | "transfer"
@@ -69,12 +71,14 @@ export interface ChangeLogEntry {
 // ----------------- snapshot helpers -----------------
 
 export function captureSnapshot(): DatabaseSnapshot {
+  const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+  const teams = ranking && ranking.length > 0 ? ranking : teamDatabase;
   return {
     rosters: Object.fromEntries(
-      teamDatabase.map(t => [t.name, [...t.roster]]),
+      teams.map(t => [t.name, [...t.roster]]),
     ),
     coaches: Object.fromEntries(
-      teamDatabase.map(t => [t.name, t.coach]),
+      teams.map(t => [t.name, t.coach]),
     ),
     customTransfers: customTransfersGlobal.map(t => ({ ...t })),
     manualFAs: loadManualFreeAgents().map(f => ({ ...f })),
@@ -97,6 +101,18 @@ export function restoreSnapshot(snap: DatabaseSnapshot): void {
   }
   saveRosterOverrides(snap.rosters);
   saveCoachOverrides(snap.coaches || {});
+
+  const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+  if (ranking && ranking.length > 0) {
+    saveToStorage(
+      RANKING_KEY,
+      ranking.map(team => ({
+        ...team,
+        roster: snap.rosters[team.name] ? [...snap.rosters[team.name]] : team.roster,
+        coach: snap.coaches && team.name in snap.coaches ? snap.coaches[team.name] : team.coach,
+      })),
+    );
+  }
 
   // Custom transfers
   customTransfersGlobal.length = 0;
@@ -229,7 +245,7 @@ export function persistCurrentRosters(): void {
         coach: team.name in coaches ? coaches[team.name] : team.coach,
         roster: rosters[team.name] ? [...rosters[team.name]] : team.roster,
       }));
-      saveToStorage("ranking_data", patched);
+      saveToStorage(RANKING_KEY, patched);
     }
   } catch (e) {
     console.warn("Failed to mirror rosters into ranking_data:", e);
