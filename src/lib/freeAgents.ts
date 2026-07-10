@@ -128,9 +128,11 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   });
   saveManualFreeAgents(list);
 
-  setFreeAgentNationality(nick, country);
-  setFreeAgentRole(nick, role || "");
-  setFreeAgentRealName(nick, input.firstName?.trim() || "", input.lastName?.trim() || "");
+  if (country && !playerNationalities[nick]) setFreeAgentNationality(nick, country);
+  if (role) setFreeAgentRole(nick, role);
+  if (input.firstName || input.lastName) {
+    setFreeAgentRealName(nick, input.firstName?.trim() || "", input.lastName?.trim() || "");
+  }
   return true;
 }
 
