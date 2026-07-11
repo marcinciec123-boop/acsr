@@ -307,14 +307,20 @@ const TransferPanel = () => {
     if (ok) {
       // Re-sync the local transfers list with persisted custom transfers
       // by rebuilding from seed + customTransfersGlobal.
+      const prevByKey = new Map(
+        transfers.map(t => [`${t.player}|${t.oldTeam}|${t.newTeam}`, t.date])
+      );
       const rebuilt: Transfer[] = [
-        ...customTransfersGlobal.map((ct, i) => ({
-          id: `live-${i}`,
-          player: ct.player,
-          oldTeam: ct.oldTeam,
-          newTeam: ct.newTeam,
-          date: new Date().toISOString(),
-        })),
+        ...customTransfersGlobal.map((ct, i) => {
+          const key = `${ct.player}|${ct.oldTeam}|${ct.newTeam}`;
+          return {
+            id: `live-${i}`,
+            player: ct.player,
+            oldTeam: ct.oldTeam,
+            newTeam: ct.newTeam,
+            date: prevByKey.get(key) ?? new Date().toISOString(),
+          };
+        }),
         ...seedTransfers.map((s, i) => ({
           id: `seed-${i}`,
           player: s.player,
