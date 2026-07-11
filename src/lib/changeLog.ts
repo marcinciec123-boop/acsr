@@ -330,20 +330,14 @@ export function bootstrapPersistedState(): void {
   const ALIAS_FLAG_KEY = "team_aliases_applied_v1";
   const aliasFlag = loadFromStorage<Record<string, boolean>>(ALIAS_FLAG_KEY, {});
   let aliasChanged = false;
-  try {
-    // Lazy require to avoid circular imports at module init.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { propagateRename } = require("./teamManagement") as typeof import("./teamManagement");
-    for (const [from, to] of Object.entries(ALIASES)) {
-      if (aliasFlag[from]) continue;
-      propagateRename(from, to);
-      aliasFlag[from] = true;
-      aliasChanged = true;
-    }
-    if (aliasChanged) saveToStorage(ALIAS_FLAG_KEY, aliasFlag);
-  } catch (e) {
-    console.warn("Team alias migration failed:", e);
+  for (const [from, to] of Object.entries(ALIASES)) {
+    if (aliasFlag[from]) continue;
+    try { propagateRename(from, to); } catch (e) { console.warn("Alias rename failed", from, e); }
+    aliasFlag[from] = true;
+    aliasChanged = true;
   }
+  if (aliasChanged) saveToStorage(ALIAS_FLAG_KEY, aliasFlag);
+
 
 
   // Custom transfers
