@@ -8,6 +8,7 @@
 // affected slice of state so a revert can undo it.
 
 import { loadFromStorage, saveToStorage } from "./storage";
+import { propagateRename } from "./teamManagement";
 import { customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
