@@ -113,6 +113,7 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   const storedTeams = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const teams = storedTeams && storedTeams.length > 0 ? storedTeams : teamDatabase;
   for (const t of teams) {
+    if (t.isNational) continue;
     if (t.roster.includes(nick) || t.coach === nick) return false;
   }
 
