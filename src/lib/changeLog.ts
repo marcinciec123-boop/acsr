@@ -319,6 +319,32 @@ export function bootstrapPersistedState(): void {
     }
   }
 
+  // One-time team name alias migration — rewrites persisted state where
+  // teams got saved under short/legacy names so everything points to the
+  // canonical current name.
+  const ALIASES: Record<string, string> = {
+    "NiP": "Ninjas in Pyjamas",
+    "Got200 Gaming": "TemperX",
+  };
+  const ALIAS_FLAG_KEY = "team_aliases_applied_v1";
+  const aliasFlag = loadFromStorage<Record<string, boolean>>(ALIAS_FLAG_KEY, {});
+  let aliasChanged = false;
+  try {
+    // Lazy require to avoid circular imports at module init.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { propagateRename } = require("./teamManagement") as typeof import("./teamManagement");
+    for (const [from, to] of Object.entries(ALIASES)) {
+      if (aliasFlag[from]) continue;
+      propagateRename(from, to);
+      aliasFlag[from] = true;
+      aliasChanged = true;
+    }
+    if (aliasChanged) saveToStorage(ALIAS_FLAG_KEY, aliasFlag);
+  } catch (e) {
+    console.warn("Team alias migration failed:", e);
+  }
+
+
   // Custom transfers
   const persistedTransfers = loadFromStorage<Transfer[]>("custom_transfers", []);
   if (persistedTransfers.length > 0 && customTransfersGlobal.length === 0) {
