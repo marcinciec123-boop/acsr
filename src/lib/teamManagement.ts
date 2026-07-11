@@ -150,7 +150,7 @@ export function updateTeam(oldName: string, patch: UpdateTeamPatch): { ok: boole
   return { ok: true };
 }
 
-function propagateRename(oldName: string, newName: string): void {
+export function propagateRename(oldName: string, newName: string): void {
   // 0) In-memory teamDatabase — inne komponenty czytają wprost stąd.
   const memTeam = teamDatabase.find(t => t.name === oldName);
   if (memTeam) memTeam.name = newName;

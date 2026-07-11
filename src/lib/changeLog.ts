@@ -8,6 +8,7 @@
 // affected slice of state so a revert can undo it.
 
 import { loadFromStorage, saveToStorage } from "./storage";
+import { propagateRename } from "./teamManagement";
 import { customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
@@ -318,6 +319,26 @@ export function bootstrapPersistedState(): void {
       if (nameOv[t.name]) t.name = nameOv[t.name];
     }
   }
+
+  // One-time team name alias migration — rewrites persisted state where
+  // teams got saved under short/legacy names so everything points to the
+  // canonical current name.
+  const ALIASES: Record<string, string> = {
+    "NiP": "Ninjas in Pyjamas",
+    "Got200 Gaming": "TemperX",
+  };
+  const ALIAS_FLAG_KEY = "team_aliases_applied_v1";
+  const aliasFlag = loadFromStorage<Record<string, boolean>>(ALIAS_FLAG_KEY, {});
+  let aliasChanged = false;
+  for (const [from, to] of Object.entries(ALIASES)) {
+    if (aliasFlag[from]) continue;
+    try { propagateRename(from, to); } catch (e) { console.warn("Alias rename failed", from, e); }
+    aliasFlag[from] = true;
+    aliasChanged = true;
+  }
+  if (aliasChanged) saveToStorage(ALIAS_FLAG_KEY, aliasFlag);
+
+
 
   // Custom transfers
   const persistedTransfers = loadFromStorage<Transfer[]>("custom_transfers", []);

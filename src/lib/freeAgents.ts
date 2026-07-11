@@ -113,6 +113,7 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   const storedTeams = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const teams = storedTeams && storedTeams.length > 0 ? storedTeams : teamDatabase;
   for (const t of teams) {
+    if (t.isNational) continue;
     if (t.roster.includes(nick) || t.coach === nick) return false;
   }
 
@@ -197,9 +198,13 @@ export function getFreeAgents(): FreeAgent[] {
   const teams = stored && stored.length > 0 ? stored : teamDatabase;
   const onAnyRoster = new Set<string>();
   teams.forEach(t => {
+    // National teams don't count — a player only in a national roster
+    // is still a free agent for club purposes.
+    if (t.isNational) return;
     t.roster.forEach(p => onAnyRoster.add(p));
     if (t.coach) onAnyRoster.add(t.coach);
   });
+
 
 
   const out: FreeAgent[] = [];
