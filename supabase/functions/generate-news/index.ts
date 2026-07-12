@@ -12,6 +12,7 @@ interface SnapshotPayload {
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
   tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null; participants?: string[]; topPlacements?: { team: string; placement: number }[] }[];
   topPlayers?: { player: string; team: string; rating: number; role?: string }[];
+  events?: { kind: string; summary: string }[];
   count?: number;
   /** Optional: bias the generator toward a specific post type */
   mode?: "mixed" | "memes" | "mvp" | "power-ranking" | "beef" | "hot-take" | "fun-fact" | "recap" | "preview";
