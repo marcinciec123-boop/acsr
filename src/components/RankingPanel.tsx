@@ -137,6 +137,9 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
       return { ...t, points: halved };
     }));
     setAdjustments(prev => [...newAdjustments, ...prev]);
+  };
+
+
 
   const handleInlineEdit = (teamName: string) => {
     const pts = parseInt(editPoints);
