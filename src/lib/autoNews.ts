@@ -124,11 +124,20 @@ export type AIPostMode =
   | "recap"
   | "preview";
 
+export interface WorldEvent {
+  /** One-line factual description of a concrete happening (transfer, result, coach signed, upcoming match) */
+  summary: string;
+  /** Loose type hint for the AI */
+  kind: "transfer" | "tournament_finished" | "tournament_upcoming" | "tournament_ongoing" | "coach" | "ranking";
+}
+
 export interface WorldSnapshot {
   topTeams: { name: string; points: number; country: string }[];
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
   tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null; participants?: string[]; topPlacements?: { team: string; placement: number }[] }[];
   topPlayers?: { player: string; team: string; rating: number; role?: string }[];
+  /** Concrete numbered events extracted from the database — AI must anchor each post on one of these */
+  events?: WorldEvent[];
 }
 
 export async function generateAIRumors(

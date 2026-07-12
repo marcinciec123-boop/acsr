@@ -12,6 +12,7 @@ interface SnapshotPayload {
   recentTransfers: { player: string; oldTeam: string; newTeam: string }[];
   tournaments: { name: string; status: string; tier: string; teams: number; winner?: string | null; runnerUp?: string | null; participants?: string[]; topPlacements?: { team: string; placement: number }[] }[];
   topPlayers?: { player: string; team: string; rating: number; role?: string }[];
+  events?: { kind: string; summary: string }[];
   count?: number;
   /** Optional: bias the generator toward a specific post type */
   mode?: "mixed" | "memes" | "mvp" | "power-ranking" | "beef" | "hot-take" | "fun-fact" | "recap" | "preview";
@@ -100,6 +101,15 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
 
   if (body.topPlayers?.length) {
     parts.push(`\nTop gracze (rating):\n${body.topPlayers.slice(0, 12).map(p => `${p.player} (${p.team})${p.role ? ` [${p.role}]` : ""} — ${p.rating.toFixed(2)}`).join("\n")}`);
+  }
+
+  if (body.events?.length) {
+    parts.push(`\n===== WYDARZENIA Z BAZY (KAŻDY POST MUSI SIĘ OPIERAĆ NA JEDNYM Z NICH) =====\n${body.events.map((e, i) => `#${i + 1} [${e.kind}] ${e.summary}`).join("\n")}\n===== KONIEC WYDARZEŃ =====`);
+    parts.push(`\nŻELAZNA REGUŁA: każdy post MUSI mieć jako "hak" konkretne wydarzenie z listy powyżej (podaj numer #N w myślach — nie w treści). \
+Nie wolno pisać postów o wydarzeniach spoza listy. Nie wymyślaj transferów, wyników, finałów, meczów, ceremonii ani "ostatnich występów", których nie ma w wydarzeniach ani w danych o turniejach. \
+Możesz łączyć wydarzenie z kontekstem rankingu/topPlayers (np. "transfer trafia do drużyny #3 rankingu"), ale sam news musi mieć źródło w liście wydarzeń.`);
+  } else {
+    parts.push(`\nUWAGA: brak konkretnych wydarzeń w bazie. Pisz TYLKO ogólne analizy formy top drużyn / graczy z powyższych danych. NIE wymyślaj transferów, wyników ani meczów.`);
   }
 
   parts.push(`\nUŻYWAJ WYŁĄCZNIE NAZW Z POWYŻSZYCH DANYCH. \

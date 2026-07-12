@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import type { NewsPost } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { saveImage, loadImage, deleteImage } from "@/lib/storage";
-import { generateAIRumors, type WorldSnapshot, type AIPostMode } from "@/lib/autoNews";
+import { generateAIRumors, type WorldSnapshot, type WorldEvent, type AIPostMode } from "@/lib/autoNews";
 import { teamDatabase } from "@/data/tournaments";
 import { getAllTransfers } from "@/data/history";
 import { playerRoles } from "@/data/playerRoles";
@@ -56,10 +56,9 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
 };
 
 const buildSnapshot = (): WorldSnapshot => {
-  const transfers = getAllTransfers().slice(-15).reverse();
-  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
+  const transfers = getAllTransfers().slice(-20).reverse();
+  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[]; startDate?: string }[]>("tournaments_data", []);
 
-  // top players: weź po 1 z top 8 drużyn (najwyższy career rating)
   const topTeams = [...teamDatabase].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
   const topPlayers: { player: string; team: string; rating: number; role?: string }[] = [];
   for (const team of topTeams.slice(0, 8)) {
@@ -82,6 +81,68 @@ const buildSnapshot = (): WorldSnapshot => {
     }
   }
 
+  // Extract concrete DB-anchored events
+  const events: WorldEvent[] = [];
+
+  for (const t of transfers.slice(0, 12)) {
+    const from = t.oldTeam && t.oldTeam !== "-" ? t.oldTeam : "FA";
+    const to = t.newTeam && t.newTeam !== "-" ? t.newTeam : "FA";
+    if (from === "FA" && to === "FA") continue;
+    events.push({
+      kind: "transfer",
+      summary: `${t.player}: ${from} → ${to}`,
+    });
+  }
+
+  const finished = tournaments.filter(t => (t.placements?.length ?? 0) > 0);
+  for (const t of finished.slice(0, 8)) {
+    const ranked = [...(t.placements || [])].sort((a, b) => a.placement - b.placement);
+    const winner = ranked.find(p => p.placement === 1)?.team;
+    const runnerUp = ranked.find(p => p.placement === 2)?.team;
+    const top4 = ranked.slice(0, 4).map(p => `${p.placement}. ${p.team}`).join(", ");
+    if (winner) {
+      events.push({
+        kind: "tournament_finished",
+        summary: `Turniej "${t.name}" [${t.tier}] zakończony. Zwycięzca: ${winner}${runnerUp ? `, finalista: ${runnerUp}` : ""}. Top4: ${top4}.`,
+      });
+    }
+  }
+
+  const upcoming = tournaments.filter(t => t.status === "upcoming" || t.status === "scheduled");
+  for (const t of upcoming.slice(0, 6)) {
+    const parts = (t.participants || []).slice(0, 6).join(", ");
+    events.push({
+      kind: "tournament_upcoming",
+      summary: `Nadchodzący turniej "${t.name}" [${t.tier}], ${t.teams} drużyn${parts ? `, m.in. ${parts}` : ""}.`,
+    });
+  }
+
+  const ongoing = tournaments.filter(t => t.status === "ongoing" || t.status === "live");
+  for (const t of ongoing.slice(0, 4)) {
+    const parts = (t.participants || []).slice(0, 6).join(", ");
+    events.push({
+      kind: "tournament_ongoing",
+      summary: `Trwa turniej "${t.name}" [${t.tier}]${parts ? ` — grają: ${parts}` : ""}.`,
+    });
+  }
+
+  // Coach events from teamDatabase (recently assigned coaches)
+  for (const team of teamDatabase) {
+    if ((team as any).coach && !(team as any).isNational) {
+      // Only push a handful — trim to top 8 by points
+    }
+  }
+  const teamsWithCoach = [...teamDatabase]
+    .filter(t => (t as any).coach && !(t as any).isNational)
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, 5);
+  for (const t of teamsWithCoach) {
+    events.push({
+      kind: "coach",
+      summary: `${t.name} ma trenera: ${(t as any).coach}.`,
+    });
+  }
+
   return {
     topTeams: topTeams.map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
     recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
@@ -94,6 +155,7 @@ const buildSnapshot = (): WorldSnapshot => {
       return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp, participants, topPlacements: top };
     }),
     topPlayers,
+    events,
   };
 };
 
@@ -204,46 +266,67 @@ const NewsFeed = () => {
     return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
+  const eventCount = buildSnapshot().events?.length ?? 0;
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-2xl">
-        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Newspaper className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-heading font-bold text-foreground">Aktualności</h2>
+        {/* Gradient header banner */}
+        <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5 mb-5">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
+                <Newspaper className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-heading font-bold text-foreground leading-tight">Aktualności</h2>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                  {posts.length} {posts.length === 1 ? "post" : "postów"} · {eventCount} {eventCount === 1 ? "wydarzenie" : "wydarzeń"} w bazie
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={!!aiLoading} className="gap-1.5">
+                    {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
+                    {aiLoading ? "Generuję..." : "AI generator"}
+                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-popover">
+                  <DropdownMenuLabel className="text-xs font-mono text-muted-foreground">
+                    Wybierz typ postów · {eventCount} zdarzeń
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {MODES.map(m => (
+                    <DropdownMenuItem
+                      key={m.value}
+                      onClick={() => handleAIGenerate(m.value)}
+                      className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                    >
+                      <div className="flex items-center gap-2 font-medium">
+                        <span>{m.emoji}</span>
+                        <span>{m.label}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground pl-6">{m.desc}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
+                <Plus className="w-4 h-4" /> Nowy post
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" disabled={!!aiLoading} className="gap-1.5">
-                  {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
-                  {aiLoading ? "Generuję..." : "AI generator"}
-                  <ChevronDown className="w-3 h-3 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-popover">
-                <DropdownMenuLabel className="text-xs font-mono text-muted-foreground">Wybierz typ postów</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {MODES.map(m => (
-                  <DropdownMenuItem
-                    key={m.value}
-                    onClick={() => handleAIGenerate(m.value)}
-                    className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
-                  >
-                    <div className="flex items-center gap-2 font-medium">
-                      <span>{m.emoji}</span>
-                      <span>{m.label}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground pl-6">{m.desc}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
-              <Plus className="w-4 h-4" /> Nowy post
-            </Button>
-          </div>
+          {eventCount === 0 && (
+            <div className="relative mt-3 text-xs text-amber-300/90 font-mono border border-amber-500/30 bg-amber-500/10 rounded-md px-3 py-2">
+              Brak zdarzeń w bazie (transferów, wyników turniejów). Dodaj coś w panelach Transfery/Turnieje, żeby AI miało na czym oprzeć newsy.
+            </div>
+          )}
         </div>
+
 
         {/* Category filter pills */}
         {allCategories.length > 0 && (
