@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import type { NewsPost } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { saveImage, loadImage, deleteImage } from "@/lib/storage";
-import { generateAIRumors, type WorldSnapshot, type AIPostMode } from "@/lib/autoNews";
+import { generateAIRumors, type WorldSnapshot, type WorldEvent, type AIPostMode } from "@/lib/autoNews";
 import { teamDatabase } from "@/data/tournaments";
 import { getAllTransfers } from "@/data/history";
 import { playerRoles } from "@/data/playerRoles";
@@ -56,10 +56,9 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
 };
 
 const buildSnapshot = (): WorldSnapshot => {
-  const transfers = getAllTransfers().slice(-15).reverse();
-  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[] }[]>("tournaments_data", []);
+  const transfers = getAllTransfers().slice(-20).reverse();
+  const tournaments = loadFromStorage<{ name: string; status: string; tier: string; teams: number; participants?: string[]; placements?: { team: string; placement: number }[]; startDate?: string }[]>("tournaments_data", []);
 
-  // top players: weź po 1 z top 8 drużyn (najwyższy career rating)
   const topTeams = [...teamDatabase].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
   const topPlayers: { player: string; team: string; rating: number; role?: string }[] = [];
   for (const team of topTeams.slice(0, 8)) {
@@ -82,6 +81,68 @@ const buildSnapshot = (): WorldSnapshot => {
     }
   }
 
+  // Extract concrete DB-anchored events
+  const events: WorldEvent[] = [];
+
+  for (const t of transfers.slice(0, 12)) {
+    const from = t.oldTeam && t.oldTeam !== "-" ? t.oldTeam : "FA";
+    const to = t.newTeam && t.newTeam !== "-" ? t.newTeam : "FA";
+    if (from === "FA" && to === "FA") continue;
+    events.push({
+      kind: "transfer",
+      summary: `${t.player}: ${from} → ${to}`,
+    });
+  }
+
+  const finished = tournaments.filter(t => (t.placements?.length ?? 0) > 0);
+  for (const t of finished.slice(0, 8)) {
+    const ranked = [...(t.placements || [])].sort((a, b) => a.placement - b.placement);
+    const winner = ranked.find(p => p.placement === 1)?.team;
+    const runnerUp = ranked.find(p => p.placement === 2)?.team;
+    const top4 = ranked.slice(0, 4).map(p => `${p.placement}. ${p.team}`).join(", ");
+    if (winner) {
+      events.push({
+        kind: "tournament_finished",
+        summary: `Turniej "${t.name}" [${t.tier}] zakończony. Zwycięzca: ${winner}${runnerUp ? `, finalista: ${runnerUp}` : ""}. Top4: ${top4}.`,
+      });
+    }
+  }
+
+  const upcoming = tournaments.filter(t => t.status === "upcoming" || t.status === "scheduled");
+  for (const t of upcoming.slice(0, 6)) {
+    const parts = (t.participants || []).slice(0, 6).join(", ");
+    events.push({
+      kind: "tournament_upcoming",
+      summary: `Nadchodzący turniej "${t.name}" [${t.tier}], ${t.teams} drużyn${parts ? `, m.in. ${parts}` : ""}.`,
+    });
+  }
+
+  const ongoing = tournaments.filter(t => t.status === "ongoing" || t.status === "live");
+  for (const t of ongoing.slice(0, 4)) {
+    const parts = (t.participants || []).slice(0, 6).join(", ");
+    events.push({
+      kind: "tournament_ongoing",
+      summary: `Trwa turniej "${t.name}" [${t.tier}]${parts ? ` — grają: ${parts}` : ""}.`,
+    });
+  }
+
+  // Coach events from teamDatabase (recently assigned coaches)
+  for (const team of teamDatabase) {
+    if ((team as any).coach && !(team as any).isNational) {
+      // Only push a handful — trim to top 8 by points
+    }
+  }
+  const teamsWithCoach = [...teamDatabase]
+    .filter(t => (t as any).coach && !(t as any).isNational)
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, 5);
+  for (const t of teamsWithCoach) {
+    events.push({
+      kind: "coach",
+      summary: `${t.name} ma trenera: ${(t as any).coach}.`,
+    });
+  }
+
   return {
     topTeams: topTeams.map(t => ({ name: t.name, points: t.points || 0, country: t.country })),
     recentTransfers: transfers.map(t => ({ player: t.player, oldTeam: t.oldTeam, newTeam: t.newTeam })),
@@ -94,6 +155,7 @@ const buildSnapshot = (): WorldSnapshot => {
       return { name: t.name, status: t.status, tier: t.tier, teams: t.teams, winner, runnerUp, participants, topPlacements: top };
     }),
     topPlayers,
+    events,
   };
 };
 
