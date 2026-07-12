@@ -266,46 +266,67 @@ const NewsFeed = () => {
     return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
+  const eventCount = buildSnapshot().events?.length ?? 0;
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-2xl">
-        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Newspaper className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-heading font-bold text-foreground">Aktualności</h2>
+        {/* Gradient header banner */}
+        <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5 mb-5">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
+                <Newspaper className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-heading font-bold text-foreground leading-tight">Aktualności</h2>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                  {posts.length} {posts.length === 1 ? "post" : "postów"} · {eventCount} {eventCount === 1 ? "wydarzenie" : "wydarzeń"} w bazie
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={!!aiLoading} className="gap-1.5">
+                    {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
+                    {aiLoading ? "Generuję..." : "AI generator"}
+                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-popover">
+                  <DropdownMenuLabel className="text-xs font-mono text-muted-foreground">
+                    Wybierz typ postów · {eventCount} zdarzeń
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {MODES.map(m => (
+                    <DropdownMenuItem
+                      key={m.value}
+                      onClick={() => handleAIGenerate(m.value)}
+                      className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                    >
+                      <div className="flex items-center gap-2 font-medium">
+                        <span>{m.emoji}</span>
+                        <span>{m.label}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground pl-6">{m.desc}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
+                <Plus className="w-4 h-4" /> Nowy post
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" disabled={!!aiLoading} className="gap-1.5">
-                  {aiLoading ? <Bot className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
-                  {aiLoading ? "Generuję..." : "AI generator"}
-                  <ChevronDown className="w-3 h-3 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-popover">
-                <DropdownMenuLabel className="text-xs font-mono text-muted-foreground">Wybierz typ postów</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {MODES.map(m => (
-                  <DropdownMenuItem
-                    key={m.value}
-                    onClick={() => handleAIGenerate(m.value)}
-                    className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
-                  >
-                    <div className="flex items-center gap-2 font-medium">
-                      <span>{m.emoji}</span>
-                      <span>{m.label}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground pl-6">{m.desc}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
-              <Plus className="w-4 h-4" /> Nowy post
-            </Button>
-          </div>
+          {eventCount === 0 && (
+            <div className="relative mt-3 text-xs text-amber-300/90 font-mono border border-amber-500/30 bg-amber-500/10 rounded-md px-3 py-2">
+              Brak zdarzeń w bazie (transferów, wyników turniejów). Dodaj coś w panelach Transfery/Turnieje, żeby AI miało na czym oprzeć newsy.
+            </div>
+          )}
         </div>
+
 
         {/* Category filter pills */}
         {allCategories.length > 0 && (
