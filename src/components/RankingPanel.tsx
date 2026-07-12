@@ -117,6 +117,30 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     setAdjTeam(""); setAdjPoints(""); setAdjReason(""); setShowAdjust(false);
   };
 
+  const handleHalveAll = () => {
+    const targets = teams.filter(t => !t.isNational && t.points > 0);
+    if (targets.length === 0) return;
+    if (!window.confirm(`Podzielić punkty ${targets.length} drużynom na pół (zaokrąglenie w górę)?`)) return;
+    const now = new Date().toISOString();
+    const newAdjustments: RankingAdjustment[] = [];
+    setTeams(prev => prev.map(t => {
+      if (t.isNational || t.points <= 0) return t;
+      const halved = Math.ceil(t.points / 2);
+      const diff = halved - t.points;
+      newAdjustments.push({
+        id: `${Date.now().toString(36)}-${t.name}`,
+        team: t.name,
+        points: diff,
+        reason: "Balansowanie: podział punktów na pół",
+        date: now,
+      });
+      return { ...t, points: halved };
+    }));
+    setAdjustments(prev => [...newAdjustments, ...prev]);
+  };
+
+
+
   const handleInlineEdit = (teamName: string) => {
     const pts = parseInt(editPoints);
     if (isNaN(pts) || pts < 0) { setEditingTeam(null); return; }
@@ -161,6 +185,10 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
             <Activity className="w-3.5 h-3.5" />
             Zapisz migawkę
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
+            <Sparkles className="w-3.5 h-3.5" />
+            Podziel punkty ÷2
           </Button>
           <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
             <DialogTrigger asChild>
