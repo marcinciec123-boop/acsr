@@ -60,7 +60,7 @@ const PlayerProfile = ({
   );
 
   const currentTeam = useMemo(
-    () => rankingSource.find(t => t.roster.includes(playerName) || t.coach === playerName),
+    () => rankingSource.find(t => !t.isNational && (t.roster.includes(playerName) || t.coach === playerName)),
     [playerName, rankingSource],
   );
   const isCoachOfTeam = !!(currentTeam && currentTeam.coach === playerName);
