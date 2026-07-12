@@ -186,6 +186,10 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
             <Activity className="w-3.5 h-3.5" />
             Zapisz migawkę
           </Button>
+          <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
+            <Sparkles className="w-3.5 h-3.5" />
+            Podziel punkty ÷2
+          </Button>
           <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
