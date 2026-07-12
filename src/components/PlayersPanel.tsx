@@ -107,7 +107,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
     const seen = new Set<string>();
-    for (const t of teams) {
+    // National teams are not a player's club — skip them here so members
+    // still show up under their real club (or as free agents).
+    for (const t of teams.filter(x => !x.isNational)) {
       for (const p of t.roster) {
         if (seen.has(p)) continue;
         seen.add(p);
