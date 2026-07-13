@@ -14,6 +14,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import TeamLogo from "@/components/TeamLogo";
+import PanelHeader from "@/components/PanelHeader";
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
