@@ -22,6 +22,7 @@ import {
 } from "@/lib/freeAgents";
 import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
+import PanelHeader from "@/components/PanelHeader";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
 
