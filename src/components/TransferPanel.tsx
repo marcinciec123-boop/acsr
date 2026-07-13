@@ -533,6 +533,7 @@ const TransferPanel = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Section tabs */}
