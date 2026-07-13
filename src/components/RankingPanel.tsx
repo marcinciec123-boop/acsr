@@ -181,53 +181,60 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
-        {/* === ACTION BAR === */}
-        <div className="flex items-center justify-end gap-2 mb-4">
-          <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
-            <Activity className="w-3.5 h-3.5" />
-            Zapisz migawkę
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
-            <Sparkles className="w-3.5 h-3.5" />
-            Podziel punkty ÷2
-          </Button>
-          <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5">
-                <Plus className="w-4 h-4" /> Korekta punktów
+        {/* === HEADER === */}
+        <PanelHeader
+          icon={Trophy}
+          title="Ranking drużyn"
+          meta={`${sorted.length} drużyn · aktualizowany na bieżąco`}
+          actions={
+            <>
+              <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
+                <Activity className="w-3.5 h-3.5" />
+                Zapisz migawkę
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Zmień punkty drużyny</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Drużyna</label>
-                  <select
-                    value={adjTeam}
-                    onChange={e => setAdjTeam(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
-                  >
-                    <option value="">Wybierz drużynę...</option>
-                    {sorted.map(t => <option key={t.name} value={t.name}>{t.name} ({t.points} pkt)</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">
-                    Punkty (+ dodaj, - odejmij)
-                  </label>
-                  <Input type="number" placeholder="+100 lub -50" value={adjPoints} onChange={e => setAdjPoints(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-sm font-mono text-muted-foreground mb-1 block">Powód (opcjonalnie)</label>
-                  <Input placeholder="np. Wygrana turnieju, kara..." value={adjReason} onChange={e => setAdjReason(e.target.value)} />
-                </div>
-                <Button onClick={handleAdjust} className="w-full">Zastosuj zmianę</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
+                <Sparkles className="w-3.5 h-3.5" />
+                Podziel punkty ÷2
+              </Button>
+              <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-1.5">
+                    <Plus className="w-4 h-4" /> Korekta punktów
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Zmień punkty drużyny</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Drużyna</label>
+                      <select
+                        value={adjTeam}
+                        onChange={e => setAdjTeam(e.target.value)}
+                        className="w-full px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+                      >
+                        <option value="">Wybierz drużynę...</option>
+                        {sorted.map(t => <option key={t.name} value={t.name}>{t.name} ({t.points} pkt)</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">
+                        Punkty (+ dodaj, - odejmij)
+                      </label>
+                      <Input type="number" placeholder="+100 lub -50" value={adjPoints} onChange={e => setAdjPoints(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-mono text-muted-foreground mb-1 block">Powód (opcjonalnie)</label>
+                      <Input placeholder="np. Wygrana turnieju, kara..." value={adjReason} onChange={e => setAdjReason(e.target.value)} />
+                    </div>
+                    <Button onClick={handleAdjust} className="w-full">Zastosuj zmianę</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
+          }
+        />
 
         {/* === PODIUM TOP 3 === */}
         {top3.length === 3 && (
