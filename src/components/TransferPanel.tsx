@@ -11,6 +11,7 @@ import {
 } from "@/lib/freeAgents";
 import { roleIcons } from "@/data/playerRoles";
 import TeamLogo from "@/components/TeamLogo";
+import PanelHeader from "@/components/PanelHeader";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
