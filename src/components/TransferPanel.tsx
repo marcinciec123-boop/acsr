@@ -11,6 +11,7 @@ import {
 } from "@/lib/freeAgents";
 import { roleIcons } from "@/data/playerRoles";
 import TeamLogo from "@/components/TeamLogo";
+import PanelHeader from "@/components/PanelHeader";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
@@ -349,11 +350,18 @@ const TransferPanel = () => {
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <ArrowRightLeft className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-heading font-bold text-foreground">Transfery</h2>
+        <div className="relative overflow-hidden rounded-xl border border-primary/25 bg-gradient-to-br from-primary/12 via-primary/[0.04] to-transparent p-4 sm:p-5 mb-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="absolute -top-12 -right-12 w-44 h-44 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-lg bg-primary/15 border border-primary/40 flex items-center justify-center shadow-[0_0_20px_hsl(var(--primary)/0.15)]">
+              <ArrowRightLeft className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-heading font-bold text-foreground leading-tight tracking-tight">Transfery</h2>
+              <p className="text-xs text-muted-foreground font-mono mt-1">{transfers.length} zapisanych ruchów</p>
+            </div>
           </div>
+          <div className="relative">
           <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (o) { setPickerSearch(""); setPickerKind("all"); } }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
@@ -525,6 +533,7 @@ const TransferPanel = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Section tabs */}

@@ -22,6 +22,7 @@ import {
 } from "@/lib/freeAgents";
 import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
+import PanelHeader from "@/components/PanelHeader";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
 
@@ -364,33 +365,35 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   return (
     <section className="py-6">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <User className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-heading font-bold text-foreground">Gracze</h2>
-            <span className="text-xs font-mono text-muted-foreground">
-              ({filtered.length}/{counts.total})
-            </span>
-            {counts.fa > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
-                <UserMinus className="w-3 h-3" /> {counts.fa} FA
-              </span>
-            )}
-            {coachCount > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded">
-                🎓 {coachCount} trenerów
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={openCreateCoach} className="gap-1.5">
-              🎓 Dodaj trenera
-            </Button>
-            <Button size="sm" onClick={openCreateFA} className="gap-1.5">
-              <UserPlus className="w-4 h-4" /> Dodaj FA
-            </Button>
-          </div>
-        </div>
+        <PanelHeader
+          icon={User}
+          title="Gracze"
+          meta={`${filtered.length} z ${counts.total} zawodników`}
+          chips={
+            <>
+              {counts.fa > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+                  <UserMinus className="w-3 h-3" /> {counts.fa} FA
+                </span>
+              )}
+              {coachCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-mono uppercase text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded">
+                  🎓 {coachCount} trenerów
+                </span>
+              )}
+            </>
+          }
+          actions={
+            <>
+              <Button size="sm" variant="outline" onClick={openCreateCoach} className="gap-1.5">
+                🎓 Dodaj trenera
+              </Button>
+              <Button size="sm" onClick={openCreateFA} className="gap-1.5">
+                <UserPlus className="w-4 h-4" /> Dodaj FA
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters card */}
         <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">

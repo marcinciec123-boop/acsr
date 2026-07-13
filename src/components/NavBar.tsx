@@ -24,13 +24,17 @@ const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border glass-surface">
+    <nav className="sticky top-0 z-50 border-b border-border/60 glass-surface shadow-[0_4px_20px_-12px_hsl(var(--primary)/0.4)]">
+      <div className="absolute bottom-0 inset-x-0 h-px hairline-primary opacity-70 pointer-events-none" />
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          <button onClick={() => onTabChange("news")} className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
+          <button onClick={() => onTabChange("news")} className="flex items-center gap-2 group">
+            <span className="relative flex items-center justify-center w-8 h-8 rounded-md bg-primary/15 border border-primary/40 group-hover:bg-primary/25 transition-colors">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="absolute inset-0 rounded-md bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+            </span>
             <span className="font-heading text-lg font-bold tracking-wider text-foreground">
-              CS:GO <span className="text-primary">HUB</span>
+              CS:GO <span className="text-primary neon-text">HUB</span>
             </span>
           </button>
 
