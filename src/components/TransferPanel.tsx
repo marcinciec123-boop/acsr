@@ -109,12 +109,13 @@ const TransferPanel = () => {
   const liveTeams = useMemo(() => loadLiveTeams(), [dataVersion, transfers]);
 
   const allTeams = useMemo(() => {
+    const nationalNames = new Set(liveTeams.filter(t => t.isNational).map(t => t.name));
     const teams = new Set<string>();
     transfers.forEach(t => {
-      if (t.oldTeam !== "-") teams.add(t.oldTeam);
-      if (t.newTeam !== "-") teams.add(t.newTeam);
+      if (t.oldTeam !== "-" && !nationalNames.has(t.oldTeam)) teams.add(t.oldTeam);
+      if (t.newTeam !== "-" && !nationalNames.has(t.newTeam)) teams.add(t.newTeam);
     });
-    liveTeams.forEach(t => teams.add(t.name));
+    liveTeams.forEach(t => { if (!t.isNational) teams.add(t.name); });
     return Array.from(teams).sort();
   }, [liveTeams, transfers]);
 
