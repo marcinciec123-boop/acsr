@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { TournamentData, TournamentPhase, PhaseFormat, MatchResult, QualifierConfig, TeamData } from "@/lib/types";
 import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storage";
-import { getPointsForPlacement, teamDatabase } from "@/data/tournaments";
+import { getPointsForPlacement, teamDatabase, regionNames } from "@/data/tournaments";
 import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
@@ -275,38 +275,30 @@ const TournamentPanel = () => {
     setPhaseDrafts(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleCreate = () => {
-    if (!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0) return;
-
-    // Build phases sequentially. For each phase we may pre-seed a configurable
-    // number of real teams; remaining slots are filled with TBD placeholders
-    // (which can be assigned later via the seeding panel on the phase).
+  const buildPhasesFor = (teams: string[], advanceOverride?: number): TournamentPhase[] => {
     const phases: TournamentPhase[] = [];
-    let teamsForPhase = [...selectedTeams];
+    let teamsForPhase = [...teams];
     phaseDrafts.forEach((draft, idx) => {
-      // Determine the size of this phase.
-      // Default = number of incoming teams (selectedTeams for phase 0, or previous advanceCount).
       const incomingSize = teamsForPhase.length;
       const phaseSize = draft.teamCount > 0 ? draft.teamCount : incomingSize;
-
-      // Number of "real" (known) teams that go into this phase. The rest are TBD.
-      // - If seededCount is set, use it (capped to phaseSize).
-      // - Otherwise, use as many incoming teams as fit.
       const realCount = draft.seededCount > 0
         ? Math.min(draft.seededCount, phaseSize, incomingSize)
         : Math.min(incomingSize, phaseSize);
-
       const realPart = teamsForPhase.slice(0, realCount);
       const tbdPart = Array.from(
         { length: Math.max(0, phaseSize - realCount) },
         (_, i) => `TBD-P${idx}-${i + 1}`,
       );
       const phaseTeams = [...realPart, ...tbdPart];
-
+      // On the last phase, prefer advanceOverride (per-region qualifier slot count)
+      const isLast = idx === phaseDrafts.length - 1;
+      const effectiveAdvance = isLast && advanceOverride !== undefined
+        ? advanceOverride
+        : draft.advanceCount;
       const phase = buildPhase(draft.name, draft.format, phaseTeams, {
         bo: draft.bo,
         groupCount: draft.groupCount,
-        advanceCount: draft.advanceCount,
+        advanceCount: effectiveAdvance,
         groupAssignment: draft.groupAssignment ?? "random",
       });
       phases.push(phase);
@@ -315,6 +307,71 @@ const TournamentPanel = () => {
         teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-${idx}-${i + 1}`);
       }
     });
+    return phases;
+  };
+
+  const handleCreate = () => {
+    if (!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0) return;
+
+    // ===== Regional qualifier → build ONE TOURNAMENT PER REGION =====
+    if (isQualifier && qualScope === "regional" && qualRegions.length > 0) {
+      const created: TournamentData[] = [];
+      const skipped: string[] = [];
+      qualRegions.forEach(region => {
+        const regionTeams = selectedTeams.filter(name => {
+          const meta = teamMeta.get(name);
+          return meta?.region === region;
+        });
+        if (regionTeams.length < 2) {
+          skipped.push(regionNames[region] || region);
+          return;
+        }
+        const slots = Math.max(1, qualSlots[region] ?? 1);
+        const phases = buildPhasesFor(regionTeams, slots);
+        const regionLabel = regionNames[region] || region;
+        const t: TournamentData = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + "-" + region.toLowerCase(),
+          name: `${newName.trim()} — ${regionLabel}`,
+          organizer: newOrg.trim(),
+          prizePool: newPrize.trim() || "$0",
+          startDate: newStart,
+          endDate: newEnd,
+          location: newLocation.trim(),
+          tier: newTier,
+          teams: regionTeams.length,
+          format: phaseDrafts.map(p => formatLabel(p.format)).join(" → "),
+          status: "upcoming",
+          participants: regionTeams,
+          phases,
+          placements: [],
+          kind: "qualifier",
+          qualifierConfig: {
+            scope: "regional",
+            regions: [region],
+            slotsPerRegion: { [region]: slots },
+            linkedTournamentId: qualLinkedTo || undefined,
+            promotedTeams: [],
+          },
+          customPoints: customPointsEnabled ? customPoints : undefined,
+        };
+        created.push(t);
+      });
+      if (created.length === 0) {
+        toast({ title: "Nie utworzono kwalifikacji", description: "Żaden region nie miał co najmniej 2 drużyn.", variant: "destructive" });
+        return;
+      }
+      setTournaments(prev => [...created, ...prev]);
+      toast({
+        title: `Utworzono ${created.length} kwalifikacji regionalnych`,
+        description: skipped.length ? `Pominięto: ${skipped.join(", ")}` : `Regiony: ${qualRegions.map(r => regionNames[r] || r).join(", ")}`,
+      });
+      resetForm();
+      setShowCreate(false);
+      return;
+    }
+
+    // ===== Standard single tournament =====
+    const phases = buildPhasesFor(selectedTeams);
 
     let qualifierConfig: QualifierConfig | undefined;
     if (isQualifier) {
