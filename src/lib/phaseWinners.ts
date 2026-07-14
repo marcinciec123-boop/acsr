@@ -87,33 +87,34 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
   }
 
   // BRACKET (single / double elim / showmatch)
+  // Advancing teams = "survivors" — teams that appear in the bracket and never
+  // lost a decided match. This correctly handles cases where the user only
+  // plays the first round(s) and deletes later matches (e.g. QF winners of a
+  // 32-team single-elim should be the 8 advancing teams).
   if (phase.bracket && phase.bracket.length > 0) {
-    const rounds = Array.from(new Set(phase.bracket.map(m => m.round || "Match")));
-    // Try Grand Final first
-    const grandFinal = rounds.find(r => /grand\s*final/i.test(r))
-      || rounds.find(r => /^final$/i.test(r))
-      || rounds.find(r => /final/i.test(r))
-      || rounds[rounds.length - 1];
-    const finals = phase.bracket.filter(m => (m.round || "Match") === grandFinal);
-    const winners: string[] = [];
-    finals.forEach(m => {
-      const w = winnerOf(m);
+    const seen = new Set<string>();
+    const participants: string[] = [];
+    const losers = new Set<string>();
+    phase.bracket.forEach(m => {
+      [m.team1, m.team2].forEach(t => {
+        if (isReal(t) && !seen.has(t)) { seen.add(t); participants.push(t); }
+      });
       const l = loserOf(m);
-      if (w && !winners.includes(w)) winners.push(w);
-      if (l && !winners.includes(l)) winners.push(l);
+      if (l) losers.add(l);
     });
-    // Add semi losers if we still need more (advanceCount)
-    const need = phase.advanceCount || winners.length;
-    if (winners.length < need) {
-      const semis = rounds.find(r => /semi/i.test(r));
-      if (semis) {
-        phase.bracket.filter(m => m.round === semis).forEach(m => {
-          const l = loserOf(m);
-          if (l && !winners.includes(l)) winners.push(l);
-        });
-      }
+    const survivors = participants.filter(t => !losers.has(t));
+    const need = phase.advanceCount || survivors.length;
+    if (survivors.length >= need) return survivors.slice(0, need);
+    // Fallback: fill remaining slots with the most-recent-round losers
+    const rounds = Array.from(new Set(phase.bracket.map(m => m.round || "Match")));
+    const out = [...survivors];
+    for (let i = rounds.length - 1; i >= 0 && out.length < need; i--) {
+      phase.bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => {
+        const l = loserOf(m);
+        if (l && !out.includes(l)) out.push(l);
+      });
     }
-    return winners.slice(0, Math.max(need, winners.length));
+    return out.slice(0, need);
   }
 
   return [];
