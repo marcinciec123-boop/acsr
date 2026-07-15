@@ -132,7 +132,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
       }
       // Coaches are stored separately (not on roster) — surface them here.
-      if (t.coach && !seen.has(t.coach)) {
+      if (t.coach && !seen.has(t.coach) && !retiredSet.has(t.coach)) {
         seen.add(t.coach);
         const career = computeCareerStats(t.coach);
         out.push({
