@@ -344,6 +344,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     toast({ title: "Usunięto", description: `${nick} został usunięty.` });
   };
 
+  const retireHandler = (nick: string, isManual: boolean) => {
+    if (!confirm(`Wysłać ${nick} na emeryturę sportową? (można cofnąć edycją retired_players)`)) return;
+    const before = captureSnapshot();
+    retirePlayer(nick);
+    if (isManual) removeManualFreeAgent(nick, { clearOverrides: false });
+    recordChange("fa-remove", `Emerytura: ${nick}`, before);
+    setRefreshKey(k => k + 1);
+    toast({ title: "🏖 Emerytura", description: `${nick} zakończył karierę.` });
+  };
+
+  const removeAnyFA = (nick: string, isManual: boolean) => {
+    if (!confirm(`Usunąć na stałe ${nick}? Nie będzie widoczny w bazie.`)) return;
+    const before = captureSnapshot();
+    if (isManual) removeManualFreeAgent(nick);
+    retirePlayer(nick); // guarantees hide even for transfer-derived FAs
+    recordChange("fa-remove", `Usunięto: ${nick}`, before);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
   // Role editor (works for any player — rostered or FA)
   const [roleEditFor, setRoleEditFor] = useState<string | null>(null);
   const handleSetRole = (player: string, role: PlayerRole | "") => {
