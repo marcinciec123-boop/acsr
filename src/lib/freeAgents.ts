@@ -239,6 +239,7 @@ export function getFreeAgents(): FreeAgent[] {
   for (const t of Object.values(lastTransfer)) {
     if (t.newTeam !== "-") continue;
     if (onAnyRoster.has(t.player)) continue;
+    if (retired.has(t.player)) continue;
     if (seen.has(t.player)) continue;
     const prevTeam = teamDatabase.find(x => x.name === t.oldTeam);
     const country = normalizeCountry(
