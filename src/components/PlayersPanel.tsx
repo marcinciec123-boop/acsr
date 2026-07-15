@@ -114,7 +114,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     // still show up under their real club (or as free agents).
     for (const t of teams.filter(x => !x.isNational)) {
       for (const p of t.roster) {
-        if (seen.has(p)) continue;
+        if (seen.has(p) || retiredSet.has(p)) continue;
         seen.add(p);
         const career = computeCareerStats(p);
         out.push({
