@@ -256,10 +256,33 @@ export const TournamentDetailPage = ({
   const isQualifier = t.kind === "qualifier" && !!t.qualifierConfig;
   const winnersByRegion = useMemo(() => isQualifier ? computeQualifierWinners(t) : {}, [t, isQualifier]);
   const [linkedTarget, setLinkedTarget] = useState<string>(t.qualifierConfig?.linkedTournamentId || "");
+  const [editingWinnersRegion, setEditingWinnersRegion] = useState<string | null>(null);
+  const [winnersDraft, setWinnersDraft] = useState<string[]>([]);
 
   const promoted = t.qualifierConfig?.promotedTeams || [];
   const allWinners = Object.values(winnersByRegion).flat();
   const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
+
+  const saveManualWinners = (regionKey: string, list: string[]) => {
+    if (!onUpdateTournament || !t.qualifierConfig) return;
+    const next = { ...(t.qualifierConfig.manualWinners || {}) };
+    const cleaned = list.filter(x => x && x !== "TBD" && x !== "BYE");
+    if (cleaned.length > 0) next[regionKey] = cleaned;
+    else delete next[regionKey];
+    onUpdateTournament({
+      qualifierConfig: { ...t.qualifierConfig, manualWinners: next },
+    });
+    setEditingWinnersRegion(null);
+  };
+
+  const clearManualWinners = (regionKey: string) => {
+    if (!onUpdateTournament || !t.qualifierConfig) return;
+    const next = { ...(t.qualifierConfig.manualWinners || {}) };
+    delete next[regionKey];
+    onUpdateTournament({
+      qualifierConfig: { ...t.qualifierConfig, manualWinners: next },
+    });
+  };
 
   // Active phase tab — controlled by parent if provided (so it persists across match-detail navigation)
   const [internalPhaseId, setInternalPhaseId] = useState<string>(() => t.phases[0]?.id || "");
