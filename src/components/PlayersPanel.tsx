@@ -689,8 +689,8 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           </Button>
                         </div>
                       )}
-                      {/* Edit / delete (always available for FAs) */}
-                      <div className="mt-1.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {/* Edit / retire / delete (always available for FAs) */}
+                      <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => openEditFA(p.name)}
                           className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
@@ -698,15 +698,20 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         >
                           <Pencil className="w-2.5 h-2.5" /> edytuj
                         </button>
-                        {p.isManualFA && (
-                          <button
-                            onClick={() => deleteManualFA(p.name)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors ml-2"
-                            title="Usuń wolnego agenta"
-                          >
-                            <Trash2 className="w-2.5 h-2.5" /> usuń
-                          </button>
-                        )}
+                        <button
+                          onClick={() => retireHandler(p.name, !!p.isManualFA)}
+                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
+                          title="Emerytura sportowa"
+                        >
+                          🏖 emerytura
+                        </button>
+                        <button
+                          onClick={() => removeAnyFA(p.name, !!p.isManualFA)}
+                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors"
+                          title="Usuń z bazy"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" /> usuń
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -719,13 +724,22 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         {countryFlag(p.team!.country)} {p.team!.name}
                       </button>
                       {p.role === "Coach" && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openEditCoach(p.name); }}
-                          className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
-                          title="Edytuj profil trenera"
-                        >
-                          <Pencil className="w-2.5 h-2.5" /> edytuj trenera
-                        </button>
+                        <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => openEditCoach(p.name)}
+                            className="inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
+                            title="Edytuj profil trenera"
+                          >
+                            <Pencil className="w-2.5 h-2.5" /> edytuj
+                          </button>
+                          <button
+                            onClick={() => retireHandler(p.name, false)}
+                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
+                            title="Emerytura sportowa (usuwa też z trenera drużyny)"
+                          >
+                            🏖 emerytura
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
