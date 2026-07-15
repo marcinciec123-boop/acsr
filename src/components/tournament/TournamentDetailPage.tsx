@@ -569,19 +569,79 @@ export const TournamentDetailPage = ({
               {t.qualifierConfig!.regions.map(regionKey => {
                 const slots = t.qualifierConfig!.slotsPerRegion[regionKey] || 0;
                 const winners = winnersByRegion[regionKey] || [];
+                const isManual = !!t.qualifierConfig!.manualWinners?.[regionKey]?.length;
+                const isEditing = editingWinnersRegion === regionKey;
+                const regionParticipants = t.participants;
                 return (
                   <div key={regionKey} className="bg-card/60 border border-border rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-2">
                       <span className="text-xs font-mono font-bold text-foreground">
                         {regionKey === "GLOBAL" ? "🌍 Globalna pula" : `📍 ${regionKey}`}
+                        {isManual && (
+                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400">
+                            ręcznie
+                          </span>
+                        )}
                       </span>
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {winners.length}/{slots} miejsc obsadzonych
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {winners.length}/{slots} miejsc obsadzonych
+                        </span>
+                        {onUpdateTournament && !isEditing && (
+                          <button
+                            onClick={() => {
+                              const base = [...winners];
+                              while (base.length < slots) base.push("");
+                              setWinnersDraft(base.slice(0, slots));
+                              setEditingWinnersRegion(regionKey);
+                            }}
+                            className="text-xs font-mono px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary/10"
+                            title="Ręcznie ustaw zakwalifikowane drużyny"
+                          >
+                            ✎ edytuj
+                          </button>
+                        )}
+                        {onUpdateTournament && isManual && !isEditing && (
+                          <button
+                            onClick={() => clearManualWinners(regionKey)}
+                            className="text-xs font-mono px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground"
+                            title="Wróć do auto-obliczania"
+                          >
+                            ↺ auto
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    {winners.length === 0 ? (
+
+                    {isEditing ? (
+                      <div className="space-y-1.5">
+                        {winnersDraft.map((val, i) => (
+                          <div key={i} className="flex items-center gap-1.5">
+                            <span className="text-xs font-mono text-primary w-8 shrink-0">#{i + 1}</span>
+                            <select
+                              value={val}
+                              onChange={e => setWinnersDraft(prev => prev.map((x, j) => j === i ? e.target.value : x))}
+                              className="flex-1 min-w-0 px-2 py-1 rounded bg-card border border-border text-xs font-mono"
+                            >
+                              <option value="">— pusty —</option>
+                              {regionParticipants.map(p => (
+                                <option key={p} value={p}>{p}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                        <div className="flex gap-1.5 justify-end pt-1">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingWinnersRegion(null)}>
+                            Anuluj
+                          </Button>
+                          <Button size="sm" className="h-7 text-xs gap-1" onClick={() => saveManualWinners(regionKey, winnersDraft)}>
+                            <Save className="w-3 h-3" /> Zapisz
+                          </Button>
+                        </div>
+                      </div>
+                    ) : winners.length === 0 ? (
                       <p className="text-xs text-muted-foreground font-mono italic">
-                        Brak rozegranych meczów — wpisz wyniki, aby wyłonić zwycięzców.
+                        Brak rozegranych meczów — wpisz wyniki lub kliknij „✎ edytuj", aby ręcznie wybrać.
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
@@ -603,6 +663,7 @@ export const TournamentDetailPage = ({
                 );
               })}
             </div>
+
 
             {onPromoteWinners && (
               <div className="mt-4 pt-4 border-t border-[hsl(var(--gold))]/20 space-y-2">
