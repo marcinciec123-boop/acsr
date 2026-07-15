@@ -207,12 +207,15 @@ export function getFreeAgents(): FreeAgent[] {
 
 
 
+  const retired = new Set(loadFromStorage<string[]>("retired_players", []));
+
   const out: FreeAgent[] = [];
   const seen = new Set<string>();
 
   // Manual FAs first (they take precedence so edits stick).
   for (const m of loadManualFreeAgents()) {
     if (onAnyRoster.has(m.player)) continue;
+    if (retired.has(m.player)) continue;
     seen.add(m.player);
     const country = normalizeCountry(m.country || playerNationalities[m.player] || "");
     const realName = (m.firstName || m.lastName)
@@ -236,6 +239,7 @@ export function getFreeAgents(): FreeAgent[] {
   for (const t of Object.values(lastTransfer)) {
     if (t.newTeam !== "-") continue;
     if (onAnyRoster.has(t.player)) continue;
+    if (retired.has(t.player)) continue;
     if (seen.has(t.player)) continue;
     const prevTeam = teamDatabase.find(x => x.name === t.oldTeam);
     const country = normalizeCountry(

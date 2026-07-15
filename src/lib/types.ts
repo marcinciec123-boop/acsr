@@ -111,6 +111,8 @@ export interface QualifierConfig {
   linkedTournamentId?: string;
   /** Drużyny już awansowane (zapobiega podwójnemu awansowi) */
   promotedTeams?: string[];
+  /** Ręczne nadpisanie listy zakwalifikowanych per region — wymusza tę listę zamiast auto-obliczonej. */
+  manualWinners?: Record<string, string[]>;
 }
 
 export interface TournamentData {

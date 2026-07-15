@@ -20,6 +20,7 @@ import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
   removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
 } from "@/lib/freeAgents";
+import { retirePlayer, loadRetiredPlayers } from "@/lib/retiredPlayers";
 import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import PanelHeader from "@/components/PanelHeader";
@@ -108,11 +109,12 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
     const seen = new Set<string>();
+    const retiredSet = new Set(loadRetiredPlayers());
     // National teams are not a player's club — skip them here so members
     // still show up under their real club (or as free agents).
     for (const t of teams.filter(x => !x.isNational)) {
       for (const p of t.roster) {
-        if (seen.has(p)) continue;
+        if (seen.has(p) || retiredSet.has(p)) continue;
         seen.add(p);
         const career = computeCareerStats(p);
         out.push({
@@ -130,7 +132,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         });
       }
       // Coaches are stored separately (not on roster) — surface them here.
-      if (t.coach && !seen.has(t.coach)) {
+      if (t.coach && !seen.has(t.coach) && !retiredSet.has(t.coach)) {
         seen.add(t.coach);
         const career = computeCareerStats(t.coach);
         out.push({
@@ -338,6 +340,26 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     const before = captureSnapshot();
     removeManualFreeAgent(nick);
     recordChange("fa-remove", `Usunięto FA: ${nick}`, before);
+    setRefreshKey(k => k + 1);
+    toast({ title: "Usunięto", description: `${nick} został usunięty.` });
+  };
+
+  const retireHandler = (nick: string, isManual: boolean) => {
+    if (!confirm(`Wysłać ${nick} na emeryturę sportową? (można cofnąć edycją retired_players)`)) return;
+    const before = captureSnapshot();
+    retirePlayer(nick);
+    if (isManual) removeManualFreeAgent(nick, { clearOverrides: false });
+    recordChange("fa-remove", `Emerytura: ${nick}`, before);
+    setRefreshKey(k => k + 1);
+    toast({ title: "🏖 Emerytura", description: `${nick} zakończył karierę.` });
+  };
+
+  const removeAnyFA = (nick: string, isManual: boolean) => {
+    if (!confirm(`Usunąć na stałe ${nick}? Nie będzie widoczny w bazie.`)) return;
+    const before = captureSnapshot();
+    if (isManual) removeManualFreeAgent(nick);
+    retirePlayer(nick); // guarantees hide even for transfer-derived FAs
+    recordChange("fa-remove", `Usunięto: ${nick}`, before);
     setRefreshKey(k => k + 1);
     toast({ title: "Usunięto", description: `${nick} został usunięty.` });
   };
@@ -667,8 +689,8 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           </Button>
                         </div>
                       )}
-                      {/* Edit / delete (always available for FAs) */}
-                      <div className="mt-1.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {/* Edit / retire / delete (always available for FAs) */}
+                      <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => openEditFA(p.name)}
                           className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
@@ -676,15 +698,20 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         >
                           <Pencil className="w-2.5 h-2.5" /> edytuj
                         </button>
-                        {p.isManualFA && (
-                          <button
-                            onClick={() => deleteManualFA(p.name)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors ml-2"
-                            title="Usuń wolnego agenta"
-                          >
-                            <Trash2 className="w-2.5 h-2.5" /> usuń
-                          </button>
-                        )}
+                        <button
+                          onClick={() => retireHandler(p.name, !!p.isManualFA)}
+                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
+                          title="Emerytura sportowa"
+                        >
+                          🏖 emerytura
+                        </button>
+                        <button
+                          onClick={() => removeAnyFA(p.name, !!p.isManualFA)}
+                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors"
+                          title="Usuń z bazy"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" /> usuń
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -697,13 +724,22 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                         {countryFlag(p.team!.country)} {p.team!.name}
                       </button>
                       {p.role === "Coach" && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openEditCoach(p.name); }}
-                          className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
-                          title="Edytuj profil trenera"
-                        >
-                          <Pencil className="w-2.5 h-2.5" /> edytuj trenera
-                        </button>
+                        <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => openEditCoach(p.name)}
+                            className="inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
+                            title="Edytuj profil trenera"
+                          >
+                            <Pencil className="w-2.5 h-2.5" /> edytuj
+                          </button>
+                          <button
+                            onClick={() => retireHandler(p.name, false)}
+                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
+                            title="Emerytura sportowa (usuwa też z trenera drużyny)"
+                          >
+                            🏖 emerytura
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
