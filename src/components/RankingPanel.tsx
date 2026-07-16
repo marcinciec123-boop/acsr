@@ -15,6 +15,7 @@ import { countryFlag } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import TeamLogo from "@/components/TeamLogo";
 import PanelHeader from "@/components/PanelHeader";
+import { getWorldNowIso } from "@/lib/worldClock";
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
@@ -109,7 +110,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
       team: adjTeam,
       points: pts,
       reason: adjReason.trim() || (pts > 0 ? "Dodanie punktów" : "Odjęcie punktów"),
-      date: new Date().toISOString(),
+      date: getWorldNowIso(),
     };
     setTeams(prev => prev.map(t =>
       t.name === adjTeam ? { ...t, points: Math.max(0, t.points + pts) } : t
@@ -122,7 +123,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     const targets = teams.filter(t => !t.isNational && t.points > 0);
     if (targets.length === 0) return;
     if (!window.confirm(`Podzielić punkty ${targets.length} drużynom na pół (zaokrąglenie w górę)?`)) return;
-    const now = new Date().toISOString();
+    const now = getWorldNowIso();
     const newAdjustments: RankingAdjustment[] = [];
     setTeams(prev => prev.map(t => {
       if (t.isNational || t.points <= 0) return t;
@@ -153,7 +154,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
       team: teamName,
       points: diff,
       reason: "Ręczna edycja punktów",
-      date: new Date().toISOString(),
+      date: getWorldNowIso(),
     };
     setTeams(prev => prev.map(t => t.name === teamName ? { ...t, points: pts } : t));
     setAdjustments(prev => [adj, ...prev]);

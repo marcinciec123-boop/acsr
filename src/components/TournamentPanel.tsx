@@ -23,6 +23,7 @@ import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
+import { getWorldNowIso, advanceWorldTo } from "@/lib/worldClock";
 import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
@@ -737,7 +738,9 @@ const TournamentPanel = () => {
     const source = tournaments.find(t => t.id === id);
     if (!source || source.resultsConfirmed) return;
     const placements = source.placements?.length ? source.placements : deriveFinalPlacements(source);
-    const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: new Date().toISOString() };
+    const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: getWorldNowIso() };
+    // Advance the fictional world clock past the tournament's end.
+    advanceWorldTo(source.endDate);
     const next = tournaments.map(t => t.id === id ? finalized : t);
     const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {

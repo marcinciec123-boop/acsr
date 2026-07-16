@@ -10,6 +10,7 @@
 import type { NewsPost } from "./types";
 import { saveToStorage, loadFromStorage } from "./storage";
 import { supabase } from "@/integrations/supabase/client";
+import { getWorldNowIso, getWorldDate } from "./worldClock";
 
 const NEWS_KEY = "news_posts";
 
@@ -34,7 +35,7 @@ const appendPost = (
   const post: AutoNewsPost = {
     id: uid(),
     content,
-    date: new Date().toISOString(),
+    date: getWorldNowIso(),
     category,
     eventKey,
     auto: true,
@@ -46,7 +47,7 @@ const appendPost = (
 // ----------------- transfer event -----------------
 
 export function announceTransfer(player: string, oldTeam: string, newTeam: string): void {
-  const key = `transfer:${player}:${oldTeam}->${newTeam}:${new Date().toISOString().slice(0, 10)}`;
+  const key = `transfer:${player}:${oldTeam}->${newTeam}:${getWorldDate()}`;
   let content = "";
   let category = "transfer";
 
@@ -105,7 +106,7 @@ export function announceMatchUpset(winner: string, loser: string, score: string,
 export function announceRankingChange(team: string, oldRank: number, newRank: number): void {
   if (oldRank === newRank) return;
   const diff = oldRank - newRank;
-  const key = `rank:${team}:${oldRank}->${newRank}:${new Date().toISOString().slice(0, 10)}`;
+  const key = `rank:${team}:${oldRank}->${newRank}:${getWorldDate()}`;
   const dir = diff > 0 ? "📈 W GÓRĘ" : "📉 W DÓŁ";
   const content = `${dir}: ${team} przesuwa się z #${oldRank} na #${newRank} w światowym rankingu. ${diff > 0 ? "Forma rośnie." : "Coś nie gra w ostatnich meczach."}`;
   appendPost(key, content, "rating");

@@ -13,6 +13,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent } from "./freeAgents";
+import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
 
@@ -304,7 +305,7 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
     ...loadExtraDisbands(),
     {
       team: name,
-      date: new Date().toISOString().slice(0, 10),
+      date: getWorldDate(),
       reason: input.reason?.trim() || "Rozwiązanie drużyny",
       finalRoster: [...team.roster],
       country: team.country,

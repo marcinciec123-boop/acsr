@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import type { Transfer, TeamData } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { transfers as seedTransfers, customTransfersGlobal, type Transfer as RawTransfer } from "@/data/history";
+import { getWorldNowIso } from "@/lib/worldClock";
 import {
   captureSnapshot, recordChange, loadChangeLog, revertTo, clearChangeLog,
   persistCurrentRosters, type ChangeLogEntry,
@@ -230,7 +231,7 @@ const TransferPanel = () => {
       player: transferPlayer.trim(),
       oldTeam: transferFrom,
       newTeam: transferTo,
-      date: new Date().toISOString(),
+      date: getWorldNowIso(),
     };
 
     // Snapshot BEFORE applying any mutation, for the change log.
@@ -320,7 +321,7 @@ const TransferPanel = () => {
             player: ct.player,
             oldTeam: ct.oldTeam,
             newTeam: ct.newTeam,
-            date: prevByKey.get(key) ?? new Date().toISOString(),
+            date: prevByKey.get(key) ?? getWorldNowIso(),
           };
         }),
         ...seedTransfers.map((s, i) => ({
