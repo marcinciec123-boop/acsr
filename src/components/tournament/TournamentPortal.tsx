@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData } from "@/lib/types";
 import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
+import { getWorldNow } from "@/lib/worldClock";
 
 interface Props {
   tournaments: TournamentData[];
@@ -106,8 +107,8 @@ const statusDot = (status: TournamentData["status"]) =>
 const initialCalendarDate = (tournaments: TournamentData[]) => {
   const sorted = [...tournaments].filter(t => t.startDate).sort((a, b) => a.startDate.localeCompare(b.startDate));
   const next = sorted.find(t => t.status !== "completed") || sorted[sorted.length - 1];
-  const date = next ? parseLocalDate(next.startDate) ?? new Date() : new Date();
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+  const date = next ? parseLocalDate(next.startDate) ?? getWorldNow() : getWorldNow();
+  return Number.isNaN(date.getTime()) ? getWorldNow() : date;
 };
 
 const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void }) => {
@@ -577,7 +578,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
           if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
           const iso = toIsoLocal(day);
           const events = dayIndex[iso] || [];
-          const today = iso === toIsoLocal(new Date());
+          const today = iso === toIsoLocal(getWorldNow());
           return (
             <div
               key={iso}
@@ -601,7 +602,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
 
 const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
   const years = useMemo(() => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(), [tournaments]);
-  const [year, setYear] = useState(years[years.length - 1] || String(new Date().getFullYear()));
+  const [year, setYear] = useState(years[years.length - 1] || String(getWorldNow().getFullYear()));
   const yearTournaments = tournaments
     .filter(t => formatYear(t.startDate) === year || formatYear(t.endDate) === year)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));

@@ -496,3 +496,131 @@ export function computePlayerRatingForPeriod(
   const avg = filtered.reduce((s, m) => s + m.rating, 0) / filtered.length;
   return { rating: Math.round(avg * 100) / 100, matches: filtered.length };
 }
+
+// ===== Batched per-player basic stats =====
+//
+// Single pass over `tournaments_data` producing rating/K-D/ADR/match-count
+// for EVERY player at once. Used by the players panel — the previous approach
+// called `computeCareerStats(name)` per row, which loaded storage and scanned
+// every match once per player (O(P*M)). This version is O(M).
+
+export interface BasicPlayerStats {
+  rating: number;
+  matches: number;
+  kdr: number;
+  adr: number;
+}
+
+interface BasicEntry {
+  rating: number;
+  kills: number;
+  deaths: number;
+  adrW: number;
+  rounds: number;
+  tournamentId: string;
+  playedAt: string;
+}
+
+export function computeAllPlayersBasicStats(
+  period: RatingPeriod = "all",
+  tournaments?: TournamentData[],
+): Map<string, BasicPlayerStats> {
+  const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []);
+  const perPlayer = new Map<string, BasicEntry[]>();
+
+  for (const t of ts) {
+    const allMatches: MatchResult[] = [];
+    for (const phase of t.phases || []) {
+      if (phase.bracket) allMatches.push(...phase.bracket);
+      if (phase.groups) for (const g of phase.groups) allMatches.push(...g.matches);
+    }
+    if (t.matches) allMatches.push(...t.matches);
+
+    for (const match of allMatches) {
+      if (!match.maps) continue;
+      // Accumulate per-player across all maps of this match.
+      interface Acc {
+        isTeam1: boolean;
+        kills: number; deaths: number; assists: number;
+        ud: number; ef: number;
+        adrW: number; kastW: number; rounds: number;
+      }
+      const acc = new Map<string, Acc>();
+      const pushSide = (players: MapPlayerStats[] | undefined, isTeam1: boolean, rounds: number) => {
+        if (!players) return;
+        for (const p of players) {
+          let a = acc.get(p.playerName);
+          if (!a) {
+            a = { isTeam1, kills: 0, deaths: 0, assists: 0, ud: 0, ef: 0, adrW: 0, kastW: 0, rounds: 0 };
+            acc.set(p.playerName, a);
+          }
+          a.kills += p.kills; a.deaths += p.deaths; a.assists += p.assists;
+          a.ud += p.ud; a.ef += p.ef;
+          a.adrW += p.adr * rounds; a.kastW += p.kast * rounds; a.rounds += rounds;
+        }
+      };
+      for (const map of match.maps) {
+        const rounds = (map.score1 || 0) + (map.score2 || 0);
+        if (rounds <= 0) continue;
+        pushSide(map.team1Players, true, rounds);
+        pushSide(map.team2Players, false, rounds);
+      }
+      const playedAt = match.playedAt || t.endDate || "";
+      for (const [name, a] of acc) {
+        if (a.rounds === 0) continue;
+        const rating = calculateRating({
+          playerName: name,
+          team: a.isTeam1 ? match.team1 : match.team2,
+          kills: a.kills, deaths: a.deaths, assists: a.assists,
+          adr: Math.round(a.adrW / a.rounds),
+          kast: Math.round(a.kastW / a.rounds),
+          ud: a.ud, ef: a.ef, rounds: a.rounds,
+        });
+        const list = perPlayer.get(name);
+        const entry: BasicEntry = {
+          rating,
+          kills: a.kills, deaths: a.deaths,
+          adrW: a.adrW, rounds: a.rounds,
+          tournamentId: t.id, playedAt,
+        };
+        if (list) list.push(entry);
+        else perPlayer.set(name, [entry]);
+      }
+    }
+  }
+
+  const out = new Map<string, BasicPlayerStats>();
+  const cutoff =
+    period === "month" ? Date.now() - 30 * 86400000 :
+    period === "year" ? Date.now() - 365 * 86400000 : 0;
+
+  for (const [name, entries] of perPlayer) {
+    let filtered = entries;
+    if (period === "lastTournament") {
+      entries.sort((a, b) => (b.playedAt || "").localeCompare(a.playedAt || ""));
+      const lastId = entries[0].tournamentId;
+      filtered = entries.filter(e => e.tournamentId === lastId);
+    } else if (period === "month" || period === "year") {
+      filtered = entries.filter(e => {
+        const t = e.playedAt ? Date.parse(e.playedAt) : NaN;
+        return Number.isFinite(t) && t >= cutoff;
+      });
+    }
+    if (filtered.length === 0) {
+      out.set(name, { rating: 0, matches: 0, kdr: 0, adr: 0 });
+      continue;
+    }
+    let totKills = 0, totDeaths = 0, totAdrW = 0, totRounds = 0, rSum = 0;
+    for (const e of filtered) {
+      totKills += e.kills; totDeaths += e.deaths;
+      totAdrW += e.adrW; totRounds += e.rounds; rSum += e.rating;
+    }
+    out.set(name, {
+      rating: Math.round((rSum / filtered.length) * 100) / 100,
+      matches: filtered.length,
+      kdr: totDeaths > 0 ? Math.round((totKills / totDeaths) * 100) / 100 : totKills,
+      adr: totRounds > 0 ? Math.round(totAdrW / totRounds) : 0,
+    });
+  }
+  return out;
+}

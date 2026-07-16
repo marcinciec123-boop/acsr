@@ -13,8 +13,8 @@ import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
-import { computeCareerStats } from "@/lib/playerCareerStats";
-import { computePlayerRatingForPeriod, type RatingPeriod } from "@/lib/playerCareerStats";
+import { computeAllPlayersBasicStats, type BasicPlayerStats } from "@/lib/playerCareerStats";
+import { type RatingPeriod } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
@@ -106,17 +106,27 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamsTick]);
 
+  // Single-pass career stats for every player at the currently selected period.
+  // Recomputed only when the underlying data or period changes — NOT per-row.
+  const statsIndex = useMemo<Map<string, BasicPlayerStats>>(
+    () => computeAllPlayersBasicStats(ratingPeriod),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [teamsTick, ratingPeriod, refreshKey],
+  );
+
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
     const seen = new Set<string>();
     const retiredSet = new Set(loadRetiredPlayers());
+    const empty: BasicPlayerStats = { rating: 0, matches: 0, kdr: 0, adr: 0 };
+    const statFor = (p: string) => statsIndex.get(p) || empty;
     // National teams are not a player's club — skip them here so members
     // still show up under their real club (or as free agents).
     for (const t of teams.filter(x => !x.isNational)) {
       for (const p of t.roster) {
         if (seen.has(p) || retiredSet.has(p)) continue;
         seen.add(p);
-        const career = computeCareerStats(p);
+        const s = statFor(p);
         out.push({
           name: p,
           team: t,
@@ -125,16 +135,16 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           country: normalizeCountry(playerNationalities[p] || t.country),
           realName: playerRealNames[p],
           role: playerRoles[p],
-          rating: career.careerRating,
-          matches: career.matchesPlayed,
-          kdr: career.kdRatio,
-          adr: career.avgAdr,
+          rating: s.rating,
+          matches: s.matches,
+          kdr: s.kdr,
+          adr: s.adr,
         });
       }
       // Coaches are stored separately (not on roster) — surface them here.
       if (t.coach && !seen.has(t.coach) && !retiredSet.has(t.coach)) {
         seen.add(t.coach);
-        const career = computeCareerStats(t.coach);
+        const s = statFor(t.coach);
         out.push({
           name: t.coach,
           team: t,
@@ -143,10 +153,10 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
           country: normalizeCountry(playerNationalities[t.coach] || t.country),
           realName: playerRealNames[t.coach],
           role: "Coach",
-          rating: career.careerRating,
-          matches: career.matchesPlayed,
-          kdr: career.kdRatio,
-          adr: career.avgAdr,
+          rating: s.rating,
+          matches: s.matches,
+          kdr: s.kdr,
+          adr: s.adr,
         });
       }
     }
@@ -155,7 +165,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     for (const fa of getFreeAgents()) {
       if (seen.has(fa.player)) continue;
       seen.add(fa.player);
-      const career = computeCareerStats(fa.player);
+      const s = statFor(fa.player);
       out.push({
         name: fa.player,
         team: undefined,
@@ -166,16 +176,14 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
         country: normalizeCountry(fa.country),
         realName: fa.realName,
         role: fa.role || playerRoles[fa.player],
-        rating: career.careerRating,
-        matches: career.matchesPlayed,
-        kdr: career.kdRatio,
-        adr: career.avgAdr,
+        rating: s.rating,
+        matches: s.matches,
+        kdr: s.kdr,
+        adr: s.adr,
       });
     }
     return out;
-  // refreshKey forces recompute after a nationality edit
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teams, refreshKey]);
+  }, [teams, statsIndex]);
 
   const allNationalities = useMemo(() => {
     const set = new Set<string>();
@@ -194,15 +202,8 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     fa: rows.filter(r => r.isFA).length,
   }), [rows]);
 
-  // When a non-default period is picked, recompute rating/matches per player.
-  const periodRows = useMemo<PlayerRow[]>(() => {
-    if (ratingPeriod === "all") return rows;
-    return rows.map(r => {
-      const { rating, matches } = computePlayerRatingForPeriod(r.name, ratingPeriod);
-      return { ...r, rating, matches };
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, ratingPeriod, refreshKey]);
+  // Period-scoped stats are already baked into `rows` via `statsIndex`.
+  const periodRows = rows;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

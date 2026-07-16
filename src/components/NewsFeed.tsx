@@ -17,6 +17,7 @@ import type { NewsPost } from "@/lib/types";
 import { saveToStorage, loadFromStorage } from "@/lib/storage";
 import { saveImage, loadImage, deleteImage } from "@/lib/storage";
 import { generateAIRumors, type WorldSnapshot, type WorldEvent, type AIPostMode } from "@/lib/autoNews";
+import { getWorldNowIso } from "@/lib/worldClock";
 import { teamDatabase } from "@/data/tournaments";
 import { getAllTransfers } from "@/data/history";
 import { playerRoles } from "@/data/playerRoles";
@@ -234,7 +235,7 @@ const NewsFeed = () => {
       id,
       content: newContent.trim(),
       imageId,
-      date: new Date().toISOString(),
+      date: getWorldNowIso(),
     };
     setPosts(prev => [post, ...prev]);
     setNewContent("");

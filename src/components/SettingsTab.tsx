@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Settings, RotateCcw, Save, Download, Trash2, AlertTriangle } from "lucide-react";
+import { Settings, RotateCcw, Save, Download, Trash2, AlertTriangle, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
+import { getWorldDate, setWorldDate, resetWorldClock, formatWorldDate, WORLD_CLOCK_EVENT, WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
 import TeamsManagementPanel from "./TeamsManagementPanel";
 import ThemeSwitcher from "./ThemeSwitcher";
 import FontSwitcher from "./FontSwitcher";
@@ -110,6 +111,10 @@ const SettingsTab = ({
 
         {/* Font picker */}
         <FontSwitcher />
+
+        {/* Fictional world clock */}
+        <WorldClockCard />
+
 
         {/* Teams management */}
         <div className="mb-6">
@@ -243,3 +248,57 @@ const SettingsTab = ({
 };
 
 export default SettingsTab;
+
+// ===== Fictional world clock =====
+
+const WorldClockCard = () => {
+  const [date, setDate] = useState<string>(() => getWorldDate());
+  const [pretty, setPretty] = useState<string>(() => formatWorldDate());
+
+  useEffect(() => {
+    const sync = () => {
+      setDate(getWorldDate());
+      setPretty(formatWorldDate());
+    };
+    window.addEventListener(WORLD_CLOCK_EVENT, sync);
+    return () => window.removeEventListener(WORLD_CLOCK_EVENT, sync);
+  }, []);
+
+  const apply = (iso: string) => {
+    setWorldDate(iso);
+    setDate(iso);
+    setPretty(formatWorldDate());
+  };
+  const shift = (days: number) => {
+    const d = new Date(date + "T12:00:00");
+    d.setDate(d.getDate() + days);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    apply(iso);
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+      <h3 className="font-heading font-bold text-foreground mb-1 flex items-center gap-2">
+        <CalendarClock className="w-4 h-4 text-primary" />
+        Data w świecie gry
+      </h3>
+      <p className="text-xs font-mono text-muted-foreground mb-4">
+        Fikcyjny kalendarz aplikacji. Nowe transfery, wpisy w rankingu i newsy dostają tę datę zamiast rzeczywistej. Zegar przesuwa się automatycznie po zatwierdzeniu wyników turnieju.
+      </p>
+      <p className="text-lg font-heading font-black text-foreground capitalize mb-3">{pretty}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          value={date}
+          onChange={e => apply(e.target.value)}
+          className="h-9 px-2 rounded-md border border-border bg-secondary/40 font-mono text-sm text-foreground"
+        />
+        <button onClick={() => shift(-7)} className="px-2.5 py-1.5 text-xs font-mono rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">−7 dni</button>
+        <button onClick={() => shift(-1)} className="px-2.5 py-1.5 text-xs font-mono rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">−1 dzień</button>
+        <button onClick={() => shift(1)} className="px-2.5 py-1.5 text-xs font-mono rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">+1 dzień</button>
+        <button onClick={() => shift(7)} className="px-2.5 py-1.5 text-xs font-mono rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">+7 dni</button>
+        <button onClick={() => { resetWorldClock(); setDate(WORLD_CLOCK_DEFAULT); setPretty(formatWorldDate()); }} className="px-2.5 py-1.5 text-xs font-mono rounded border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors">Reset ({WORLD_CLOCK_DEFAULT})</button>
+      </div>
+    </div>
+  );
+};
