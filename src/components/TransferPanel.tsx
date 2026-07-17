@@ -370,8 +370,9 @@ const TransferPanel = () => {
           player: s.player,
           oldTeam: s.oldTeam,
           newTeam: s.newTeam,
-          date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+          date: seedDateForIndex(i, seedTransfers.length),
         })),
+
       ];
       setTransfers(rebuilt);
       saveToStorage(TRANSFERS_KEY, rebuilt);
