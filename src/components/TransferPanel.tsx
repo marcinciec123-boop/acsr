@@ -39,11 +39,27 @@ type Section = "transfers" | "freeAgents" | "changes";
 
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
+const SEED_DATES_VERSION_KEY = "transfers_seed_dates_v2";
+
+// Spread all seed transfers chronologically across 2025-06-01 → 2026-01-31.
+// Late entries (roughly the last ~15%) naturally fall into the January 2026
+// pre-season window, matching the fictional world clock start of 2026-01-01.
+const SEED_START = new Date(2025, 5, 1); // 2025-06-01
+const SEED_END = new Date(2026, 0, 31);  // 2026-01-31
+const SEED_SPAN_DAYS = Math.round((SEED_END.getTime() - SEED_START.getTime()) / 86_400_000);
+const seedDateForIndex = (i: number, total: number): string => {
+  const denom = Math.max(1, total - 1);
+  const offset = Math.round((i * SEED_SPAN_DAYS) / denom);
+  const d = new Date(SEED_START);
+  d.setDate(d.getDate() + offset);
+  return d.toISOString();
+};
 
 const loadLiveTeams = (): TeamData[] => {
   const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
   return rankingData && rankingData.length > 0 ? rankingData : teamDatabase;
 };
+
 
 const persistPersonMetadataAfterSigning = (player: string) => {
   const manual = loadManualFreeAgents().find(f => f.player === player);
