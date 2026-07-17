@@ -83,19 +83,41 @@ const persistPersonMetadataAfterSigning = (player: string) => {
 
 const TransferPanel = () => {
   const [transfers, setTransfers] = useState<Transfer[]>(() => {
+    const total = seedTransfers.length;
     const saved = loadFromStorage<Transfer[]>(TRANSFERS_KEY, []);
-    if (saved.length > 0) return saved;
+    const seedDatesMigrated = loadFromStorage<boolean>(SEED_DATES_VERSION_KEY, false);
+    if (saved.length > 0) {
+      // One-shot migration: re-space `seed-*` entries across 2025-06 → 2026-01
+      // so the pre-season batch lands in January 2026 and dates stay ordered.
+      if (!seedDatesMigrated) {
+        const migrated = saved.map(t => {
+          if (typeof t.id === "string" && t.id.startsWith("seed-")) {
+            const idx = Number(t.id.slice(5));
+            if (Number.isFinite(idx)) {
+              return { ...t, date: seedDateForIndex(idx, total) };
+            }
+          }
+          return t;
+        });
+        saveToStorage(TRANSFERS_KEY, migrated);
+        saveToStorage(SEED_DATES_VERSION_KEY, true);
+        return migrated;
+      }
+      return saved;
+    }
     // Seed from history.ts
     const seeded: Transfer[] = seedTransfers.map((t, i) => ({
       id: `seed-${i}`,
       player: t.player,
       oldTeam: t.oldTeam,
       newTeam: t.newTeam,
-      date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+      date: seedDateForIndex(i, total),
     }));
     saveToStorage(TRANSFERS_KEY, seeded);
+    saveToStorage(SEED_DATES_VERSION_KEY, true);
     return seeded;
   });
+
   const [section, setSection] = useState<Section>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
