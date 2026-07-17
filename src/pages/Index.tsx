@@ -118,6 +118,8 @@ const Index = () => {
             </p>
           </div>
         </footer>
+
+        <WorldClockWidget />
       </div>
     </ProfileNavProvider>
   );
