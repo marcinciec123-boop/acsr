@@ -94,9 +94,11 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     const bump = () => setTeamsTick(k => k + 1);
     window.addEventListener("teams:update", bump);
     window.addEventListener("ranking:update", bump);
+    window.addEventListener("worldclock:update", bump);
     return () => {
       window.removeEventListener("teams:update", bump);
       window.removeEventListener("ranking:update", bump);
+      window.removeEventListener("worldclock:update", bump);
     };
   }, []);
 

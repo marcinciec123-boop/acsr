@@ -54,6 +54,19 @@ export function resetWorldClock(): void {
   setWorldDate(DEFAULT_ISO);
 }
 
+/** Shift the fictional clock by N days (positive = forward, negative = backward). */
+export function shiftWorldDays(delta: number): void {
+  const d = getWorldNow();
+  d.setDate(d.getDate() + delta);
+  const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  setWorldDate(iso);
+}
+
+/** Fictional "now" in ms since epoch — use instead of `Date.now()` for time windows. */
+export function worldNowMs(): number {
+  return getWorldNow().getTime();
+}
+
 /** Fictional "now" as a Date object anchored at 12:00 local time. */
 export function getWorldNow(): Date {
   const [y, m, d] = getWorldDate().split("-").map(Number);

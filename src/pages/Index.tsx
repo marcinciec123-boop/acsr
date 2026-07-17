@@ -10,6 +10,7 @@ import PlayersPanel from "@/components/PlayersPanel";
 import DeviceBackupPanel from "@/components/DeviceBackupPanel";
 import SettingsTab from "@/components/SettingsTab";
 import CommandPalette from "@/components/CommandPalette";
+import WorldClockWidget from "@/components/WorldClockWidget";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -117,6 +118,8 @@ const Index = () => {
             </p>
           </div>
         </footer>
+
+        <WorldClockWidget />
       </div>
     </ProfileNavProvider>
   );

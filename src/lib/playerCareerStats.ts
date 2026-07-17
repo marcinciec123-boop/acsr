@@ -7,6 +7,7 @@
 import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
+import { worldNowMs } from "./worldClock";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -486,7 +487,7 @@ export function computePlayerRatingForPeriod(
     const lastId = all[0].tournamentId;
     filtered = all.filter(m => m.tournamentId === lastId);
   } else if (period === "month" || period === "year") {
-    const cutoff = Date.now() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
+    const cutoff = worldNowMs() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
     filtered = all.filter(m => {
       const t = m.playedAt ? Date.parse(m.playedAt) : NaN;
       return Number.isFinite(t) && t >= cutoff;
@@ -591,8 +592,8 @@ export function computeAllPlayersBasicStats(
 
   const out = new Map<string, BasicPlayerStats>();
   const cutoff =
-    period === "month" ? Date.now() - 30 * 86400000 :
-    period === "year" ? Date.now() - 365 * 86400000 : 0;
+    period === "month" ? worldNowMs() - 30 * 86400000 :
+    period === "year" ? worldNowMs() - 365 * 86400000 : 0;
 
   for (const [name, entries] of perPlayer) {
     let filtered = entries;
