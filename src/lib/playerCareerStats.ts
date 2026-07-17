@@ -486,7 +486,7 @@ export function computePlayerRatingForPeriod(
     const lastId = all[0].tournamentId;
     filtered = all.filter(m => m.tournamentId === lastId);
   } else if (period === "month" || period === "year") {
-    const cutoff = Date.now() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
+    const cutoff = worldNowMs() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
     filtered = all.filter(m => {
       const t = m.playedAt ? Date.parse(m.playedAt) : NaN;
       return Number.isFinite(t) && t >= cutoff;
