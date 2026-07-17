@@ -7,6 +7,7 @@
 import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
+import { worldNowMs } from "./worldClock";
 
 export interface CareerMatchEntry {
   tournamentId: string;
