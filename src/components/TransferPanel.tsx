@@ -39,11 +39,27 @@ type Section = "transfers" | "freeAgents" | "changes";
 
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
+const SEED_DATES_VERSION_KEY = "transfers_seed_dates_v2";
+
+// Spread all seed transfers chronologically across 2025-06-01 → 2026-01-31.
+// Late entries (roughly the last ~15%) naturally fall into the January 2026
+// pre-season window, matching the fictional world clock start of 2026-01-01.
+const SEED_START = new Date(2025, 5, 1); // 2025-06-01
+const SEED_END = new Date(2026, 0, 31);  // 2026-01-31
+const SEED_SPAN_DAYS = Math.round((SEED_END.getTime() - SEED_START.getTime()) / 86_400_000);
+const seedDateForIndex = (i: number, total: number): string => {
+  const denom = Math.max(1, total - 1);
+  const offset = Math.round((i * SEED_SPAN_DAYS) / denom);
+  const d = new Date(SEED_START);
+  d.setDate(d.getDate() + offset);
+  return d.toISOString();
+};
 
 const loadLiveTeams = (): TeamData[] => {
   const rankingData = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
   return rankingData && rankingData.length > 0 ? rankingData : teamDatabase;
 };
+
 
 const persistPersonMetadataAfterSigning = (player: string) => {
   const manual = loadManualFreeAgents().find(f => f.player === player);
@@ -67,19 +83,41 @@ const persistPersonMetadataAfterSigning = (player: string) => {
 
 const TransferPanel = () => {
   const [transfers, setTransfers] = useState<Transfer[]>(() => {
+    const total = seedTransfers.length;
     const saved = loadFromStorage<Transfer[]>(TRANSFERS_KEY, []);
-    if (saved.length > 0) return saved;
+    const seedDatesMigrated = loadFromStorage<boolean>(SEED_DATES_VERSION_KEY, false);
+    if (saved.length > 0) {
+      // One-shot migration: re-space `seed-*` entries across 2025-06 → 2026-01
+      // so the pre-season batch lands in January 2026 and dates stay ordered.
+      if (!seedDatesMigrated) {
+        const migrated = saved.map(t => {
+          if (typeof t.id === "string" && t.id.startsWith("seed-")) {
+            const idx = Number(t.id.slice(5));
+            if (Number.isFinite(idx)) {
+              return { ...t, date: seedDateForIndex(idx, total) };
+            }
+          }
+          return t;
+        });
+        saveToStorage(TRANSFERS_KEY, migrated);
+        saveToStorage(SEED_DATES_VERSION_KEY, true);
+        return migrated;
+      }
+      return saved;
+    }
     // Seed from history.ts
     const seeded: Transfer[] = seedTransfers.map((t, i) => ({
       id: `seed-${i}`,
       player: t.player,
       oldTeam: t.oldTeam,
       newTeam: t.newTeam,
-      date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+      date: seedDateForIndex(i, total),
     }));
     saveToStorage(TRANSFERS_KEY, seeded);
+    saveToStorage(SEED_DATES_VERSION_KEY, true);
     return seeded;
   });
+
   const [section, setSection] = useState<Section>("transfers");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
@@ -216,9 +254,12 @@ const TransferPanel = () => {
       if (typeFilter === "move" && (t.oldTeam === "-" || t.newTeam === "-")) return false;
       return true;
     });
-    if (reversed) result = [...result].reverse();
+    // Chronological: newest first by default, oldest first when "reversed".
+    result = [...result].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    if (reversed) result.reverse();
     return result;
   }, [search, teamFilter, reversed, typeFilter, transfers]);
+
 
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>(() => loadChangeLog());
 
@@ -329,8 +370,9 @@ const TransferPanel = () => {
           player: s.player,
           oldTeam: s.oldTeam,
           newTeam: s.newTeam,
-          date: new Date(2025, 5, 1 + Math.floor(i / 5)).toISOString(),
+          date: seedDateForIndex(i, seedTransfers.length),
         })),
+
       ];
       setTransfers(rebuilt);
       saveToStorage(TRANSFERS_KEY, rebuilt);
