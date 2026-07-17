@@ -254,9 +254,12 @@ const TransferPanel = () => {
       if (typeFilter === "move" && (t.oldTeam === "-" || t.newTeam === "-")) return false;
       return true;
     });
-    if (reversed) result = [...result].reverse();
+    // Chronological: newest first by default, oldest first when "reversed".
+    result = [...result].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    if (reversed) result.reverse();
     return result;
   }, [search, teamFilter, reversed, typeFilter, transfers]);
+
 
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>(() => loadChangeLog());
 
