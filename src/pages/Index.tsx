@@ -121,6 +121,7 @@ const Index = () => {
         </footer>
 
         <WorldClockWidget />
+        <YearAwardsCeremony />
       </div>
     </ProfileNavProvider>
   );
