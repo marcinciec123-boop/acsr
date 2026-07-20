@@ -88,6 +88,7 @@ const Index = () => {
           )}
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
+          {activeTab === "awards" && <AwardsHistoryPanel />}
           {activeTab === "backup" && <DeviceBackupPanel />}
           {activeTab === "settings" && <SettingsTab />}
         </div>
