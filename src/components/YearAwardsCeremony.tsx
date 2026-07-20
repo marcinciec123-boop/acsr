@@ -464,7 +464,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
       <h2 className="text-2xl font-heading font-black text-foreground mb-2">Dziękujemy za sezon {a.year}</h2>
       <p className="text-sm text-muted-foreground max-w-md">
         {admin
-          ? "Kliknij „Zatwierdź", żeby zapisać wyniki edycji dla tego sezonu."
+          ? "Kliknij Zatwierdź, żeby zapisać wyniki edycji dla tego sezonu."
           : "Kolejny rok już się rozpoczyna. Nowe transfery, nowe składy, kolejna walka o Złotą Piłkę CS."}
       </p>
     </div>,
