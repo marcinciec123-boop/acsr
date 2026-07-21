@@ -31,10 +31,10 @@ const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean;
         {roster.length === 0 && <div className="text-xs text-muted-foreground italic">brak danych</div>}
         {roster.map(p => {
           const role = playerRoles[p];
-          const Icon = role ? roleIcons[role] : null;
+          const icon = role ? roleIcons[role] : null;
           return (
             <div key={p} className="flex items-center gap-2 text-xs">
-              {Icon && <Icon className={cn("w-3 h-3", role && roleColors[role])} />}
+              {icon && <span className={cn("text-xs", role && roleColors[role])}>{icon}</span>}
               <span className="text-foreground font-medium">{p}</span>
               {role && <span className="text-[10px] font-mono text-muted-foreground uppercase ml-auto">{role}</span>}
             </div>
