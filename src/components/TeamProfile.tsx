@@ -20,6 +20,7 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
+import TeamRankingTrend from "@/components/TeamRankingTrend";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { computeCareerStats } from "@/lib/playerCareerStats";
@@ -32,7 +33,7 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers";
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "trend";
 
 const placementColor = (p: number) =>
   p === 1 ? "text-accent border-accent/40 bg-accent/10"
@@ -200,6 +201,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
     { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
+    { id: "trend", label: "Trend", icon: TrendingUp },
   ];
 
   return (
@@ -487,6 +489,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 </div>
               )}
             </Card>
+          )}
+
+          {activeTab === "trend" && (
+            <TeamRankingTrend teamName={teamName} />
           )}
         </motion.div>
       </div>

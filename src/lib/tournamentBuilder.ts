@@ -130,53 +130,90 @@ export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
  */
 export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[] => {
   const ub = buildSingleElim(teams, bo).map(m => {
-    // Re-label UB rounds: last one is "Upper Final"
     if (m.round === "Final") return { ...m, round: "Upper Final" };
     return m;
   });
-  // Re-tag bracket slots from "UB-..." (already done in buildSingleElim).
 
   const size = nextPow2(Math.max(2, teams.length));
   const ubRounds = Math.log2(size);
   const lbRoundCount = Math.max(0, (ubRounds - 1) * 2);
 
+  // Build LB matches
   const lb: MatchResult[] = [];
-  // Correct DE LB pattern: pairs of equal sizes that halve every 2 rounds.
-  // size=8 → ubRounds=3, lbRounds=4, pattern: 2,2,1,1
-  // size=16 → ubRounds=4, lbRounds=6, pattern: 4,4,2,2,1,1
-  for (let r = 0; r < lbRoundCount; r++) {
-    const halvings = Math.floor(r / 2); // 0,0,1,1,2,2...
+  const lbSlotIndex = new Map<string, MatchResult>();
+  for (let r = 1; r <= lbRoundCount; r++) {
+    const halvings = Math.floor((r - 1) / 2); // 0,0,1,1,2,2...
     const matchesInRound = Math.max(1, size / Math.pow(2, 2 + halvings));
-    const isLast = r === lbRoundCount - 1;
+    const isLast = r === lbRoundCount;
     const roundLabelLB = isLast
       ? "Lower Final"
-      : r === lbRoundCount - 2
+      : r === lbRoundCount - 1
       ? "Lower Semifinal"
-      : `Lower R${r + 1}`;
-    for (let m = 0; m < matchesInRound; m++) {
-      lb.push({
+      : `Lower R${r}`;
+    for (let m = 1; m <= matchesInRound; m++) {
+      const slot = `LB-R${r}-M${m}`;
+      const match: MatchResult = {
         id: uid(),
-        team1: "",
-        team2: "",
-        score1: 0,
-        score2: 0,
-        bracketSlot: `LB-R${r + 1}-M${m + 1}`,
-        round: roundLabelLB,
-        bo,
-      });
+        team1: "", team2: "", score1: 0, score2: 0,
+        bracketSlot: slot, round: roundLabelLB, bo,
+      };
+      lb.push(match);
+      lbSlotIndex.set(slot, match);
     }
   }
+
   // Grand Final
   const gf: MatchResult = {
-    id: uid(),
-    team1: "",
-    team2: "",
-    score1: 0,
-    score2: 0,
-    bracketSlot: "GF",
-    round: "Grand Final",
-    bo: 5,
+    id: uid(), team1: "", team2: "", score1: 0, score2: 0,
+    bracketSlot: "GF", round: "Grand Final", bo: 5,
   };
+
+  // ===== Wire loserTo (UB → LB) and winnerTo (UB Final → GF, LB → LB/GF) =====
+  const ubBySlot = new Map<string, MatchResult>();
+  ub.forEach(m => { if (m.bracketSlot) ubBySlot.set(m.bracketSlot, m); });
+
+  // UB losers → LB
+  for (let ubR = 1; ubR <= ubRounds; ubR++) {
+    const matchesInUBRound = size / Math.pow(2, ubR);
+    for (let m = 1; m <= matchesInUBRound; m++) {
+      const src = ubBySlot.get(`UB-R${ubR}-M${m}`);
+      if (!src) continue;
+      let targetSlot: string;
+      if (ubR === 1) {
+        // Pairs of UB-R1 losers meet in LB-R1
+        targetSlot = `LB-R1-M${Math.ceil(m / 2)}`;
+      } else {
+        // Drop-in round: UB round n loser → LB round 2*(n-1), same index
+        const lbR = 2 * (ubR - 1);
+        targetSlot = `LB-R${lbR}-M${m}`;
+      }
+      const tgt = lbSlotIndex.get(targetSlot);
+      if (tgt) src.loserTo = tgt.id;
+    }
+  }
+  // UB Final winner → GF
+  const upperFinal = ubBySlot.get(`UB-R${ubRounds}-M1`);
+  if (upperFinal) upperFinal.winnerTo = gf.id;
+
+  // LB winners → next LB round (or GF for the last)
+  for (let r = 1; r <= lbRoundCount; r++) {
+    const halvings = Math.floor((r - 1) / 2);
+    const matchesInRound = Math.max(1, size / Math.pow(2, 2 + halvings));
+    for (let m = 1; m <= matchesInRound; m++) {
+      const src = lbSlotIndex.get(`LB-R${r}-M${m}`);
+      if (!src) continue;
+      if (r === lbRoundCount) {
+        src.winnerTo = gf.id;
+        continue;
+      }
+      const nextR = r + 1;
+      // If next round is odd (>=3) → consolidation, 2 feed 1. If even → drop-in, same idx.
+      const targetM = nextR % 2 === 1 ? Math.ceil(m / 2) : m;
+      const tgt = lbSlotIndex.get(`LB-R${nextR}-M${targetM}`);
+      if (tgt) src.winnerTo = tgt.id;
+    }
+  }
+
   return [...ub, ...lb, gf];
 };
 

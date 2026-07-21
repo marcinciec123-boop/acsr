@@ -53,6 +53,8 @@ export interface YearAwards {
   teamTop3: TeamAward[];
   playerOfYear?: PlayerAward;
   playerTop5: PlayerAward[];
+  playerTop20: PlayerAward[];
+  teamTop5: TeamAward[];
   rookieOfYear?: PlayerAward;
   topFragger?: PlayerAward;
   mvpKing?: { player: string; team: string; mvps: number };
@@ -211,6 +213,7 @@ export function computeYearAwards(year: number): YearAwards {
 
   const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => b.p.rating - a.p.rating);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);
+  const playerTop20 = eligible.slice(0, 20).map(x => x.p);
   const playerOfYear = eligible[0]?.p;
 
   const rookiePool = playersArr
@@ -294,6 +297,8 @@ export function computeYearAwards(year: number): YearAwards {
     teamTop3,
     playerOfYear,
     playerTop5,
+    playerTop20,
+    teamTop5: teamRanked.slice(0, 5),
     rookieOfYear,
     topFragger: fragger,
     mvpKing,

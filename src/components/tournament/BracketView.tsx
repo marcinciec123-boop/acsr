@@ -78,8 +78,23 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   // Separate "3rd place" / "third place" rounds — they don't belong in the main bracket flow
   const isThirdPlace = (round: string) => /3rd\s*place|third\s*place|bronze/i.test(round);
   const thirdPlaceRounds = allRoundNames.filter(isThirdPlace);
-  const rounds = allRoundNames.filter(r => !isThirdPlace(r));
+  const nonThirdRounds = allRoundNames.filter(r => !isThirdPlace(r));
   const grouped = groupedAll;
+
+  // === Detect double-elim structure by bracket slots ===
+  // Upper row: UB-* rounds + GF (Grand Final). Lower row: LB-* rounds.
+  const roundKind = (r: string): "upper" | "lower" | "other" => {
+    const ms = grouped[r] || [];
+    if (ms.length === 0) return "other";
+    if (ms.every(m => /^LB-/i.test(m.bracketSlot || ""))) return "lower";
+    if (ms.every(m => /^UB-/i.test(m.bracketSlot || "") || (m.bracketSlot || "") === "GF")) return "upper";
+    return "other";
+  };
+  const upperRounds = nonThirdRounds.filter(r => roundKind(r) === "upper");
+  const lowerRounds = nonThirdRounds.filter(r => roundKind(r) === "lower");
+  const otherRounds = nonThirdRounds.filter(r => roundKind(r) === "other");
+  const isDoubleElim = upperRounds.length > 0 && lowerRounds.length > 0;
+  const rounds = isDoubleElim ? upperRounds : nonThirdRounds;
 
   if (matches.length === 0) {
     return (
@@ -94,7 +109,6 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     );
   }
 
-  const isFinalRound = (idx: number) => idx === rounds.length - 1;
   const isLowerRound = (round: string) => /lower|low|losers/i.test(round);
 
   // Fixed dimensions so cards never clip and connector math stays stable.
@@ -120,8 +134,8 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     return feedCount === prevRound.length || (feedCount === 0 && looksLikePlayoffRound(prevName, prevRound) && looksLikePlayoffRound(nextName, nextRound));
   };
 
-  const roundLayout = rounds.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
-    const prevRound = idx > 0 ? rounds[idx - 1] : undefined;
+  const buildLayout = (list: string[]) => list.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
+    const prevRound = idx > 0 ? list[idx - 1] : undefined;
     const showConnector = !!prevRound && feedsDirectlyIntoRound(prevRound, round, grouped[prevRound], grouped[round]);
     acc[round] = {
       depth: showConnector ? acc[prevRound!].depth + 1 : 0,
@@ -284,75 +298,85 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     </div>
   );
 
-  return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto pb-3 px-1">
-        <div className="flex items-start justify-center min-w-fit gap-0 mx-auto">
-          {rounds.map((round, ri) => {
-            const matchesInRound = grouped[round];
-            const isLast = isFinalRound(ri);
-            const lower = isLowerRound(round);
-            const { depth, showConnector } = roundLayout[round];
-            const gap = gapForDepth(depth);
-            const offset = offsetForDepth(depth);
-
-            return (
-              <div key={round} className="flex items-start">
-                {/* Connector column to PREVIOUS round */}
-                {showConnector && (
-                  <div
-                    className="flex flex-col w-10 shrink-0"
-                    style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
-                  >
-                    {Array.from({ length: matchesInRound.length }).map((_, i) => {
-                      // Each connector spans from match (2i) center to match (2i+1) center in previous round
-                      const span = MATCH_H + gapForDepth(depth - 1);
-                      return (
-                        <div key={i} className="relative" style={{ height: span }}>
-                          {/* left stub from source cards */}
-                          <div className="absolute left-0 top-0 w-3 h-px bg-primary/50" />
-                          <div className="absolute left-0 bottom-0 w-3 h-px bg-primary/50" />
-                          {/* vertical bracket line */}
-                          <div className="absolute left-3 top-0 bottom-0 w-px bg-primary/50" />
-                          {/* horizontal stub into next match */}
-                          <div className="absolute left-3 top-1/2 right-0 h-px bg-primary/50 -translate-y-px" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Round column */}
-                <div className="flex flex-col w-[260px] shrink-0">
-                  {renderRoundHeader(round, isLast, lower)}
-                  <div
-                    className="flex flex-col"
-                    style={{ paddingTop: offset, gap: `${gap}px` }}
-                  >
-                    {matchesInRound.map(m => renderMatchCard(m, isLast))}
-                  </div>
+  const renderRoundRow = (list: string[], goldLastRound: boolean, forceLowerStyle = false) => {
+    const layout = buildLayout(list);
+    return (
+      <div className="flex items-start justify-center min-w-fit gap-0 mx-auto">
+        {list.map((round, ri) => {
+          const matchesInRound = grouped[round];
+          const isLast = goldLastRound && ri === list.length - 1;
+          const lower = forceLowerStyle || isLowerRound(round);
+          const { depth, showConnector } = layout[round];
+          const gap = gapForDepth(depth);
+          const offset = offsetForDepth(depth);
+          return (
+            <div key={round} className="flex items-start">
+              {showConnector && (
+                <div
+                  className="flex flex-col w-10 shrink-0"
+                  style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
+                >
+                  {Array.from({ length: matchesInRound.length }).map((_, i) => {
+                    const span = MATCH_H + gapForDepth(depth - 1);
+                    return (
+                      <div key={i} className="relative" style={{ height: span }}>
+                        <div className="absolute left-0 top-0 w-3 h-px bg-primary/50" />
+                        <div className="absolute left-0 bottom-0 w-3 h-px bg-primary/50" />
+                        <div className="absolute left-3 top-0 bottom-0 w-px bg-primary/50" />
+                        <div className="absolute left-3 top-1/2 right-0 h-px bg-primary/50 -translate-y-px" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex flex-col w-[260px] shrink-0">
+                {renderRoundHeader(round, isLast, lower)}
+                <div className="flex flex-col" style={{ paddingTop: offset, gap: `${gap}px` }}>
+                  {matchesInRound.map(m => renderMatchCard(m, isLast))}
                 </div>
               </div>
-            );
-          })}
-
-          {/* 3rd place — separate side panel, intentionally not part of the bracket flow */}
-          {thirdPlaceRounds.length > 0 && (
-            <div className="flex items-start ml-8 pl-8 border-l border-border/40">
-              {thirdPlaceRounds.map((round) => (
-                <div key={round} className="flex flex-col w-[260px] shrink-0">
-                  {renderRoundHeader(round, false, false)}
-                  <div
-                    className="flex flex-col"
-                    style={{ gap: `${BASE_GAP}px` }}
-                  >
-                    {grouped[round].map(m => renderMatchCard(m, false))}
-                  </div>
-                </div>
-              ))}
             </div>
-          )}
-        </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="overflow-x-auto pb-3 px-1">
+        {isDoubleElim ? (
+          <div className="space-y-8">
+            <div>
+              <div className="text-xs font-mono uppercase font-black tracking-widest text-primary mb-2 px-1">Upper Bracket</div>
+              {renderRoundRow(upperRounds, true)}
+            </div>
+            <div className="border-t border-border/50 pt-6">
+              <div className="text-xs font-mono uppercase font-black tracking-widest text-destructive/80 mb-2 px-1">Lower Bracket</div>
+              {renderRoundRow(lowerRounds, false, true)}
+            </div>
+            {otherRounds.length > 0 && (
+              <div className="border-t border-border/40 pt-4">
+                {renderRoundRow(otherRounds, false)}
+              </div>
+            )}
+          </div>
+        ) : (
+          renderRoundRow(rounds, true)
+        )}
+
+        {thirdPlaceRounds.length > 0 && (
+          <div className="flex items-start ml-8 pl-8 border-l border-border/40 mt-4">
+            {thirdPlaceRounds.map((round) => (
+              <div key={round} className="flex flex-col w-[260px] shrink-0">
+                {renderRoundHeader(round, false, false)}
+                <div className="flex flex-col" style={{ gap: `${BASE_GAP}px` }}>
+                  {grouped[round].map(m => renderMatchCard(m, false))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {onAdd && (

@@ -258,99 +258,12 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
     </div>,
   );
 
-  if (a.teamOfYear) {
-    const t = a.teamOfYear;
-    slides.push(
-      <div className="flex-1 flex flex-col">
-        <AwardHead
-          icon={<Crown className="w-3 h-3" />}
-          kicker="Drużyna Roku"
-          title={t.team}
-          admin={admin}
-          onTitleChange={(v) => update({ teamOfYear: { ...t, team: v } })}
-        />
-        {admin ? (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <AdminNumberField label="Trofea" value={t.trophies} onChange={(v) => update({ teamOfYear: { ...t, trophies: v } })} />
-            <AdminNumberField label="Finały" value={t.finals} onChange={(v) => update({ teamOfYear: { ...t, finals: v } })} />
-            <AdminNumberField label="Top 3" value={t.top3} onChange={(v) => update({ teamOfYear: { ...t, top3: v } })} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <StatBox label="Trofea" value={t.trophies} />
-            <StatBox label="Finały" value={t.finals} />
-            <StatBox label="Top 3" value={t.top3} />
-          </div>
-        )}
-        <div className="mt-auto">
-          <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Podium roku</div>
-          {a.teamTop3.map((tt, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-              <div className={cn("w-6 text-center font-heading font-black", i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-orange-400")}>
-                {i + 1}
-              </div>
-              {admin ? (
-                <input
-                  value={tt.team}
-                  onChange={(e) => {
-                    const copy = [...a.teamTop3];
-                    copy[i] = { ...tt, team: e.target.value };
-                    update({ teamTop3: copy });
-                  }}
-                  className="flex-1 bg-secondary/50 border border-border rounded px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-primary"
-                />
-              ) : (
-                <div className="flex-1 text-sm font-mono">{tt.team}</div>
-              )}
-              <div className="text-xs font-mono text-muted-foreground">{tt.trophies}🏆 · {tt.top3} top3</div>
-            </div>
-          ))}
-        </div>
-      </div>,
-    );
+  if (a.teamTop5 && a.teamTop5.length > 0) {
+    slides.push(<TopTeamsReveal awards={a} admin={admin} update={update} />);
   }
 
-  if (a.playerOfYear) {
-    const p = a.playerOfYear;
-    slides.push(
-      <div className="flex-1 flex flex-col">
-        <AwardHead
-          icon={<Star className="w-3 h-3" />}
-          kicker="Gracz Roku · MVP"
-          title={p.player}
-          admin={admin}
-          onTitleChange={(v) => update({ playerOfYear: { ...p, player: v } })}
-        />
-        {admin ? (
-          <input
-            value={p.team}
-            onChange={(e) => update({ playerOfYear: { ...p, team: e.target.value } })}
-            className="mx-auto mb-4 bg-secondary/50 border border-border rounded px-2 py-0.5 text-xs font-mono text-center focus:outline-none focus:border-primary"
-          />
-        ) : (
-          <div className="text-center text-xs font-mono text-muted-foreground mb-4">{p.team}</div>
-        )}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <StatBox label="Rating" value={p.rating.toFixed(2)} />
-          <StatBox label="Mecze" value={p.matches} />
-          <StatBox label="K/D" value={p.kdr.toFixed(2)} />
-          <StatBox label="ADR" value={p.adr} />
-        </div>
-        <div className="mt-auto">
-          <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Top 5 rankingu</div>
-          {a.playerTop5.map((pp, i) => (
-            <div key={i} className="flex items-center gap-3 py-1.5 text-sm">
-              <div className={cn("w-6 text-center font-heading font-black text-xs", i === 0 ? "text-yellow-400" : "text-muted-foreground")}>
-                #{i + 1}
-              </div>
-              <div className="flex-1 font-mono">{pp.player}</div>
-              <div className="text-xs font-mono text-muted-foreground">{pp.team}</div>
-              <div className="w-14 text-right font-heading font-black text-primary tabular-nums">{pp.rating.toFixed(2)}</div>
-            </div>
-          ))}
-        </div>
-      </div>,
-    );
+  if (a.playerTop20 && a.playerTop20.length > 0) {
+    slides.push(<TopPlayersReveal awards={a} admin={admin} update={update} />);
   }
 
   const simpleSlide = (
@@ -479,5 +392,184 @@ const StatBox = ({ label, value }: { label: string; value: number | string }) =>
     <div className="text-xs font-mono uppercase text-muted-foreground mt-1">{label}</div>
   </div>
 );
+
+// ===== HLTV-style Top 20 players reveal =====
+const TopPlayersReveal = ({ awards, admin, update }: {
+  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void;
+}) => {
+  const list = awards.playerTop20 || [];
+  const total = list.length;
+  // revealed = how many top positions from #total down to #(total - revealed + 1) are visible
+  const [revealed, setRevealed] = useState(0);
+  const nextRank = total - revealed; // the rank about to be revealed (e.g. 20, 19, ...)
+  const done = revealed >= total;
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <AwardHead icon={<Star className="w-3 h-3" />} kicker={`Top ${total} graczy ${awards.year}`} title="Ranking Roku" />
+      <div className="flex-1 overflow-y-auto max-h-[380px] pr-1 space-y-1.5">
+        <AnimatePresence initial={false}>
+          {list.slice(0, revealed).map((p, i) => {
+            const rank = total - i; // reveal order: total, total-1, ...
+            const isTop1 = rank === 1;
+            const player = list[rank - 1]; // safer: index by rank
+            return (
+              <motion.div
+                key={rank}
+                initial={{ opacity: 0, x: -30, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ duration: 0.45, type: "spring" }}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg border px-3 py-2",
+                  isTop1
+                    ? "bg-gradient-to-r from-yellow-500/25 via-primary/15 to-transparent border-yellow-400/60 shadow-lg shadow-yellow-500/20"
+                    : rank <= 3
+                    ? "bg-primary/10 border-primary/40"
+                    : "bg-secondary/30 border-border/60",
+                )}
+              >
+                <div className={cn(
+                  "w-10 text-center font-heading font-black tabular-nums",
+                  isTop1 ? "text-2xl text-yellow-400" : rank <= 3 ? "text-lg text-primary" : "text-sm text-muted-foreground",
+                )}>
+                  #{rank}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {admin ? (
+                    <input
+                      value={player.player}
+                      onChange={(e) => {
+                        const copy = [...list];
+                        copy[rank - 1] = { ...player, player: e.target.value };
+                        update({ playerTop20: copy, playerOfYear: rank === 1 ? { ...player, player: e.target.value } : awards.playerOfYear });
+                      }}
+                      className="w-full bg-secondary/50 border border-border rounded px-1.5 py-0.5 text-sm font-heading font-bold focus:outline-none focus:border-primary"
+                    />
+                  ) : (
+                    <div className={cn("truncate", isTop1 ? "text-lg font-heading font-black text-foreground" : "text-sm font-heading font-bold text-foreground")}>
+                      {player.player}
+                    </div>
+                  )}
+                  <div className="text-xs font-mono text-muted-foreground truncate">{player.team}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={cn("font-heading font-black tabular-nums", isTop1 ? "text-2xl text-yellow-400" : "text-base text-primary")}>
+                    {player.rating.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] font-mono uppercase text-muted-foreground">{player.matches} mecz.</div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+        {!done && (
+          <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 py-6 text-center">
+            <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Następny</div>
+            <div className="text-3xl font-heading font-black text-primary">#{nextRank}</div>
+          </div>
+        )}
+      </div>
+      <div className="pt-3">
+        <button
+          onClick={() => setRevealed(r => Math.min(total, r + 1))}
+          disabled={done}
+          className={cn(
+            "w-full px-4 py-2 rounded-md text-xs font-mono font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors",
+            done ? "bg-secondary/50 text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          {done ? "Ranking ujawniony · przejdź dalej" : `Odkryj #${nextRank}`}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ===== HLTV-style Top 5 teams reveal =====
+const TopTeamsReveal = ({ awards, admin, update }: {
+  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void;
+}) => {
+  const list = awards.teamTop5 || [];
+  const total = list.length;
+  const [revealed, setRevealed] = useState(0);
+  const nextRank = total - revealed;
+  const done = revealed >= total;
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <AwardHead icon={<Crown className="w-3 h-3" />} kicker={`Top ${total} drużyn ${awards.year}`} title="Drużyny Roku" />
+      <div className="flex-1 space-y-2">
+        <AnimatePresence initial={false}>
+          {Array.from({ length: revealed }).map((_, i) => {
+            const rank = total - i;
+            const team = list[rank - 1];
+            const isTop1 = rank === 1;
+            return (
+              <motion.div
+                key={rank}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                className={cn(
+                  "flex items-center gap-4 rounded-xl border px-4 py-3",
+                  isTop1
+                    ? "bg-gradient-to-r from-yellow-500/25 via-primary/20 to-transparent border-yellow-400/60 shadow-xl shadow-yellow-500/20"
+                    : rank <= 3
+                    ? "bg-primary/10 border-primary/40"
+                    : "bg-secondary/30 border-border/60",
+                )}
+              >
+                <div className={cn(
+                  "w-12 text-center font-heading font-black tabular-nums",
+                  isTop1 ? "text-3xl text-yellow-400" : rank <= 3 ? "text-2xl text-primary" : "text-xl text-muted-foreground",
+                )}>
+                  #{rank}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {admin ? (
+                    <input
+                      value={team.team}
+                      onChange={(e) => {
+                        const copy = [...list];
+                        copy[rank - 1] = { ...team, team: e.target.value };
+                        update({ teamTop5: copy, teamOfYear: rank === 1 ? { ...team, team: e.target.value } : awards.teamOfYear });
+                      }}
+                      className="w-full bg-secondary/50 border border-border rounded px-2 py-1 text-lg font-heading font-black focus:outline-none focus:border-primary"
+                    />
+                  ) : (
+                    <div className={cn("truncate font-heading font-black", isTop1 ? "text-2xl text-foreground" : "text-lg text-foreground")}>
+                      {team.team}
+                    </div>
+                  )}
+                  <div className="text-xs font-mono text-muted-foreground">
+                    {team.trophies}🏆 · {team.finals} finałów · {team.top3} top3
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+        {!done && (
+          <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 py-8 text-center">
+            <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Następna</div>
+            <div className="text-4xl font-heading font-black text-primary">#{nextRank}</div>
+          </div>
+        )}
+      </div>
+      <div className="pt-4">
+        <button
+          onClick={() => setRevealed(r => Math.min(total, r + 1))}
+          disabled={done}
+          className={cn(
+            "w-full px-4 py-2 rounded-md text-xs font-mono font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors",
+            done ? "bg-secondary/50 text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          {done ? "Wszystkie drużyny odkryte · dalej" : `Odkryj #${nextRank}`}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default YearAwardsCeremony;
