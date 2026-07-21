@@ -297,6 +297,8 @@ export function computeYearAwards(year: number): YearAwards {
     teamTop3,
     playerOfYear,
     playerTop5,
+    playerTop20,
+    teamTop5: teamRanked.slice(0, 5),
     rookieOfYear,
     topFragger: fragger,
     mvpKing,
