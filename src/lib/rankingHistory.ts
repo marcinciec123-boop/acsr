@@ -62,7 +62,7 @@ export function getTeamRosterAt(teamName: string, dateIso: string): string[] {
   const team = ranking.find(t => t.name === teamName);
   const current = new Set<string>(team?.roster || []);
 
-  const transfers: TransferRecord[] = getAllTransfers()
+  const transfers: StoredTransfer[] = loadFromStorage<StoredTransfer[]>("transfers_data", [])
     .slice()
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
