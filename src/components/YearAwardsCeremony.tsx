@@ -258,99 +258,12 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
     </div>,
   );
 
-  if (a.teamOfYear) {
-    const t = a.teamOfYear;
-    slides.push(
-      <div className="flex-1 flex flex-col">
-        <AwardHead
-          icon={<Crown className="w-3 h-3" />}
-          kicker="Drużyna Roku"
-          title={t.team}
-          admin={admin}
-          onTitleChange={(v) => update({ teamOfYear: { ...t, team: v } })}
-        />
-        {admin ? (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <AdminNumberField label="Trofea" value={t.trophies} onChange={(v) => update({ teamOfYear: { ...t, trophies: v } })} />
-            <AdminNumberField label="Finały" value={t.finals} onChange={(v) => update({ teamOfYear: { ...t, finals: v } })} />
-            <AdminNumberField label="Top 3" value={t.top3} onChange={(v) => update({ teamOfYear: { ...t, top3: v } })} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <StatBox label="Trofea" value={t.trophies} />
-            <StatBox label="Finały" value={t.finals} />
-            <StatBox label="Top 3" value={t.top3} />
-          </div>
-        )}
-        <div className="mt-auto">
-          <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Podium roku</div>
-          {a.teamTop3.map((tt, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-              <div className={cn("w-6 text-center font-heading font-black", i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-orange-400")}>
-                {i + 1}
-              </div>
-              {admin ? (
-                <input
-                  value={tt.team}
-                  onChange={(e) => {
-                    const copy = [...a.teamTop3];
-                    copy[i] = { ...tt, team: e.target.value };
-                    update({ teamTop3: copy });
-                  }}
-                  className="flex-1 bg-secondary/50 border border-border rounded px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-primary"
-                />
-              ) : (
-                <div className="flex-1 text-sm font-mono">{tt.team}</div>
-              )}
-              <div className="text-xs font-mono text-muted-foreground">{tt.trophies}🏆 · {tt.top3} top3</div>
-            </div>
-          ))}
-        </div>
-      </div>,
-    );
+  if (a.teamTop5 && a.teamTop5.length > 0) {
+    slides.push(<TopTeamsReveal awards={a} admin={admin} update={update} />);
   }
 
-  if (a.playerOfYear) {
-    const p = a.playerOfYear;
-    slides.push(
-      <div className="flex-1 flex flex-col">
-        <AwardHead
-          icon={<Star className="w-3 h-3" />}
-          kicker="Gracz Roku · MVP"
-          title={p.player}
-          admin={admin}
-          onTitleChange={(v) => update({ playerOfYear: { ...p, player: v } })}
-        />
-        {admin ? (
-          <input
-            value={p.team}
-            onChange={(e) => update({ playerOfYear: { ...p, team: e.target.value } })}
-            className="mx-auto mb-4 bg-secondary/50 border border-border rounded px-2 py-0.5 text-xs font-mono text-center focus:outline-none focus:border-primary"
-          />
-        ) : (
-          <div className="text-center text-xs font-mono text-muted-foreground mb-4">{p.team}</div>
-        )}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <StatBox label="Rating" value={p.rating.toFixed(2)} />
-          <StatBox label="Mecze" value={p.matches} />
-          <StatBox label="K/D" value={p.kdr.toFixed(2)} />
-          <StatBox label="ADR" value={p.adr} />
-        </div>
-        <div className="mt-auto">
-          <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Top 5 rankingu</div>
-          {a.playerTop5.map((pp, i) => (
-            <div key={i} className="flex items-center gap-3 py-1.5 text-sm">
-              <div className={cn("w-6 text-center font-heading font-black text-xs", i === 0 ? "text-yellow-400" : "text-muted-foreground")}>
-                #{i + 1}
-              </div>
-              <div className="flex-1 font-mono">{pp.player}</div>
-              <div className="text-xs font-mono text-muted-foreground">{pp.team}</div>
-              <div className="w-14 text-right font-heading font-black text-primary tabular-nums">{pp.rating.toFixed(2)}</div>
-            </div>
-          ))}
-        </div>
-      </div>,
-    );
+  if (a.playerTop20 && a.playerTop20.length > 0) {
+    slides.push(<TopPlayersReveal awards={a} admin={admin} update={update} />);
   }
 
   const simpleSlide = (
