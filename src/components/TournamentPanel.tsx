@@ -754,6 +754,11 @@ const TournamentPanel = () => {
           return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
         }));
       }
+      // Record a ranking snapshot for the trend chart (fictional world date).
+      try {
+        const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
+        recordRankingSnapshot(`tournament:${finalized.id}`);
+      } catch { /* ignore */ }
       toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
     } else {
       toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
