@@ -53,6 +53,8 @@ export interface YearAwards {
   teamTop3: TeamAward[];
   playerOfYear?: PlayerAward;
   playerTop5: PlayerAward[];
+  playerTop20: PlayerAward[];
+  teamTop5: TeamAward[];
   rookieOfYear?: PlayerAward;
   topFragger?: PlayerAward;
   mvpKing?: { player: string; team: string; mvps: number };
