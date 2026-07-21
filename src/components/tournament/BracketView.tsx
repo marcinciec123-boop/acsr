@@ -78,8 +78,23 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   // Separate "3rd place" / "third place" rounds — they don't belong in the main bracket flow
   const isThirdPlace = (round: string) => /3rd\s*place|third\s*place|bronze/i.test(round);
   const thirdPlaceRounds = allRoundNames.filter(isThirdPlace);
-  const rounds = allRoundNames.filter(r => !isThirdPlace(r));
+  const nonThirdRounds = allRoundNames.filter(r => !isThirdPlace(r));
   const grouped = groupedAll;
+
+  // === Detect double-elim structure by bracket slots ===
+  // Upper row: UB-* rounds + GF (Grand Final). Lower row: LB-* rounds.
+  const roundKind = (r: string): "upper" | "lower" | "other" => {
+    const ms = grouped[r] || [];
+    if (ms.length === 0) return "other";
+    if (ms.every(m => /^LB-/i.test(m.bracketSlot || ""))) return "lower";
+    if (ms.every(m => /^UB-/i.test(m.bracketSlot || "") || (m.bracketSlot || "") === "GF")) return "upper";
+    return "other";
+  };
+  const upperRounds = nonThirdRounds.filter(r => roundKind(r) === "upper");
+  const lowerRounds = nonThirdRounds.filter(r => roundKind(r) === "lower");
+  const otherRounds = nonThirdRounds.filter(r => roundKind(r) === "other");
+  const isDoubleElim = upperRounds.length > 0 && lowerRounds.length > 0;
+  const rounds = isDoubleElim ? upperRounds : nonThirdRounds;
 
   if (matches.length === 0) {
     return (
