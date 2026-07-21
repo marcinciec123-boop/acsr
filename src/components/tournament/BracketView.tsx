@@ -109,7 +109,6 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     );
   }
 
-  const isFinalRound = (idx: number) => idx === rounds.length - 1;
   const isLowerRound = (round: string) => /lower|low|losers/i.test(round);
 
   // Fixed dimensions so cards never clip and connector math stays stable.
@@ -135,8 +134,8 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     return feedCount === prevRound.length || (feedCount === 0 && looksLikePlayoffRound(prevName, prevRound) && looksLikePlayoffRound(nextName, nextRound));
   };
 
-  const roundLayout = rounds.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
-    const prevRound = idx > 0 ? rounds[idx - 1] : undefined;
+  const buildLayout = (list: string[]) => list.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
+    const prevRound = idx > 0 ? list[idx - 1] : undefined;
     const showConnector = !!prevRound && feedsDirectlyIntoRound(prevRound, round, grouped[prevRound], grouped[round]);
     acc[round] = {
       depth: showConnector ? acc[prevRound!].depth + 1 : 0,
