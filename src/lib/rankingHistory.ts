@@ -5,7 +5,13 @@
 
 import { loadFromStorage, saveToStorage } from "@/lib/storage";
 import { getWorldDate } from "@/lib/worldClock";
-import { getAllTransfers, type TransferRecord } from "@/data/history";
+
+interface StoredTransfer {
+  player: string;
+  oldTeam: string;
+  newTeam: string;
+  date?: string;
+}
 import { teamDatabase, type TeamData } from "@/data/tournaments";
 
 const KEY = "ranking_history_v1";
