@@ -213,6 +213,7 @@ export function computeYearAwards(year: number): YearAwards {
 
   const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => b.p.rating - a.p.rating);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);
+  const playerTop20 = eligible.slice(0, 20).map(x => x.p);
   const playerOfYear = eligible[0]?.p;
 
   const rookiePool = playersArr
