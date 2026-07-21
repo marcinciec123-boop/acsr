@@ -490,6 +490,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
               )}
             </Card>
           )}
+
+          {activeTab === "trend" && (
+            <TeamRankingTrend teamName={teamName} />
+          )}
         </motion.div>
       </div>
     </section>
