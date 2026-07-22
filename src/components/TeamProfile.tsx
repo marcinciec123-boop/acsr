@@ -47,7 +47,7 @@ const placementLabel = (p: number) =>
 const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfileProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeTab, setActiveTab] = useState<TabId>("trend");
   const [hasLogo, setHasLogo] = useState(false);
   const [benchTick, setBenchTick] = useState(0);
 
