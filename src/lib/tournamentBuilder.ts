@@ -172,7 +172,9 @@ export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
   const ubBySlot = new Map<string, MatchResult>();
   ub.forEach(m => { if (m.bracketSlot) ubBySlot.set(m.bracketSlot, m); });
 
-  // UB losers → LB
+  // UB losers → LB. For drop-in rounds (UB round ≥ 2) mirror the match index
+  // within the round so a UB-R2 loser lands on the OPPOSITE side of LB-R2,
+  // preventing an immediate rematch with the team that just beat them.
   for (let ubR = 1; ubR <= ubRounds; ubR++) {
     const matchesInUBRound = size / Math.pow(2, ubR);
     for (let m = 1; m <= matchesInUBRound; m++) {
@@ -183,9 +185,10 @@ export const buildDoubleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
         // Pairs of UB-R1 losers meet in LB-R1
         targetSlot = `LB-R1-M${Math.ceil(m / 2)}`;
       } else {
-        // Drop-in round: UB round n loser → LB round 2*(n-1), same index
+        // Drop-in round: UB round n loser → LB round 2*(n-1), mirrored index.
         const lbR = 2 * (ubR - 1);
-        targetSlot = `LB-R${lbR}-M${m}`;
+        const mirroredM = matchesInUBRound - m + 1;
+        targetSlot = `LB-R${lbR}-M${mirroredM}`;
       }
       const tgt = lbSlotIndex.get(targetSlot);
       if (tgt) src.loserTo = tgt.id;

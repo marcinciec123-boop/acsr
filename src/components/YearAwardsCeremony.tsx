@@ -50,6 +50,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
   const [dismissed, setDismissed] = useState(false);
   const [awards, setAwards] = useState<YearAwards | null>(null);
   const [adminMode, setAdminMode] = useState(false);
+  const [replayTick, setReplayTick] = useState(0);
 
   useEffect(() => {
     if (activeYear == null) { setAwards(null); return; }
@@ -59,9 +60,9 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
     const fresh = computeYearAwards(activeYear);
     saveYearAwards(fresh);
     setAwards(fresh);
-  }, [activeYear, forceYear]);
+  }, [activeYear, forceYear, replayTick]);
 
-  useEffect(() => { setStep(0); setDismissed(false); setAdminMode(false); }, [activeYear]);
+  useEffect(() => { setStep(0); setDismissed(false); setAdminMode(false); }, [activeYear, replayTick]);
 
   if (activeYear == null || !awards || dismissed) return null;
 
@@ -78,6 +79,8 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
     onClose?.();
   };
 
+  const replay = () => { setStep(0); setReplayTick(t => t + 1); };
+
   const next = () => {
     if (isLast) close();
     else setStep(s => s + 1);
@@ -88,7 +91,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
       <motion.div
         key="overlay"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {Array.from({ length: 40 }).map((_, i) => (
@@ -108,9 +111,9 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.98 }}
           transition={{ duration: 0.4 }}
-          className="relative w-full max-w-2xl bg-gradient-to-br from-card via-card to-background border border-primary/40 rounded-2xl shadow-2xl shadow-primary/20 overflow-hidden"
+          className="relative w-full max-w-2xl max-h-[95vh] flex flex-col bg-gradient-to-br from-card via-card to-background border border-primary/40 rounded-xl sm:rounded-2xl shadow-2xl shadow-primary/20 overflow-hidden"
         >
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex items-center gap-1">
             <button
               onClick={() => setAdminMode(v => !v)}
               className={cn(
@@ -122,7 +125,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
               title="Tryb admina — ręczna edycja zwycięzców"
             >
               {adminMode ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-              Admin
+              <span className="hidden sm:inline">Admin</span>
             </button>
             <button
               onClick={close}
@@ -133,22 +136,22 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
             </button>
           </div>
 
-          <div className="px-6 py-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs font-mono uppercase tracking-widest text-primary font-black">
-              Złota Piłka CS · Podsumowanie {awards.year}
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent flex items-center gap-2 pr-24 sm:pr-28">
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs font-mono uppercase tracking-widest text-primary font-black truncate">
+              Złota Piłka CS · {awards.year}
             </span>
-            <span className="ml-auto mr-24 text-xs font-mono text-muted-foreground">
-              {step + 1} / {slides.length}
+            <span className="ml-auto text-xs font-mono text-muted-foreground shrink-0">
+              {step + 1}/{slides.length}
             </span>
           </div>
 
-          <div className="px-6 py-8 min-h-[360px] flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-4 sm:py-8 flex flex-col">
             {current}
           </div>
 
-          <div className="px-6 py-3 border-t border-border flex items-center justify-between bg-background/40">
-            <div className="flex gap-1">
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-t border-border flex items-center justify-between gap-2 bg-background/40">
+            <div className="flex gap-1 flex-wrap flex-1 min-w-0">
               {slides.map((_, i) => (
                 <button
                   key={i}
@@ -160,13 +163,22 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
                 />
               ))}
             </div>
-            <button
-              onClick={next}
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-mono font-black uppercase tracking-wider hover:bg-primary/90 flex items-center gap-1"
-            >
-              {isLast ? (adminMode ? (<><Check className="w-3.5 h-3.5" />Zatwierdź</>) : "Zamknij ceremonię") : "Dalej"}
-              {!isLast && <ChevronRight className="w-3.5 h-3.5" />}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={replay}
+                className="px-2.5 py-2 rounded-md bg-secondary/60 border border-border text-muted-foreground hover:text-foreground text-xs font-mono font-black uppercase tracking-wider"
+                title="Odtwórz ceremonię od początku"
+              >
+                ↻
+              </button>
+              <button
+                onClick={next}
+                className="px-3 sm:px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-mono font-black uppercase tracking-wider hover:bg-primary/90 flex items-center gap-1"
+              >
+                {isLast ? (adminMode ? (<><Check className="w-3.5 h-3.5" />Zapisz</>) : "Zamknij") : "Dalej"}
+                {!isLast && <ChevronRight className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
         </motion.div>
       </motion.div>
@@ -177,7 +189,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
 // ----- Slide builders -----
 
 const bigNumber = (n: number | string) => (
-  <div className="text-4xl font-heading font-black text-primary tabular-nums">{n}</div>
+  <div className="text-3xl sm:text-4xl font-heading font-black text-primary tabular-nums">{n}</div>
 );
 
 const AwardHead = ({ icon, kicker, title, admin, onTitleChange }: {
@@ -233,9 +245,9 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
   slides.push(
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }}>
-        <Trophy className="w-20 h-20 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
+        <Trophy className="w-14 h-14 sm:w-20 sm:h-20 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
       </motion.div>
-      <h1 className="text-4xl font-heading font-black text-foreground mb-2">Sezon {a.year} zakończony</h1>
+      <h1 className="text-2xl sm:text-4xl font-heading font-black text-foreground mb-2">Sezon {a.year} zakończony</h1>
       <p className="text-sm text-muted-foreground max-w-md">
         Nadszedł czas na podsumowanie roku i rozdanie nagród dla najlepszych drużyn, graczy i trenerów sceny CS.
       </p>
@@ -373,7 +385,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
 
   slides.push(
     <div className="flex-1 flex flex-col items-center justify-center text-center">
-      <Sparkles className="w-16 h-16 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
+      <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
       <h2 className="text-2xl font-heading font-black text-foreground mb-2">Dziękujemy za sezon {a.year}</h2>
       <p className="text-sm text-muted-foreground max-w-md">
         {admin
@@ -407,7 +419,7 @@ const TopPlayersReveal = ({ awards, admin, update }: {
   return (
     <div className="flex-1 flex flex-col">
       <AwardHead icon={<Star className="w-3 h-3" />} kicker={`Top ${total} graczy ${awards.year}`} title="Ranking Roku" />
-      <div className="flex-1 overflow-y-auto max-h-[380px] pr-1 space-y-1.5">
+      <div className="flex-1 overflow-y-auto max-h-[55vh] sm:max-h-[380px] pr-1 space-y-1.5">
         <AnimatePresence initial={false}>
           {list.slice(0, revealed).map((p, i) => {
             const rank = total - i; // reveal order: total, total-1, ...

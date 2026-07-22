@@ -45,11 +45,50 @@ export function recordRankingSnapshot(reason?: string): void {
   void reason;
 }
 
-/** Series of {date, points} for one team, sorted ascending. */
+/** Series of {date, points} for one team, sorted ascending.
+ *  If we don't have enough snapshots, synthesize a cumulative series from
+ *  the team's tournament placements so the chart isn't empty. */
 export function getTeamRankingSeries(teamName: string): { date: string; points: number }[] {
-  return loadRankingHistory()
+  const snapshots = loadRankingHistory()
     .map(s => ({ date: s.date, points: s.points[teamName] ?? 0 }))
-    .filter(p => p.points > 0 || true); // keep 0s too
+    .filter(p => p.points > 0);
+
+  if (snapshots.length >= 2) return snapshots;
+
+  // Fallback: build cumulative series from placements (oldest → newest).
+  const tournaments = loadFromStorage<Array<{ endDate?: string; placements?: { team: string; points: number }[] }>>("tournaments_data", []);
+  const events = tournaments
+    .flatMap(t => (t.placements || [])
+      .filter(p => p.team === teamName && (t.endDate || "").length > 0)
+      .map(p => ({ date: t.endDate as string, points: p.points || 0 })))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (events.length === 0) {
+    // Last resort: pin current points at today (single dot).
+    const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+    const cur = ranking.find(t => t.name === teamName)?.points ?? 0;
+    return [{ date: getWorldDate(), points: cur }];
+  }
+
+  const series: { date: string; points: number }[] = [];
+  let running = 0;
+  for (const ev of events) {
+    running += ev.points;
+    // Collapse same-day events into a single point.
+    if (series.length && series[series.length - 1].date === ev.date) {
+      series[series.length - 1].points = running;
+    } else {
+      series.push({ date: ev.date, points: running });
+    }
+  }
+  // Merge in real snapshots if any (they win on their date).
+  for (const s of snapshots) {
+    const idx = series.findIndex(p => p.date === s.date);
+    if (idx >= 0) series[idx].points = s.points;
+    else series.push(s);
+  }
+  series.sort((a, b) => a.date.localeCompare(b.date));
+  return series;
 }
 
 /**
