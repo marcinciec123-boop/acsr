@@ -91,7 +91,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
       <motion.div
         key="overlay"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {Array.from({ length: 40 }).map((_, i) => (
@@ -111,9 +111,9 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.98 }}
           transition={{ duration: 0.4 }}
-          className="relative w-full max-w-2xl bg-gradient-to-br from-card via-card to-background border border-primary/40 rounded-2xl shadow-2xl shadow-primary/20 overflow-hidden"
+          className="relative w-full max-w-2xl max-h-[95vh] flex flex-col bg-gradient-to-br from-card via-card to-background border border-primary/40 rounded-xl sm:rounded-2xl shadow-2xl shadow-primary/20 overflow-hidden"
         >
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex items-center gap-1">
             <button
               onClick={() => setAdminMode(v => !v)}
               className={cn(
@@ -125,7 +125,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
               title="Tryb admina — ręczna edycja zwycięzców"
             >
               {adminMode ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-              Admin
+              <span className="hidden sm:inline">Admin</span>
             </button>
             <button
               onClick={close}
@@ -136,22 +136,22 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
             </button>
           </div>
 
-          <div className="px-6 py-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs font-mono uppercase tracking-widest text-primary font-black">
-              Złota Piłka CS · Podsumowanie {awards.year}
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent flex items-center gap-2 pr-24 sm:pr-28">
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs font-mono uppercase tracking-widest text-primary font-black truncate">
+              Złota Piłka CS · {awards.year}
             </span>
-            <span className="ml-auto mr-24 text-xs font-mono text-muted-foreground">
-              {step + 1} / {slides.length}
+            <span className="ml-auto text-xs font-mono text-muted-foreground shrink-0">
+              {step + 1}/{slides.length}
             </span>
           </div>
 
-          <div className="px-6 py-8 min-h-[360px] flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-4 sm:py-8 flex flex-col">
             {current}
           </div>
 
-          <div className="px-6 py-3 border-t border-border flex items-center justify-between bg-background/40">
-            <div className="flex gap-1">
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-t border-border flex items-center justify-between gap-2 bg-background/40">
+            <div className="flex gap-1 flex-wrap flex-1 min-w-0">
               {slides.map((_, i) => (
                 <button
                   key={i}
@@ -163,13 +163,22 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
                 />
               ))}
             </div>
-            <button
-              onClick={next}
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-mono font-black uppercase tracking-wider hover:bg-primary/90 flex items-center gap-1"
-            >
-              {isLast ? (adminMode ? (<><Check className="w-3.5 h-3.5" />Zatwierdź</>) : "Zamknij ceremonię") : "Dalej"}
-              {!isLast && <ChevronRight className="w-3.5 h-3.5" />}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={replay}
+                className="px-2.5 py-2 rounded-md bg-secondary/60 border border-border text-muted-foreground hover:text-foreground text-xs font-mono font-black uppercase tracking-wider"
+                title="Odtwórz ceremonię od początku"
+              >
+                ↻
+              </button>
+              <button
+                onClick={next}
+                className="px-3 sm:px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-mono font-black uppercase tracking-wider hover:bg-primary/90 flex items-center gap-1"
+              >
+                {isLast ? (adminMode ? (<><Check className="w-3.5 h-3.5" />Zapisz</>) : "Zamknij") : "Dalej"}
+                {!isLast && <ChevronRight className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
         </motion.div>
       </motion.div>
