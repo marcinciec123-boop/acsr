@@ -50,6 +50,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
   const [dismissed, setDismissed] = useState(false);
   const [awards, setAwards] = useState<YearAwards | null>(null);
   const [adminMode, setAdminMode] = useState(false);
+  const [replayTick, setReplayTick] = useState(0);
 
   useEffect(() => {
     if (activeYear == null) { setAwards(null); return; }
@@ -59,9 +60,9 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
     const fresh = computeYearAwards(activeYear);
     saveYearAwards(fresh);
     setAwards(fresh);
-  }, [activeYear, forceYear]);
+  }, [activeYear, forceYear, replayTick]);
 
-  useEffect(() => { setStep(0); setDismissed(false); setAdminMode(false); }, [activeYear]);
+  useEffect(() => { setStep(0); setDismissed(false); setAdminMode(false); }, [activeYear, replayTick]);
 
   if (activeYear == null || !awards || dismissed) return null;
 
@@ -77,6 +78,8 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
     if (forceYear == null) markYearShown(activeYear);
     onClose?.();
   };
+
+  const replay = () => { setStep(0); setReplayTick(t => t + 1); };
 
   const next = () => {
     if (isLast) close();
