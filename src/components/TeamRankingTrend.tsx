@@ -73,9 +73,9 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
           ))}
         </div>
       </div>
-      {data.length < 2 ? (
+      {data.length < 1 ? (
         <div className="h-[220px] flex items-center justify-center text-xs font-mono text-muted-foreground text-center px-4">
-          Za mało snapshotów. Historia zapisuje się automatycznie po każdym zatwierdzonym turnieju.
+          Brak danych rankingowych dla tej drużyny.
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
