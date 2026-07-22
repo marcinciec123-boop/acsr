@@ -189,7 +189,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
 // ----- Slide builders -----
 
 const bigNumber = (n: number | string) => (
-  <div className="text-4xl font-heading font-black text-primary tabular-nums">{n}</div>
+  <div className="text-3xl sm:text-4xl font-heading font-black text-primary tabular-nums">{n}</div>
 );
 
 const AwardHead = ({ icon, kicker, title, admin, onTitleChange }: {
@@ -245,9 +245,9 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
   slides.push(
     <div className="flex-1 flex flex-col items-center justify-center text-center">
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }}>
-        <Trophy className="w-20 h-20 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
+        <Trophy className="w-14 h-14 sm:w-20 sm:h-20 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
       </motion.div>
-      <h1 className="text-4xl font-heading font-black text-foreground mb-2">Sezon {a.year} zakończony</h1>
+      <h1 className="text-2xl sm:text-4xl font-heading font-black text-foreground mb-2">Sezon {a.year} zakończony</h1>
       <p className="text-sm text-muted-foreground max-w-md">
         Nadszedł czas na podsumowanie roku i rozdanie nagród dla najlepszych drużyn, graczy i trenerów sceny CS.
       </p>
@@ -385,7 +385,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
 
   slides.push(
     <div className="flex-1 flex flex-col items-center justify-center text-center">
-      <Sparkles className="w-16 h-16 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
+      <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4 drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]" />
       <h2 className="text-2xl font-heading font-black text-foreground mb-2">Dziękujemy za sezon {a.year}</h2>
       <p className="text-sm text-muted-foreground max-w-md">
         {admin
@@ -419,7 +419,7 @@ const TopPlayersReveal = ({ awards, admin, update }: {
   return (
     <div className="flex-1 flex flex-col">
       <AwardHead icon={<Star className="w-3 h-3" />} kicker={`Top ${total} graczy ${awards.year}`} title="Ranking Roku" />
-      <div className="flex-1 overflow-y-auto max-h-[380px] pr-1 space-y-1.5">
+      <div className="flex-1 overflow-y-auto max-h-[55vh] sm:max-h-[380px] pr-1 space-y-1.5">
         <AnimatePresence initial={false}>
           {list.slice(0, revealed).map((p, i) => {
             const rank = total - i; // reveal order: total, total-1, ...
