@@ -196,12 +196,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }
 
   const tabs: { id: TabId; label: string; icon: typeof Users; count?: number }[] = [
+    { id: "trend", label: "Trend", icon: TrendingUp },
     { id: "overview", label: "Przegląd", icon: TrendingUp },
     { id: "roster", label: "Skład", icon: Users, count: team.roster.length },
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
     { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
-    { id: "trend", label: "Trend", icon: TrendingUp },
   ];
 
   return (
