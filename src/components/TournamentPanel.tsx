@@ -791,6 +791,13 @@ const TournamentPanel = () => {
         import("@/lib/autoNews").then(async (m) => {
           if (status === "live") m.announceTournamentStarted(t.name, t.tier, t.teams);
           if (status === "completed") {
+            try {
+              const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
+              const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`);
+              if (!historySaved) throw new Error("Ranking history save failed");
+            } catch (error) {
+              console.error("Nie udało się zapisać historii rankingu:", error);
+            }
             // Try to find winner from final bracket match
             let winner: string | null = null;
             let runnerUp: string | null = null;
