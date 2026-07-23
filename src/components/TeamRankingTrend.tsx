@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { getTeamRankingSeries, getTeamRosterAt } from "@/lib/rankingHistory";
@@ -61,11 +61,18 @@ const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean;
 const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
   const [range, setRange] = useState<Range>("1Y");
   const [metrics, setMetrics] = useState<Metric[]>(["points", "rank"]);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setHistoryVersion(value => value + 1);
+    window.addEventListener("ranking-history:update", refresh);
+    return () => window.removeEventListener("ranking-history:update", refresh);
+  }, []);
 
   const data = useMemo(() => {
     const cutoff = cutoffFor(range);
     return getTeamRankingSeries(teamName).filter(p => p.date >= cutoff);
-  }, [teamName, range]);
+  }, [teamName, range, historyVersion]);
 
   const toggleMetric = (metric: Metric) => {
     setMetrics(current => current.includes(metric)

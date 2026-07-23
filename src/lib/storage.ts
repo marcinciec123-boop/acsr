@@ -12,6 +12,9 @@ function notifyStorageUpdate(key: string): void {
     window.dispatchEvent(new CustomEvent("teams:update"));
     window.dispatchEvent(new CustomEvent("ranking:update"));
   }
+  if (key === "ranking_history_v1") {
+    window.dispatchEvent(new CustomEvent("ranking-history:update"));
+  }
 }
 
 function normalizeStoredData<T>(key: string, data: T): T {
