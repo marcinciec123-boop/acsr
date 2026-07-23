@@ -17,14 +17,27 @@ const cutoffFor = (range: Range): string => {
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 };
 
-const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean; payload?: { value: number }[]; label?: string; teamName: string }) => {
+type Metric = "points" | "rank";
+
+const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean; payload?: { value: number; dataKey?: string; color?: string }[]; label?: string; teamName: string }) => {
   if (!active || !payload?.length || !label) return null;
   const roster = getTeamRosterAt(teamName, label);
+  const points = payload.find(p => p.dataKey === "points")?.value;
+  const rank = payload.find(p => p.dataKey === "rank")?.value;
   return (
     <div className="bg-card border border-primary/40 rounded-md p-3 shadow-xl min-w-[220px]">
       <div className="text-xs font-mono text-muted-foreground uppercase mb-1">{label}</div>
-      <div className="text-lg font-heading font-black text-primary tabular-nums mb-2">
-        {payload[0].value.toLocaleString()} <span className="text-xs text-muted-foreground font-mono">pkt</span>
+      <div className="flex items-baseline gap-4 mb-2">
+        {points !== undefined && (
+          <div className="text-lg font-heading font-black text-primary tabular-nums">
+            {points.toLocaleString()} <span className="text-xs text-muted-foreground font-mono">pkt</span>
+          </div>
+        )}
+        {rank !== undefined && (
+          <div className="text-lg font-heading font-black text-accent tabular-nums">
+            #{rank} <span className="text-xs text-muted-foreground font-mono">miejsce</span>
+          </div>
+        )}
       </div>
       <div className="text-xs font-mono uppercase text-muted-foreground mb-1">Skład</div>
       <div className="space-y-1">
@@ -47,20 +60,27 @@ const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean;
 
 const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
   const [range, setRange] = useState<Range>("1Y");
+  const [metrics, setMetrics] = useState<Metric[]>(["points", "rank"]);
 
   const data = useMemo(() => {
     const cutoff = cutoffFor(range);
     return getTeamRankingSeries(teamName).filter(p => p.date >= cutoff);
   }, [teamName, range]);
 
+  const toggleMetric = (metric: Metric) => {
+    setMetrics(current => current.includes(metric)
+      ? (current.length === 1 ? current : current.filter(value => value !== metric))
+      : [...current, metric]);
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />
           <h4 className="text-sm font-heading font-black uppercase tracking-wider">Rozwój w rankingu</h4>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 self-end sm:self-auto">
           {(["1Y", "5Y", "ALL"] as Range[]).map(r => (
             <button
               key={r}
@@ -73,6 +93,30 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
           ))}
         </div>
       </div>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => toggleMetric("points")}
+          aria-pressed={metrics.includes("points")}
+          className={cn(
+            "flex items-center gap-2 px-2.5 py-1 text-xs font-mono uppercase rounded border transition-colors",
+            metrics.includes("points") ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground",
+          )}
+        >
+          <span className="w-4 h-0.5 bg-primary" /> Punkty
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleMetric("rank")}
+          aria-pressed={metrics.includes("rank")}
+          className={cn(
+            "flex items-center gap-2 px-2.5 py-1 text-xs font-mono uppercase rounded border transition-colors",
+            metrics.includes("rank") ? "border-accent/60 bg-accent/10 text-accent" : "border-border text-muted-foreground",
+          )}
+        >
+          <span className="w-4 h-0.5 bg-accent" /> Miejsce
+        </button>
+      </div>
       {data.length < 1 ? (
         <div className="h-[220px] flex items-center justify-center text-xs font-mono text-muted-foreground text-center px-4">
           Brak danych rankingowych dla tej drużyny.
@@ -82,9 +126,28 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
           <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+            <YAxis
+              yAxisId="points"
+              hide={!metrics.includes("points")}
+              tick={{ fontSize: 11, fill: "hsl(var(--primary))" }}
+              width={46}
+            />
+            <YAxis
+              yAxisId="rank"
+              orientation="right"
+              reversed
+              allowDecimals={false}
+              hide={!metrics.includes("rank")}
+              tick={{ fontSize: 11, fill: "hsl(var(--accent))" }}
+              width={36}
+            />
             <Tooltip content={<CustomTooltip teamName={teamName} />} />
-            <Line type="monotone" dataKey="points" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            {metrics.includes("points") && (
+              <Line yAxisId="points" type="monotone" dataKey="points" name="Punkty" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            )}
+            {metrics.includes("rank") && (
+              <Line yAxisId="rank" type="monotone" dataKey="rank" name="Miejsce" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            )}
           </LineChart>
         </ResponsiveContainer>
       )}

@@ -278,14 +278,13 @@ export const buildGSLGroup = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult[]
  * IEM-style 8-team double-elimination group with full lower bracket.
  * Top 2 advance.
  *
- * Round structure (13 matches total):
+ * Round structure (10–11 matches total):
  *   - UB R1 (Opening, 4 matches)         — losers fall to LB R1
  *   - LB R1 (Elimination R1, 2 matches)  — losers eliminated
  *   - UB SF (Winners' Match, 2 matches)  — losers fall to LB R2
  *   - LB R2 (Elimination R2, 2 matches)  — winners of LB R1 vs losers of UB SF
- *   - UB Final (Winners' Decider, 1)     — winner = 1st seed; loser to LB Final
- *   - LB R3 (Elimination R3, 1 match)    — winners of LB R2 face off
- *   - LB Final (Decider, 1)              — loser of UB Final vs winner of LB R3 → winner = 2nd seed
+ *   - Winners of UB SF qualify directly
+ *   - With exactly 3 slots, LB Decider determines the final qualifier
  */
 export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3, advancePerGroup: number = 2): MatchResult[] => {
   const t = [...teams];
@@ -312,14 +311,11 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3, adva
     { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M1", round: "Lower Bracket — Elimination R2", bo },
     { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R2-M2", round: "Lower Bracket — Elimination R2", bo },
 
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-UB-FINAL", round: "Upper Bracket — Decider (1st seed)", bo },
-
-    { id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-R3", round: "Lower Bracket — Elimination R3", bo },
   ];
-  // LB Final (decider for 2nd seed) only makes sense when exactly 2 advance.
-  // If 3+ advance, both LB-Final participants would qualify anyway → skip the match.
-  if (advancePerGroup <= 2) {
-    matches.push({ id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (2nd seed)", bo });
+  // Two UB winners qualify directly. For three slots, the two surviving LB
+  // teams play one final decider. With four slots both already qualify.
+  if (advancePerGroup === 3) {
+    matches.push({ id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (3rd seed)", bo });
   }
   return matches;
 };
@@ -493,14 +489,8 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
   setSlot("IEM-LB-R2-M1", winnerOf("IEM-LB-R1-M1"), loserOf("IEM-UB-SF-M2"));
   setSlot("IEM-LB-R2-M2", winnerOf("IEM-LB-R1-M2"), loserOf("IEM-UB-SF-M1"));
 
-  // UB Final: winners of UB SFs (winner = 1st seed)
-  setSlot("IEM-UB-FINAL", winnerOf("IEM-UB-SF-M1"), winnerOf("IEM-UB-SF-M2"));
-
-  // LB R3: winners of both LB R2 matches
-  setSlot("IEM-LB-R3", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
-
-  // LB Final: loser of UB Final vs winner of LB R3 (winner = 2nd seed)
-  setSlot("IEM-LB-FINAL", loserOf("IEM-UB-FINAL"), winnerOf("IEM-LB-R3"));
+  // Optional third-place decider: winners of both LB R2 matches.
+  setSlot("IEM-LB-FINAL", winnerOf("IEM-LB-R2-M1"), winnerOf("IEM-LB-R2-M2"));
 
   return matches;
 };

@@ -757,8 +757,12 @@ const TournamentPanel = () => {
       // Record a ranking snapshot for the trend chart (fictional world date).
       try {
         const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
-        recordRankingSnapshot(`tournament:${finalized.id}`);
-      } catch { /* ignore */ }
+        const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`);
+        if (!historySaved) throw new Error("Ranking history save failed");
+      } catch (error) {
+        console.error("Nie udało się zapisać historii rankingu:", error);
+        toast({ title: "Błąd historii rankingu", description: "Wyniki zapisano, ale snapshot historii wymaga ponownego zatwierdzenia.", variant: "destructive" });
+      }
       toast({ title: "Wyniki zatwierdzone", description: "Turniej zapisany, a statystyki trafiły do profili drużyn i graczy." });
     } else {
       toast({ title: "Nie udało się zapisać", description: "Pamięć przeglądarki jest pełna — zrób backup i usuń stare dane.", variant: "destructive" });
