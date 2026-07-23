@@ -33,7 +33,7 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "trend";
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers";
 
 const placementColor = (p: number) =>
   p === 1 ? "text-accent border-accent/40 bg-accent/10"
@@ -47,7 +47,7 @@ const placementLabel = (p: number) =>
 const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfileProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("trend");
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [hasLogo, setHasLogo] = useState(false);
   const [benchTick, setBenchTick] = useState(0);
 
@@ -196,7 +196,6 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }
 
   const tabs: { id: TabId; label: string; icon: typeof Users; count?: number }[] = [
-    { id: "trend", label: "Trend", icon: TrendingUp },
     { id: "overview", label: "Przegląd", icon: TrendingUp },
     { id: "roster", label: "Skład", icon: Users, count: team.roster.length },
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
@@ -366,6 +365,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
                   <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
+                <TeamRankingTrend teamName={teamName} />
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-2">Brak rozegranych meczów.</p>
@@ -491,9 +491,6 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             </Card>
           )}
 
-          {activeTab === "trend" && (
-            <TeamRankingTrend teamName={teamName} />
-          )}
         </motion.div>
       </div>
     </section>

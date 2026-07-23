@@ -177,14 +177,12 @@ const GSL4_LB: ColumnSpec[] = [
 
 const IEM8_UB: ColumnSpec[] = [
   { title: "UB Opening", slots: ["IEM-UB-R1-M1", "IEM-UB-R1-M2", "IEM-UB-R1-M3", "IEM-UB-R1-M4"] },
-  { title: "Winners Match", slots: ["IEM-UB-SF-M1", "IEM-UB-SF-M2"] },
-  { title: "UB Decider (1. miejsce)", slots: ["IEM-UB-FINAL"], isFinal: true },
+  { title: "Winners Match (awans)", slots: ["IEM-UB-SF-M1", "IEM-UB-SF-M2"], isFinal: true },
 ];
 const IEM8_LB: ColumnSpec[] = [
   { title: "LB R1", slots: ["IEM-LB-R1-M1", "IEM-LB-R1-M2"] },
   { title: "LB R2", slots: ["IEM-LB-R2-M1", "IEM-LB-R2-M2"] },
-  { title: "LB R3", slots: ["IEM-LB-R3"] },
-  { title: "LB Decider (2. miejsce)", slots: ["IEM-LB-FINAL"], isFinal: true },
+  { title: "LB Decider (3. miejsce)", slots: ["IEM-LB-FINAL"], isFinal: true },
 ];
 
 export const DoubleElimGroupBracket = ({ matches, format, onMatchUpdate, onOpenMatch }: Props) => {
