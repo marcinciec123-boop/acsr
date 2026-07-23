@@ -80,12 +80,16 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
     phase.groups.forEach(g => {
       if (phase.format === "gsl-de-groups") {
         const by = (slot: string) => g.matches.find(m => m.bracketSlot === slot);
+        const winnerBySlot = (slot: string) => {
+          const match = by(slot);
+          return match ? winnerOf(match) : null;
+        };
         const qualified = [
-          winnerOf(by("IEM-UB-SF-M1") as MatchResult),
-          winnerOf(by("IEM-UB-SF-M2") as MatchResult),
-          winnerOf(by("IEM-LB-FINAL") as MatchResult),
-          winnerOf(by("IEM-LB-R2-M1") as MatchResult),
-          winnerOf(by("IEM-LB-R2-M2") as MatchResult),
+          winnerBySlot("IEM-UB-SF-M1"),
+          winnerBySlot("IEM-UB-SF-M2"),
+          winnerBySlot("IEM-LB-FINAL"),
+          winnerBySlot("IEM-LB-R2-M1"),
+          winnerBySlot("IEM-LB-R2-M2"),
         ].filter((team): team is string => !!team && isReal(team));
         qualified.slice(0, perGroup).forEach(team => {
           if (!winners.includes(team)) winners.push(team);

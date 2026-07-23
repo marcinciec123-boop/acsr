@@ -320,6 +320,23 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3, adva
   return matches;
 };
 
+/** Upgrade an editable legacy IEM group to the shorter current structure. */
+export const normalizeGSLDoubleElimGroup = (
+  matches: MatchResult[],
+  advancePerGroup: number = 2,
+): MatchResult[] => {
+  const obsolete = new Set(["IEM-UB-FINAL", "IEM-LB-R3"]);
+  let next = matches.filter(match => !obsolete.has(match.bracketSlot || ""));
+  const finalIndex = next.findIndex(match => match.bracketSlot === "IEM-LB-FINAL");
+  if (advancePerGroup !== 3 && finalIndex >= 0) {
+    next = next.filter((_, index) => index !== finalIndex);
+  } else if (advancePerGroup === 3 && finalIndex < 0) {
+    const bo = (matches[0]?.bo || 3) as 1 | 3 | 5;
+    next.push({ id: uid(), team1: "", team2: "", score1: 0, score2: 0, bracketSlot: "IEM-LB-FINAL", round: "Lower Bracket — Decider (3rd seed)", bo });
+  }
+  return propagateGSLDEGroup(next);
+};
+
 /** Swiss: returns first-round matches only (subsequent rounds added by user as results come in) */
 export const buildSwissRound1 = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResult[] => {
   const t = shuffle(teams);

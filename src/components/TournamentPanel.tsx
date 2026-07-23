@@ -15,7 +15,7 @@ import { getPointsForPlacement, teamDatabase, regionNames } from "@/data/tournam
 import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
-import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches } from "@/lib/tournamentBuilder";
+import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { normalizeAllTournamentByes, normalizeTournamentByes, stampPlayedAt } from "@/lib/normalizeMatches";
@@ -93,8 +93,22 @@ const TournamentPanel = () => {
   const [tournaments, setTournaments] = useState<TournamentData[]>(() => {
     const stored = loadFromStorage<TournamentData[]>(STORAGE_KEY, []);
     // Seed StarLadder Berlin Major 2025 + ESL Pro League I (idempotent), then
-    // auto-resolve any BYE matchups so they never block the user.
-    return normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
+    // auto-resolve any BYE matchups so they never block the user. Upgrade only
+    // editable IEM groups; completed history remains untouched for player stats.
+    const seeded = normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
+    return seeded.map(t => t.resultsConfirmed ? t : {
+      ...t,
+      phases: t.phases.map(phase => {
+        if (phase.format !== "gsl-de-groups" || !phase.groups?.length) return phase;
+        const perGroup = phase.advanceCount
+          ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
+          : 2;
+        return {
+          ...phase,
+          groups: phase.groups.map(group => ({ ...group, matches: normalizeGSLDoubleElimGroup(group.matches, perGroup) })),
+        };
+      }),
+    });
   });
   const [showCreate, setShowCreate] = useState(false);
   const [showWorlds, setShowWorlds] = useState(false);
