@@ -16,6 +16,8 @@ export interface TeamAward {
   finals: number;
   top3: number;
   points: number;
+  weightedScore?: number;
+  rankingPosition?: number;
 }
 export interface PlayerAward {
   player: string;
@@ -25,6 +27,8 @@ export interface PlayerAward {
   kdr: number;
   kills: number;
   adr: number;
+  achievementScore?: number;
+  teamRankingPosition?: number;
 }
 export interface TournamentAward {
   id: string;
@@ -104,23 +108,30 @@ export function computeYearAwards(year: number): YearAwards {
   );
 
   // ===== Team of the Year =====
+  const tierWeight: Record<string, number> = { S: 4, A: 2.5, B: 1.5, C: 1 };
+  const currentRanking = [...teams].filter(t => !t.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
+  const rankByTeam = new Map(currentRanking.map((team, index) => [team.name, index + 1]));
   const teamStats = new Map<string, TeamAward>();
-  const bumpTeam = (name: string, placement: number, points: number) => {
-    const e = teamStats.get(name) || { team: name, trophies: 0, finals: 0, top3: 0, points: 0 };
+  const bumpTeam = (name: string, placement: number, points: number, tier: string) => {
+    const e = teamStats.get(name) || { team: name, trophies: 0, finals: 0, top3: 0, points: 0, weightedScore: 0 };
     if (placement === 1) e.trophies++;
     if (placement <= 2) e.finals++;
     if (placement <= 3) e.top3++;
     e.points += points;
+    const placementValue = placement === 1 ? 100 : placement === 2 ? 55 : placement === 3 ? 32 : placement <= 8 ? 12 : 3;
+    e.weightedScore = (e.weightedScore || 0) + placementValue * (tierWeight[tier] || 1) + Math.max(0, points) * 0.02;
     teamStats.set(name, e);
   };
   for (const t of yearTournaments) {
     for (const p of t.placements || []) {
-      bumpTeam(p.team, p.placement, p.points || 0);
+      bumpTeam(p.team, p.placement, p.points || 0, t.tier);
     }
   }
-  const teamRanked = Array.from(teamStats.values()).sort(
-    (a, b) => b.trophies - a.trophies || b.finals - a.finals || b.top3 - a.top3 || b.points - a.points,
-  );
+  const teamRanked = Array.from(teamStats.values()).map(team => {
+    const rankingPosition = rankByTeam.get(team.team);
+    const rankingBonus = rankingPosition ? Math.max(0, 101 - rankingPosition) * 1.5 : 0;
+    return { ...team, rankingPosition, weightedScore: (team.weightedScore || 0) + rankingBonus };
+  }).sort((a, b) => (b.weightedScore || 0) - (a.weightedScore || 0) || b.points - a.points);
   const teamOfYear = teamRanked[0];
   const teamTop3 = teamRanked.slice(0, 3);
 
@@ -132,6 +143,7 @@ export function computeYearAwards(year: number): YearAwards {
     adrW: number; kastW: number; rounds: number;
     matchRatings: number[];
     hadTransfer: boolean;
+    achievementScore: number;
   }
   const players = new Map<string, PAcc>();
   let totalMatches = 0;
@@ -176,7 +188,7 @@ export function computeYearAwards(year: number): YearAwards {
         });
         let pe = players.get(name);
         if (!pe) {
-          pe = { team, kills: 0, deaths: 0, assists: 0, ud: 0, ef: 0, adrW: 0, kastW: 0, rounds: 0, matchRatings: [], hadTransfer: false };
+          pe = { team, kills: 0, deaths: 0, assists: 0, ud: 0, ef: 0, adrW: 0, kastW: 0, rounds: 0, matchRatings: [], hadTransfer: false, achievementScore: 0 };
           players.set(name, pe);
         }
         pe.team = team;
@@ -188,6 +200,22 @@ export function computeYearAwards(year: number): YearAwards {
       }
       if (matchCounted) totalMatches++;
     }
+  }
+
+  // Individual yearly ranking rewards performance plus the weight of team results.
+  // A great player can still rank highly, but farming weak events no longer beats
+  // comparable performance at Tier S/A events or on an elite-ranked team.
+  for (const t of yearTournaments) {
+    const weight = tierWeight[t.tier] || 1;
+    for (const placement of t.placements || []) {
+      const placementValue = placement.placement === 1 ? 25 : placement.placement === 2 ? 14 : placement.placement === 3 ? 8 : placement.placement <= 8 ? 3 : 0;
+      if (placementValue === 0) continue;
+      for (const [name, acc] of players) {
+        if (acc.team === placement.team) acc.achievementScore += placementValue * weight;
+      }
+    }
+    const mvp = t.awards?.mvp;
+    if (mvp && players.has(mvp)) players.get(mvp)!.achievementScore += 20 * weight;
   }
 
   // Mark transfers within the year
@@ -207,11 +235,17 @@ export function computeYearAwards(year: number): YearAwards {
     kdr: e.deaths > 0 ? Math.round((e.kills / e.deaths) * 100) / 100 : e.kills,
     kills: e.kills,
     adr: e.rounds > 0 ? Math.round(e.adrW / e.rounds) : 0,
+    achievementScore: e.achievementScore,
+    teamRankingPosition: rankByTeam.get(e.team),
   });
 
   const playersArr = Array.from(players.entries()).map(([n, e]) => ({ p: buildPlayer(n, e), hadTransfer: e.hadTransfer }));
 
-  const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => b.p.rating - a.p.rating);
+  const playerScore = (p: PlayerAward) => {
+    const rankBonus = p.teamRankingPosition ? Math.max(0, 101 - p.teamRankingPosition) * 0.35 : 0;
+    return p.rating * 100 + (p.achievementScore || 0) + rankBonus;
+  };
+  const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => playerScore(b.p) - playerScore(a.p) || b.p.rating - a.p.rating);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);
   const playerTop20 = eligible.slice(0, 20).map(x => x.p);
   const playerOfYear = eligible[0]?.p;
