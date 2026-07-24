@@ -147,10 +147,12 @@ function generateMapStats(
 }
 
 function distributeKillsForTeam(ownRoundsWon: number, oppRoundsWon: number, totalRounds: number, isStronger: boolean): number {
-  // Realistyczne CS: ~4-5 killi/wygranej rundy, ~2-3 killi/przegranej rundy
-  // Daje team-wide kpr ~0.75-0.85 → indywidualne ~0.7-0.9 (zdrowe ratingi)
-  const killsFromWonRounds = ownRoundsWon * (4 + Math.random() * 1.5);
-  const killsFromLostRounds = oppRoundsWon * (2 + Math.random() * 1.5);
+  // Most won rounds end with 4-5 eliminations; lost rounds average about 1-2
+  // traded kills. This keeps the lobby near a realistic 0.65 individual KPR.
+  const killsFromWonRounds = ownRoundsWon * (4 + Math.random() * 0.7);
+  const killsFromLostRounds = oppRoundsWon * (1 + Math.random() * 1.1);
+  void totalRounds;
+  void isStronger;
   return Math.round(killsFromWonRounds + killsFromLostRounds);
 }
 

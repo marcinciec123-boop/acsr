@@ -78,9 +78,9 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
 
   tournaments.forEach(tournament => {
     const date = tournament.endDate.slice(0, 10);
-    if (tournament.resultsConfirmed) {
-      tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
-    }
+    // Older completed tournaments predate `resultsConfirmed`, but their saved
+    // placements are still authoritative historical ranking events.
+    tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
     getTournamentMatches(tournament).forEach(match => {
       if (!match.resultConfirmed) return;
       const winner = getMatchWinner(match);

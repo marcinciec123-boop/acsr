@@ -202,12 +202,12 @@ const buildMapStats = (
   //     round). So per team, total deaths <= 5 * totalRounds.
   //   - Per map: sum(team1.kills) === sum(team2.deaths) and vice versa.
   // Realistic CS:GO model:
-  //   - Round you WIN: ~4.4 kills on the winning side (most wins end in a wipe).
-  //   - Round you LOSE: ~2.1 kills on the losing side (trades/economy damage
+  //   - Round you WIN: ~4.3 kills on the winning side (most wins end in a wipe).
+  //   - Round you LOSE: ~1.6 kills on the losing side (trades/economy damage
   //     dying — a few rounds you get 0).
   // This gives top fraggers ~18-25 kills on a 25-round map (KPR ~0.8-1.0).
   const baseTeamKills = (ownRoundsWon: number, oppRoundsWon: number) =>
-    ownRoundsWon * randRange(4.0, 4.8) + oppRoundsWon * randRange(1.5, 2.7);
+    ownRoundsWon * randRange(4.0, 4.7) + oppRoundsWon * randRange(1.0, 2.1);
 
   // Hard cap per team: 5 * totalRounds (5 enemies alive per round = max kills
   // possible). In practice we never get close to this.
