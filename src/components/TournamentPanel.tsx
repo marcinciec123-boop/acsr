@@ -771,7 +771,7 @@ const TournamentPanel = () => {
       // Record a ranking snapshot for the trend chart (fictional world date).
       try {
         const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
-        const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`);
+        const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`, finalized.endDate);
         if (!historySaved) throw new Error("Ranking history save failed");
       } catch (error) {
         console.error("Nie udało się zapisać historii rankingu:", error);
@@ -793,7 +793,7 @@ const TournamentPanel = () => {
           if (status === "completed") {
             try {
               const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
-              const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`);
+              const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`, t.endDate);
               if (!historySaved) throw new Error("Ranking history save failed");
             } catch (error) {
               console.error("Nie udało się zapisać historii rankingu:", error);

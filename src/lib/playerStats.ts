@@ -106,9 +106,12 @@ function generateMapStats(
   const team1Stats: PlayerMatchStats[] = players1.map((name, i) => {
     const kills = team1PlayerKills[i];
     const deaths = team1PlayerDeaths[i];
-    const assists = Math.max(0, Math.round(totalRounds * (0.08 + Math.random() * 0.15)));
-    const adr = Math.max(30, Math.round((kills / totalRounds) * (85 + Math.random() * 30)));
-    const kast = Math.min(100, Math.max(35, Math.round(55 + Math.random() * 30 + (kills > deaths ? 8 : -5))));
+    const assists = Math.max(0, Math.round(totalRounds * (0.12 + Math.random() * 0.16)));
+    const kpr = kills / Math.max(1, totalRounds);
+    const apr = assists / Math.max(1, totalRounds);
+    const dpr = deaths / Math.max(1, totalRounds);
+    const adr = Math.min(165, Math.max(35, Math.round(14 + kpr * (88 + Math.random() * 10) + apr * (24 + Math.random() * 14) + (Math.random() * 10 - 4))));
+    const kast = Math.min(94, Math.max(42, Math.round(69 + (kpr - 0.65) * 24 - (dpr - 0.65) * 22 + (apr - 0.2) * 14 + (Math.random() * 8 - 4))));
     const ud = Math.max(0, Math.round(Math.random() * 80 + 5));
     const ef = Math.max(0, Math.round(Math.random() * 4));
     const stats: PlayerMatchStats = { playerName: name, team: team1Name, kills, assists, deaths, adr, kast, ud, ef, rounds: totalRounds };
@@ -119,9 +122,12 @@ function generateMapStats(
   const team2Stats: PlayerMatchStats[] = players2.map((name, i) => {
     const kills = team2PlayerKills[i];
     const deaths = team2PlayerDeaths[i];
-    const assists = Math.max(0, Math.round(totalRounds * (0.08 + Math.random() * 0.15)));
-    const adr = Math.max(30, Math.round((kills / totalRounds) * (85 + Math.random() * 30)));
-    const kast = Math.min(100, Math.max(35, Math.round(55 + Math.random() * 30 + (kills > deaths ? 8 : -5))));
+    const assists = Math.max(0, Math.round(totalRounds * (0.12 + Math.random() * 0.16)));
+    const kpr = kills / Math.max(1, totalRounds);
+    const apr = assists / Math.max(1, totalRounds);
+    const dpr = deaths / Math.max(1, totalRounds);
+    const adr = Math.min(165, Math.max(35, Math.round(14 + kpr * (88 + Math.random() * 10) + apr * (24 + Math.random() * 14) + (Math.random() * 10 - 4))));
+    const kast = Math.min(94, Math.max(42, Math.round(69 + (kpr - 0.65) * 24 - (dpr - 0.65) * 22 + (apr - 0.2) * 14 + (Math.random() * 8 - 4))));
     const ud = Math.max(0, Math.round(Math.random() * 80 + 5));
     const ef = Math.max(0, Math.round(Math.random() * 4));
     const stats: PlayerMatchStats = { playerName: name, team: team2Name, kills, assists, deaths, adr, kast, ud, ef, rounds: totalRounds };
