@@ -150,6 +150,10 @@ const TournamentPanel = () => {
 
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
+  useEffect(() => {
+    void import("@/lib/rankingHistory").then(({ synchronizeRankingHistory }) => synchronizeRankingHistory());
+  }, []);
+
   // Live ranking data (used for sorting & rank labels in team picker)
   const [liveRanking, setLiveRanking] = useState<TeamData[]>(loadLiveRanking);
 
