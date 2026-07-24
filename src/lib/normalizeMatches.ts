@@ -3,6 +3,7 @@
 // matches so chronological match history works correctly.
 
 import type { MatchResult, MatchMap, TournamentData } from "./types";
+import { getWorldNowIso } from "./worldClock";
 
 const isBye = (t?: string) => t === "BYE";
 
@@ -22,11 +23,11 @@ const resolveByeMatch = (m: MatchResult): MatchResult => {
   const wins = winsNeededFor(m.bo);
   if (isBye(m.team2) && m.team1 && !isBye(m.team1) && !m.team1.startsWith("TBD")) {
     if (m.score1 === wins && m.score2 === 0 && m.playedAt) return m;
-    return { ...m, score1: wins, score2: 0, playedAt: m.playedAt || new Date().toISOString() };
+    return { ...m, score1: wins, score2: 0, playedAt: m.playedAt || getWorldNowIso() };
   }
   if (isBye(m.team1) && m.team2 && !isBye(m.team2) && !m.team2.startsWith("TBD")) {
     if (m.score2 === wins && m.score1 === 0 && m.playedAt) return m;
-    return { ...m, score1: 0, score2: wins, playedAt: m.playedAt || new Date().toISOString() };
+    return { ...m, score1: 0, score2: wins, playedAt: m.playedAt || getWorldNowIso() };
   }
   return m;
 };
@@ -36,7 +37,7 @@ export const stampPlayedAt = (prev: MatchResult, next: MatchResult): MatchResult
   const finalNow = hasFinalScore(next);
   const finalBefore = hasFinalScore(prev);
   if (finalNow && (!next.playedAt || !finalBefore)) {
-    return { ...next, playedAt: next.playedAt || new Date().toISOString() };
+    return { ...next, playedAt: next.playedAt || getWorldNowIso() };
   }
   // Reset playedAt if scores were cleared
   if (!finalNow && next.playedAt && !isBye(next.team1) && !isBye(next.team2)) {

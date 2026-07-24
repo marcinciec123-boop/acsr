@@ -243,7 +243,9 @@ export function computeYearAwards(year: number): YearAwards {
 
   const playerScore = (p: PlayerAward) => {
     const rankBonus = p.teamRankingPosition ? Math.max(0, 101 - p.teamRankingPosition) * 0.35 : 0;
-    return p.rating * 100 + (p.achievementScore || 0) + rankBonus;
+    // Individual form must remain decisive: raising the rating coefficient
+    // prevents a weak performer from winning solely on an elite team's trophies.
+    return p.rating * 140 + (p.achievementScore || 0) + rankBonus;
   };
   const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => playerScore(b.p) - playerScore(a.p) || b.p.rating - a.p.rating);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);

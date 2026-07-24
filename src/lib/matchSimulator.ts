@@ -202,12 +202,12 @@ const buildMapStats = (
   //     round). So per team, total deaths <= 5 * totalRounds.
   //   - Per map: sum(team1.kills) === sum(team2.deaths) and vice versa.
   // Realistic CS:GO model:
-  //   - Round you WIN: ~3.5 kills on the winning side (you killed enough).
-  //   - Round you LOSE: ~1.5 kills on the losing side (some trades before
+  //   - Round you WIN: ~4.3 kills on the winning side (most wins end in a wipe).
+  //   - Round you LOSE: ~1.6 kills on the losing side (trades/economy damage
   //     dying — a few rounds you get 0).
   // This gives top fraggers ~18-25 kills on a 25-round map (KPR ~0.8-1.0).
   const baseTeamKills = (ownRoundsWon: number, oppRoundsWon: number) =>
-    ownRoundsWon * randRange(3.0, 4.2) + oppRoundsWon * randRange(0.8, 2.0);
+    ownRoundsWon * randRange(4.0, 4.7) + oppRoundsWon * randRange(1.0, 2.1);
 
   // Hard cap per team: 5 * totalRounds (5 enemies alive per round = max kills
   // possible). In practice we never get close to this.
@@ -236,15 +236,17 @@ const buildMapStats = (
   const buildRow = (
     name: string, teamName: string, kills: number, deaths: number, skill: number,
   ): MapPlayerStats => {
-    // Assists: ~6-18% of total rounds; capped at rounds
-    const assists = Math.min(totalRounds, Math.max(0, Math.round(totalRounds * randRange(0.06, 0.18))));
-    // ADR: roughly kills * (75-105) / rounds + small base
+    // Assists: roughly 3-7 on a standard 24-round map.
+    const assists = Math.min(totalRounds, Math.max(0, Math.round(totalRounds * randRange(0.12, 0.28))));
+    // ADR includes lethal damage, assists and non-lethal chip damage. A neutral
+    // 0.65 KPR / 0.20 APR player lands around 78 ADR; stars can exceed 100.
     const kpr = kills / Math.max(1, totalRounds);
-    const adr = Math.round(Math.min(160, Math.max(20, kpr * randRange(78, 110) + randRange(5, 18))));
-    // KAST: based on (rounds where you got a kill OR survived). Estimate it.
-    const kdDelta = kills - deaths;
-    const kastBase = 60 + (kdDelta / Math.max(1, totalRounds)) * 35;
-    const kast = Math.round(Math.min(95, Math.max(35, kastBase + randRange(-6, 6))));
+    const apr = assists / Math.max(1, totalRounds);
+    const adr = Math.round(Math.min(165, Math.max(35, 14 + kpr * randRange(88, 98) + apr * randRange(24, 38) + randRange(-4, 6))));
+    // Neutral pro-level KAST sits near 70%; kills, assists and survival move it.
+    const dpr = deaths / Math.max(1, totalRounds);
+    const kastBase = 69 + (kpr - 0.65) * 24 - (dpr - 0.65) * 22 + (apr - 0.2) * 14;
+    const kast = Math.round(Math.min(94, Math.max(42, kastBase + randRange(-4, 4))));
     // Utility damage: 5-90, weighted by skill
     const ud = Math.max(0, Math.round(randRange(5, 80) * (0.7 + 0.5 * skill / 1.5)));
     // Enemies flashed: 0-6

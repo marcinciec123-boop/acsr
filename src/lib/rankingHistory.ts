@@ -29,15 +29,114 @@ export function loadRankingHistory(): RankingSnapshot[] {
   return loadFromStorage<RankingSnapshot[]>(KEY, []);
 }
 
-/** Save a complete snapshot for the current world date; merges with same-day entry. */
-export async function recordRankingSnapshot(reason?: string): Promise<boolean> {
+const isClub = (team: TeamData) => !team.isNational;
+
+const getMatchWinner = (match: MatchResult): string => {
+  if (!match.team1 || !match.team2 || match.team1 === "BYE" || match.team2 === "BYE") return "";
+  if ((match.score1 || 0) + (match.score2 || 0) === 0 || match.score1 === match.score2) return "";
+  return match.score1 > match.score2 ? match.team1 : match.team2;
+};
+
+const getTournamentMatches = (tournament: TournamentData): MatchResult[] => {
+  const matches: MatchResult[] = [];
+  tournament.phases?.forEach(phase => {
+    if (phase.bracket) matches.push(...phase.bracket);
+    phase.groups?.forEach(group => matches.push(...group.matches));
+  });
+  if (tournament.matches) matches.push(...tournament.matches);
+  return matches;
+};
+
+const buildRanks = (points: Record<string, number>): Record<string, number> => Object.fromEntries(
+  Object.entries(points)
+    .sort(([, a], [, b]) => b - a)
+    .map(([team], index) => [team, index + 1]),
+);
+
+/**
+ * Rebuild snapshots for tournaments played before ranking history existed.
+ * The present ranking remains the source of truth: known historical deltas are
+ * reversed to derive the baseline, then replayed chronologically. This keeps
+ * the final point totals exact while restoring every historical event date.
+ */
+export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
   const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
     || (teamDatabase as TeamData[]);
-  const date = getWorldDate();
+  const clubs = ranking.filter(isClub);
+  const clubNames = new Set(clubs.map(team => team.name));
+  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", [])
+    .filter(tournament => tournament.status === "completed" && tournament.kind !== "worlds" && !!tournament.endDate)
+    .sort((a, b) => a.endDate.localeCompare(b.endDate));
+
+  const deltasByDate = new Map<string, Map<string, number>>();
+  const addDelta = (date: string, team: string, delta: number) => {
+    if (!clubNames.has(team) || !delta) return;
+    const daily = deltasByDate.get(date) || new Map<string, number>();
+    daily.set(team, (daily.get(team) || 0) + delta);
+    deltasByDate.set(date, daily);
+  };
+
+  tournaments.forEach(tournament => {
+    const date = tournament.endDate.slice(0, 10);
+    // Older completed tournaments predate `resultsConfirmed`, but their saved
+    // placements are still authoritative historical ranking events.
+    tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
+    getTournamentMatches(tournament).forEach(match => {
+      if (!match.resultConfirmed) return;
+      const winner = getMatchWinner(match);
+      if (!winner) return;
+      const loser = winner === match.team1 ? match.team2 : match.team1;
+      addDelta(date, winner, match.pointsWinner || 0);
+      addDelta(date, loser, -(match.pointsLoser || 0));
+    });
+    // Preserve a point on the timeline even for old tournaments without saved deltas.
+    if (!deltasByDate.has(date)) deltasByDate.set(date, new Map());
+  });
+
+  const knownTotals = new Map<string, number>();
+  deltasByDate.forEach(daily => daily.forEach((delta, team) => {
+    knownTotals.set(team, (knownTotals.get(team) || 0) + delta);
+  }));
+  const running: Record<string, number> = Object.fromEntries(clubs.map(team => [
+    team.name,
+    Math.max(0, (team.points || 0) - (knownTotals.get(team.name) || 0)),
+  ]));
+
+  const snapshots: RankingSnapshot[] = [];
+  [...deltasByDate.entries()].sort(([a], [b]) => a.localeCompare(b)).forEach(([date, daily]) => {
+    daily.forEach((delta, team) => { running[team] = Math.max(0, (running[team] || 0) + delta); });
+    const points = { ...running };
+    snapshots.push({ date, points, ranks: buildRanks(points) });
+  });
+  return snapshots;
+}
+
+/** Persist a merged history, including tournaments played before this feature existed. */
+export async function synchronizeRankingHistory(): Promise<boolean> {
+  const merged = new Map<string, RankingSnapshot>();
+  buildHistoricalRankingSnapshots().forEach(snapshot => merged.set(snapshot.date, snapshot));
+  loadRankingHistory().forEach(snapshot => {
+    const historical = merged.get(snapshot.date);
+    merged.set(snapshot.date, {
+      date: snapshot.date,
+      points: { ...(historical?.points || {}), ...snapshot.points },
+      ranks: { ...(historical?.ranks || {}), ...(snapshot.ranks || {}) },
+      rosters: { ...(historical?.rosters || {}), ...(snapshot.rosters || {}) },
+    });
+  });
+  const history = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return saveToStorageAsync(KEY, history);
+}
+
+/** Save a complete snapshot for a tournament date; merges with same-day entry. */
+export async function recordRankingSnapshot(reason?: string, dateOverride?: string): Promise<boolean> {
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
+    || (teamDatabase as TeamData[]);
+  const date = (dateOverride || getWorldDate()).slice(0, 10);
   const points: Record<string, number> = {};
   const ranks: Record<string, number> = {};
   const rosters: Record<string, string[]> = {};
-  const clubs = ranking.filter(t => !t.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
+  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0));
   clubs.forEach((t, index) => {
     points[t.name] = t.points || 0;
     ranks[t.name] = index + 1;
@@ -53,7 +152,9 @@ export async function recordRankingSnapshot(reason?: string): Promise<boolean> {
   }
   history.sort((a, b) => a.date.localeCompare(b.date));
   void reason;
-  return saveToStorageAsync(KEY, history);
+  const saved = await saveToStorageAsync(KEY, history);
+  if (!saved) return false;
+  return synchronizeRankingHistory();
 }
 
 export interface TeamRankingPoint { date: string; points: number; rank?: number }
@@ -87,8 +188,6 @@ export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
     .map(s => ({ date: s.date, points: s.points[teamName] ?? 0, rank: s.ranks?.[teamName] }))
     .filter(p => p.points > 0);
 
-  if (snapshots.length >= 2) return snapshots;
-
   const events = buildPlacementFallback().get(teamName) || [];
 
   if (events.length === 0) {
@@ -101,7 +200,8 @@ export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
   }
 
   const series: TeamRankingPoint[] = [...events];
-  // Merge in real snapshots if any (they win on their date).
+  // Always merge real snapshots with historical reconstruction. Previously two
+  // snapshots disabled the fallback entirely, hiding all older tournaments.
   for (const s of snapshots) {
     const idx = series.findIndex(p => p.date === s.date);
     if (idx >= 0) series[idx] = s;
