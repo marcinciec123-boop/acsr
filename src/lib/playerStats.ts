@@ -261,7 +261,7 @@ export function generateMatchStats(
       // Overtime: 12-12 then MR4 OT (each OT = 4 rounds, win by taking 4)
       // Possible: single OT → 16:12-15, double OT → 19:15-18, etc.
       const otCount = Math.random() < 0.7 ? 1 : 2; // mostly single OT
-      winnerRounds = 13 + 3 * otCount; // 16 or 19
+      winnerRounds = 13 + 3 * otCount; // 16, 19, 22, 25...
       loserRounds = winnerRounds - 1 - Math.floor(Math.random() * 4); // winner-4 to winner-1
     } else {
       winnerRounds = 13;

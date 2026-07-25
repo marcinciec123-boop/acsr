@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NavBar, { type Tab } from "@/components/NavBar";
 import NewsFeed from "@/components/NewsFeed";
 import RankingPanel from "@/components/RankingPanel";
@@ -17,6 +17,7 @@ import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { ProfileNavProvider } from "@/lib/profileNav";
+import { readUiPref, writeUiPref } from "@/lib/uiPrefs";
 
 const loadRankingTeams = () =>
   loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
@@ -26,22 +27,46 @@ const Index = () => {
   // Stack lets us open Team → Player → Team… and step back through history.
   const [profileStack, setProfileStack] = useState<Array<{ kind: "team" | "player"; name: string }>>([]);
   const top = profileStack[profileStack.length - 1] || null;
+  // Remember where the user was in the underlying list (ranking, players…)
+  // so closing a profile returns to the exact same scroll position.
+  const listScrollRef = useRef<number>(0);
+
+  const rememberScroll = () => {
+    if (profileStack.length === 0) {
+      listScrollRef.current = window.scrollY;
+      writeUiPref(`scroll_tab_${activeTab}`, { x: 0, y: window.scrollY });
+    }
+  };
 
   const handleSelectTeam = (name: string) => {
+    rememberScroll();
     setProfileStack(s => [...s, { kind: "team", name }]);
   };
 
   const handleSelectPlayer = (name: string) => {
+    rememberScroll();
     setProfileStack(s => [...s, { kind: "player", name }]);
   };
 
   const handleBack = () => {
-    setProfileStack(s => s.slice(0, -1));
+    setProfileStack(s => {
+      const next = s.slice(0, -1);
+      if (next.length === 0) {
+        const y = listScrollRef.current;
+        requestAnimationFrame(() => window.scrollTo({ top: y }));
+        setTimeout(() => window.scrollTo({ top: y }), 80);
+      }
+      return next;
+    });
   };
 
   const handleTabChange = (tab: Tab) => {
+    rememberScroll();
     setProfileStack([]);
     setActiveTab(tab);
+    const saved = readUiPref<{ x: number; y: number } | null>(`scroll_tab_${tab}`, null);
+    requestAnimationFrame(() => window.scrollTo({ top: saved?.y || 0 }));
+    setTimeout(() => window.scrollTo({ top: saved?.y || 0 }), 120);
   };
 
   const [teams, setTeams] = useState<TeamData[]>(loadRankingTeams);
@@ -62,6 +87,25 @@ const Index = () => {
   }, []);
 
   const profileOpen = !!top;
+
+  // Keep the per-tab scroll offset in the save so reloading lands in place.
+  useEffect(() => {
+    if (profileOpen) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        listScrollRef.current = window.scrollY;
+        writeUiPref(`scroll_tab_${activeTab}`, { x: 0, y: window.scrollY });
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [activeTab, profileOpen]);
 
   return (
     <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer }}>

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData } from "@/lib/types";
 import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
-import { getWorldNow } from "@/lib/worldClock";
+import { getWorldNow, useWorldDate } from "@/lib/worldClock";
+import { usePersistedState } from "@/lib/uiPrefs";
 
 interface Props {
   tournaments: TournamentData[];
@@ -514,8 +515,10 @@ const CalendarEventButton = ({ t, onSelect, dense = false }: { t: TournamentData
 
 const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
   const initial = initialCalendarDate(tournaments);
-  const [year, setYear] = useState(initial.getFullYear());
-  const [month, setMonth] = useState(initial.getMonth());
+  const [year, setYear] = usePersistedState("portal_cal_year", initial.getFullYear());
+  const [month, setMonth] = usePersistedState("portal_cal_month", initial.getMonth());
+  // Live fictional date — updates immediately when the world clock moves.
+  const worldDate = useWorldDate();
 
   const dayIndex = useMemo(() => {
     const map: Record<string, TournamentData[]> = {};
@@ -578,7 +581,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
           if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
           const iso = toIsoLocal(day);
           const events = dayIndex[iso] || [];
-          const today = iso === toIsoLocal(getWorldNow());
+          const today = iso === worldDate;
           return (
             <div
               key={iso}
@@ -602,7 +605,7 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
 
 const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
   const years = useMemo(() => Array.from(new Set(tournaments.map(t => formatYear(t.startDate)).filter(Boolean))).sort(), [tournaments]);
-  const [year, setYear] = useState(years[years.length - 1] || String(getWorldNow().getFullYear()));
+  const [year, setYear] = usePersistedState("portal_timeline_year", years[years.length - 1] || String(getWorldNow().getFullYear()));
   const yearTournaments = tournaments
     .filter(t => formatYear(t.startDate) === year || formatYear(t.endDate) === year)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -716,12 +719,12 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
 };
 
 export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
-  const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [tierFilter, setTierFilter] = useState<TierFilter>("ALL");
-  const [formatFilter, setFormatFilter] = useState<FormatFilter>("ALL");
-  const [yearFilter, setYearFilter] = useState<string>("ALL");
-  const [organizerFilter, setOrganizerFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>("portal_view", "month");
+  const [statusFilter, setStatusFilter] = usePersistedState<StatusFilter>("portal_status", "ALL");
+  const [tierFilter, setTierFilter] = usePersistedState<TierFilter>("portal_tier", "ALL");
+  const [formatFilter, setFormatFilter] = usePersistedState<FormatFilter>("portal_format", "ALL");
+  const [yearFilter, setYearFilter] = usePersistedState<string>("portal_year", "ALL");
+  const [organizerFilter, setOrganizerFilter] = usePersistedState<string>("portal_organizer", "ALL");
   const [search, setSearch] = useState("");
 
   const counts = useMemo(() => ({

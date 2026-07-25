@@ -1,3 +1,4 @@
+import { WORLD_CLOCK_EVENT } from "./worldClock";
 import { DEVICE_STORE_REF, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
@@ -17,8 +18,12 @@ export interface DeviceBackupSnapshot {
 
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
+// Keys outside the `csgo_hub_`/`tournament_progress_` namespaces that still
+// belong to the saved world (e.g. the fictional calendar date).
+const EXTRA_MANAGED_KEYS = new Set(["world_clock_date"]);
+
 const isManagedKey = (key: string) =>
-  (key.startsWith("csgo_hub_") || key.startsWith("tournament_progress_"))
+  (key.startsWith("csgo_hub_") || key.startsWith("tournament_progress_") || EXTRA_MANAGED_KEYS.has(key))
     && key !== AUTO_BACKUP_FLAG_KEY;
 
 // ===== Autozapis on/off =====
@@ -221,6 +226,10 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
       await removeDeviceValue(key).catch(() => undefined);
     }
   }));
+  if (typeof window !== "undefined") {
+    // The restored save carries its own fictional date — tell the UI to re-read it.
+    window.dispatchEvent(new Event(WORLD_CLOCK_EVENT));
+  }
   return snapshot;
 };
 

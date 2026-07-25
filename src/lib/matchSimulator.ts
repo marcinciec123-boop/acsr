@@ -150,15 +150,15 @@ const decideMapRounds = (): { winnerRounds: number; loserRounds: number } => {
   const isOT = rand() < 0.12;
   if (isOT) {
     // OT trigger = regulation 12-12. Each OT is MR3 (first to 4, must win by 2
-    // in this sim — so 4-3 doesn't end the half, it forces another OT).
-    // OT1 winner reaches 16 (12+4), loser 12-14.
-    // OT2 winner reaches 19, loser 15-17. Etc.
+    // in this sim — a 3-3 OT forces another OT).
+    // OT1 winner reaches 16 (12+4), OT2 19, OT3 22, OT4 25...
     const otCount = rand() < 0.78 ? 1 : 2;
-    const winnerRounds = 12 + 4 * otCount; // 16 or 19
+    const winnerRounds = 13 + 3 * otCount; // 16, 19, 22, 25...
     // Loser already had previous OTs end 3-3, so loser >= 12 + 3*(otCount-1)
     const loserMin = 12 + 3 * (otCount - 1);
     const loserMax = winnerRounds - 2; // must lose by >= 2
     const loserRounds = randInt(loserMin, loserMax);
+
     return { winnerRounds, loserRounds };
   }
   const winnerRounds = 13;
