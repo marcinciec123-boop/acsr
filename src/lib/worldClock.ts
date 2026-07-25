@@ -87,3 +87,24 @@ export function formatWorldDate(locale = "pl-PL"): string {
 
 export const WORLD_CLOCK_DEFAULT = DEFAULT_ISO;
 export const WORLD_CLOCK_REAL_TODAY = realTodayIso;
+
+// ===== React helper =====
+import { useEffect, useState } from "react";
+
+/**
+ * Subscribe to the fictional clock. Returns the current world date (ISO) and
+ * re-renders live whenever it changes (widget, tournament finalize, save load).
+ */
+export function useWorldDate(): string {
+  const [date, setDate] = useState(getWorldDate);
+  useEffect(() => {
+    const sync = () => setDate(getWorldDate());
+    window.addEventListener(WORLD_CLOCK_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(WORLD_CLOCK_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return date;
+}
