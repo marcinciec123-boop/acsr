@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useScrollRestore } from "@/lib/uiPrefs";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
@@ -20,6 +21,8 @@ interface Props {
   onAdd?: (round: string) => void;
   onOpenMatch?: (id: string) => void;
   allTeams?: string[];
+  /** Stable key used to remember the horizontal pan position of the bracket. */
+  scrollKey?: string;
 }
 
 const TeamRow = ({
@@ -53,7 +56,8 @@ const TeamRow = ({
 };
 
 /** Liquipedia-style bracket with SVG connectors between rounds */
-export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [] }: Props) => {
+export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [], scrollKey }: Props) => {
+  const panRef = useScrollRestore<HTMLDivElement>(`bracket_${scrollKey || matches[0]?.id || "default"}`);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
 
@@ -344,7 +348,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto pb-3 px-1">
+      <div ref={panRef} className="overflow-x-auto pb-3 px-1">
         {isDoubleElim ? (
           <div className="space-y-8">
             <div>
