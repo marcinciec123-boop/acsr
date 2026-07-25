@@ -88,6 +88,25 @@ const Index = () => {
 
   const profileOpen = !!top;
 
+  // Keep the per-tab scroll offset in the save so reloading lands in place.
+  useEffect(() => {
+    if (profileOpen) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        listScrollRef.current = window.scrollY;
+        writeUiPref(`scroll_tab_${activeTab}`, { x: 0, y: window.scrollY });
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [activeTab, profileOpen]);
+
   return (
     <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer }}>
       <div className="min-h-screen bg-background">

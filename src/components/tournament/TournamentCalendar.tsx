@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Trophy, MapPin, Users, Crown } from "lucide-react";
 import { type Tournament } from "@/data/tournaments";
