@@ -1,9 +1,10 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Trophy, MapPin, Users, Crown } from "lucide-react";
 import { type Tournament } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
-import { getWorldNow, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
+import { getWorldNow, useWorldDate } from "@/lib/worldClock";
+import { usePersistedState } from "@/lib/uiPrefs";
 
 type ViewMode = "month" | "year";
 
@@ -54,15 +55,10 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
   }, [tournaments]);
 
   const initialYear = years[years.length - 1] || getWorldNow().getFullYear();
-  const [year, setYear] = useState(initialYear);
-  const [month, setMonth] = useState(getWorldNow().getMonth());
-  // Re-render "today" highlight when the fictional world clock changes.
-  const [worldTick, setWorldTick] = useState(0);
-  useEffect(() => {
-    const bump = () => setWorldTick(k => k + 1);
-    window.addEventListener(WORLD_CLOCK_EVENT, bump);
-    return () => window.removeEventListener(WORLD_CLOCK_EVENT, bump);
-  }, []);
+  const [year, setYear] = usePersistedState("tcal_year", initialYear);
+  const [month, setMonth] = usePersistedState("tcal_month", getWorldNow().getMonth());
+  // Live fictional date — "today" moves as soon as the world clock changes.
+  const worldDate = useWorldDate();
 
   // Index: dateISO → tournaments intersecting that day
   const dayIndex = useMemo(() => {
@@ -206,7 +202,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
           if (!day) return <div key={i} className="min-h-20 md:min-h-24 border-t border-l border-border/30 bg-secondary/10" />;
           const iso = toIsoLocal(day);
           const items = dayIndex[iso] || [];
-          const isToday = iso === toIsoLocal(getWorldNow()) && worldTick >= 0;
+          const isToday = iso === worldDate;
           return (
             <div
               key={i}
