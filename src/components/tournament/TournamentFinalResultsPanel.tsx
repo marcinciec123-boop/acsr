@@ -8,6 +8,7 @@ import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { TeamLink } from "@/lib/profileNav";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
+import { freezeRanks, getFrozenRanks } from "@/lib/frozenRanks";
 import { loadFromStorage } from "@/lib/storage";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
@@ -120,12 +121,28 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
   }, [tournament]);
 
   const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+  // "Rank po" is a historical record: frozen the first time the finished
+  // tournament is viewed and never recalculated afterwards.
   const rankMap = useMemo(() => {
+    const frozen = getFrozenRanks(tournament.id);
+    if (frozen) return new Map(Object.entries(frozen));
     const sorted = [...ranking]
       .filter(team => !team.isNational)
       .sort((a, b) => (b.points || 0) - (a.points || 0));
-    return new Map(sorted.map((team, index) => [team.name, index + 1]));
-  }, [ranking]);
+    const live = new Map(sorted.map((team, index) => [team.name, index + 1]));
+    if (tournament.status === "completed") {
+      const teamsInEvent = (tournament.placements || []).map(p => p.team);
+      if (teamsInEvent.length) {
+        const snapshot: Record<string, number> = {};
+        teamsInEvent.forEach(name => {
+          const r = live.get(name);
+          if (r) snapshot[name] = r;
+        });
+        freezeRanks(tournament.id, snapshot);
+      }
+    }
+    return live;
+  }, [ranking, tournament.id, tournament.status, tournament.placements]);
 
   const teamMeta = useMemo(() => new Map([...teamDatabase, ...ranking].map(team => [team.name, team])), [ranking]);
   const totalPool = parsePrizePool(tournament.prizePool);
