@@ -180,7 +180,8 @@ export async function generateAIRumors(
 
 // ----------------- post-tournament AI recap -----------------
 
-/** Triggered when a tournament finishes — generates AI recap + MVP + power-ranking shift posts. */
+/** Wyłączone: recap po turnieju nie generuje się już automatycznie.
+ *  Newsy AI powstają tylko po kliknięciu generatora w panelu Aktualności. */
 export async function generateTournamentRecap(
   tournamentName: string,
   tier: string,
@@ -188,7 +189,10 @@ export async function generateTournamentRecap(
   runnerUp: string | null,
   snapshot: WorldSnapshot,
 ): Promise<void> {
+  void tournamentName; void tier; void winner; void runnerUp; void snapshot;
+  if (!AUTO_EVENT_NEWS_ENABLED) return;
   const ctx = `Turniej "${tournamentName}" (Tier ${tier}) właśnie się zakończył. \
+
 Zwycięzca: ${winner || "nieznany"}. Drugie miejsce: ${runnerUp || "nieznane"}. \
 Napisz 8 postów: (1) recap turnieju z najważniejszymi momentami, \
 (2) sylwetka MVP (gracz ze zwycięskiej drużyny z top playersów), \
