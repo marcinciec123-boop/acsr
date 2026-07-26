@@ -123,7 +123,6 @@ const TransferPanel = () => {
         });
         saveToStorage(TRANSFERS_KEY, migrated);
         saveToStorage(SEED_DATES_VERSION_KEY, true);
-        saveToStorage(LATE_DATES_VERSION_KEY, true);
         return migrated;
       }
       const lateMigrated = loadFromStorage<boolean>(LATE_DATES_VERSION_KEY, false);
