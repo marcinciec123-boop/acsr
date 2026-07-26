@@ -170,7 +170,7 @@ export async function generateAIRumors(
     let n = 0;
     posts.forEach((p, i) => {
       const key = `${prefix}:${stamp}:${i}`;
-      if (appendPost(key, p.content, p.category)) n++;
+      if (appendPost(key, p.content, p.category, true)) n++;
     });
     return { ok: true, posted: n };
   } catch (e) {
