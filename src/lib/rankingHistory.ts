@@ -157,7 +157,28 @@ export async function recordRankingSnapshot(reason?: string, dateOverride?: stri
   return synchronizeRankingHistory();
 }
 
+/**
+ * Zapisuje snapshot przy KAŻDEJ zmianie punktów drużyn (mecz, ręczna edycja,
+ * zakończenie turnieju, transfer itd.). Debounce chroni przed lawiną zapisów.
+ */
+let autoSyncInstalled = false;
+export function installRankingHistoryAutoSync(): void {
+  if (autoSyncInstalled || typeof window === "undefined") return;
+  autoSyncInstalled = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const handler = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      void recordRankingSnapshot("points-change").catch(error =>
+        console.error("Ranking history auto-save failed:", error));
+    }, 600);
+  };
+  window.addEventListener("ranking:update", handler);
+  window.addEventListener("teams:update", handler);
+}
+
 export interface TeamRankingPoint { date: string; points: number; rank?: number }
+
 
 const buildPlacementFallback = (): Map<string, TeamRankingPoint[]> => {
   const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", [])
