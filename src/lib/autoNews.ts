@@ -25,11 +25,18 @@ const savePosts = (posts: AutoNewsPost[]) => saveToStorage(NEWS_KEY, posts);
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+/** Automatyczne (zdarzeniowe) newsy są wyłączone — posty powstają wyłącznie
+ *  po ręcznym kliknięciu generatora w panelu Aktualności. */
+const AUTO_EVENT_NEWS_ENABLED = false;
+
 const appendPost = (
   eventKey: string,
   content: string,
   category: string,
+  manual = false,
 ): boolean => {
+  if (!manual && !AUTO_EVENT_NEWS_ENABLED) return false;
+
   const posts = loadPosts();
   if (posts.some(p => p.eventKey === eventKey)) return false;
   const post: AutoNewsPost = {
@@ -163,7 +170,7 @@ export async function generateAIRumors(
     let n = 0;
     posts.forEach((p, i) => {
       const key = `${prefix}:${stamp}:${i}`;
-      if (appendPost(key, p.content, p.category)) n++;
+      if (appendPost(key, p.content, p.category, true)) n++;
     });
     return { ok: true, posted: n };
   } catch (e) {
@@ -173,7 +180,8 @@ export async function generateAIRumors(
 
 // ----------------- post-tournament AI recap -----------------
 
-/** Triggered when a tournament finishes — generates AI recap + MVP + power-ranking shift posts. */
+/** Wyłączone: recap po turnieju nie generuje się już automatycznie.
+ *  Newsy AI powstają tylko po kliknięciu generatora w panelu Aktualności. */
 export async function generateTournamentRecap(
   tournamentName: string,
   tier: string,
@@ -181,7 +189,10 @@ export async function generateTournamentRecap(
   runnerUp: string | null,
   snapshot: WorldSnapshot,
 ): Promise<void> {
+  void tournamentName; void tier; void winner; void runnerUp; void snapshot;
+  if (!AUTO_EVENT_NEWS_ENABLED) return;
   const ctx = `Turniej "${tournamentName}" (Tier ${tier}) właśnie się zakończył. \
+
 Zwycięzca: ${winner || "nieznany"}. Drugie miejsce: ${runnerUp || "nieznane"}. \
 Napisz 8 postów: (1) recap turnieju z najważniejszymi momentami, \
 (2) sylwetka MVP (gracz ze zwycięskiej drużyny z top playersów), \
