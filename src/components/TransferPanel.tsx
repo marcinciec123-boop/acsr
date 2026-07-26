@@ -40,6 +40,28 @@ type Section = "transfers" | "freeAgents" | "changes";
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
 const SEED_DATES_VERSION_KEY = "transfers_seed_dates_v2";
+const LATE_DATES_VERSION_KEY = "transfers_late_dates_v3";
+
+// Transfery wpisane z fikcyjną datą 2026-07-09 i późniejszą trafiają
+// deterministycznie-losowo w okno 2026-01-27 → 2026-02-02.
+const LATE_CUTOFF = "2026-07-09";
+const LATE_WINDOW_START = new Date(2026, 0, 27);
+const LATE_WINDOW_DAYS = 7; // 27.01 - 02.02
+const hashString = (value: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+};
+const lateWindowDate = (seed: string): string => {
+  const h = hashString(seed);
+  const d = new Date(LATE_WINDOW_START);
+  d.setDate(d.getDate() + (h % LATE_WINDOW_DAYS));
+  d.setHours(9 + (h >> 3) % 11, (h >> 7) % 60, (h >> 11) % 60, 0);
+  return d.toISOString();
+};
 
 // Spread all seed transfers chronologically across 2025-06-01 → 2026-01-31.
 // Late entries (roughly the last ~15%) naturally fall into the January 2026
@@ -101,7 +123,19 @@ const TransferPanel = () => {
         });
         saveToStorage(TRANSFERS_KEY, migrated);
         saveToStorage(SEED_DATES_VERSION_KEY, true);
+        saveToStorage(LATE_DATES_VERSION_KEY, true);
         return migrated;
+      }
+      const lateMigrated = loadFromStorage<boolean>(LATE_DATES_VERSION_KEY, false);
+      if (!lateMigrated) {
+        const remapped = saved.map(t => (
+          (t.date || "").slice(0, 10) >= LATE_CUTOFF
+            ? { ...t, date: lateWindowDate(`${t.id}|${t.player}|${t.oldTeam}|${t.newTeam}`) }
+            : t
+        ));
+        saveToStorage(TRANSFERS_KEY, remapped);
+        saveToStorage(LATE_DATES_VERSION_KEY, true);
+        return remapped;
       }
       return saved;
     }
@@ -115,6 +149,7 @@ const TransferPanel = () => {
     }));
     saveToStorage(TRANSFERS_KEY, seeded);
     saveToStorage(SEED_DATES_VERSION_KEY, true);
+    saveToStorage(LATE_DATES_VERSION_KEY, true);
     return seeded;
   });
 
