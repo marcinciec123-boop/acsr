@@ -337,6 +337,14 @@ const NewsFeed = () => {
               <Button size="sm" onClick={() => setShowNew(!showNew)} className="gap-1.5">
                 <Plus className="w-4 h-4" /> Nowy post
               </Button>
+              <Button
+                size="sm"
+                variant={selectMode ? "secondary" : "outline"}
+                className="gap-1.5"
+                onClick={() => { setSelectMode(v => !v); setSelected([]); }}
+              >
+                <CheckSquare className="w-4 h-4" /> {selectMode ? "Zakończ zaznaczanie" : "Zaznacz"}
+              </Button>
             </div>
           </div>
           {eventCount === 0 && (
@@ -346,6 +354,43 @@ const NewsFeed = () => {
           )}
         </div>
 
+
+        {/* Bulk actions */}
+        {selectMode && (
+          <div className="flex flex-wrap items-center gap-2 mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <span className="text-xs font-mono text-muted-foreground">
+              Zaznaczono {selected.length} z {sorted.length}
+            </span>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setSelected(sorted.map(p => p.id))}>
+                Zaznacz wszystkie
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+                Odznacz
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                disabled={selected.length === 0}
+                onClick={() => deleteMany(selected)}
+              >
+                <Trash2 className="w-4 h-4" /> Usuń zaznaczone ({selected.length})
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                disabled={posts.length === 0}
+                onClick={() => {
+                  if (window.confirm(`Usunąć wszystkie posty (${posts.length})?`)) deleteMany(posts.map(p => p.id));
+                }}
+              >
+                <Trash2 className="w-4 h-4" /> Usuń wszystkie
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Category filter pills */}
         {allCategories.length > 0 && (
@@ -448,6 +493,19 @@ const NewsFeed = () => {
                 )}
               >
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  {selectMode && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelected(post.id)}
+                      aria-pressed={selected.includes(post.id)}
+                      className="text-muted-foreground hover:text-primary"
+                      title="Zaznacz post"
+                    >
+                      {selected.includes(post.id)
+                        ? <CheckSquare className="w-4 h-4 text-primary" />
+                        : <Square className="w-4 h-4" />}
+                    </button>
+                  )}
                   {post.pinned && (
                     <Badge variant="outline" className="text-xs gap-1 border-primary/40 text-primary">
                       <Pin className="w-3 h-3" /> Przypięty
