@@ -136,6 +136,8 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
             <YAxis
               yAxisId="points"
               hide={!metrics.includes("points")}
+              domain={[0, "auto"]}
+              allowDataOverflow={false}
               tick={{ fontSize: 11, fill: "hsl(var(--primary))" }}
               width={46}
             />
@@ -143,10 +145,12 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
               yAxisId="rank"
               orientation="right"
               reversed
+              domain={[1, 100]}
+              ticks={[1, 10, 25, 50, 75, 100]}
               allowDecimals={false}
               hide={!metrics.includes("rank")}
               tick={{ fontSize: 11, fill: "hsl(var(--accent))" }}
-              width={36}
+              width={40}
             />
             <Tooltip content={<CustomTooltip teamName={teamName} />} />
             {metrics.includes("points") && (

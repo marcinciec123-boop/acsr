@@ -7,7 +7,7 @@ import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
 import { initFont } from "./lib/font";
-import { synchronizeRankingHistory } from "./lib/rankingHistory";
+import { installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 
 initTheme();
 initFont();
@@ -24,6 +24,7 @@ const startApp = async () => {
   // from localStorage before the React tree mounts.
   bootstrapPersistedState();
   await synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
+  installRankingHistoryAutoSync();
   void createDeviceBackup("auto", "Start aplikacji");
 
   createRoot(document.getElementById("root")!).render(<App />);
