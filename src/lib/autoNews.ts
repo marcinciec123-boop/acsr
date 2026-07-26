@@ -25,11 +25,18 @@ const savePosts = (posts: AutoNewsPost[]) => saveToStorage(NEWS_KEY, posts);
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+/** Automatyczne (zdarzeniowe) newsy są wyłączone — posty powstają wyłącznie
+ *  po ręcznym kliknięciu generatora w panelu Aktualności. */
+const AUTO_EVENT_NEWS_ENABLED = false;
+
 const appendPost = (
   eventKey: string,
   content: string,
   category: string,
+  manual = false,
 ): boolean => {
+  if (!manual && !AUTO_EVENT_NEWS_ENABLED) return false;
+
   const posts = loadPosts();
   if (posts.some(p => p.eventKey === eventKey)) return false;
   const post: AutoNewsPost = {
