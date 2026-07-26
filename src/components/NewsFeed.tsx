@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown } from "lucide-react";
+import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -168,6 +168,8 @@ const NewsFeed = () => {
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -246,6 +248,22 @@ const NewsFeed = () => {
   const handleDelete = async (post: NewsPost) => {
     if (post.imageId) await deleteImage(post.imageId);
     setPosts(prev => prev.filter(p => p.id !== post.id));
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const deleteMany = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    const removed = posts.filter(p => idSet.has(p.id));
+    for (const p of removed) {
+      if (p.imageId) await deleteImage(p.imageId);
+    }
+    setPosts(prev => prev.filter(p => !idSet.has(p.id)));
+    setSelected([]);
+    toast.success(`Usunięto ${removed.length} ${removed.length === 1 ? "post" : "postów"}`);
   };
 
   const togglePin = (id: string) => {
