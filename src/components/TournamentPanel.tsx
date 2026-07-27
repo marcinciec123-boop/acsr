@@ -706,6 +706,54 @@ const TournamentPanel = () => {
     }));
   };
 
+  /** Add a match inside a group (GSL / IEM group formats). */
+  const addGroupMatch = (tournamentId: string, phaseId: string, groupId: string, round: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId || !p.groups) return p;
+          return {
+            ...p,
+            groups: p.groups.map(g => g.id !== groupId ? g : {
+              ...g,
+              matches: [...g.matches, {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+                team1: "",
+                team2: "",
+                score1: 0,
+                score2: 0,
+                round,
+                bo: p.bo,
+              } as MatchResult],
+            }),
+          };
+        }),
+      };
+    }));
+  };
+
+  /** Delete a match from a group. */
+  const deleteGroupMatch = (tournamentId: string, phaseId: string, groupId: string, matchId: string) => {
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== tournamentId) return t;
+      return {
+        ...t,
+        phases: t.phases.map(p => {
+          if (p.id !== phaseId || !p.groups) return p;
+          return {
+            ...p,
+            groups: p.groups.map(g => g.id !== groupId ? g : {
+              ...g,
+              matches: g.matches.filter(m => m.id !== matchId),
+            }),
+          };
+        }),
+      };
+    }));
+  };
+
 
   const moveBracketMatch = (tournamentId: string, phaseId: string, matchId: string, dir: -1 | 1) => {
     setTournaments(prev => prev.map(t => {
@@ -974,6 +1022,12 @@ const TournamentPanel = () => {
         }
         onMoveBracketMatch={(phaseId, matchId, dir) =>
           moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
+        }
+        onAddGroupMatch={(phaseId, groupId, round) =>
+          addGroupMatch(selectedTournament.id, phaseId, groupId, round)
+        }
+        onDeleteGroupMatch={(phaseId, groupId, matchId) =>
+          deleteGroupMatch(selectedTournament.id, phaseId, groupId, matchId)
         }
         onReseedPhase={(phaseId, teams) =>
           reseedPhase(selectedTournament.id, phaseId, teams)

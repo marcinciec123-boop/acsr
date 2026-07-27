@@ -45,6 +45,8 @@ interface Props {
     matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
   ) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
+  onAddGroupMatch?: (phaseId: string, groupId: string, round: string) => void;
+  onDeleteGroupMatch?: (phaseId: string, groupId: string, matchId: string) => void;
   onReseedPhase?: (phaseId: string, teams: string[]) => void;
   onAssignGroups?: (phaseId: string, assignment: Record<string, string[]>) => void;
   onShuffleGroups?: (phaseId: string) => void;
@@ -243,7 +245,8 @@ const PhaseSeedingPanel = ({
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onReseedPhase, onAssignGroups, onShuffleGroups,
+  onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onAddGroupMatch, onDeleteGroupMatch,
+  onReseedPhase, onAssignGroups, onShuffleGroups,
   onSetStatus, onConfirmResults, onUpdateTournament, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
   activePhaseId: controlledActivePhaseId, onActivePhaseChange,
@@ -908,6 +911,9 @@ export const TournamentDetailPage = ({
                                 onUpdateMatch(phase.id, mid, patch, g.id)
                               }
                               onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
+                              allTeams={Array.from(new Set([...t.participants, ...g.teams])).filter(Boolean).sort()}
+                              onAddMatch={onAddGroupMatch ? (round) => onAddGroupMatch(phase.id, g.id, round) : undefined}
+                              onDeleteMatch={onDeleteGroupMatch ? (mid) => onDeleteGroupMatch(phase.id, g.id, mid) : undefined}
                             />
                           ))}
                         </div>

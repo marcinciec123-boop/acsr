@@ -15,6 +15,9 @@ interface Props {
   advancePerGroup?: number;
   onMatchUpdate: (matchId: string, patch: Partial<MatchResult>) => void;
   onOpenMatch?: (matchId: string) => void;
+  allTeams?: string[];
+  onAddMatch?: (round: string) => void;
+  onDeleteMatch?: (matchId: string) => void;
 }
 
 const teamLabel = (name: string) => {
@@ -89,7 +92,7 @@ const renderMatchRow = (
   );
 };
 
-export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch }: Props) => {
+export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch, allTeams = [], onAddMatch, onDeleteMatch }: Props) => {
   const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
   const isGSL4 = format === "gsl-groups";
@@ -213,6 +216,9 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
               format={format!}
               onMatchUpdate={onMatchUpdate}
               onOpenMatch={onOpenMatch}
+              allTeams={allTeams}
+              onAddMatch={onAddMatch}
+              onDeleteMatch={onDeleteMatch}
             />
           </div>
         ) : (

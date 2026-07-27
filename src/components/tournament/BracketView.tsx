@@ -302,12 +302,29 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     </div>
   );
 
+  /** Keep matches on their original bracket slot so deleting one doesn't shift the rest up. */
+  const positionMatches = (list: MatchResult[]) => {
+    const used = new Set<number>();
+    const placed = list.map((m, i) => {
+      const mm = /-M(\d+)$/i.exec(m.bracketSlot || "");
+      let idx = mm ? parseInt(mm[1], 10) - 1 : i;
+      if (idx < 0) idx = i;
+      while (used.has(idx)) idx++;
+      used.add(idx);
+      return { m, idx };
+    });
+    const slotCount = placed.length ? Math.max(...placed.map(p => p.idx)) + 1 : 0;
+    const bySlot = new Map(placed.map(p => [p.idx, p.m]));
+    return { slotCount, bySlot };
+  };
+
   const renderRoundRow = (list: string[], goldLastRound: boolean, forceLowerStyle = false) => {
     const layout = buildLayout(list);
     return (
       <div className="flex items-start justify-center min-w-fit gap-0 mx-auto">
         {list.map((round, ri) => {
           const matchesInRound = grouped[round];
+          const { slotCount, bySlot } = positionMatches(matchesInRound);
           const isLast = goldLastRound && ri === list.length - 1;
           const lower = forceLowerStyle || isLowerRound(round);
           const { depth, showConnector } = layout[round];
@@ -320,8 +337,9 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                   className="flex flex-col w-10 shrink-0"
                   style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
                 >
-                  {Array.from({ length: matchesInRound.length }).map((_, i) => {
+                  {Array.from({ length: slotCount }).map((_, i) => {
                     const span = MATCH_H + gapForDepth(depth - 1);
+                    if (!bySlot.has(i)) return <div key={i} style={{ height: span }} />;
                     return (
                       <div key={i} className="relative" style={{ height: span }}>
                         <div className="absolute left-0 top-0 w-3 h-px bg-primary/50" />
@@ -336,7 +354,12 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
               <div className="flex flex-col w-[260px] shrink-0">
                 {renderRoundHeader(round, isLast, lower)}
                 <div className="flex flex-col" style={{ paddingTop: offset, gap: `${gap}px` }}>
-                  {matchesInRound.map(m => renderMatchCard(m, isLast))}
+                  {Array.from({ length: slotCount }).map((_, i) => {
+                    const m = bySlot.get(i);
+                    return m
+                      ? renderMatchCard(m, isLast)
+                      : <div key={`empty-${i}`} style={{ height: MATCH_H }} aria-hidden />;
+                  })}
                 </div>
               </div>
             </div>
@@ -345,6 +368,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
       </div>
     );
   };
+
 
   return (
     <div className="space-y-6">
