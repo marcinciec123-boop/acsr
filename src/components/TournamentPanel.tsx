@@ -1023,6 +1023,12 @@ const TournamentPanel = () => {
         onMoveBracketMatch={(phaseId, matchId, dir) =>
           moveBracketMatch(selectedTournament.id, phaseId, matchId, dir)
         }
+        onAddGroupMatch={(phaseId, groupId, round) =>
+          addGroupMatch(selectedTournament.id, phaseId, groupId, round)
+        }
+        onDeleteGroupMatch={(phaseId, groupId, matchId) =>
+          deleteGroupMatch(selectedTournament.id, phaseId, groupId, matchId)
+        }
         onReseedPhase={(phaseId, teams) =>
           reseedPhase(selectedTournament.id, phaseId, teams)
         }
