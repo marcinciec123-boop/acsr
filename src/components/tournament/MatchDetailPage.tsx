@@ -915,16 +915,25 @@ const PlayerStatsTab = ({
   );
 };
 
-const NumCell = ({ value, onChange, max }: { value: number; onChange: (v: number) => void; max?: number }) => (
-  <Input
-    type="number"
-    min="0"
-    max={max}
-    value={value || 0}
-    onChange={e => onChange(parseInt(e.target.value) || 0)}
-    className="h-7 w-14 text-center text-xs font-mono px-1"
-  />
-);
+const NumCell = ({ value, onChange, max }: { value: number; onChange: (v: number) => void; max?: number }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      type="number"
+      min="0"
+      max={max}
+      value={draft ?? (value ? String(value) : "")}
+      placeholder="0"
+      onChange={e => {
+        const raw = e.target.value;
+        setDraft(raw);
+        onChange(raw === "" ? 0 : parseInt(raw) || 0);
+      }}
+      onBlur={() => setDraft(null)}
+      className="h-7 w-14 text-center text-xs font-mono px-1"
+    />
+  );
+};
 
 interface AggRow {
   name: string;
