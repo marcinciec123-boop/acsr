@@ -23,15 +23,24 @@ const createBlankPlayerStats = (playerName: string, team: string, rounds: number
   playerName, team, kills: 0, assists: 0, deaths: 0, adr: 0, kast: 0, ud: 0, ef: 0, rounds, rating: 0,
 });
 
-const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => (
-  <Input
-    type="number"
-    min="0"
-    value={value}
-    onChange={e => onChange(parseInt(e.target.value) || 0)}
-    className={cn("w-12 h-6 text-center font-mono text-xs p-0 bg-background", className)}
-  />
-);
+const StatInput = ({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      type="number"
+      min="0"
+      placeholder="0"
+      value={draft ?? (value ? String(value) : "")}
+      onChange={e => {
+        const raw = e.target.value;
+        setDraft(raw);
+        onChange(raw === "" ? 0 : parseInt(raw) || 0);
+      }}
+      onBlur={() => setDraft(null)}
+      className={cn("w-12 h-6 text-center font-mono text-xs p-0 bg-background", className)}
+    />
+  );
+};
 
 const PlayerStatsRow = ({ player, editing, onUpdate }: {
   player: PlayerMatchStats;
