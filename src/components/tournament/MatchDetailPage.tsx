@@ -17,6 +17,8 @@ import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot
 import { MatchComparePanel } from "./MatchComparePanel";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
+import { countryFlag, normalizeCountry } from "@/lib/flags";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
 
