@@ -4,6 +4,8 @@ import { type PlayerMatchStats, type MatchStats, type MapStats, calculateRating,
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { teamDatabase } from "@/data/tournaments";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
+import { countryFlag, normalizeCountry } from "@/lib/flags";
 
 interface MatchStatsPanelProps {
   stats: MatchStats | null;
@@ -50,7 +52,7 @@ const PlayerStatsRow = ({ player, editing, onUpdate }: {
   if (editing && onUpdate) {
     return (
       <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1 items-center text-xs border-t border-border/30">
-        <div className="font-medium text-foreground truncate">{player.playerName}</div>
+        <div className="font-medium text-foreground truncate flex items-center gap-1.5"><span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(player.playerName)))}</span>{player.playerName}</div>
         <StatInput value={player.kills} onChange={v => onUpdate({ ...player, kills: v })} />
         <StatInput value={player.assists} onChange={v => onUpdate({ ...player, assists: v })} />
         <StatInput value={player.deaths} onChange={v => onUpdate({ ...player, deaths: v })} />
@@ -67,7 +69,7 @@ const PlayerStatsRow = ({ player, editing, onUpdate }: {
 
   return (
     <div className="grid grid-cols-[minmax(80px,1fr)_repeat(8,minmax(40px,60px))] gap-1 px-2 py-1.5 items-center text-xs border-t border-border/30 hover:bg-secondary/30 transition-colors">
-      <div className="font-medium text-foreground truncate">{player.playerName}</div>
+      <div className="font-medium text-foreground truncate flex items-center gap-1.5"><span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(player.playerName)))}</span>{player.playerName}</div>
       <div className={cn("font-mono text-center", getKDColor(player.kills, player.deaths))}>{player.kills}</div>
       <div className="font-mono text-center text-muted-foreground">{player.assists}</div>
       <div className="font-mono text-center text-muted-foreground">{player.deaths}</div>
