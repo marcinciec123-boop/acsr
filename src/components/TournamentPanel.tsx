@@ -96,7 +96,7 @@ const TournamentPanel = () => {
     // Seed StarLadder Berlin Major 2025 + ESL Pro League I (idempotent), then
     // auto-resolve any BYE matchups so they never block the user. Upgrade only
     // editable IEM groups; completed history remains untouched for player stats.
-    const seeded = normalizeAllTournamentByes(seedEslProLeagueI(seedMajorBerlin2025(stored)));
+    const seeded = normalizeAllTournamentByes(seedEseaMasters2026(seedEslProLeagueI(seedMajorBerlin2025(stored))));
     return seeded.map(t => t.resultsConfirmed ? t : {
       ...t,
       phases: t.phases.map(phase => {
