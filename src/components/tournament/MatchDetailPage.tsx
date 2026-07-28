@@ -874,11 +874,14 @@ const PlayerStatsTab = ({
                 return (
                   <tr key={i} className="border-b border-border/20 hover:bg-secondary/20">
                     <td className="px-3 py-2">
-                      <Input
-                        value={p.playerName}
-                        onChange={e => onUpdatePlayer(i, { playerName: e.target.value })}
-                        className="h-7 text-xs font-mono w-32"
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(p.playerName)))}</span>
+                        <Input
+                          value={p.playerName}
+                          onChange={e => onUpdatePlayer(i, { playerName: e.target.value })}
+                          className="h-7 text-xs font-mono w-32"
+                        />
+                      </div>
                     </td>
                     <td className="px-1 py-2">
                       <NumCell value={p.kills} onChange={v => onUpdatePlayer(i, { kills: v })} />
