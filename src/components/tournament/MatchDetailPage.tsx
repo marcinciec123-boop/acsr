@@ -17,6 +17,8 @@ import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot
 import { MatchComparePanel } from "./MatchComparePanel";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
+import { resolvePlayerCountry } from "@/lib/playerCountry";
+import { countryFlag, normalizeCountry } from "@/lib/flags";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
 
@@ -874,11 +876,14 @@ const PlayerStatsTab = ({
                 return (
                   <tr key={i} className="border-b border-border/20 hover:bg-secondary/20">
                     <td className="px-3 py-2">
-                      <Input
-                        value={p.playerName}
-                        onChange={e => onUpdatePlayer(i, { playerName: e.target.value })}
-                        className="h-7 text-xs font-mono w-32"
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(p.playerName)))}</span>
+                        <Input
+                          value={p.playerName}
+                          onChange={e => onUpdatePlayer(i, { playerName: e.target.value })}
+                          className="h-7 text-xs font-mono w-32"
+                        />
+                      </div>
                     </td>
                     <td className="px-1 py-2">
                       <NumCell value={p.kills} onChange={v => onUpdatePlayer(i, { kills: v })} />
@@ -915,16 +920,25 @@ const PlayerStatsTab = ({
   );
 };
 
-const NumCell = ({ value, onChange, max }: { value: number; onChange: (v: number) => void; max?: number }) => (
-  <Input
-    type="number"
-    min="0"
-    max={max}
-    value={value || 0}
-    onChange={e => onChange(parseInt(e.target.value) || 0)}
-    className="h-7 w-14 text-center text-xs font-mono px-1"
-  />
-);
+const NumCell = ({ value, onChange, max }: { value: number; onChange: (v: number) => void; max?: number }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      type="number"
+      min="0"
+      max={max}
+      value={draft ?? (value ? String(value) : "")}
+      placeholder="0"
+      onChange={e => {
+        const raw = e.target.value;
+        setDraft(raw);
+        onChange(raw === "" ? 0 : parseInt(raw) || 0);
+      }}
+      onBlur={() => setDraft(null)}
+      className="h-7 w-14 text-center text-xs font-mono px-1"
+    />
+  );
+};
 
 interface AggRow {
   name: string;
@@ -1018,7 +1032,12 @@ const MatchPlayerTotals = ({
           <tbody>
             {rows.map(r => (
               <tr key={r.name} className="border-b border-border/20 hover:bg-secondary/20 font-mono">
-                <td className="px-3 py-2 text-foreground"><PlayerLink name={r.name}>{r.name}</PlayerLink></td>
+                <td className="px-3 py-2 text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(r.name)))}</span>
+                    <PlayerLink name={r.name}>{r.name}</PlayerLink>
+                  </span>
+                </td>
                 <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.kills}</td>
                 <td className="text-center px-2 py-2 text-foreground">{r.assists}</td>
