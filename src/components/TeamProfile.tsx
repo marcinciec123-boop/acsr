@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
+import { isPlaceholder } from "@/lib/teamHelpers";
 
 interface TeamProfileProps {
   teamName: string;
@@ -80,7 +81,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
-  const { trophies, recentMatches, totals } = useMemo(() => {
+  const { trophies, recentMatches, totals, upcomingMatches } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
     const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
     const matches: {
@@ -88,7 +89,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
       playedAt?: string;
     }[] = [];
+    const upcoming: {
+      id: string; tournamentId: string; tournamentName: string; tier?: string;
+      opponent: string; bo?: number; round?: string; scheduledAt?: string;
+    }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
+
 
     for (const t of tournaments) {
       const placement = t.placements?.find(p => p.team === teamName);
@@ -112,8 +118,19 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
         if (!isT1 && !isT2) continue;
         const ownScore = isT1 ? m.score1 : m.score2;
         const oppScore = isT1 ? m.score2 : m.score1;
-        if (ownScore + oppScore <= 0) continue;
+        const opponent = isT1 ? m.team2 : m.team1;
+        if (ownScore + oppScore <= 0) {
+          // Mecz wylosowany, ale jeszcze nierozegrany.
+          if (opponent && opponent !== "BYE" && !isPlaceholder(opponent)) {
+            upcoming.push({
+              id: m.id, tournamentId: t.id, tournamentName: t.name, tier: t.tier,
+              opponent, bo: m.bo, round: m.round, scheduledAt: m.scheduledAt,
+            });
+          }
+          continue;
+        }
         const won = ownScore > oppScore;
+
         if (won) wins++; else losses++;
         if (m.maps?.length) {
           for (const mp of m.maps) {
@@ -146,9 +163,19 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     const totalMatches = wins + losses;
     const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
+    // Zaplanowane najpierw (chronologicznie), potem mecze bez terminu.
+    upcoming.sort((a, b) => {
+      if (a.scheduledAt && b.scheduledAt) return a.scheduledAt.localeCompare(b.scheduledAt);
+      if (a.scheduledAt) return -1;
+      if (b.scheduledAt) return 1;
+      return 0;
+    });
+
     return {
       trophies,
       recentMatches: matches,
+      upcomingMatches: upcoming,
+
       totals: {
         wins, losses, totalMatches, winRate,
         mapsW, mapsL,
@@ -326,6 +353,54 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             );
           })}
         </div>
+
+        {/* Nadchodzące mecze — osobne okienko na wierzchu, nad panelami */}
+        {upcomingMatches.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="sticky top-16 z-30 mb-4 rounded-xl border border-primary/40 glass-surface shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.5)] overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/25 bg-primary/10">
+              <Swords className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono uppercase tracking-wider text-primary font-bold">
+                Nadchodzące mecze
+              </span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">
+                {upcomingMatches.length}
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto p-2">
+              {upcomingMatches.slice(0, 8).map(m => (
+                <div
+                  key={m.id}
+                  className="min-w-[210px] shrink-0 rounded-lg border border-border bg-card/70 p-2.5 hover-lift"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <TeamLogo teamName={m.opponent} size={22} rounded="md" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">vs {m.opponent}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate">
+                        {m.round || "Mecz"} • BO{m.bo || 1}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-mono text-muted-foreground truncate" title={m.tournamentName}>
+                    {m.tier ? `[${m.tier}] ` : ""}{m.tournamentName}
+                  </p>
+                  <p className="text-xs font-mono mt-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-primary" />
+                    {m.scheduledAt
+                      ? <span className="text-foreground">{m.scheduledAt.slice(0, 10)} {m.scheduledAt.slice(11, 16)}</span>
+                      : <span className="text-muted-foreground">termin nieustalony</span>}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+
 
         {/* Content */}
         <motion.div

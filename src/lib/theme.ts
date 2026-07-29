@@ -2,7 +2,10 @@
 // <html data-theme="..."> — index.css contains the matching [data-theme=...]
 // blocks. The default theme matches the original neon look.
 
-export type ThemeId = "neon" | "midnight" | "matrix" | "sunset" | "paper" | "noir";
+export type ThemeId =
+  | "neon" | "midnight" | "matrix" | "sunset" | "paper" | "noir"
+  | "hltv" | "ocean" | "crimson" | "forest" | "arctic" | "mono"
+  | "synthwave" | "coffee" | "steel" | "lavender" | "ember";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -49,7 +52,75 @@ export const THEMES: ThemeMeta[] = [
     description: "Czerń z luksusowym złotym akcentem.",
     swatches: ["#0d0d0d", "#1a1a1a", "#c9a84c", "#f0d78c"],
   },
+  {
+
+    id: "hltv",
+    name: "HLTV Classic",
+    description: "Jasny, portalowy schemat rodem z HLTV.",
+    swatches: ["#d0d7e1", "#ffffff", "#2d5a8a", "#f47b20"],
+  },
+  {
+    id: "ocean",
+    name: "Deep Ocean",
+    description: "Głęboki błękit z turkusowym akcentem.",
+    swatches: ["#0a1620", "#122636", "#0ea5e9", "#14b8a6"],
+  },
+  {
+    id: "crimson",
+    name: "Crimson Red",
+    description: "Ciemna czerwień z pomarańczowym akcentem.",
+    swatches: ["#130a0d", "#1f1116", "#ef2b50", "#f4622e"],
+  },
+  {
+    id: "forest",
+    name: "Deep Forest",
+    description: "Butelkowa zieleń z ciepłym złotem.",
+    swatches: ["#0a1613", "#12211d", "#2aa87c", "#e0a63c"],
+  },
+  {
+    id: "arctic",
+    name: "Arctic Light",
+    description: "Jasny, chłodny błękit — tryb dzienny.",
+    swatches: ["#eff5fa", "#ffffff", "#0b90cc", "#7c3aed"],
+  },
+  {
+    id: "mono",
+    name: "Monochrome",
+    description: "Czysta skala szarości bez kolorów.",
+    swatches: ["#121212", "#1a1a1a", "#e0e0e0", "#a6a6a6"],
+  },
+  {
+    id: "synthwave",
+    name: "Synthwave",
+    description: "Neonowy róż i cyan na fiolecie.",
+    swatches: ["#12081a", "#1d0f2b", "#f83fa0", "#22d3ee"],
+  },
+  {
+    id: "coffee",
+    name: "Coffee Paper",
+    description: "Ciepły, jasny motyw w brązach.",
+    swatches: ["#f2ece2", "#fbf7f1", "#8a5a2b", "#d1552a"],
+  },
+  {
+    id: "steel",
+    name: "Steel Blue",
+    description: "Stonowana stalowa szarość z błękitem.",
+    swatches: ["#191f26", "#222933", "#6f9bd1", "#7fbfcc"],
+  },
+  {
+    id: "lavender",
+    name: "Lavender Light",
+    description: "Jasny fiolet z różowym akcentem.",
+    swatches: ["#f6f2fc", "#ffffff", "#7c4ddb", "#d14ca0"],
+  },
+  {
+    id: "ember",
+    name: "Ember Glow",
+    description: "Rozżarzony pomarańcz na czerni.",
+    swatches: ["#140a08", "#211310", "#f4692a", "#f9d64a"],
+  },
 ];
+
 
 const STORAGE_KEY = "app_theme";
 const DEFAULT_THEME: ThemeId = "neon";

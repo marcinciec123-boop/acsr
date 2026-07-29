@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
+import { getWorldDate } from "@/lib/worldClock";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
 
@@ -333,7 +334,53 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
+
+          {/* Termin meczu (fikcyjny kalendarz) */}
+          {(() => {
+            const schedDate = match.scheduledAt?.slice(0, 10) || "";
+            const schedTime = match.scheduledAt?.slice(11, 16) || "";
+            const setSchedule = (d: string, t: string) => {
+              if (!d) { onUpdate({ scheduledAt: undefined }); return; }
+              onUpdate({ scheduledAt: `${d}T${t || "18:00"}` });
+            };
+            return (
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap justify-center">
+                <CalendarClock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Termin</span>
+                <input
+                  type="date"
+                  value={schedDate}
+                  onChange={e => setSchedule(e.target.value, schedTime)}
+                  className="h-7 px-2 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
+                />
+                <input
+                  type="time"
+                  value={schedTime}
+                  onChange={e => setSchedule(schedDate || getWorldDate(), e.target.value)}
+                  className="h-7 px-2 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSchedule(getWorldDate(), schedTime || "18:00")}
+                  className="h-7 px-2 rounded border border-primary/40 text-primary hover:bg-primary/10 text-xs font-mono"
+                  title="Ustaw datę z fikcyjnego kalendarza"
+                >
+                  Dzisiaj ({getWorldDate()})
+                </button>
+                {match.scheduledAt && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ scheduledAt: undefined })}
+                    className="h-7 px-2 rounded border border-border text-muted-foreground hover:text-foreground text-xs font-mono"
+                  >
+                    Wyczyść
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </motion.div>
+
 
         {/* VRS prediction + confirm trigger */}
         <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
@@ -356,6 +403,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <PredictionCard
                 team={match.team1}
+                currentPoints={ranking.find(t => t.name === match.team1)?.points ?? 0}
                 winPoints={previews.team1Wins.winPoints}
                 lossPoints={previews.team2Wins.lossPoints}
                 expected={previews.team1Wins.expectedWinner}
@@ -366,6 +414,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               />
               <PredictionCard
                 team={match.team2}
+                currentPoints={ranking.find(t => t.name === match.team2)?.points ?? 0}
                 winPoints={previews.team2Wins.winPoints}
                 lossPoints={previews.team1Wins.lossPoints}
                 expected={previews.team2Wins.expectedWinner}
@@ -374,6 +423,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 rankIfLose={predictRankDelta(match.team2, -previews.team1Wins.lossPoints, ranking)}
                 highlighted={winner2}
               />
+
             </div>
           ) : (
             <p className="text-xs font-mono text-muted-foreground">
@@ -521,6 +571,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 tier={tier}
                 bo={bo}
                 tournamentId={tournamentId}
+                matchId={match.id}
+
               />
             ) : (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
@@ -737,9 +789,10 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 };
 
 const PredictionCard = ({
-  team, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
+  team, currentPoints, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
 }: {
   team: string;
+  currentPoints: number;
   winPoints: number;
   lossPoints: number;
   expected: number;
@@ -748,6 +801,7 @@ const PredictionCard = ({
   rankIfLose: { from: number; to: number; delta: number };
   highlighted: boolean;
 }) => {
+
   const RankDelta = ({ d }: { d: { from: number; to: number; delta: number } }) => {
     if (d.from <= 0) return <span className="text-muted-foreground">—</span>;
     if (d.delta === 0) return <span className="text-muted-foreground">#{d.from} (bez zmian)</span>;
@@ -779,11 +833,18 @@ const PredictionCard = ({
           {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
         </span>
       </div>
+      <div className="flex items-center justify-between gap-2 text-xs font-mono px-2 py-1 rounded bg-background/40 border border-border/60">
+        <span className="text-muted-foreground uppercase tracking-wider">Aktualne punkty</span>
+        <span className="font-bold text-foreground">{Math.round(currentPoints).toLocaleString()} pkt</span>
+      </div>
       <div className="grid grid-cols-2 gap-2 text-xs font-mono">
         <div className="space-y-0.5">
           <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli wygra</div>
           <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
+          </div>
+          <div className="text-foreground">
+            → <span className="font-bold">{Math.round(currentPoints + winPoints).toLocaleString()}</span> pkt
           </div>
           <RankDelta d={rankIfWin} />
         </div>
@@ -792,10 +853,14 @@ const PredictionCard = ({
           <div className="text-destructive font-bold flex items-center gap-1">
             <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
           </div>
+          <div className="text-foreground">
+            → <span className="font-bold">{Math.max(0, Math.round(currentPoints - lossPoints)).toLocaleString()}</span> pkt
+          </div>
           <RankDelta d={rankIfLose} />
         </div>
       </div>
     </div>
+
   );
 };
 
