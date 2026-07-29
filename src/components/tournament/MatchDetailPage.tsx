@@ -403,6 +403,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <PredictionCard
                 team={match.team1}
+                currentPoints={ranking.find(t => t.name === match.team1)?.points ?? 0}
                 winPoints={previews.team1Wins.winPoints}
                 lossPoints={previews.team2Wins.lossPoints}
                 expected={previews.team1Wins.expectedWinner}
@@ -413,6 +414,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               />
               <PredictionCard
                 team={match.team2}
+                currentPoints={ranking.find(t => t.name === match.team2)?.points ?? 0}
                 winPoints={previews.team2Wins.winPoints}
                 lossPoints={previews.team1Wins.lossPoints}
                 expected={previews.team2Wins.expectedWinner}
@@ -421,6 +423,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 rankIfLose={predictRankDelta(match.team2, -previews.team1Wins.lossPoints, ranking)}
                 highlighted={winner2}
               />
+
             </div>
           ) : (
             <p className="text-xs font-mono text-muted-foreground">
