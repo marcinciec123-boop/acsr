@@ -787,9 +787,10 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 };
 
 const PredictionCard = ({
-  team, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
+  team, currentPoints, winPoints, lossPoints, expected, upset, rankIfWin, rankIfLose, highlighted,
 }: {
   team: string;
+  currentPoints: number;
   winPoints: number;
   lossPoints: number;
   expected: number;
@@ -798,6 +799,7 @@ const PredictionCard = ({
   rankIfLose: { from: number; to: number; delta: number };
   highlighted: boolean;
 }) => {
+
   const RankDelta = ({ d }: { d: { from: number; to: number; delta: number } }) => {
     if (d.from <= 0) return <span className="text-muted-foreground">—</span>;
     if (d.delta === 0) return <span className="text-muted-foreground">#{d.from} (bez zmian)</span>;
