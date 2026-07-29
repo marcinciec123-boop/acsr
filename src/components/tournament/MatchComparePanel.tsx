@@ -18,6 +18,8 @@ import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag } from "@/lib/flags";
 import { playerRoles, roleColors, roleIcons, type PlayerRole } from "@/data/playerRoles";
 import { PlayerLink } from "@/lib/profileNav";
+import { resolveMatchOdds, type OddsOutcome } from "@/lib/matchOdds";
+import { getWorldNowIso } from "@/lib/worldClock";
 
 interface Props {
   team1: string;
@@ -25,7 +27,10 @@ interface Props {
   tier: string;
   bo: 1 | 3 | 5;
   tournamentId?: string;
+  /** Used to freeze the generated odds for this specific match. */
+  matchId?: string;
 }
+
 
 const getRoster = (teamName: string, tournamentId?: string): string[] => {
   const lineup = resolveLineup(tournamentId, teamName);
