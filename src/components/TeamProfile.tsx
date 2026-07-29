@@ -117,8 +117,19 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
         if (!isT1 && !isT2) continue;
         const ownScore = isT1 ? m.score1 : m.score2;
         const oppScore = isT1 ? m.score2 : m.score1;
-        if (ownScore + oppScore <= 0) continue;
+        const opponent = isT1 ? m.team2 : m.team1;
+        if (ownScore + oppScore <= 0) {
+          // Mecz wylosowany, ale jeszcze nierozegrany.
+          if (opponent && opponent !== "BYE" && !isPlaceholder(opponent)) {
+            upcoming.push({
+              id: m.id, tournamentId: t.id, tournamentName: t.name, tier: t.tier,
+              opponent, bo: m.bo, round: m.round, scheduledAt: m.scheduledAt,
+            });
+          }
+          continue;
+        }
         const won = ownScore > oppScore;
+
         if (won) wins++; else losses++;
         if (m.maps?.length) {
           for (const mp of m.maps) {
