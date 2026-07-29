@@ -831,11 +831,18 @@ const PredictionCard = ({
           {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
         </span>
       </div>
+      <div className="flex items-center justify-between gap-2 text-xs font-mono px-2 py-1 rounded bg-background/40 border border-border/60">
+        <span className="text-muted-foreground uppercase tracking-wider">Aktualne punkty</span>
+        <span className="font-bold text-foreground">{Math.round(currentPoints).toLocaleString()} pkt</span>
+      </div>
       <div className="grid grid-cols-2 gap-2 text-xs font-mono">
         <div className="space-y-0.5">
           <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli wygra</div>
           <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
+          </div>
+          <div className="text-foreground">
+            → <span className="font-bold">{Math.round(currentPoints + winPoints).toLocaleString()}</span> pkt
           </div>
           <RankDelta d={rankIfWin} />
         </div>
@@ -844,10 +851,14 @@ const PredictionCard = ({
           <div className="text-destructive font-bold flex items-center gap-1">
             <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
           </div>
+          <div className="text-foreground">
+            → <span className="font-bold">{Math.max(0, Math.round(currentPoints - lossPoints)).toLocaleString()}</span> pkt
+          </div>
           <RankDelta d={rankIfLose} />
         </div>
       </div>
     </div>
+
   );
 };
 
