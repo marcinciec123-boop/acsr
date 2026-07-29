@@ -54,7 +54,7 @@ const shrinkProb = (p: number, factor = 0.6) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
-export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Props) => {
+export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId }: Props) => {
   const roster1 = useMemo(() => getRoster(team1, tournamentId), [team1, tournamentId]);
   const roster2 = useMemo(() => getRoster(team2, tournamentId), [team2, tournamentId]);
 
