@@ -354,6 +354,54 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           })}
         </div>
 
+        {/* Nadchodzące mecze — osobne okienko na wierzchu, nad panelami */}
+        {upcomingMatches.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="sticky top-16 z-30 mb-4 rounded-xl border border-primary/40 glass-surface shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.5)] overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/25 bg-primary/10">
+              <Swords className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono uppercase tracking-wider text-primary font-bold">
+                Nadchodzące mecze
+              </span>
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">
+                {upcomingMatches.length}
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto p-2">
+              {upcomingMatches.slice(0, 8).map(m => (
+                <div
+                  key={m.id}
+                  className="min-w-[210px] shrink-0 rounded-lg border border-border bg-card/70 p-2.5 hover-lift"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <TeamLogo teamName={m.opponent} size={22} rounded="md" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">vs {m.opponent}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate">
+                        {m.round || "Mecz"} • BO{m.bo || 1}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-mono text-muted-foreground truncate" title={m.tournamentName}>
+                    {m.tier ? `[${m.tier}] ` : ""}{m.tournamentName}
+                  </p>
+                  <p className="text-xs font-mono mt-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-primary" />
+                    {m.scheduledAt
+                      ? <span className="text-foreground">{m.scheduledAt.slice(0, 10)} {m.scheduledAt.slice(11, 16)}</span>
+                      : <span className="text-muted-foreground">termin nieustalony</span>}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+
+
         {/* Content */}
         <motion.div
           key={activeTab}
