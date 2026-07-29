@@ -59,6 +59,9 @@ export interface MatchResult {
   resultConfirmed?: boolean;
   /** ISO timestamp ustawiany kiedy mecz uzyskuje finalny wynik (do chronologicznego sortowania historii). */
   playedAt?: string;
+  /** Zaplanowany termin meczu (fikcyjny kalendarz) — "YYYY-MM-DDTHH:mm". */
+  scheduledAt?: string;
+
 }
 
 export type PhaseFormat =
