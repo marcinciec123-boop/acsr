@@ -47,6 +47,13 @@ export const THEMES: ThemeMeta[] = [
     swatches: ["#f7f5ee", "#e8e4d8", "#0d0d0d", "#dc2626"],
   },
   {
+    id: "noir",
+    name: "Noir Gold",
+    description: "Czerń z luksusowym złotym akcentem.",
+    swatches: ["#0d0d0d", "#1a1a1a", "#c9a84c", "#f0d78c"],
+  },
+  {
+
     id: "hltv",
     name: "HLTV Classic",
     description: "Jasny, portalowy schemat rodem z HLTV.",
