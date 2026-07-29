@@ -2,7 +2,10 @@
 // <html data-theme="..."> — index.css contains the matching [data-theme=...]
 // blocks. The default theme matches the original neon look.
 
-export type ThemeId = "neon" | "midnight" | "matrix" | "sunset" | "paper" | "noir";
+export type ThemeId =
+  | "neon" | "midnight" | "matrix" | "sunset" | "paper" | "noir"
+  | "hltv" | "ocean" | "crimson" | "forest" | "arctic" | "mono"
+  | "synthwave" | "coffee" | "steel" | "lavender" | "ember";
 
 export interface ThemeMeta {
   id: ThemeId;
