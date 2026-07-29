@@ -71,22 +71,17 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
 
   const previews = useMemo(() => predictBothOutcomes(team1, team2, tier, ranking), [team1, team2, tier, ranking]);
 
-  // Match-winner odds — use shrunk probabilities for realism.
-  const probWin1 = shrinkProb(previews.team1Wins.expectedWinner);
-  const probWin2 = 1 - probWin1;
-  const odds1 = oddsFromProb(probWin1);
-  const odds2 = oddsFromProb(probWin2);
-
-  // Correct-score / handicap odds — per-outcome floor keeps prices in a realistic band.
-  const csOdds = (p: number) => oddsFromProb(p, { floor: 0.025 }); // ~38 max
-  const correctScores = useMemo(() => {
-    const out: { label: string; prob: number; odds: number; favored: "t1" | "t2" }[] = [];
+  // Match-winner + correct-score odds. Computed ONCE per match and frozen —
+  // they never move after the match is played.
+  const market = useMemo(() => resolveMatchOdds(matchId, team1, team2, bo, () => {
+    const probWin1 = shrinkProb(previews.team1Wins.expectedWinner);
+    const probWin2 = 1 - probWin1;
+    const csOdds = (p: number) => oddsFromProb(p, { floor: 0.025 }); // ~38 max
+    const out: OddsOutcome[] = [];
     if (bo === 1) {
       out.push({ label: "1 – 0", prob: probWin1, odds: csOdds(probWin1), favored: "t1" });
       out.push({ label: "0 – 1", prob: probWin2, odds: csOdds(probWin2), favored: "t2" });
-      return out;
-    }
-    if (bo === 3) {
+    } else if (bo === 3) {
       // 2-0: p^2, 2-1: 2 * p^2 * (1-p), and mirror.
       const p = probWin1;
       const q = probWin2;
@@ -98,25 +93,37 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId }: Prop
       out.push({ label: "2 – 1", prob: t1_21, odds: csOdds(t1_21), favored: "t1" });
       out.push({ label: "1 – 2", prob: t2_12, odds: csOdds(t2_12), favored: "t2" });
       out.push({ label: "0 – 2", prob: t2_02, odds: csOdds(t2_02), favored: "t2" });
-      return out;
+    } else {
+      const p = probWin1, q = probWin2;
+      // 3-0 = p^3, 3-1 = C(3,1) p^3 q, 3-2 = C(4,2) p^3 q^2
+      const t1_30 = Math.pow(p, 3);
+      const t1_31 = 3 * Math.pow(p, 3) * q;
+      const t1_32 = 6 * Math.pow(p, 3) * q * q;
+      const t2_03 = Math.pow(q, 3);
+      const t2_13 = 3 * Math.pow(q, 3) * p;
+      const t2_23 = 6 * Math.pow(q, 3) * p * p;
+      out.push({ label: "3 – 0", prob: t1_30, odds: csOdds(t1_30), favored: "t1" });
+      out.push({ label: "3 – 1", prob: t1_31, odds: csOdds(t1_31), favored: "t1" });
+      out.push({ label: "3 – 2", prob: t1_32, odds: csOdds(t1_32), favored: "t1" });
+      out.push({ label: "2 – 3", prob: t2_23, odds: csOdds(t2_23), favored: "t2" });
+      out.push({ label: "1 – 3", prob: t2_13, odds: csOdds(t2_13), favored: "t2" });
+      out.push({ label: "0 – 3", prob: t2_03, odds: csOdds(t2_03), favored: "t2" });
     }
-    // BO5
-    const p = probWin1, q = probWin2;
-    // 3-0 = p^3, 3-1 = C(3,1) p^3 q, 3-2 = C(4,2) p^3 q^2
-    const t1_30 = Math.pow(p, 3);
-    const t1_31 = 3 * Math.pow(p, 3) * q;
-    const t1_32 = 6 * Math.pow(p, 3) * q * q;
-    const t2_03 = Math.pow(q, 3);
-    const t2_13 = 3 * Math.pow(q, 3) * p;
-    const t2_23 = 6 * Math.pow(q, 3) * p * p;
-    out.push({ label: "3 – 0", prob: t1_30, odds: csOdds(t1_30), favored: "t1" });
-    out.push({ label: "3 – 1", prob: t1_31, odds: csOdds(t1_31), favored: "t1" });
-    out.push({ label: "3 – 2", prob: t1_32, odds: csOdds(t1_32), favored: "t1" });
-    out.push({ label: "2 – 3", prob: t2_23, odds: csOdds(t2_23), favored: "t2" });
-    out.push({ label: "1 – 3", prob: t2_13, odds: csOdds(t2_13), favored: "t2" });
-    out.push({ label: "0 – 3", prob: t2_03, odds: csOdds(t2_03), favored: "t2" });
-    return out;
-  }, [probWin1, probWin2, bo]);
+    return {
+      probWin1,
+      odds1: oddsFromProb(probWin1),
+      odds2: oddsFromProb(probWin2),
+      correctScores: out,
+      createdAt: getWorldNowIso(),
+    };
+  }), [matchId, team1, team2, bo, previews]);
+
+  const probWin1 = market.probWin1;
+  const probWin2 = 1 - probWin1;
+  const odds1 = market.odds1;
+  const odds2 = market.odds2;
+  const correctScores = market.correctScores;
+
 
   return (
     <div className="space-y-6">
