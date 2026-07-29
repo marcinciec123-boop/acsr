@@ -333,7 +333,53 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               {match.team2 && match.team2 !== "TBD" && <TeamLogo teamName={match.team2} size={44} rounded="lg" />}
             </div>
           </div>
+
+          {/* Termin meczu (fikcyjny kalendarz) */}
+          {(() => {
+            const schedDate = match.scheduledAt?.slice(0, 10) || "";
+            const schedTime = match.scheduledAt?.slice(11, 16) || "";
+            const setSchedule = (d: string, t: string) => {
+              if (!d) { onUpdate({ scheduledAt: undefined }); return; }
+              onUpdate({ scheduledAt: `${d}T${t || "18:00"}` });
+            };
+            return (
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap justify-center">
+                <CalendarClock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Termin</span>
+                <input
+                  type="date"
+                  value={schedDate}
+                  onChange={e => setSchedule(e.target.value, schedTime)}
+                  className="h-7 px-2 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
+                />
+                <input
+                  type="time"
+                  value={schedTime}
+                  onChange={e => setSchedule(schedDate || getWorldDate(), e.target.value)}
+                  className="h-7 px-2 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSchedule(getWorldDate(), schedTime || "18:00")}
+                  className="h-7 px-2 rounded border border-primary/40 text-primary hover:bg-primary/10 text-xs font-mono"
+                  title="Ustaw datę z fikcyjnego kalendarza"
+                >
+                  Dzisiaj ({getWorldDate()})
+                </button>
+                {match.scheduledAt && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ scheduledAt: undefined })}
+                    className="h-7 px-2 rounded border border-border text-muted-foreground hover:text-foreground text-xs font-mono"
+                  >
+                    Wyczyść
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </motion.div>
+
 
         {/* VRS prediction + confirm trigger */}
         <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
