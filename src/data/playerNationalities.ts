@@ -357,7 +357,7 @@ export const playerNationalities: Record<string, string> = {
   // Space Soldiers
   DESPE: "TR",
   imoRR: "TR",
-  TuGuX: "TR",
+  TuGuX: "DE",
   EMSTAR: "TR",
   hardstyle: "TR",
   // Cr4zy
