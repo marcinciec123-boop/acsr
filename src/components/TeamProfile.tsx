@@ -162,9 +162,19 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     const totalMatches = wins + losses;
     const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
+    // Zaplanowane najpierw (chronologicznie), potem mecze bez terminu.
+    upcoming.sort((a, b) => {
+      if (a.scheduledAt && b.scheduledAt) return a.scheduledAt.localeCompare(b.scheduledAt);
+      if (a.scheduledAt) return -1;
+      if (b.scheduledAt) return 1;
+      return 0;
+    });
+
     return {
       trophies,
       recentMatches: matches,
+      upcomingMatches: upcoming,
+
       totals: {
         wins, losses, totalMatches, winRate,
         mapsW, mapsL,
