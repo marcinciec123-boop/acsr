@@ -80,7 +80,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
-  const { trophies, recentMatches, totals } = useMemo(() => {
+  const { trophies, recentMatches, totals, upcomingMatches } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
     const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
     const matches: {
@@ -88,7 +88,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
       playedAt?: string;
     }[] = [];
+    const upcoming: {
+      id: string; tournamentId: string; tournamentName: string; tier?: string;
+      opponent: string; bo?: number; round?: string; scheduledAt?: string;
+    }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
+
 
     for (const t of tournaments) {
       const placement = t.placements?.find(p => p.team === teamName);
