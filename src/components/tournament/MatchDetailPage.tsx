@@ -571,6 +571,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 tier={tier}
                 bo={bo}
                 tournamentId={tournamentId}
+                matchId={match.id}
+
               />
             ) : (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
