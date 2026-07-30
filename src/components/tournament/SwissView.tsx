@@ -57,7 +57,7 @@ const TeamCell = ({ name, logoSize = 18 }: { name: string; logoSize?: number }) 
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0">
       <TeamLogo teamName={name} size={logoSize} rounded="md" />
-      <span className="truncate text-xs font-medium text-foreground">{name}</span>
+      <TeamLink name={name} className="truncate text-xs font-medium text-foreground" />
     </span>
   );
 };
