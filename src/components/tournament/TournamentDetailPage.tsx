@@ -22,10 +22,13 @@ import { TournamentLineupPanel } from "./TournamentLineupPanel";
 import { TournamentStatsPanel } from "./TournamentStatsPanel";
 import { PickemPanel } from "./PickemPanel";
 import { TournamentFinalResultsPanel } from "./TournamentFinalResultsPanel";
+import { TournamentUpcomingPanel } from "./TournamentUpcomingPanel";
+
 import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
+import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 import { useProfileNav } from "@/lib/profileNav";
 
 interface Props {
@@ -300,39 +303,30 @@ export const TournamentDetailPage = ({
     }
   }, [t.phases, activePhaseId]);
 
-  // View tab: "play" (rozgrywka) vs "stats" (statystyki) — persisted per tournament
-  const viewKey = `tour-view-${t.id}`;
-  const [view, setView] = useState<"play" | "stats">(() => {
-    if (typeof window === "undefined") return "play";
-    return (sessionStorage.getItem(viewKey) as "play" | "stats") || "play";
-  });
-  useEffect(() => {
-    try { sessionStorage.setItem(viewKey, view); } catch {}
-  }, [view, viewKey]);
+  // View tab: "play" (rozgrywka) vs "stats" (statystyki) — persisted per tournament (w zapisie)
+  const [view, setView] = usePersistedState<"play" | "stats">(`tour_view_${t.id}`, "play");
 
   // Scroll position restoration — keep place when navigating to match detail and back
-  const scrollKey = `tour-scroll-${t.id}`;
+  const scrollKey = `tour_scroll_${t.id}`;
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
-    const saved = sessionStorage.getItem(scrollKey);
-    if (saved) {
-      const y = parseInt(saved, 10);
-      if (!isNaN(y)) {
-        // Restore after the tournament layout paints; long brackets can change height over a few frames.
-        requestAnimationFrame(() => {
-          window.scrollTo(0, y);
-          requestAnimationFrame(() => window.scrollTo(0, y));
-        });
-      }
+    const y = readUiPref<number>(scrollKey, 0);
+    if (y > 0) {
+      // Restore after the tournament layout paints; long brackets can change height over a few frames.
+      requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+        requestAnimationFrame(() => window.scrollTo(0, y));
+      });
+      setTimeout(() => window.scrollTo(0, y), 200);
     }
     let raf = 0;
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch {}
+        writeUiPref(scrollKey, window.scrollY);
       });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -341,6 +335,7 @@ export const TournamentDetailPage = ({
       if (raf) cancelAnimationFrame(raf);
     };
   }, [scrollKey]);
+
 
 
   // Phase progress helper for tab badges
@@ -515,7 +510,14 @@ export const TournamentDetailPage = ({
           );
         })()}
 
+        <TournamentUpcomingPanel
+          tournament={t}
+          onUpdateMatch={onUpdateMatch}
+          onOpenMatch={onOpenMatch}
+        />
+
         <TournamentFinalResultsPanel tournament={t} onUpdateTournament={onUpdateTournament} />
+
 
         {/* View tabs: Rozgrywka vs Statystyki */}
         <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">

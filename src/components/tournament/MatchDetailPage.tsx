@@ -20,6 +20,7 @@ import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { getWorldDate } from "@/lib/worldClock";
+import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
 
@@ -65,8 +66,29 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
 };
 
 export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId, onBack, onUpdate, onConfirm }: Props) => {
-  const [tab, setTab] = useState<string>("score");
+  const [tab, setTab] = usePersistedState<string>(`match_tab_${match.id}`, "score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
+
+  // Persist scroll position of this match page (restored when returning).
+  const scrollKey = `match_scroll_${match.id}`;
+  useEffect(() => {
+    const y = readUiPref<number>(scrollKey, 0);
+    if (y > 0) {
+      requestAnimationFrame(() => window.scrollTo(0, y));
+      setTimeout(() => window.scrollTo(0, y), 150);
+    }
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; writeUiPref(scrollKey, window.scrollY); });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [scrollKey]);
+
 
   const maps: MatchMap[] = useMemo(() => match.maps || [], [match.maps]);
 

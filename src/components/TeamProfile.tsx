@@ -20,6 +20,7 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
 import TeamRankingTrend from "@/components/TeamRankingTrend";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -379,7 +380,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   <div className="flex items-center gap-2 mb-1.5">
                     <TeamLogo teamName={m.opponent} size={22} rounded="md" />
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-foreground truncate">vs {m.opponent}</p>
+                      <p className="text-xs font-bold text-foreground truncate">
+                        vs <TeamLink name={m.opponent} />
+                      </p>
+
                       <p className="text-xs font-mono text-muted-foreground truncate">
                         {m.round || "Mecz"} • BO{m.bo || 1}
                       </p>

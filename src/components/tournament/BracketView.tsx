@@ -7,6 +7,7 @@ import { useScrollRestore } from "@/lib/uiPrefs";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
@@ -38,12 +39,16 @@ const TeamRow = ({
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {isWinner && isFinal && <Crown className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />}
         {!placeholder && <TeamLogo teamName={name} size={22} rounded="md" />}
-        <span className={cn(
-          "truncate text-[13px]",
-          isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
-        )}>
+        <TeamLink
+          name={placeholder ? undefined : name}
+          className={cn(
+            "truncate text-[13px]",
+            isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
+          )}
+        >
           {name || "TBD"}
-        </span>
+        </TeamLink>
+
       </div>
       <span className={cn(
         "font-mono font-bold ml-2 text-sm tabular-nums",

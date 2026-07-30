@@ -12,6 +12,7 @@ import {
 } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
@@ -57,7 +58,7 @@ const TeamCell = ({ name, logoSize = 18 }: { name: string; logoSize?: number }) 
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0">
       <TeamLogo teamName={name} size={logoSize} rounded="md" />
-      <span className="truncate text-xs font-medium text-foreground">{name}</span>
+      <TeamLink name={name} className="truncate text-xs font-medium text-foreground" />
     </span>
   );
 };
@@ -83,7 +84,7 @@ const OpponentCell = ({
     )}>
       <div className="flex items-center gap-1 min-w-0 max-w-full">
         <TeamLogo teamName={entry.opponent} size={14} rounded="md" />
-        <span className="text-xs truncate font-medium">{entry.opponent}</span>
+        <TeamLink name={entry.opponent} className="text-xs truncate font-medium" />
       </div>
       <span className={cn(
         "text-xs font-mono font-bold tabular-nums",

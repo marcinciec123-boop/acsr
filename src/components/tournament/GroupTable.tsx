@@ -6,6 +6,8 @@ import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
+
 import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
 
@@ -25,7 +27,7 @@ const teamLabel = (name: string) => {
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0 align-middle">
       <TeamLogo teamName={name} size={18} rounded="md" />
-      <span className="truncate">{name}</span>
+      <TeamLink name={name} className="truncate" />
     </span>
   );
 };
