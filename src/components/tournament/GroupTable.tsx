@@ -25,7 +25,7 @@ const teamLabel = (name: string) => {
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0 align-middle">
       <TeamLogo teamName={name} size={18} rounded="md" />
-      <span className="truncate">{name}</span>
+      <TeamLink name={name} className="truncate" />
     </span>
   );
 };
