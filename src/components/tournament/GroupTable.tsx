@@ -6,6 +6,8 @@ import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
+
 import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
 
