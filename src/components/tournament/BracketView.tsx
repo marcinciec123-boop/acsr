@@ -7,6 +7,7 @@ import { useScrollRestore } from "@/lib/uiPrefs";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
+import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
