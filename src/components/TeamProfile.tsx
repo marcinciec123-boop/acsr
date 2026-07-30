@@ -380,7 +380,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   <div className="flex items-center gap-2 mb-1.5">
                     <TeamLogo teamName={m.opponent} size={22} rounded="md" />
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-foreground truncate">vs {m.opponent}</p>
+                      <p className="text-xs font-bold text-foreground truncate">
+                        vs <TeamLink name={m.opponent} />
+                      </p>
+
                       <p className="text-xs font-mono text-muted-foreground truncate">
                         {m.round || "Mecz"} • BO{m.bo || 1}
                       </p>
