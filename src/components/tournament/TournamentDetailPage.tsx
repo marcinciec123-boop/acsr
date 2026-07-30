@@ -515,7 +515,14 @@ export const TournamentDetailPage = ({
           );
         })()}
 
+        <TournamentUpcomingPanel
+          tournament={t}
+          onUpdateMatch={onUpdateMatch}
+          onOpenMatch={onOpenMatch}
+        />
+
         <TournamentFinalResultsPanel tournament={t} onUpdateTournament={onUpdateTournament} />
+
 
         {/* View tabs: Rozgrywka vs Statystyki */}
         <div className="bg-card border border-border rounded-lg p-1 mb-6 flex gap-1">
