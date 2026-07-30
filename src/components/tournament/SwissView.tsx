@@ -84,7 +84,7 @@ const OpponentCell = ({
     )}>
       <div className="flex items-center gap-1 min-w-0 max-w-full">
         <TeamLogo teamName={entry.opponent} size={14} rounded="md" />
-        <span className="text-xs truncate font-medium">{entry.opponent}</span>
+        <TeamLink name={entry.opponent} className="text-xs truncate font-medium" />
       </div>
       <span className={cn(
         "text-xs font-mono font-bold tabular-nums",
