@@ -30,7 +30,9 @@ const gradientFor = (name: string): string => {
   return palette[Math.abs(hash) % palette.length];
 };
 
-const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoProps) => {
+const TeamLogo = ({ teamName, size: rawSize = 48, className, rounded = "lg" }: TeamLogoProps) => {
+  // Slightly larger logos everywhere
+  const size = Math.round(rawSize * 1.18);
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ const TeamLogo = ({ teamName, size = 48, className, rounded = "lg" }: TeamLogoPr
     return (
       <div
         style={{ width: size, height: size }}
-        className={cn("bg-secondary/40 border border-border flex items-center justify-center overflow-hidden shrink-0", radius, className)}
+        className={cn("flex items-center justify-center overflow-hidden shrink-0", radius, className)}
       >
         <img src={logo} alt={`${teamName} logo`} className="w-full h-full object-contain" />
       </div>
