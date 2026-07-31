@@ -8,6 +8,8 @@ import React, { createContext, useContext, type ReactNode } from "react";
 export interface ProfileNav {
   openTeam: (name: string) => void;
   openPlayer: (name: string) => void;
+  /** Opens the tournaments tab on a given tournament (and optionally a match). */
+  openTournament?: (tournamentId: string, matchId?: string) => void;
 }
 
 const Ctx = createContext<ProfileNav | null>(null);
