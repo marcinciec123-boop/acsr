@@ -20,7 +20,8 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
-import { TeamLink } from "@/lib/profileNav";
+import { TeamLink, TournamentLink } from "@/lib/profileNav";
+import { getDisplayScore } from "@/lib/matchDisplay";
 import TeamRankingTrend from "@/components/TeamRankingTrend";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
