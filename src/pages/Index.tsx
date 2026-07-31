@@ -108,7 +108,7 @@ const Index = () => {
   }, [activeTab, profileOpen]);
 
   return (
-    <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer }}>
+    <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer, openTournament: handleOpenTournament }}>
       <div className="min-h-screen bg-background">
         <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
         <CommandPalette
