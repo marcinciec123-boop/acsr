@@ -275,9 +275,9 @@ const PlayerProfile = ({
                           >
                             <span className="text-lg leading-none">{icon}</span>
                             <div className="min-w-0">
-                              <p className="text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
+                              <TournamentLink tournamentId={tr.tournamentId} className="block text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
                                 {tr.tournamentName}
-                              </p>
+                              </TournamentLink>
                               <p className="text-xs font-mono text-muted-foreground truncate">
                                 {tr.team}{tr.endDate ? ` • ${new Date(tr.endDate).getFullYear()}` : ""}
                               </p>
