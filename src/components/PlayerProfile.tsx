@@ -18,6 +18,7 @@ import { getRatingColor } from "@/lib/playerStats";
 import { setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
+import { TournamentLink } from "@/lib/profileNav";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
