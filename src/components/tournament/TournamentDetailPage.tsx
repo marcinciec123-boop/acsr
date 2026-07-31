@@ -517,6 +517,9 @@ export const TournamentDetailPage = ({
           onOpenMatch={onOpenMatch}
         />
 
+        <ScheduleBulkPanel tournament={t} onUpdateMatch={onUpdateMatch} />
+
+
         <TournamentFinalResultsPanel tournament={t} onUpdateTournament={onUpdateTournament} />
 
 
