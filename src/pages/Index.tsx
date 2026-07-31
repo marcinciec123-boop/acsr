@@ -48,6 +48,16 @@ const Index = () => {
     setProfileStack(s => [...s, { kind: "player", name }]);
   };
 
+  const handleOpenTournament = (tournamentId: string, matchId?: string) => {
+    rememberScroll();
+    setProfileStack([]);
+    setActiveTab("tournaments");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("tournament:open", { detail: { tournamentId, matchId } }));
+      window.scrollTo({ top: 0 });
+    }, 30);
+  };
+
   const handleBack = () => {
     setProfileStack(s => {
       const next = s.slice(0, -1);
