@@ -141,13 +141,17 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             if (o > d) mapsW++; else mapsL++;
           }
         }
+        // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
+        const [d1, d2] = getDisplayScore(m);
         matches.push({
           id: m.id,
           tournamentId: t.id,
           tournamentName: t.name,
           date: t.endDate,
           opponent: isT1 ? m.team2 : m.team1,
-          ownScore, oppScore, won,
+          ownScore: isT1 ? d1 : d2,
+          oppScore: isT1 ? d2 : d1,
+          won,
           bo: m.bo, round: m.round,
           playedAt: m.playedAt,
         });
