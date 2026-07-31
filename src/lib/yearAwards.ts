@@ -247,7 +247,12 @@ export function computeYearAwards(year: number): YearAwards {
     // prevents a weak performer from winning solely on an elite team's trophies.
     return p.rating * 140 + (p.achievementScore || 0) + rankBonus;
   };
-  const eligible = playersArr.filter(x => x.p.matches >= 20).sort((a, b) => playerScore(b.p) - playerScore(a.p) || b.p.rating - a.p.rating);
+  // Próg meczów jest elastyczny — w małych sezonach 20 meczów nie osiąga nikt,
+  // przez co ranking Top 20 był pusty i slajd znikał z ceremonii.
+  const byScore = (a: { p: PlayerAward }, b: { p: PlayerAward }) =>
+    playerScore(b.p) - playerScore(a.p) || b.p.rating - a.p.rating;
+  const threshold = [20, 12, 8, 5, 3, 1].find(min => playersArr.filter(x => x.p.matches >= min).length >= 5) ?? 1;
+  const eligible = playersArr.filter(x => x.p.matches >= threshold).sort(byScore);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);
   const playerTop20 = eligible.slice(0, 20).map(x => x.p);
   const playerOfYear = eligible[0]?.p;
