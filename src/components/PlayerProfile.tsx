@@ -506,8 +506,10 @@ const PlayerProfile = ({
                   <tbody>
                     {career.recentMatches.map(m => (
                       <tr key={m.matchId} className="border-b border-border/30 hover:bg-secondary/20">
-                        <td className="py-2 text-muted-foreground truncate max-w-[160px]" title={m.tournamentName}>
-                          {m.tournamentName}
+                        <td className="py-2 text-muted-foreground truncate max-w-[160px]">
+                          <TournamentLink tournamentId={m.tournamentId} title={m.tournamentName} className="block truncate">
+                            {m.tournamentName}
+                          </TournamentLink>
                         </td>
                         <td className="py-2 text-xs text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
                           {m.round || "—"}
@@ -521,14 +523,22 @@ const PlayerProfile = ({
                           </button>
                         </td>
                         <td className="text-center py-2">
-                          <span className={cn(
-                            "inline-block px-1.5 py-0.5 rounded font-bold tabular-nums",
-                            m.won
-                              ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]"
-                              : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
-                          )}>
-                            {m.ownScore}-{m.oppScore}
-                          </span>
+                          <TournamentLink
+                            tournamentId={m.tournamentId}
+                            matchId={m.matchId}
+                            title="Otwórz mecz"
+                            className={cn(
+                              "inline-block px-1.5 py-0.5 rounded font-bold tabular-nums",
+                              m.won
+                                ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]"
+                                : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
+                            )}
+                          >
+                            {/* Bo1 → realny wynik rund zamiast 1-0 */}
+                            {m.bo === 1
+                              ? (m.mapScores[0]?.replace(":", "-") || `${m.ownRounds}-${m.oppRounds}`)
+                              : `${m.ownScore}-${m.oppScore}`}
+                          </TournamentLink>
                         </td>
                         <td className="text-center py-2 text-foreground tabular-nums">
                           {m.kills}–{m.deaths}–{m.assists}
