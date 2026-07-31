@@ -56,7 +56,9 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
     if (activeYear == null) { setAwards(null); return; }
     const history = loadYearAwardsHistory();
     const cached = history[String(activeYear)];
-    if (cached && forceYear != null) { setAwards(cached); return; }
+    // Stare zapisy nie mają Top 20 / Top 5 — wtedy przeliczamy od nowa.
+    const cacheComplete = !!cached && (cached.playerTop20?.length ?? 0) > 0;
+    if (cached && cacheComplete && forceYear != null) { setAwards(cached); return; }
     const fresh = computeYearAwards(activeYear);
     saveYearAwards(fresh);
     setAwards(fresh);
