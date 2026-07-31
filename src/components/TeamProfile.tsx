@@ -830,7 +830,7 @@ const RosterTabContent = ({
 const MatchList = ({
   matches, teamName,
 }: {
-  matches: { id: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string; playedAt?: string }[];
+  matches: { id: string; tournamentId?: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string; playedAt?: string }[];
   teamName: string;
 }) => (
   <ul className="divide-y divide-border/60">
@@ -843,11 +843,18 @@ const MatchList = ({
         <TeamLogo teamName={teamName} size={22} rounded="md" />
         <span className="font-mono text-xs text-muted-foreground">vs</span>
         <TeamLogo teamName={m.opponent} size={22} rounded="md" />
-        <span className="text-sm font-heading text-foreground truncate flex-1 min-w-[80px]">{m.opponent}</span>
-        <span className={cn(
-          "text-sm font-mono font-bold tabular-nums shrink-0",
-          m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
-        )}>{m.ownScore}–{m.oppScore}</span>
+        <TeamLink name={m.opponent} className="text-sm font-heading text-foreground truncate flex-1 min-w-[80px]" />
+        <TournamentLink
+          tournamentId={m.tournamentId}
+          matchId={m.id}
+          title="Otwórz mecz"
+          className={cn(
+            "text-sm font-mono font-bold tabular-nums shrink-0",
+            m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
+          )}
+        >
+          {m.ownScore}–{m.oppScore}
+        </TournamentLink>
         {m.bo && (
           <span className="text-xs font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
         )}
@@ -856,7 +863,13 @@ const MatchList = ({
             {m.round}
           </span>
         )}
-        <span className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
+        <TournamentLink
+          tournamentId={m.tournamentId}
+          title={m.tournamentName}
+          className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]"
+        >
+          {m.tournamentName}
+        </TournamentLink>
       </li>
     ))}
   </ul>
