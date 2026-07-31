@@ -20,7 +20,8 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
-import { TeamLink } from "@/lib/profileNav";
+import { TeamLink, TournamentLink } from "@/lib/profileNav";
+import { getDisplayScore } from "@/lib/matchDisplay";
 import TeamRankingTrend from "@/components/TeamRankingTrend";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -141,13 +142,17 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             if (o > d) mapsW++; else mapsL++;
           }
         }
+        // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
+        const [d1, d2] = getDisplayScore(m);
         matches.push({
           id: m.id,
           tournamentId: t.id,
           tournamentName: t.name,
           date: t.endDate,
           opponent: isT1 ? m.team2 : m.team1,
-          ownScore, oppScore, won,
+          ownScore: isT1 ? d1 : d2,
+          oppScore: isT1 ? d2 : d1,
+          won,
           bo: m.bo, round: m.round,
           playedAt: m.playedAt,
         });
@@ -389,9 +394,14 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs font-mono text-muted-foreground truncate" title={m.tournamentName}>
+                  <TournamentLink
+                    tournamentId={m.tournamentId}
+                    matchId={m.id}
+                    title={m.tournamentName}
+                    className="block text-xs font-mono text-muted-foreground truncate"
+                  >
                     {m.tier ? `[${m.tier}] ` : ""}{m.tournamentName}
-                  </p>
+                  </TournamentLink>
                   <p className="text-xs font-mono mt-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-primary" />
                     {m.scheduledAt
@@ -465,7 +475,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                             {placementLabel(tr.placement)}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-heading text-foreground truncate">{tr.name}</p>
+                            <TournamentLink tournamentId={tr.id} title={tr.name} className="block text-sm font-heading text-foreground truncate">{tr.name}</TournamentLink>
                             <p className="text-xs text-muted-foreground font-mono">
                               {tr.endDate || "—"} {tr.tier ? `• Tier ${tr.tier}` : ""}
                             </p>
@@ -515,7 +525,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                         {placementLabel(tr.placement)}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-heading text-foreground text-sm truncate">{tr.name}</p>
+                        <TournamentLink tournamentId={tr.id} title={tr.name} className="block font-heading text-foreground text-sm truncate">{tr.name}</TournamentLink>
                         <p className="text-xs text-muted-foreground font-mono flex items-center gap-2">
                           <Calendar className="w-3 h-3" />{tr.endDate || "—"}
                           {tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
@@ -825,7 +835,7 @@ const RosterTabContent = ({
 const MatchList = ({
   matches, teamName,
 }: {
-  matches: { id: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string; playedAt?: string }[];
+  matches: { id: string; tournamentId?: string; tournamentName: string; date: string; opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string; playedAt?: string }[];
   teamName: string;
 }) => (
   <ul className="divide-y divide-border/60">
@@ -838,11 +848,18 @@ const MatchList = ({
         <TeamLogo teamName={teamName} size={22} rounded="md" />
         <span className="font-mono text-xs text-muted-foreground">vs</span>
         <TeamLogo teamName={m.opponent} size={22} rounded="md" />
-        <span className="text-sm font-heading text-foreground truncate flex-1 min-w-[80px]">{m.opponent}</span>
-        <span className={cn(
-          "text-sm font-mono font-bold tabular-nums shrink-0",
-          m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
-        )}>{m.ownScore}–{m.oppScore}</span>
+        <TeamLink name={m.opponent} className="text-sm font-heading text-foreground truncate flex-1 min-w-[80px]" />
+        <TournamentLink
+          tournamentId={m.tournamentId}
+          matchId={m.id}
+          title="Otwórz mecz"
+          className={cn(
+            "text-sm font-mono font-bold tabular-nums shrink-0",
+            m.won ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]",
+          )}
+        >
+          {m.ownScore}–{m.oppScore}
+        </TournamentLink>
         {m.bo && (
           <span className="text-xs font-mono text-muted-foreground border border-border rounded px-1 shrink-0">BO{m.bo}</span>
         )}
@@ -851,7 +868,13 @@ const MatchList = ({
             {m.round}
           </span>
         )}
-        <span className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]">{m.tournamentName}</span>
+        <TournamentLink
+          tournamentId={m.tournamentId}
+          title={m.tournamentName}
+          className="text-xs text-muted-foreground font-mono hidden sm:inline truncate max-w-[180px]"
+        >
+          {m.tournamentName}
+        </TournamentLink>
       </li>
     ))}
   </ul>

@@ -151,6 +151,31 @@ const TournamentPanel = () => {
 
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
+  // Deep-link from profiles: open a tournament (and optionally jump into a match).
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { tournamentId?: string; matchId?: string } | undefined;
+      if (!detail?.tournamentId) return;
+      const t = tournaments.find(x => x.id === detail.tournamentId);
+      if (!t) return;
+      setSelectedId(t.id);
+      if (!detail.matchId) { setSelectedMatchRef(null); return; }
+      let ref: SelectedMatchRef | null = null;
+      for (const phase of t.phases || []) {
+        if (phase.bracket?.some(m => m.id === detail.matchId)) {
+          ref = { phaseId: phase.id, matchId: detail.matchId };
+          break;
+        }
+        const g = phase.groups?.find(g => g.matches.some(m => m.id === detail.matchId));
+        if (g) { ref = { phaseId: phase.id, matchId: detail.matchId, groupId: g.id }; break; }
+      }
+      setSelectedMatchRef(ref);
+      if (ref) setActivePhaseByTournament(prev => ({ ...prev, [t.id]: ref!.phaseId }));
+    };
+    window.addEventListener("tournament:open", onOpen);
+    return () => window.removeEventListener("tournament:open", onOpen);
+  }, [tournaments]);
+
   useEffect(() => {
     void import("@/lib/rankingHistory").then(({ synchronizeRankingHistory }) => synchronizeRankingHistory());
   }, []);

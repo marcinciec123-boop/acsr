@@ -18,6 +18,7 @@ import { getRatingColor } from "@/lib/playerStats";
 import { setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
+import { TournamentLink } from "@/lib/profileNav";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
@@ -275,9 +276,9 @@ const PlayerProfile = ({
                           >
                             <span className="text-lg leading-none">{icon}</span>
                             <div className="min-w-0">
-                              <p className="text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
+                              <TournamentLink tournamentId={tr.tournamentId} className="block text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
                                 {tr.tournamentName}
-                              </p>
+                              </TournamentLink>
                               <p className="text-xs font-mono text-muted-foreground truncate">
                                 {tr.team}{tr.endDate ? ` • ${new Date(tr.endDate).getFullYear()}` : ""}
                               </p>
@@ -505,8 +506,10 @@ const PlayerProfile = ({
                   <tbody>
                     {career.recentMatches.map(m => (
                       <tr key={m.matchId} className="border-b border-border/30 hover:bg-secondary/20">
-                        <td className="py-2 text-muted-foreground truncate max-w-[160px]" title={m.tournamentName}>
-                          {m.tournamentName}
+                        <td className="py-2 text-muted-foreground truncate max-w-[160px]">
+                          <TournamentLink tournamentId={m.tournamentId} title={m.tournamentName} className="block truncate">
+                            {m.tournamentName}
+                          </TournamentLink>
                         </td>
                         <td className="py-2 text-xs text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
                           {m.round || "—"}
@@ -520,14 +523,22 @@ const PlayerProfile = ({
                           </button>
                         </td>
                         <td className="text-center py-2">
-                          <span className={cn(
-                            "inline-block px-1.5 py-0.5 rounded font-bold tabular-nums",
-                            m.won
-                              ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]"
-                              : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
-                          )}>
-                            {m.ownScore}-{m.oppScore}
-                          </span>
+                          <TournamentLink
+                            tournamentId={m.tournamentId}
+                            matchId={m.matchId}
+                            title="Otwórz mecz"
+                            className={cn(
+                              "inline-block px-1.5 py-0.5 rounded font-bold tabular-nums",
+                              m.won
+                                ? "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]"
+                                : "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]",
+                            )}
+                          >
+                            {/* Bo1 → realny wynik rund zamiast 1-0 */}
+                            {m.bo === 1
+                              ? (m.mapScores[0]?.replace(":", "-") || `${m.ownRounds}-${m.oppRounds}`)
+                              : `${m.ownScore}-${m.oppScore}`}
+                          </TournamentLink>
                         </td>
                         <td className="text-center py-2 text-foreground tabular-nums">
                           {m.kills}–{m.deaths}–{m.assists}

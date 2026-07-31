@@ -48,6 +48,16 @@ const Index = () => {
     setProfileStack(s => [...s, { kind: "player", name }]);
   };
 
+  const handleOpenTournament = (tournamentId: string, matchId?: string) => {
+    rememberScroll();
+    setProfileStack([]);
+    setActiveTab("tournaments");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("tournament:open", { detail: { tournamentId, matchId } }));
+      window.scrollTo({ top: 0 });
+    }, 30);
+  };
+
   const handleBack = () => {
     setProfileStack(s => {
       const next = s.slice(0, -1);
@@ -108,7 +118,7 @@ const Index = () => {
   }, [activeTab, profileOpen]);
 
   return (
-    <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer }}>
+    <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer, openTournament: handleOpenTournament }}>
       <div className="min-h-screen bg-background">
         <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
         <CommandPalette
