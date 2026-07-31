@@ -470,7 +470,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                             {placementLabel(tr.placement)}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-heading text-foreground truncate">{tr.name}</p>
+                            <TournamentLink tournamentId={tr.id} title={tr.name} className="block text-sm font-heading text-foreground truncate">{tr.name}</TournamentLink>
                             <p className="text-xs text-muted-foreground font-mono">
                               {tr.endDate || "—"} {tr.tier ? `• Tier ${tr.tier}` : ""}
                             </p>
