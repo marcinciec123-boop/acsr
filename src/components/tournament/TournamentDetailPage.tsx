@@ -23,6 +23,7 @@ import { TournamentStatsPanel } from "./TournamentStatsPanel";
 import { PickemPanel } from "./PickemPanel";
 import { TournamentFinalResultsPanel } from "./TournamentFinalResultsPanel";
 import { TournamentUpcomingPanel } from "./TournamentUpcomingPanel";
+import { ScheduleBulkPanel } from "./ScheduleBulkPanel";
 
 import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
