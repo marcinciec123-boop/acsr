@@ -394,9 +394,14 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs font-mono text-muted-foreground truncate" title={m.tournamentName}>
+                  <TournamentLink
+                    tournamentId={m.tournamentId}
+                    matchId={m.id}
+                    title={m.tournamentName}
+                    className="block text-xs font-mono text-muted-foreground truncate"
+                  >
                     {m.tier ? `[${m.tier}] ` : ""}{m.tournamentName}
-                  </p>
+                  </TournamentLink>
                   <p className="text-xs font-mono mt-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-primary" />
                     {m.scheduledAt
