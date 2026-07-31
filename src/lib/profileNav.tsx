@@ -76,3 +76,37 @@ export const PlayerLink = ({
     </span>
   );
 };
+
+/** Inline clickable tournament (or match) name. */
+export const TournamentLink = ({
+  tournamentId,
+  matchId,
+  className,
+  title,
+  children,
+}: {
+  tournamentId?: string;
+  matchId?: string;
+  className?: string;
+  title?: string;
+  children?: ReactNode;
+}) => {
+  const nav = useProfileNav();
+  if (!nav?.openTournament || !tournamentId) return <span className={className} title={title}>{children}</span>;
+  const activate = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    nav.openTournament!(tournamentId, matchId);
+  };
+  return (
+    <span
+      role="link"
+      tabIndex={0}
+      title={title}
+      onClick={activate}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(e); } }}
+      className={`${className ?? ""} hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer`}
+    >
+      {children}
+    </span>
+  );
+};
