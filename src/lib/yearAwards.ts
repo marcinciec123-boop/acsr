@@ -7,6 +7,7 @@
 import type { TournamentData, Transfer, TeamData, MatchResult, MapPlayerStats } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { calculateRating } from "./playerStats";
+import { isMajorName, MAJOR_WEIGHT } from "./majors";
 
 export interface AwardCandidate<T = string> { value: T; score: number; extra?: string }
 
@@ -27,6 +28,7 @@ export interface PlayerAward {
   kdr: number;
   kills: number;
   adr: number;
+  kast?: number;
   achievementScore?: number;
   teamRankingPosition?: number;
 }
@@ -112,19 +114,21 @@ export function computeYearAwards(year: number): YearAwards {
   const currentRanking = [...teams].filter(t => !t.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
   const rankByTeam = new Map(currentRanking.map((team, index) => [team.name, index + 1]));
   const teamStats = new Map<string, TeamAward>();
-  const bumpTeam = (name: string, placement: number, points: number, tier: string) => {
+  const eventWeight = (tier: string, name?: string) =>
+    (tierWeight[tier] || 1) * (isMajorName(name) ? MAJOR_WEIGHT : 1);
+  const bumpTeam = (name: string, placement: number, points: number, tier: string, eventName?: string) => {
     const e = teamStats.get(name) || { team: name, trophies: 0, finals: 0, top3: 0, points: 0, weightedScore: 0 };
     if (placement === 1) e.trophies++;
     if (placement <= 2) e.finals++;
     if (placement <= 3) e.top3++;
     e.points += points;
     const placementValue = placement === 1 ? 100 : placement === 2 ? 55 : placement === 3 ? 32 : placement <= 8 ? 12 : 3;
-    e.weightedScore = (e.weightedScore || 0) + placementValue * (tierWeight[tier] || 1) + Math.max(0, points) * 0.02;
+    e.weightedScore = (e.weightedScore || 0) + placementValue * eventWeight(tier, eventName) + Math.max(0, points) * 0.02;
     teamStats.set(name, e);
   };
   for (const t of yearTournaments) {
     for (const p of t.placements || []) {
-      bumpTeam(p.team, p.placement, p.points || 0, t.tier);
+      bumpTeam(p.team, p.placement, p.points || 0, t.tier, t.name);
     }
   }
   const teamRanked = Array.from(teamStats.values()).map(team => {
@@ -206,7 +210,7 @@ export function computeYearAwards(year: number): YearAwards {
   // A great player can still rank highly, but farming weak events no longer beats
   // comparable performance at Tier S/A events or on an elite-ranked team.
   for (const t of yearTournaments) {
-    const weight = tierWeight[t.tier] || 1;
+    const weight = eventWeight(t.tier, t.name);
     for (const placement of t.placements || []) {
       const placementValue = placement.placement === 1 ? 25 : placement.placement === 2 ? 14 : placement.placement === 3 ? 8 : placement.placement <= 8 ? 3 : 0;
       if (placementValue === 0) continue;
@@ -235,23 +239,29 @@ export function computeYearAwards(year: number): YearAwards {
     kdr: e.deaths > 0 ? Math.round((e.kills / e.deaths) * 100) / 100 : e.kills,
     kills: e.kills,
     adr: e.rounds > 0 ? Math.round(e.adrW / e.rounds) : 0,
+    kast: e.rounds > 0 ? Math.round(e.kastW / e.rounds) : 0,
     achievementScore: e.achievementScore,
     teamRankingPosition: rankByTeam.get(e.team),
   });
 
   const playersArr = Array.from(players.entries()).map(([n, e]) => ({ p: buildPlayer(n, e), hadTransfer: e.hadTransfer }));
 
+  // Kryteria (od najmocniejszego): osiągnięcia turniejowe + MVP (z wagą tieru,
+  // Major najwyżej) → rating → pozycja drużyny w rankingu → KAST%.
   const playerScore = (p: PlayerAward) => {
-    const rankBonus = p.teamRankingPosition ? Math.max(0, 101 - p.teamRankingPosition) * 0.35 : 0;
-    // Individual form must remain decisive: raising the rating coefficient
-    // prevents a weak performer from winning solely on an elite team's trophies.
-    return p.rating * 140 + (p.achievementScore || 0) + rankBonus;
+    const achievements = (p.achievementScore || 0) * 1.6;      // dominujące
+    const rating = p.rating * 70;                              // ~70-110 pkt
+    const rankBonus = p.teamRankingPosition ? Math.max(0, 101 - p.teamRankingPosition) * 0.35 : 0; // ≤35
+    const kastBonus = (p.kast || 0) * 0.3;                     // ≤~30
+    return achievements + rating + rankBonus + kastBonus;
   };
-  // Próg meczów jest elastyczny — w małych sezonach 20 meczów nie osiąga nikt,
-  // przez co ranking Top 20 był pusty i slajd znikał z ceremonii.
   const byScore = (a: { p: PlayerAward }, b: { p: PlayerAward }) =>
     playerScore(b.p) - playerScore(a.p) || b.p.rating - a.p.rating;
-  const threshold = [20, 12, 8, 5, 3, 1].find(min => playersArr.filter(x => x.p.matches >= min).length >= 5) ?? 1;
+  // Próg meczów jest elastyczny — celujemy w pełne Top 20, a w małych sezonach
+  // schodzimy niżej, żeby lista nie była pusta.
+  const threshold = [20, 12, 8, 5, 3, 1].find(min => playersArr.filter(x => x.p.matches >= min).length >= 20)
+    ?? [20, 12, 8, 5, 3, 1].find(min => playersArr.filter(x => x.p.matches >= min).length >= 5)
+    ?? 1;
   const eligible = playersArr.filter(x => x.p.matches >= threshold).sort(byScore);
   const playerTop5 = eligible.slice(0, 5).map(x => x.p);
   const playerTop20 = eligible.slice(0, 20).map(x => x.p);
