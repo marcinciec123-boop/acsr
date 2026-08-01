@@ -28,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import { isPlaceholder } from "@/lib/teamHelpers";
+import MajorBadge from "@/components/MajorBadge";
+import { isMajorName, historicMajorsForTeam } from "@/lib/majors";
 
 interface TeamProfileProps {
   teamName: string;
