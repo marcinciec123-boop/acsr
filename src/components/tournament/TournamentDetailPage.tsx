@@ -868,13 +868,27 @@ export const TournamentDetailPage = ({
                             size="sm"
                             disabled={winners.length === 0}
                             onClick={() => {
-                              const padded = [...winners];
-                              while (padded.length < expected) padded.push(`TBD-P${idx + 1}-${padded.length + 1}`);
+                              // Zachowaj już rozstawione drużyny; awansujących dopisz
+                              // od dołu (najpierw wolne sloty TBD, potem koniec listy).
+                              const existing = [...nextPhase.teams];
+                              const seeded = new Set(existing.filter(x => x && !x.startsWith("TBD")));
+                              const incoming = winners.filter(w => !seeded.has(w));
+                              const queue = [...incoming];
+                              const merged = existing.map(slot =>
+                                (!slot || slot.startsWith("TBD")) && queue.length ? queue.shift()! : slot,
+                              );
+                              while (queue.length) merged.push(queue.shift()!);
+                              while (merged.length < expected) merged.push(`TBD-P${idx + 1}-${merged.length + 1}`);
                               const prior = collectPriorMeetings(t.phases, nextPhase.id);
-                              const reordered = reorderSeedsToAvoidRematches(padded, prior);
+                              const keepOrder = seeded.size > 0 || merged.some(x => !x || x.startsWith("TBD"));
+                              const reordered = keepOrder
+                                ? merged
+                                : reorderSeedsToAvoidRematches(merged, prior);
                               onReseedPhase(nextPhase.id, reordered);
+
                               setActivePhaseId(nextPhase.id);
                             }}
+
                             className="gap-1.5 h-8"
                           >
                             <Send className="w-3.5 h-3.5" />
@@ -943,7 +957,9 @@ export const TournamentDetailPage = ({
                             ...(t2 !== undefined && { team2: t2 }),
                           })
                         }
+                        onPatchMatch={(mid, patch) => onUpdateMatch(phase.id, mid, patch)}
                         onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+
                         onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
                         onGenerateNextRound={(pairings) => {
                           if (onAddBracketMatches) {

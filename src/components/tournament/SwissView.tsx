@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2 } from "lucide-react";
+import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { MatchResult } from "@/lib/types";
 import {
   computeSwissStage,
   planNextSwissRound,
+  projectFutureRounds,
   swissRoundLabel,
   type SwissTeamStanding,
 } from "@/lib/swissEngine";
@@ -35,6 +36,8 @@ interface Props {
     team1?: string,
     team2?: string,
   ) => void;
+  /** Patch an existing match (used to fill TBD skeleton slots). */
+  onPatchMatch?: (id: string, patch: Partial<MatchResult>) => void;
   /** Open detail page for a match */
   onOpenMatch?: (id: string) => void;
   /** Delete a match (rare; e.g. mistake) */
@@ -44,6 +47,7 @@ interface Props {
     pairings: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
   ) => void;
 }
+
 
 const STATUS_STYLE: Record<SwissTeamStanding["status"], { row: string; pill: string; label: string }> = {
   advanced:    { row: "bg-[hsl(var(--win))]/[0.08] border-l-2 border-l-[hsl(var(--win))]", pill: "bg-[hsl(var(--win))]/20 text-[hsl(var(--win))] border-[hsl(var(--win))]/30", label: "AWANS" },
@@ -180,6 +184,7 @@ export const SwissView = ({
   advanceCount,
   priorMeetings,
   onUpdate,
+  onPatchMatch,
   onOpenMatch,
   onDelete,
   onGenerateNextRound,
@@ -195,28 +200,68 @@ export const SwissView = ({
     return 3;
   })();
 
-  const stage = computeSwissStage(phaseTeams, matches, { winCap, priorMeetings });
+  // Mecze "szkieletowe" (TBD) służą tylko planowaniu terminów — nie wpływają
+  // na standingi ani na wyznaczanie kolejnej rundy.
+  const realMatches = matches.filter(m => !isPlaceholder(m.team1) && !isPlaceholder(m.team2));
+  const skeletonMatches = matches.filter(m => isPlaceholder(m.team1) || isPlaceholder(m.team2));
+
+  const stage = computeSwissStage(phaseTeams, realMatches, { winCap, priorMeetings });
   const advancedCount = stage.standings.filter(s => s.status === "advanced").length;
   const eliminatedCount = stage.standings.filter(s => s.status === "eliminated").length;
   const playingCount = stage.standings.filter(s => s.status === "playing").length;
 
+  const projected = projectFutureRounds(stage);
+
+  /** Ile slotów TBD istnieje już dla danej rundy. */
+  const skeletonByRound = new Map<string, MatchResult[]>();
+  skeletonMatches.forEach(m => {
+    const k = m.round || swissRoundLabel(stage.currentRound + 1);
+    if (!skeletonByRound.has(k)) skeletonByRound.set(k, []);
+    skeletonByRound.get(k)!.push(m);
+  });
+
+  const missingSkeleton = projected.reduce(
+    (acc, r) => acc + Math.max(0, r.matches - (skeletonByRound.get(swissRoundLabel(r.round))?.length || 0)),
+    0,
+  );
+
+  const handleBuildSkeleton = () => {
+    const toCreate: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
+    projected.forEach(r => {
+      const label = swissRoundLabel(r.round);
+      const have = skeletonByRound.get(label)?.length || 0;
+      for (let i = have; i < r.matches; i++) {
+        toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label });
+      }
+    });
+    if (toCreate.length) onGenerateNextRound(toCreate);
+  };
+
   const handleGenerate = () => {
     const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
     if (plan.error || plan.pairings.length === 0) return;
-    onGenerateNextRound(
-      plan.pairings.map(p => ({
-        team1: p.team1,
-        team2: p.team2,
-        bo: p.bo,
-        round: swissRoundLabel(plan.round),
-      })),
+    const label = swissRoundLabel(plan.round);
+    // Najpierw uzupełnij istniejące sloty TBD (zachowując ustawione terminy).
+    const slots = [...(skeletonByRound.get(label) || [])].sort((a, b) =>
+      (a.scheduledAt || "\uffff").localeCompare(b.scheduledAt || "\uffff"),
     );
+    const leftovers: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
+    plan.pairings.forEach(p => {
+      const slot = onPatchMatch ? slots.shift() : undefined;
+      if (slot) {
+        onPatchMatch!(slot.id, { team1: p.team1, team2: p.team2, bo: p.bo, round: label });
+      } else {
+        leftovers.push({ team1: p.team1, team2: p.team2, bo: p.bo, round: label });
+      }
+    });
+    if (leftovers.length) onGenerateNextRound(leftovers);
   };
 
   const nextPlan = planNextSwissRound(stage, { decisiveBo: 3 });
   const canGenerate = !nextPlan.error && nextPlan.pairings.length > 0;
   const allRounds = stage.rounds;
   const maxRound = Math.max(stage.currentRound, 5);
+
 
   return (
     <div className="space-y-5">
@@ -242,20 +287,35 @@ export const SwissView = ({
             </span>
           </div>
         </div>
-        <Button
-          size="sm"
-          onClick={handleGenerate}
-          disabled={!canGenerate}
-          className="gap-1.5 h-8"
-          title={nextPlan.error || `Wygeneruj rundę ${nextPlan.round}`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          {stage.finished
-            ? "Swiss zakończony"
-            : canGenerate
-              ? `Wygeneruj rundę ${nextPlan.round}`
-              : nextPlan.error || "Brak dostępnych par"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {missingSkeleton > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBuildSkeleton}
+              className="gap-1.5 h-8"
+              title="Utwórz mecze TBD dla kolejnych rund (planowanie terminów)"
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              Szkielet TBD ({missingSkeleton})
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            className="gap-1.5 h-8"
+            title={nextPlan.error || `Wygeneruj rundę ${nextPlan.round}`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {stage.finished
+              ? "Swiss zakończony"
+              : canGenerate
+                ? `Wygeneruj rundę ${nextPlan.round}`
+                : nextPlan.error || "Brak dostępnych par"}
+          </Button>
+        </div>
+
       </div>
 
       {nextPlan.error && stage.currentRound > 0 && !stage.finished && (
@@ -377,13 +437,64 @@ export const SwissView = ({
         </div>
       )}
 
-      {allRounds.length === 0 && (
+      {/* Zaplanowane rundy TBD (harmonogram przed losowaniem par) */}
+      {skeletonMatches.length > 0 && (
+        <div className="space-y-3">
+          {Array.from(skeletonByRound.entries())
+            .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+            .map(([label, rm]) => (
+              <div key={label} className="border border-dashed border-border rounded-md overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-secondary/25 border-b border-border/60">
+                  <h5 className="text-xs font-heading font-bold tracking-wide flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5 text-primary" />
+                    {label} — harmonogram (TBD)
+                  </h5>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {rm.length} {rm.length === 1 ? "slot" : "slotów"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
+                  {rm.map(m => (
+                    <div
+                      key={m.id}
+                      onClick={() => onOpenMatch?.(m.id)}
+                      className={cn(
+                        "border border-border/60 rounded-md px-2 py-2 bg-card/60 text-xs flex items-center justify-between gap-2",
+                        onOpenMatch && "cursor-pointer hover:border-primary/60",
+                      )}
+                      title="Otwórz mecz, aby ustawić termin"
+                    >
+                      <span className="italic text-muted-foreground">TBD vs TBD</span>
+                      <span className="font-mono text-muted-foreground">
+                        {m.scheduledAt
+                          ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
+                          : "termin —"}
+                      </span>
+                      {onDelete && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDelete(m.id); }}
+                          className="p-0.5 hover:bg-destructive/20 rounded text-destructive shrink-0"
+                          title="Usuń slot"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {allRounds.length === 0 && skeletonMatches.length === 0 && (
         <div className="text-center py-8 border border-dashed border-border rounded-md">
           <p className="text-xs text-muted-foreground font-mono">
             Brak meczów. Faza Swiss potrzebuje pierwszej rundy.
           </p>
         </div>
       )}
+
     </div>
   );
 };

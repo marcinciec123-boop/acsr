@@ -383,3 +383,55 @@ function bucketLabel(key: string, winCap: number): string {
   if (w < l) return "Low";
   return "Mid";
 }
+
+/** Projekcja liczby meczów w kolejnych (jeszcze nierozegranych) rundach Swiss.
+ *  Używane do wygenerowania szkieletu TBD pod planowanie terminów. */
+export function projectFutureRounds(stage: SwissStageData): { round: number; matches: number }[] {
+  const cap = stage.winCap;
+  // Aktualne "kubełki" rekordów drużyn wciąż w grze.
+  const buckets = new Map<string, number>();
+  stage.standings
+    .filter(s => s.status === "playing")
+    .forEach(s => {
+      const k = `${s.wins}-${s.losses}`;
+      buckets.set(k, (buckets.get(k) || 0) + 1);
+    });
+
+  const out: { round: number; matches: number }[] = [];
+  let round = stage.currentRound + 1;
+  let guard = 0;
+  while (guard++ < 20) {
+    const active = Array.from(buckets.entries()).filter(([k]) => {
+      const [w, l] = k.split("-").map(Number);
+      return w < cap && l < cap;
+    });
+    const total = active.reduce((a, [, c]) => a + c, 0);
+    const matches = Math.floor(total / 2);
+    if (matches < 1) break;
+    out.push({ round, matches });
+
+    const next = new Map<string, number>();
+    let carry = 0;
+    active.forEach(([k, c]) => {
+      const [w, l] = k.split("-").map(Number);
+      const pairs = Math.floor((c + carry) / 2);
+      carry = (c + carry) % 2;
+      const add = (key: string, n: number) => { if (n > 0) next.set(key, (next.get(key) || 0) + n); };
+      add(`${w + 1}-${l}`, pairs);
+      add(`${w}-${l + 1}`, pairs);
+    });
+    if (carry > 0) {
+      // Nieparzysta drużyna zostaje z niezmienionym rekordem (bye/float).
+      const last = active[active.length - 1];
+      if (last) {
+        const [w, l] = last[0].split("-").map(Number);
+        next.set(`${w}-${l}`, (next.get(`${w}-${l}`) || 0) + carry);
+      }
+    }
+    buckets.clear();
+    next.forEach((v, k) => buckets.set(k, v));
+    round += 1;
+  }
+  return out;
+}
+
