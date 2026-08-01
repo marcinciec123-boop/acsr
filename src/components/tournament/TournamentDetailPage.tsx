@@ -880,10 +880,12 @@ export const TournamentDetailPage = ({
                               while (queue.length) merged.push(queue.shift()!);
                               while (merged.length < expected) merged.push(`TBD-P${idx + 1}-${merged.length + 1}`);
                               const prior = collectPriorMeetings(t.phases, nextPhase.id);
-                              const reordered = merged.some(x => !x || x.startsWith("TBD"))
+                              const keepOrder = seeded.size > 0 || merged.some(x => !x || x.startsWith("TBD"));
+                              const reordered = keepOrder
                                 ? merged
                                 : reorderSeedsToAvoidRematches(merged, prior);
                               onReseedPhase(nextPhase.id, reordered);
+
                               setActivePhaseId(nextPhase.id);
                             }}
 
