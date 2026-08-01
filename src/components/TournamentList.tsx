@@ -5,6 +5,8 @@ import { type Tournament, type TournamentSimulation, type TeamData } from "@/dat
 import { cn } from "@/lib/utils";
 import TournamentDetail from "./TournamentDetail";
 import TournamentCalendar from "./tournament/TournamentCalendar";
+import MajorBadge from "@/components/MajorBadge";
+import { isMajorName } from "@/lib/majors";
 
 const statusConfig = {
   live: { label: "LIVE", className: "bg-destructive/20 text-destructive border-destructive/40" },
@@ -56,6 +58,7 @@ const TournamentCard = ({ tournament, index, onClick, hasResult }: { tournament:
             <span className={cn("font-heading font-bold text-lg", tierColors[tournament.tier])}>
               {tournament.tier}
             </span>
+            {isMajorName(tournament.name) && <MajorBadge compact />}
             <span className={cn("text-xs font-mono px-2 py-0.5 rounded border", status.className)}>
               {status.label}
             </span>

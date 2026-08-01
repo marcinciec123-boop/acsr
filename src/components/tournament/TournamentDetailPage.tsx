@@ -31,6 +31,8 @@ import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 import { useProfileNav } from "@/lib/profileNav";
+import MajorBadge from "@/components/MajorBadge";
+import { isMajorName } from "@/lib/majors";
 
 interface Props {
   tournament: TournamentData;
@@ -382,6 +384,7 @@ export const TournamentDetailPage = ({
               <span className={cn("text-xs font-mono font-bold px-2.5 py-1 rounded border", tierColor(t.tier))}>
                 {t.tier}-TIER
               </span>
+              {isMajorName(t.name) && <MajorBadge />}
               <span className={cn(
                 "text-xs px-2.5 py-1 rounded border font-mono inline-flex items-center gap-1.5",
                 statusBadge(t.status)

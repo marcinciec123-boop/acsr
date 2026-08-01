@@ -1,5 +1,6 @@
 // Player nickname → ISO country code mapping based on real player data
 export const playerNationalities: Record<string, string> = {
+  iZen: "DE",
   // Team Falcons
   blameF: "DK",
   TeSeS: "DK",

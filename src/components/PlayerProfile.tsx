@@ -18,6 +18,8 @@ import { getRatingColor } from "@/lib/playerStats";
 import { setPlayerRole } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
+import MajorBadge from "@/components/MajorBadge";
+import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
@@ -252,7 +254,7 @@ const PlayerProfile = ({
                     </div>
                   </motion.div>
                 )}
-                {career.trophies.length > 0 && (
+                {(career.trophies.length > 0 || historicMajorsForPlayer(playerName).length > 0) && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="lg:col-span-2 bg-card border border-border rounded-lg p-4"
@@ -261,11 +263,29 @@ const PlayerProfile = ({
                       <Award className="w-4 h-4 text-[hsl(var(--gold))]" /> Osiągnięcia ({career.trophies.length})
                     </h2>
                     <div className="flex flex-wrap gap-2">
+                      {historicMajorsForPlayer(playerName).map(hm => (
+                        <div
+                          key={hm.id}
+                          title={`Mistrz ${hm.name} z ${hm.team}`}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[hsl(var(--gold))]/60 bg-gradient-to-r from-[hsl(var(--gold))]/20 to-transparent shadow-[0_0_18px_hsl(var(--gold)/0.35)]"
+                        >
+                          <span className="text-lg leading-none">🏆</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-heading font-black text-foreground truncate max-w-[160px]">{hm.name}</span>
+                              <MajorBadge compact />
+                            </div>
+                            <p className="text-xs font-mono text-muted-foreground truncate">{hm.team} • {hm.year}</p>
+                          </div>
+                        </div>
+                      ))}
                       {career.trophies.map(tr => {
                         const icon = tr.placement === 1 ? "🥇"
                           : tr.placement === 2 ? "🥈"
                           : tr.placement <= 4 ? "🥉" : `#${tr.placement}`;
-                        const ringClass = tr.placement === 1 ? "border-[hsl(var(--gold))]/50 bg-[hsl(var(--gold))]/10"
+                        const isMajorWin = isMajorName(tr.tournamentName) && tr.placement === 1;
+                        const ringClass = isMajorWin ? "border-[hsl(var(--gold))]/70 bg-gradient-to-r from-[hsl(var(--gold))]/20 to-transparent shadow-[0_0_18px_hsl(var(--gold)/0.35)]"
+                          : tr.placement === 1 ? "border-[hsl(var(--gold))]/50 bg-[hsl(var(--gold))]/10"
                           : tr.placement === 2 ? "border-[hsl(var(--silver))]/40 bg-[hsl(var(--silver))]/5"
                           : "border-[hsl(var(--bronze))]/40 bg-[hsl(var(--bronze))]/5";
                         return (
@@ -276,9 +296,12 @@ const PlayerProfile = ({
                           >
                             <span className="text-lg leading-none">{icon}</span>
                             <div className="min-w-0">
-                              <TournamentLink tournamentId={tr.tournamentId} className="block text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
-                                {tr.tournamentName}
-                              </TournamentLink>
+                              <div className="flex items-center gap-1.5">
+                                <TournamentLink tournamentId={tr.tournamentId} className="block text-xs font-heading font-bold text-foreground truncate max-w-[200px]">
+                                  {tr.tournamentName}
+                                </TournamentLink>
+                                {isMajorName(tr.tournamentName) && <MajorBadge compact />}
+                              </div>
                               <p className="text-xs font-mono text-muted-foreground truncate">
                                 {tr.team}{tr.endDate ? ` • ${new Date(tr.endDate).getFullYear()}` : ""}
                               </p>
