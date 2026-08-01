@@ -184,6 +184,7 @@ export const SwissView = ({
   advanceCount,
   priorMeetings,
   onUpdate,
+  onPatchMatch,
   onOpenMatch,
   onDelete,
   onGenerateNextRound,
@@ -199,28 +200,68 @@ export const SwissView = ({
     return 3;
   })();
 
-  const stage = computeSwissStage(phaseTeams, matches, { winCap, priorMeetings });
+  // Mecze "szkieletowe" (TBD) służą tylko planowaniu terminów — nie wpływają
+  // na standingi ani na wyznaczanie kolejnej rundy.
+  const realMatches = matches.filter(m => !isPlaceholder(m.team1) && !isPlaceholder(m.team2));
+  const skeletonMatches = matches.filter(m => isPlaceholder(m.team1) || isPlaceholder(m.team2));
+
+  const stage = computeSwissStage(phaseTeams, realMatches, { winCap, priorMeetings });
   const advancedCount = stage.standings.filter(s => s.status === "advanced").length;
   const eliminatedCount = stage.standings.filter(s => s.status === "eliminated").length;
   const playingCount = stage.standings.filter(s => s.status === "playing").length;
 
+  const projected = projectFutureRounds(stage);
+
+  /** Ile slotów TBD istnieje już dla danej rundy. */
+  const skeletonByRound = new Map<string, MatchResult[]>();
+  skeletonMatches.forEach(m => {
+    const k = m.round || swissRoundLabel(stage.currentRound + 1);
+    if (!skeletonByRound.has(k)) skeletonByRound.set(k, []);
+    skeletonByRound.get(k)!.push(m);
+  });
+
+  const missingSkeleton = projected.reduce(
+    (acc, r) => acc + Math.max(0, r.matches - (skeletonByRound.get(swissRoundLabel(r.round))?.length || 0)),
+    0,
+  );
+
+  const handleBuildSkeleton = () => {
+    const toCreate: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
+    projected.forEach(r => {
+      const label = swissRoundLabel(r.round);
+      const have = skeletonByRound.get(label)?.length || 0;
+      for (let i = have; i < r.matches; i++) {
+        toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label });
+      }
+    });
+    if (toCreate.length) onGenerateNextRound(toCreate);
+  };
+
   const handleGenerate = () => {
     const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
     if (plan.error || plan.pairings.length === 0) return;
-    onGenerateNextRound(
-      plan.pairings.map(p => ({
-        team1: p.team1,
-        team2: p.team2,
-        bo: p.bo,
-        round: swissRoundLabel(plan.round),
-      })),
+    const label = swissRoundLabel(plan.round);
+    // Najpierw uzupełnij istniejące sloty TBD (zachowując ustawione terminy).
+    const slots = [...(skeletonByRound.get(label) || [])].sort((a, b) =>
+      (a.scheduledAt || "\uffff").localeCompare(b.scheduledAt || "\uffff"),
     );
+    const leftovers: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
+    plan.pairings.forEach(p => {
+      const slot = onPatchMatch ? slots.shift() : undefined;
+      if (slot) {
+        onPatchMatch!(slot.id, { team1: p.team1, team2: p.team2, bo: p.bo, round: label });
+      } else {
+        leftovers.push({ team1: p.team1, team2: p.team2, bo: p.bo, round: label });
+      }
+    });
+    if (leftovers.length) onGenerateNextRound(leftovers);
   };
 
   const nextPlan = planNextSwissRound(stage, { decisiveBo: 3 });
   const canGenerate = !nextPlan.error && nextPlan.pairings.length > 0;
   const allRounds = stage.rounds;
   const maxRound = Math.max(stage.currentRound, 5);
+
 
   return (
     <div className="space-y-5">
