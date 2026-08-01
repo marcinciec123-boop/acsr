@@ -515,12 +515,31 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
           {activeTab === "trophies" && (
             <Card title={`Trofea i osiągnięcia (${totals.events})`} icon={<Trophy className="w-4 h-4 text-accent" />}>
-              {trophies.length === 0 ? (
+              {trophies.length === 0 && historicMajorsForTeam(teamName).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Brak trofeów.</p>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
+                  {historicMajorsForTeam(teamName).map(hm => (
+                    <div key={hm.id} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--gold))]/60 bg-gradient-to-r from-[hsl(var(--gold))]/15 to-transparent shadow-[0_0_20px_hsl(var(--gold)/0.25)]">
+                      <span className="text-xl leading-none">🏆</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-heading font-black text-foreground text-sm truncate">{hm.name}</span>
+                          <MajorBadge compact />
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono truncate">
+                          Mistrz {hm.year} · jako {hm.team} · {hm.roster.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                   {trophies.map(tr => (
-                    <div key={tr.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/50 hover:border-primary/40 transition-colors">
+                    <div key={tr.id} className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                      isMajorName(tr.name) && tr.placement === 1
+                        ? "border-[hsl(var(--gold))]/60 bg-gradient-to-r from-[hsl(var(--gold))]/15 to-transparent shadow-[0_0_20px_hsl(var(--gold)/0.25)]"
+                        : "bg-secondary/30 border-border/50 hover:border-primary/40",
+                    )}>
                       <span className={cn("text-xs font-heading font-bold px-2.5 py-1 rounded border shrink-0", placementColor(tr.placement))}>
                         {placementLabel(tr.placement)}
                       </span>
@@ -528,7 +547,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                         <TournamentLink tournamentId={tr.id} title={tr.name} className="block font-heading text-foreground text-sm truncate">{tr.name}</TournamentLink>
                         <p className="text-xs text-muted-foreground font-mono flex items-center gap-2">
                           <Calendar className="w-3 h-3" />{tr.endDate || "—"}
-                          {tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
+                          {isMajorName(tr.name) ? <MajorBadge compact /> : tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
                         </p>
                       </div>
                       <span className="text-sm font-mono font-bold text-primary shrink-0">+{tr.points}</span>
