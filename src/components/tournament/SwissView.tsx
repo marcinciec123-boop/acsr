@@ -437,13 +437,64 @@ export const SwissView = ({
         </div>
       )}
 
-      {allRounds.length === 0 && (
+      {/* Zaplanowane rundy TBD (harmonogram przed losowaniem par) */}
+      {skeletonMatches.length > 0 && (
+        <div className="space-y-3">
+          {Array.from(skeletonByRound.entries())
+            .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+            .map(([label, rm]) => (
+              <div key={label} className="border border-dashed border-border rounded-md overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-secondary/25 border-b border-border/60">
+                  <h5 className="text-xs font-heading font-bold tracking-wide flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5 text-primary" />
+                    {label} — harmonogram (TBD)
+                  </h5>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {rm.length} {rm.length === 1 ? "slot" : "slotów"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
+                  {rm.map(m => (
+                    <div
+                      key={m.id}
+                      onClick={() => onOpenMatch?.(m.id)}
+                      className={cn(
+                        "border border-border/60 rounded-md px-2 py-2 bg-card/60 text-xs flex items-center justify-between gap-2",
+                        onOpenMatch && "cursor-pointer hover:border-primary/60",
+                      )}
+                      title="Otwórz mecz, aby ustawić termin"
+                    >
+                      <span className="italic text-muted-foreground">TBD vs TBD</span>
+                      <span className="font-mono text-muted-foreground">
+                        {m.scheduledAt
+                          ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
+                          : "termin —"}
+                      </span>
+                      {onDelete && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDelete(m.id); }}
+                          className="p-0.5 hover:bg-destructive/20 rounded text-destructive shrink-0"
+                          title="Usuń slot"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {allRounds.length === 0 && skeletonMatches.length === 0 && (
         <div className="text-center py-8 border border-dashed border-border rounded-md">
           <p className="text-xs text-muted-foreground font-mono">
             Brak meczów. Faza Swiss potrzebuje pierwszej rundy.
           </p>
         </div>
       )}
+
     </div>
   );
 };
