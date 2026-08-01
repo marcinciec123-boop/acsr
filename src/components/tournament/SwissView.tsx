@@ -7,6 +7,7 @@ import type { MatchResult } from "@/lib/types";
 import {
   computeSwissStage,
   planNextSwissRound,
+  projectFutureRounds,
   swissRoundLabel,
   type SwissTeamStanding,
 } from "@/lib/swissEngine";
@@ -35,6 +36,8 @@ interface Props {
     team1?: string,
     team2?: string,
   ) => void;
+  /** Patch an existing match (used to fill TBD skeleton slots). */
+  onPatchMatch?: (id: string, patch: Partial<MatchResult>) => void;
   /** Open detail page for a match */
   onOpenMatch?: (id: string) => void;
   /** Delete a match (rare; e.g. mistake) */
@@ -44,6 +47,7 @@ interface Props {
     pairings: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
   ) => void;
 }
+
 
 const STATUS_STYLE: Record<SwissTeamStanding["status"], { row: string; pill: string; label: string }> = {
   advanced:    { row: "bg-[hsl(var(--win))]/[0.08] border-l-2 border-l-[hsl(var(--win))]", pill: "bg-[hsl(var(--win))]/20 text-[hsl(var(--win))] border-[hsl(var(--win))]/30", label: "AWANS" },
