@@ -287,20 +287,35 @@ export const SwissView = ({
             </span>
           </div>
         </div>
-        <Button
-          size="sm"
-          onClick={handleGenerate}
-          disabled={!canGenerate}
-          className="gap-1.5 h-8"
-          title={nextPlan.error || `Wygeneruj rundę ${nextPlan.round}`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          {stage.finished
-            ? "Swiss zakończony"
-            : canGenerate
-              ? `Wygeneruj rundę ${nextPlan.round}`
-              : nextPlan.error || "Brak dostępnych par"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {missingSkeleton > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBuildSkeleton}
+              className="gap-1.5 h-8"
+              title="Utwórz mecze TBD dla kolejnych rund (planowanie terminów)"
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              Szkielet TBD ({missingSkeleton})
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            className="gap-1.5 h-8"
+            title={nextPlan.error || `Wygeneruj rundę ${nextPlan.round}`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {stage.finished
+              ? "Swiss zakończony"
+              : canGenerate
+                ? `Wygeneruj rundę ${nextPlan.round}`
+                : nextPlan.error || "Brak dostępnych par"}
+          </Button>
+        </div>
+
       </div>
 
       {nextPlan.error && stage.currentRound > 0 && !stage.finished && (
