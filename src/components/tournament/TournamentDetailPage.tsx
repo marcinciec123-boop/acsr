@@ -957,7 +957,9 @@ export const TournamentDetailPage = ({
                             ...(t2 !== undefined && { team2: t2 }),
                           })
                         }
+                        onPatchMatch={(mid, patch) => onUpdateMatch(phase.id, mid, patch)}
                         onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
+
                         onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
                         onGenerateNextRound={(pairings) => {
                           if (onAddBracketMatches) {
