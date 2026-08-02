@@ -210,7 +210,9 @@ export const SwissView = ({
   const eliminatedCount = stage.standings.filter(s => s.status === "eliminated").length;
   const playingCount = stage.standings.filter(s => s.status === "playing").length;
 
-  const projected = projectFutureRounds(stage);
+  // Runda 1 jest zawsze generowana przy tworzeniu fazy — szkielet TBD dotyczy
+  // wyłącznie rund 2+.
+  const projected = projectFutureRounds(stage).filter(r => r.round >= 2);
 
   /** Ile slotów TBD istnieje już dla danej rundy. */
   const skeletonByRound = new Map<string, MatchResult[]>();
@@ -236,6 +238,19 @@ export const SwissView = ({
     });
     if (toCreate.length) onGenerateNextRound(toCreate);
   };
+
+  // Szkielet TBD tworzy się automatycznie (bez przycisku).
+  const buildRef = useRef(handleBuildSkeleton);
+  buildRef.current = handleBuildSkeleton;
+  const lastSig = useRef("");
+  useEffect(() => {
+    if (missingSkeleton <= 0) return;
+    const sig = `${matches.length}|${missingSkeleton}`;
+    if (lastSig.current === sig) return;
+    lastSig.current = sig;
+    buildRef.current();
+  }, [missingSkeleton, matches.length]);
+
 
   const handleGenerate = () => {
     const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
