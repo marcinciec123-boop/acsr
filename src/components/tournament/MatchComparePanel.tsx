@@ -29,6 +29,9 @@ interface Props {
   tournamentId?: string;
   /** Used to freeze the generated odds for this specific match. */
   matchId?: string;
+  /** Final score (map wins) — used to highlight the actual winner. */
+  score1?: number;
+  score2?: number;
 }
 
 
@@ -54,7 +57,9 @@ const shrinkProb = (p: number, factor = 0.6) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
-export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId }: Props) => {
+export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId, score1 = 0, score2 = 0 }: Props) => {
+  const decided = (score1 + score2) > 0 && score1 !== score2;
+  const winnerSlot: 1 | 2 | 0 = decided ? (score1 > score2 ? 1 : 2) : 0;
   const roster1 = useMemo(() => getRoster(team1, tournamentId), [team1, tournamentId]);
   const roster2 = useMemo(() => getRoster(team2, tournamentId), [team2, tournamentId]);
 
@@ -229,14 +234,16 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchI
               rank={isNat1 ? null : rank1}
               prob={probWin1}
               odds={odds1}
-              favored={probWin1 >= probWin2}
+              favored={decided ? winnerSlot === 1 : probWin1 >= probWin2}
+              winner={winnerSlot === 1}
             />
             <OddsCard
               team={team2}
               rank={isNat2 ? null : rank2}
               prob={probWin2}
               odds={odds2}
-              favored={probWin2 > probWin1}
+              favored={decided ? winnerSlot === 2 : probWin2 > probWin1}
+              winner={winnerSlot === 2}
             />
           </div>
 
