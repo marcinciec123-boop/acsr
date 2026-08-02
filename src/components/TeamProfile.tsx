@@ -85,7 +85,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
-  const { trophies, recentMatches, totals, upcomingMatches } = useMemo(() => {
+  const { trophies, recentMatches, totals, upcomingMatches, mapStats } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
     const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
     const matches: {
@@ -98,6 +98,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; bo?: number; round?: string; scheduledAt?: string;
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
+    const perMap = new Map<string, { w: number; l: number }>();
 
 
     for (const t of tournaments) {
@@ -142,6 +143,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             const d = isT1 ? mp.score2 : mp.score1;
             if (o + d <= 0) continue;
             if (o > d) mapsW++; else mapsL++;
+            const key = mp.map || "?";
+            const agg = perMap.get(key) || { w: 0, l: 0 };
+            if (o > d) agg.w++; else agg.l++;
+            perMap.set(key, agg);
           }
         }
         // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
@@ -179,10 +184,15 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       return 0;
     });
 
+    const mapStats = Array.from(perMap.entries())
+      .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
+      .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
+
     return {
       trophies,
       recentMatches: matches,
       upcomingMatches: upcoming,
+      mapStats,
 
       totals: {
         wins, losses, totalMatches, winRate,
@@ -496,6 +506,30 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       <p className="text-xs text-muted-foreground font-mono">{team.region}</p>
                     </div>
                   </div>
+                </Card>
+                <Card title="Win % na mapach" icon={<Swords className="w-4 h-4 text-primary" />}>
+                  {mapStats.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych map.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {mapStats.map(ms => (
+                        <li key={ms.map} className="flex items-center gap-2">
+                          <span className="text-xs font-heading text-foreground w-20 shrink-0 truncate">{ms.map}</span>
+                          <div className="flex-1 h-2 rounded-full bg-secondary/60 overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full",
+                                ms.winRate >= 60 ? "bg-[hsl(var(--win))]" : ms.winRate >= 40 ? "bg-primary" : "bg-destructive",
+                              )}
+                              style={{ width: `${ms.winRate}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-mono tabular-nums text-foreground w-10 text-right">{ms.winRate}%</span>
+                          <span className="text-xs font-mono tabular-nums text-muted-foreground w-12 text-right">{ms.wins}-{ms.losses}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </Card>
               </div>
             </div>
