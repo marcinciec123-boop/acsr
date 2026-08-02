@@ -518,6 +518,7 @@ const PlayerProfile = ({
                     <tr className="text-muted-foreground border-b border-border/50 text-xs uppercase tracking-wider">
                       <th className="text-left py-1.5">Turniej</th>
                       <th className="text-left py-1.5">Runda</th>
+                      <th className="text-left py-1.5">Data</th>
                       <th className="text-left py-1.5">Przeciwnik</th>
                       <th className="text-center py-1.5">Wynik</th>
                       <th className="text-center py-1.5">K-D-A</th>
@@ -536,6 +537,9 @@ const PlayerProfile = ({
                         </td>
                         <td className="py-2 text-xs text-primary/80 truncate max-w-[120px]" title={m.round || "—"}>
                           {m.round || "—"}
+                        </td>
+                        <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {m.playedAt ? m.playedAt.slice(0, 10) : "—"}
                         </td>
                         <td className="py-2">
                           <button

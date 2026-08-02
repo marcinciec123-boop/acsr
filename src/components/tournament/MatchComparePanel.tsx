@@ -29,6 +29,9 @@ interface Props {
   tournamentId?: string;
   /** Used to freeze the generated odds for this specific match. */
   matchId?: string;
+  /** Final score (map wins) — used to highlight the actual winner. */
+  score1?: number;
+  score2?: number;
 }
 
 
@@ -54,7 +57,9 @@ const shrinkProb = (p: number, factor = 0.6) => 0.5 + (p - 0.5) * factor;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
-export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId }: Props) => {
+export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId, score1 = 0, score2 = 0 }: Props) => {
+  const decided = (score1 + score2) > 0 && score1 !== score2;
+  const winnerSlot: 1 | 2 | 0 = decided ? (score1 > score2 ? 1 : 2) : 0;
   const roster1 = useMemo(() => getRoster(team1, tournamentId), [team1, tournamentId]);
   const roster2 = useMemo(() => getRoster(team2, tournamentId), [team2, tournamentId]);
 
@@ -229,14 +234,16 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchI
               rank={isNat1 ? null : rank1}
               prob={probWin1}
               odds={odds1}
-              favored={probWin1 >= probWin2}
+              favored={decided ? winnerSlot === 1 : probWin1 >= probWin2}
+              winner={winnerSlot === 1}
             />
             <OddsCard
               team={team2}
               rank={isNat2 ? null : rank2}
               prob={probWin2}
               odds={odds2}
-              favored={probWin2 > probWin1}
+              favored={decided ? winnerSlot === 2 : probWin2 > probWin1}
+              winner={winnerSlot === 2}
             />
           </div>
 
@@ -471,9 +478,9 @@ const CompareRow = ({
 };
 
 const OddsCard = ({
-  team, rank, prob, odds, favored,
+  team, rank, prob, odds, favored, winner,
 }: {
-  team: string; rank?: number | null; prob: number; odds: number; favored: boolean;
+  team: string; rank?: number | null; prob: number; odds: number; favored: boolean; winner?: boolean;
 }) => {
   return (
     <div className={cn(
@@ -481,11 +488,15 @@ const OddsCard = ({
       favored
         ? "bg-[hsl(var(--gold))]/5 border-[hsl(var(--gold))]/40"
         : "bg-secondary/20 border-border",
+      winner && "ring-1 ring-[hsl(var(--win))]/50",
     )}>
       <div className="flex items-center gap-2 min-w-0">
         <TeamLogo teamName={team} size={24} rounded="md" />
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-bold truncate">{team}</div>
+          <div className="text-xs font-bold truncate flex items-center gap-1.5">
+            {team}
+            {winner && <span className="text-xs font-mono px-1 py-0.5 rounded bg-[hsl(var(--win))]/15 text-[hsl(var(--win))] border border-[hsl(var(--win))]/30">WYGRANA</span>}
+          </div>
           <div className="text-xs font-mono text-muted-foreground">{rank != null ? `#${rank} • ` : ""}{Math.round(prob * 100)}% szans</div>
         </div>
       </div>

@@ -339,13 +339,15 @@ export const normalizeGSLDoubleElimGroup = (
 
 /** Swiss: returns first-round matches only (subsequent rounds added by user as results come in) */
 export const buildSwissRound1 = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResult[] => {
-  const t = shuffle(teams);
+  // Rozstawienie Major-style: seed 1 gra z seedem (n/2 + 1), 2 z (n/2 + 2) itd.
+  const t = teams.filter(Boolean);
+  const half = Math.floor(t.length / 2);
   const matches: MatchResult[] = [];
-  for (let i = 0; i < t.length - 1; i += 2) {
+  for (let i = 0; i < half; i++) {
     matches.push({
       id: uid(),
       team1: t[i],
-      team2: t[i + 1],
+      team2: t[i + half],
       score1: 0,
       score2: 0,
       round: "Swiss R1",
@@ -354,6 +356,7 @@ export const buildSwissRound1 = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResul
   }
   return matches;
 };
+
 
 /** Distribute teams into N groups using snake seeding */
 export const distributeIntoGroups = (teams: string[], groupCount: number): string[][] => {

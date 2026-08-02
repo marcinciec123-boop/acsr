@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -210,7 +210,9 @@ export const SwissView = ({
   const eliminatedCount = stage.standings.filter(s => s.status === "eliminated").length;
   const playingCount = stage.standings.filter(s => s.status === "playing").length;
 
-  const projected = projectFutureRounds(stage);
+  // Runda 1 jest zawsze generowana przy tworzeniu fazy — szkielet TBD dotyczy
+  // wyłącznie rund 2+.
+  const projected = projectFutureRounds(stage).filter(r => r.round >= 2);
 
   /** Ile slotów TBD istnieje już dla danej rundy. */
   const skeletonByRound = new Map<string, MatchResult[]>();
@@ -236,6 +238,19 @@ export const SwissView = ({
     });
     if (toCreate.length) onGenerateNextRound(toCreate);
   };
+
+  // Szkielet TBD tworzy się automatycznie (bez przycisku).
+  const buildRef = useRef(handleBuildSkeleton);
+  buildRef.current = handleBuildSkeleton;
+  const lastSig = useRef("");
+  useEffect(() => {
+    if (missingSkeleton <= 0) return;
+    const sig = `${matches.length}|${missingSkeleton}`;
+    if (lastSig.current === sig) return;
+    lastSig.current = sig;
+    buildRef.current();
+  }, [missingSkeleton, matches.length]);
+
 
   const handleGenerate = () => {
     const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
@@ -288,18 +303,8 @@ export const SwissView = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {missingSkeleton > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBuildSkeleton}
-              className="gap-1.5 h-8"
-              title="Utwórz mecze TBD dla kolejnych rund (planowanie terminów)"
-            >
-              <CalendarClock className="w-3.5 h-3.5" />
-              Szkielet TBD ({missingSkeleton})
-            </Button>
-          )}
+          {/* Szkielet TBD generowany automatycznie */}
+
           <Button
             size="sm"
             onClick={handleGenerate}

@@ -594,6 +594,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 bo={bo}
                 tournamentId={tournamentId}
                 matchId={match.id}
+                score1={match.score1}
+                score2={match.score2}
 
               />
             ) : (

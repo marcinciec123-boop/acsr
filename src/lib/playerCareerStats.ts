@@ -263,7 +263,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
-        playedAt: match.playedAt || t.endDate,
+        playedAt: match.playedAt || match.scheduledAt || t.endDate,
         kills: mKills,
         deaths: mDeaths,
         assists: mAssists,
@@ -279,7 +279,13 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
   }
 
   // Sort all matches chronologically (newest first) for the recent list
-  matchEntries.sort((a, b) => (b.playedAt || "").localeCompare(a.playedAt || ""));
+  const seq = new Map<typeof matchEntries[number], number>();
+  matchEntries.forEach((e, i) => seq.set(e, i));
+  matchEntries.sort((a, b) => {
+    const c = (b.playedAt || "").localeCompare(a.playedAt || "");
+    if (c !== 0) return c;
+    return (seq.get(b) ?? 0) - (seq.get(a) ?? 0);
+  });
 
   const matchesPlayed = matchEntries.length;
   const careerRating = matchesPlayed > 0
@@ -463,14 +469,20 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
         team, opponent, ownScore, oppScore, ownRounds, oppRounds, mapScores,
         won: ownScore > oppScore && (ownScore + oppScore) > 0,
         bo: (match.bo || 1) as 1 | 3 | 5,
-        round: match.round, playedAt: match.playedAt || t.endDate,
+        round: match.round, playedAt: match.playedAt || match.scheduledAt || t.endDate,
         kills: mKills, deaths: mDeaths, assists: mAssists,
         adr: Math.round(mAdrW / mRounds), kast: Math.round(mKastW / mRounds),
         ud: mUd, ef: mEf, rounds: mRounds, rating, maps: [],
       });
     }
   }
-  entries.sort((a, b) => (b.playedAt || "").localeCompare(a.playedAt || ""));
+  const seqE = new Map<typeof entries[number], number>();
+  entries.forEach((e, i) => seqE.set(e, i));
+  entries.sort((a, b) => {
+    const c = (b.playedAt || "").localeCompare(a.playedAt || "");
+    if (c !== 0) return c;
+    return (seqE.get(b) ?? 0) - (seqE.get(a) ?? 0);
+  });
   return entries;
 }
 
@@ -566,7 +578,7 @@ export function computeAllPlayersBasicStats(
         pushSide(map.team1Players, true, rounds);
         pushSide(map.team2Players, false, rounds);
       }
-      const playedAt = match.playedAt || t.endDate || "";
+      const playedAt = match.playedAt || match.scheduledAt || t.endDate || "";
       for (const [name, a] of acc) {
         if (a.rounds === 0) continue;
         const rating = calculateRating({
