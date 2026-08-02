@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
