@@ -303,18 +303,8 @@ export const SwissView = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {missingSkeleton > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBuildSkeleton}
-              className="gap-1.5 h-8"
-              title="Utwórz mecze TBD dla kolejnych rund (planowanie terminów)"
-            >
-              <CalendarClock className="w-3.5 h-3.5" />
-              Szkielet TBD ({missingSkeleton})
-            </Button>
-          )}
+          {/* Szkielet TBD generowany automatycznie */}
+
           <Button
             size="sm"
             onClick={handleGenerate}
