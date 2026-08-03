@@ -24,7 +24,7 @@ import { seedEseaMasters2026 } from "@/lib/eseaMasters2026Seeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
-import { getWorldNowIso, advanceWorldTo } from "@/lib/worldClock";
+import { getWorldNowIso, advanceWorldTo, getWorldDate } from "@/lib/worldClock";
 import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
