@@ -121,8 +121,10 @@ const TournamentPanel = () => {
   const [newName, setNewName] = useState("");
   const [newOrg, setNewOrg] = useState("");
   const [newPrize, setNewPrize] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newEnd, setNewEnd] = useState("");
+  // Domyślne daty biorą się z fikcyjnego kalendarza (nie z systemowego).
+  const [newStart, setNewStart] = useState(() => getWorldDate());
+  const [newEnd, setNewEnd] = useState(() => getWorldDate());
+
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
