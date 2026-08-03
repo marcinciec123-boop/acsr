@@ -390,12 +390,32 @@ export function projectFutureRounds(stage: SwissStageData): { round: number; mat
   const cap = stage.winCap;
   // Aktualne "kubełki" rekordów drużyn wciąż w grze.
   const buckets = new Map<string, number>();
-  stage.standings
-    .filter(s => s.status === "playing")
-    .forEach(s => {
-      const k = `${s.wins}-${s.losses}`;
-      buckets.set(k, (buckets.get(k) || 0) + 1);
+  const bump = (k: string, n = 1) => buckets.set(k, (buckets.get(k) || 0) + n);
+
+  // Drużyny, które mają jeszcze nierozegrany mecz w bieżącej rundzie —
+  // ich rekord po tej rundzie jest już przesądzony (jedna wygrana, jedna porażka),
+  // więc projekcja startuje dopiero od kolejnej rundy.
+  const pending = new Set<string>();
+  const last = stage.rounds[stage.rounds.length - 1];
+  if (last) {
+    last.matches.forEach(m => {
+      if (!m.team1 || !m.team2) return;
+      if ((m.score1 + m.score2) > 0) return;
+      pending.add(m.team1);
+      pending.add(m.team2);
+      const a = stage.standings.find(s => s.team === m.team1);
+      const b = stage.standings.find(s => s.team === m.team2);
+      if (!a || !b) return;
+      // jeden wygra, jeden przegra
+      bump(`${a.wins + 1}-${a.losses}`);
+      bump(`${a.wins}-${a.losses + 1}`);
     });
+  }
+
+  stage.standings
+    .filter(s => s.status === "playing" && !pending.has(s.team))
+    .forEach(s => bump(`${s.wins}-${s.losses}`));
+
 
   const out: { round: number; matches: number }[] = [];
   let round = stage.currentRound + 1;
