@@ -28,6 +28,8 @@ interface Props {
   advanceCount?: number;
   /** Pairs that already met in earlier phases (for rematch avoidance). */
   priorMeetings?: Set<string>;
+  /** Turniej zakończony/archiwalny — bez generowania szkieletu TBD. */
+  archived?: boolean;
   /** Update a single match score / teams */
   onUpdate: (
     id: string,
