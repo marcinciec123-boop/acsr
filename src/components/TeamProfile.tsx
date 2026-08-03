@@ -144,12 +144,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             const d = isT1 ? mp.score2 : mp.score1;
             if (o + d <= 0) continue;
             if (o > d) mapsW++; else mapsL++;
-            const key = mp.map || "?";
-            const agg = perMap.get(key) || { w: 0, l: 0 };
-            if (o > d) agg.w++; else agg.l++;
-            perMap.set(key, agg);
+            mapEvents.push({ map: mp.map || "?", won: o > d, date: (m.playedAt || t.endDate || "").slice(0, 10) });
           }
         }
+
         // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
         const [d1, d2] = getDisplayScore(m);
         matches.push({
