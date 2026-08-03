@@ -532,8 +532,32 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   </div>
                 </Card>
                 <Card title="Win % na mapach" icon={<Swords className="w-4 h-4 text-primary" />}>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {([
+                      ["1m", "1 mies."],
+                      ["3m", "3 mies."],
+                      ["6m", "6 mies."],
+                      ["1y", "Rok"],
+                      ["all", "Całość"],
+                    ] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setMapRange(val)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-xs font-mono border transition-colors",
+                          mapRange === val
+                            ? "bg-primary/15 border-primary/50 text-primary"
+                            : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   {mapStats.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych map.</p>
+                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych map w tym okresie.</p>
+
                   ) : (
                     <ul className="space-y-1.5">
                       {mapStats.map(ms => (
