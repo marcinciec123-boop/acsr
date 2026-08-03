@@ -19,7 +19,7 @@ export function cleanupSwissSkeletons(): number {
   const next = tournaments.map(t => {
     if (t.status !== "completed") return t;
     const phases = (t.phases || []).map(p => {
-      if (!p.bracket?.length) return p;
+      if (p.format !== "swiss" || !p.bracket?.length) return p;
       const kept = p.bracket.filter(m => {
         const drop = isTbd(m) && (m.score1 + m.score2) === 0;
         if (drop) removed += 1;
