@@ -185,6 +185,7 @@ export const SwissView = ({
   tier,
   advanceCount,
   priorMeetings,
+  archived,
   onUpdate,
   onPatchMatch,
   onOpenMatch,
