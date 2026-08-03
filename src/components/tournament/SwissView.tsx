@@ -215,7 +215,7 @@ export const SwissView = ({
 
   // Runda 1 jest zawsze generowana przy tworzeniu fazy — szkielet TBD dotyczy
   // wyłącznie rund 2+.
-  const projected = projectFutureRounds(stage).filter(r => r.round >= 2);
+  const projected = archived ? [] : projectFutureRounds(stage).filter(r => r.round >= 2);
 
   /** Ile slotów TBD istnieje już dla danej rundy. */
   const skeletonByRound = new Map<string, MatchResult[]>();
@@ -225,7 +225,7 @@ export const SwissView = ({
     skeletonByRound.get(k)!.push(m);
   });
 
-  const missingSkeleton = stage.finished
+  const missingSkeleton = stage.finished || archived
     ? 0
     : projected.reduce(
         (acc, r) => acc + Math.max(0, r.matches - (skeletonByRound.get(swissRoundLabel(r.round))?.length || 0)),
@@ -236,7 +236,7 @@ export const SwissView = ({
    *  albo po zmianie liczby drużyn) — do usunięcia. */
   const staleSkeleton = (() => {
     const allowed = new Map<string, number>();
-    if (!stage.finished) projected.forEach(r => allowed.set(swissRoundLabel(r.round), r.matches));
+    if (!stage.finished && !archived) projected.forEach(r => allowed.set(swissRoundLabel(r.round), r.matches));
     const out: MatchResult[] = [];
     skeletonByRound.forEach((list, label) => {
       const keep = allowed.get(label) || 0;
