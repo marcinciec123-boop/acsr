@@ -24,7 +24,7 @@ import { seedEseaMasters2026 } from "@/lib/eseaMasters2026Seeder";
 import { TournamentDetailPage } from "./tournament/TournamentDetailPage";
 import { MatchDetailPage } from "./tournament/MatchDetailPage";
 import { TournamentPortal } from "./tournament/TournamentPortal";
-import { getWorldNowIso, advanceWorldTo } from "@/lib/worldClock";
+import { getWorldNowIso, advanceWorldTo, getWorldDate } from "@/lib/worldClock";
 import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
@@ -121,8 +121,10 @@ const TournamentPanel = () => {
   const [newName, setNewName] = useState("");
   const [newOrg, setNewOrg] = useState("");
   const [newPrize, setNewPrize] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newEnd, setNewEnd] = useState("");
+  // Domyślne daty biorą się z fikcyjnego kalendarza (nie z systemowego).
+  const [newStart, setNewStart] = useState(() => getWorldDate());
+  const [newEnd, setNewEnd] = useState(() => getWorldDate());
+
   const [newLocation, setNewLocation] = useState("");
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
@@ -237,7 +239,7 @@ const TournamentPanel = () => {
   }, [allTeams, teamSearch, teamSort, rankMap, teamMeta]);
 
   const resetForm = () => {
-    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
+    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(getWorldDate()); setNewEnd(getWorldDate());
     setNewLocation(""); setNewTier("A");
     setCustomPointsEnabled(false); setCustomPoints({});
     setSelectedTeams([]); setTeamSearch("");

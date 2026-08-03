@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useWorldDate } from "@/lib/worldClock";
+import { usePersistedState } from "@/lib/uiPrefs";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
@@ -85,7 +87,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
-  const { trophies, recentMatches, totals, upcomingMatches, mapStats } = useMemo(() => {
+  const { trophies, recentMatches, totals, upcomingMatches, mapEvents } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
     const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
     const matches: {
@@ -98,7 +100,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; bo?: number; round?: string; scheduledAt?: string;
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
-    const perMap = new Map<string, { w: number; l: number }>();
+    const mapEvents: { map: string; won: boolean; date: string }[] = [];
+
 
 
     for (const t of tournaments) {
@@ -143,12 +146,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             const d = isT1 ? mp.score2 : mp.score1;
             if (o + d <= 0) continue;
             if (o > d) mapsW++; else mapsL++;
-            const key = mp.map || "?";
-            const agg = perMap.get(key) || { w: 0, l: 0 };
-            if (o > d) agg.w++; else agg.l++;
-            perMap.set(key, agg);
+            mapEvents.push({ map: mp.map || "?", won: o > d, date: (m.playedAt || t.endDate || "").slice(0, 10) });
           }
         }
+
         // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
         const [d1, d2] = getDisplayScore(m);
         matches.push({
@@ -184,15 +185,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       return 0;
     });
 
-    const mapStats = Array.from(perMap.entries())
-      .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
-      .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
-
     return {
       trophies,
       recentMatches: matches,
       upcomingMatches: upcoming,
-      mapStats,
+      mapEvents,
+
 
       totals: {
         wins, losses, totalMatches, winRate,
@@ -204,6 +202,32 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       },
     };
   }, [teamName]);
+
+  // ===== Win % na mapach z filtrem czasowym (wg fikcyjnego kalendarza) =====
+  const worldDate = useWorldDate();
+  const [mapRange, setMapRange] = usePersistedState<"1m" | "3m" | "6m" | "1y" | "all">(
+    "team_maprange", "all",
+  );
+  const mapStats = useMemo(() => {
+    let cutoff = "";
+    if (mapRange !== "all") {
+      const d = new Date(`${worldDate}T12:00:00`);
+      const months = mapRange === "1m" ? 1 : mapRange === "3m" ? 3 : mapRange === "6m" ? 6 : 12;
+      d.setMonth(d.getMonth() - months);
+      cutoff = d.toISOString().slice(0, 10);
+    }
+    const perMap = new Map<string, { w: number; l: number }>();
+    mapEvents.forEach(ev => {
+      if (cutoff && (!ev.date || ev.date < cutoff)) return;
+      const agg = perMap.get(ev.map) || { w: 0, l: 0 };
+      if (ev.won) agg.w++; else agg.l++;
+      perMap.set(ev.map, agg);
+    });
+    return Array.from(perMap.entries())
+      .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
+      .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
+  }, [mapEvents, mapRange, worldDate]);
+
 
   const handleUploadClick = () => fileInputRef.current?.click();
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -508,8 +532,32 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   </div>
                 </Card>
                 <Card title="Win % na mapach" icon={<Swords className="w-4 h-4 text-primary" />}>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {([
+                      ["1m", "1 mies."],
+                      ["3m", "3 mies."],
+                      ["6m", "6 mies."],
+                      ["1y", "Rok"],
+                      ["all", "Całość"],
+                    ] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setMapRange(val)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-xs font-mono border transition-colors",
+                          mapRange === val
+                            ? "bg-primary/15 border-primary/50 text-primary"
+                            : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   {mapStats.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych map.</p>
+                    <p className="text-sm text-muted-foreground py-2">Brak rozegranych map w tym okresie.</p>
+
                   ) : (
                     <ul className="space-y-1.5">
                       {mapStats.map(ms => (

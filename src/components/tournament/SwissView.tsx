@@ -222,10 +222,27 @@ export const SwissView = ({
     skeletonByRound.get(k)!.push(m);
   });
 
-  const missingSkeleton = projected.reduce(
-    (acc, r) => acc + Math.max(0, r.matches - (skeletonByRound.get(swissRoundLabel(r.round))?.length || 0)),
-    0,
-  );
+  const missingSkeleton = stage.finished
+    ? 0
+    : projected.reduce(
+        (acc, r) => acc + Math.max(0, r.matches - (skeletonByRound.get(swissRoundLabel(r.round))?.length || 0)),
+        0,
+      );
+
+  /** Sloty TBD, które nie mają pokrycia w projekcji (np. w zakończonych turniejach
+   *  albo po zmianie liczby drużyn) — do usunięcia. */
+  const staleSkeleton = (() => {
+    const allowed = new Map<string, number>();
+    if (!stage.finished) projected.forEach(r => allowed.set(swissRoundLabel(r.round), r.matches));
+    const out: MatchResult[] = [];
+    skeletonByRound.forEach((list, label) => {
+      const keep = allowed.get(label) || 0;
+      // Zachowaj najpierw te z ustawionym terminem.
+      const ordered = [...list].sort((a, b) => (a.scheduledAt ? 0 : 1) - (b.scheduledAt ? 0 : 1));
+      out.push(...ordered.slice(keep));
+    });
+    return out;
+  })();
 
   const handleBuildSkeleton = () => {
     const toCreate: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
@@ -242,14 +259,21 @@ export const SwissView = ({
   // Szkielet TBD tworzy się automatycznie (bez przycisku).
   const buildRef = useRef(handleBuildSkeleton);
   buildRef.current = handleBuildSkeleton;
+  const staleRef = useRef(staleSkeleton);
+  staleRef.current = staleSkeleton;
   const lastSig = useRef("");
   useEffect(() => {
+    if (staleRef.current.length > 0 && onDelete) {
+      staleRef.current.forEach(m => onDelete(m.id));
+      return;
+    }
     if (missingSkeleton <= 0) return;
     const sig = `${matches.length}|${missingSkeleton}`;
     if (lastSig.current === sig) return;
     lastSig.current = sig;
     buildRef.current();
-  }, [missingSkeleton, matches.length]);
+  }, [missingSkeleton, matches.length, staleSkeleton.length, onDelete]);
+
 
 
   const handleGenerate = () => {

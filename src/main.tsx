@@ -8,6 +8,7 @@ import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
 import { initFont } from "./lib/font";
 import { installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
+import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 
 initTheme();
 initFont();
@@ -25,6 +26,7 @@ const startApp = async () => {
   bootstrapPersistedState();
   await synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
   installRankingHistoryAutoSync();
+  try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
   void createDeviceBackup("auto", "Start aplikacji");
 
   createRoot(document.getElementById("root")!).render(<App />);
