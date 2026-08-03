@@ -183,15 +183,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       return 0;
     });
 
-    const mapStats = Array.from(perMap.entries())
-      .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
-      .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
-
     return {
       trophies,
       recentMatches: matches,
       upcomingMatches: upcoming,
-      mapStats,
+      mapEvents,
+
 
       totals: {
         wins, losses, totalMatches, winRate,
