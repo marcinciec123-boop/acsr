@@ -239,7 +239,7 @@ const TournamentPanel = () => {
   }, [allTeams, teamSearch, teamSort, rankMap, teamMeta]);
 
   const resetForm = () => {
-    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(""); setNewEnd("");
+    setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(getWorldDate()); setNewEnd(getWorldDate());
     setNewLocation(""); setNewTier("A");
     setCustomPointsEnabled(false); setCustomPoints({});
     setSelectedTeams([]); setTeamSearch("");
