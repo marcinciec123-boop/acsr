@@ -201,6 +201,32 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     };
   }, [teamName]);
 
+  // ===== Win % na mapach z filtrem czasowym (wg fikcyjnego kalendarza) =====
+  const worldDate = useWorldDate();
+  const [mapRange, setMapRange] = usePersistedState<"1m" | "3m" | "6m" | "1y" | "all">(
+    "team_maprange", "all",
+  );
+  const mapStats = useMemo(() => {
+    let cutoff = "";
+    if (mapRange !== "all") {
+      const d = new Date(`${worldDate}T12:00:00`);
+      const months = mapRange === "1m" ? 1 : mapRange === "3m" ? 3 : mapRange === "6m" ? 6 : 12;
+      d.setMonth(d.getMonth() - months);
+      cutoff = d.toISOString().slice(0, 10);
+    }
+    const perMap = new Map<string, { w: number; l: number }>();
+    mapEvents.forEach(ev => {
+      if (cutoff && (!ev.date || ev.date < cutoff)) return;
+      const agg = perMap.get(ev.map) || { w: 0, l: 0 };
+      if (ev.won) agg.w++; else agg.l++;
+      perMap.set(ev.map, agg);
+    });
+    return Array.from(perMap.entries())
+      .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
+      .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
+  }, [mapEvents, mapRange, worldDate]);
+
+
   const handleUploadClick = () => fileInputRef.current?.click();
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
