@@ -98,7 +98,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; bo?: number; round?: string; scheduledAt?: string;
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
-    const perMap = new Map<string, { w: number; l: number }>();
+    const mapEvents: { map: string; won: boolean; date: string }[] = [];
+
 
 
     for (const t of tournaments) {
