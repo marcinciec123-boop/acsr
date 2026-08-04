@@ -624,6 +624,31 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       ))}
                     </ul>
                   )}
+                  <div className="mt-4 pt-3 border-t border-border/60">
+                    <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Wygrane rundy wg strony</div>
+                    {!sideStats.hasData ? (
+                      <p className="text-sm text-muted-foreground">Brak danych o stronach w tym okresie.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {([
+                          ["T", sideStats.tRate, sideStats.tWon, sideStats.tPlayed],
+                          ["CT", sideStats.ctRate, sideStats.ctWon, sideStats.ctPlayed],
+                        ] as const).map(([side, rate, won, played]) => (
+                          <div key={side} className="flex items-center gap-2">
+                            <span className="text-xs font-heading text-foreground w-20 shrink-0">{side}</span>
+                            <div className="flex-1 h-2 rounded-full bg-secondary/60 overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full", side === "T" ? "bg-[hsl(var(--warning,45_100%_55%))]" : "bg-accent")}
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-mono tabular-nums text-foreground w-10 text-right">{rate}%</span>
+                            <span className="text-xs font-mono tabular-nums text-muted-foreground w-16 text-right">{won}/{played}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Card>
               </div>
             </div>
