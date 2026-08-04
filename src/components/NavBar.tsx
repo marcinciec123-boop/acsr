@@ -35,7 +35,7 @@ const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
               <span className="absolute inset-0 rounded-md bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
             </span>
             <span className="font-heading text-lg font-bold tracking-wider text-foreground">
-              CS:GO <span className="text-primary neon-text">HUB</span>
+              ACSR <span className="text-primary neon-text">PORTAL</span>
             </span>
           </button>
 

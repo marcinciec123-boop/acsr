@@ -30,6 +30,11 @@ export interface MatchMap {
   map: string;
   score1: number;  // rounds team1
   score2: number;  // rounds team2
+  /** Strona, po której drużyna 1 rozpoczyna mapę (połowa = 12 rund). */
+  team1StartSide?: "T" | "CT";
+  /** Wynik pierwszej połowy (12 rund) — rundy drużyny 1 / drużyny 2. */
+  half1Score1?: number;
+  half1Score2?: number;
   team1Players?: MapPlayerStats[]; // 5 players
   team2Players?: MapPlayerStats[]; // 5 players
 }

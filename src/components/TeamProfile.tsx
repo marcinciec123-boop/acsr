@@ -87,7 +87,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
-  const { trophies, recentMatches, totals, upcomingMatches, mapEvents } = useMemo(() => {
+  const { trophies, recentMatches, totals, upcomingMatches, mapEvents, sideEvents } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
     const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
     const matches: {
@@ -101,6 +101,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
     const mapEvents: { map: string; won: boolean; date: string }[] = [];
+    const sideEvents: { date: string; tWon: number; ctWon: number; tPlayed: number; ctPlayed: number }[] = [];
 
 
 
@@ -124,6 +125,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
         const isT1 = m.team1 === teamName;
         const isT2 = m.team2 === teamName;
         if (!isT1 && !isT2) continue;
+        if (m.team1 === "BYE" || m.team2 === "BYE") continue;
         const ownScore = isT1 ? m.score1 : m.score2;
         const oppScore = isT1 ? m.score2 : m.score1;
         const opponent = isT1 ? m.team2 : m.team1;
@@ -146,9 +148,28 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             const d = isT1 ? mp.score2 : mp.score1;
             if (o + d <= 0) continue;
             if (o > d) mapsW++; else mapsL++;
-            mapEvents.push({ map: mp.map || "?", won: o > d, date: (m.playedAt || t.endDate || "").slice(0, 10) });
+            const date = (m.playedAt || t.endDate || "").slice(0, 10);
+            mapEvents.push({ map: mp.map || "?", won: o > d, date });
+
+            // Rundy po stronach (połowa = 12 rund).
+            const h1a = mp.half1Score1, h1b = mp.half1Score2;
+            if (mp.team1StartSide && typeof h1a === "number" && typeof h1b === "number" && h1a + h1b > 0) {
+              const firstHalfRounds = h1a + h1b;
+              const secondHalfRounds = (mp.score1 + mp.score2) - firstHalfRounds;
+              const ownFirst = isT1 ? h1a : h1b;
+              const ownSecond = Math.max(0, o - ownFirst);
+              const startSide = isT1
+                ? mp.team1StartSide
+                : (mp.team1StartSide === "T" ? "CT" : "T");
+              const tWon = startSide === "T" ? ownFirst : ownSecond;
+              const ctWon = startSide === "T" ? ownSecond : ownFirst;
+              const tPlayed = startSide === "T" ? firstHalfRounds : Math.max(0, secondHalfRounds);
+              const ctPlayed = startSide === "T" ? Math.max(0, secondHalfRounds) : firstHalfRounds;
+              sideEvents.push({ date, tWon, ctWon, tPlayed, ctPlayed });
+            }
           }
         }
+
 
         // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
         const [d1, d2] = getDisplayScore(m);
@@ -190,6 +211,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       recentMatches: matches,
       upcomingMatches: upcoming,
       mapEvents,
+      sideEvents,
 
 
       totals: {
@@ -227,6 +249,30 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       .map(([map, v]) => ({ map, wins: v.w, losses: v.l, played: v.w + v.l, winRate: Math.round((v.w / (v.w + v.l)) * 100) }))
       .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
   }, [mapEvents, mapRange, worldDate]);
+
+  // ===== Win % rund po stronach T / CT (ten sam filtr czasowy) =====
+  const sideStats = useMemo(() => {
+    let cutoff = "";
+    if (mapRange !== "all") {
+      const d = new Date(`${worldDate}T12:00:00`);
+      const months = mapRange === "1m" ? 1 : mapRange === "3m" ? 3 : mapRange === "6m" ? 6 : 12;
+      d.setMonth(d.getMonth() - months);
+      cutoff = d.toISOString().slice(0, 10);
+    }
+    let tWon = 0, tPlayed = 0, ctWon = 0, ctPlayed = 0;
+    sideEvents.forEach(ev => {
+      if (cutoff && (!ev.date || ev.date < cutoff)) return;
+      tWon += ev.tWon; tPlayed += ev.tPlayed;
+      ctWon += ev.ctWon; ctPlayed += ev.ctPlayed;
+    });
+    return {
+      tWon, tPlayed, ctWon, ctPlayed,
+      tRate: tPlayed > 0 ? Math.round((tWon / tPlayed) * 100) : 0,
+      ctRate: ctPlayed > 0 ? Math.round((ctWon / ctPlayed) * 100) : 0,
+      hasData: tPlayed + ctPlayed > 0,
+    };
+  }, [sideEvents, mapRange, worldDate]);
+
 
 
   const handleUploadClick = () => fileInputRef.current?.click();
@@ -578,6 +624,31 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                       ))}
                     </ul>
                   )}
+                  <div className="mt-4 pt-3 border-t border-border/60">
+                    <div className="text-xs font-mono uppercase text-muted-foreground mb-2">Wygrane rundy wg strony</div>
+                    {!sideStats.hasData ? (
+                      <p className="text-sm text-muted-foreground">Brak danych o stronach w tym okresie.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {([
+                          ["T", sideStats.tRate, sideStats.tWon, sideStats.tPlayed],
+                          ["CT", sideStats.ctRate, sideStats.ctWon, sideStats.ctPlayed],
+                        ] as const).map(([side, rate, won, played]) => (
+                          <div key={side} className="flex items-center gap-2">
+                            <span className="text-xs font-heading text-foreground w-20 shrink-0">{side}</span>
+                            <div className="flex-1 h-2 rounded-full bg-secondary/60 overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full", side === "T" ? "bg-[hsl(var(--warning,45_100%_55%))]" : "bg-accent")}
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-mono tabular-nums text-foreground w-10 text-right">{rate}%</span>
+                            <span className="text-xs font-mono tabular-nums text-muted-foreground w-16 text-right">{won}/{played}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Card>
               </div>
             </div>

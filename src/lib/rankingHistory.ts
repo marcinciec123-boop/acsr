@@ -179,58 +179,69 @@ export function installRankingHistoryAutoSync(): void {
 
 export interface TeamRankingPoint { date: string; points: number; rank?: number }
 
-
-const buildPlacementFallback = (): Map<string, TeamRankingPoint[]> => {
-  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", [])
-    .filter(t => t.status === "completed" && !!t.endDate && t.kind !== "worlds")
-    .sort((a, b) => a.endDate.localeCompare(b.endDate));
-  const totals = new Map<string, number>();
-  const series = new Map<string, TeamRankingPoint[]>();
-  const byDate = new Map<string, TournamentData[]>();
-  tournaments.forEach(t => byDate.set(t.endDate, [...(byDate.get(t.endDate) || []), t]));
-
-  for (const [date, events] of [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    events.forEach(t => t.placements?.forEach(p => totals.set(p.team, (totals.get(p.team) || 0) + (p.points || 0))));
-    const ordered = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-    ordered.forEach(([team, points], index) => {
-      const list = series.get(team) || [];
-      list.push({ date, points, rank: index + 1 });
-      series.set(team, list);
+/**
+ * Pełna historia: rekonstrukcja z turniejów + zapisane migawki.
+ * Rangi są przeliczane na kompletnym zbiorze klubów, więc historyczne
+ * miejsca są dokładne co do pozycji (a nie tylko wśród drużyn z placementami).
+ */
+export function getMergedRankingHistory(): RankingSnapshot[] {
+  const merged = new Map<string, RankingSnapshot>();
+  buildHistoricalRankingSnapshots().forEach(s => merged.set(s.date, s));
+  loadRankingHistory().forEach(s => {
+    const base = merged.get(s.date);
+    merged.set(s.date, {
+      date: s.date,
+      points: { ...(base?.points || {}), ...s.points },
+      ranks: { ...(base?.ranks || {}), ...(s.ranks || {}) },
+      rosters: { ...(base?.rosters || {}), ...(s.rosters || {}) },
     });
+  });
+
+  // Uzupełnij luki: drużyny bez wpisu w danym dniu zachowują ostatnią znaną
+  // liczbę punktów — dzięki temu ranking z każdego dnia jest kompletny,
+  // a pozycje wyliczane są na pełnej stawce.
+  const carry: Record<string, number> = {};
+  return [...merged.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(s => {
+      Object.entries(s.points).forEach(([team, pts]) => { carry[team] = pts; });
+      const points = { ...carry };
+      return { date: s.date, points, ranks: buildRanks(points), rosters: s.rosters };
+    });
+}
+
+/** Pełny ranking (posortowany) obowiązujący danego dnia historii. */
+export function getRankingAt(dateIso: string): { team: string; points: number; rank: number }[] {
+  const day = dateIso.slice(0, 10);
+  const history = getMergedRankingHistory().filter(s => s.date <= day);
+  const snapshot = history[history.length - 1];
+  if (!snapshot) {
+    const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+    return ranking.filter(isClub)
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .map((t, i) => ({ team: t.name, points: t.points || 0, rank: i + 1 }));
   }
-  return series;
-};
+  return Object.entries(snapshot.points)
+    .sort(([, a], [, b]) => b - a)
+    .map(([team, points], index) => ({ team, points, rank: index + 1 }));
+}
 
-/** Series of {date, points, rank} for one team, sorted ascending.
- *  If we don't have enough snapshots, synthesize a cumulative series from
- *  the team's tournament placements so the chart isn't empty. */
+/** Series of {date, points, rank} for one team, sorted ascending. */
 export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
-  const snapshots = loadRankingHistory()
-    .map(s => ({ date: s.date, points: s.points[teamName] ?? 0, rank: s.ranks?.[teamName] }))
-    .filter(p => p.points > 0);
+  const series: TeamRankingPoint[] = getMergedRankingHistory()
+    .filter(s => s.points[teamName] !== undefined)
+    .map(s => ({ date: s.date, points: s.points[teamName], rank: s.ranks?.[teamName] }));
 
-  const events = buildPlacementFallback().get(teamName) || [];
-
-  if (events.length === 0) {
-    // Last resort: pin current points at today (single dot).
+  if (series.length === 0) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
     const cur = ranking.find(t => t.name === teamName)?.points ?? 0;
-    const clubs = ranking.filter(t => !t.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
+    const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0));
     const idx = clubs.findIndex(t => t.name === teamName);
     return [{ date: getWorldDate(), points: cur, rank: idx >= 0 ? idx + 1 : undefined }];
   }
-
-  const series: TeamRankingPoint[] = [...events];
-  // Always merge real snapshots with historical reconstruction. Previously two
-  // snapshots disabled the fallback entirely, hiding all older tournaments.
-  for (const s of snapshots) {
-    const idx = series.findIndex(p => p.date === s.date);
-    if (idx >= 0) series[idx] = s;
-    else series.push(s);
-  }
-  series.sort((a, b) => a.date.localeCompare(b.date));
   return series;
 }
+
 
 /**
  * Roster at a given historical date, reconstructed by reversing all transfers

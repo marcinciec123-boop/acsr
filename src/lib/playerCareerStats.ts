@@ -151,6 +151,7 @@ export function computeCareerStats(playerName: string, tournaments?: TournamentD
     if (t.matches) allMatches.push(...t.matches);
 
     for (const match of allMatches) {
+      if (match.team1 === "BYE" || match.team2 === "BYE") continue;
       const inMaps = findInMap(match, playerName);
       if (inMaps.length === 0) continue;
 
@@ -437,6 +438,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
     }
     if (t.matches) allMatches.push(...t.matches);
     for (const match of allMatches) {
+      if (match.team1 === "BYE" || match.team2 === "BYE") continue;
       const inMaps = findInMap(match, playerName);
       if (inMaps.length === 0) continue;
       const isTeam1 = inMaps[0].isTeam1;
