@@ -764,6 +764,52 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">
+                      Strona startowa: {match.team1}
+                    </label>
+                    <div className="flex gap-1">
+                      {(["T", "CT"] as const).map(side => (
+                        <button
+                          key={side}
+                          type="button"
+                          onClick={() => updateMap(activeMapIdx, { team1StartSide: side })}
+                          className={cn(
+                            "flex-1 h-9 rounded-md border text-xs font-mono uppercase transition-colors",
+                            maps[activeMapIdx].team1StartSide === side
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {side}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">
+                      1. połowa (12 rund) — {match.team1}
+                    </label>
+                    <Input
+                      type="number" min="0" max="12"
+                      value={maps[activeMapIdx].half1Score1 ?? ""}
+                      onChange={e => updateMap(activeMapIdx, { half1Score1: e.target.value === "" ? undefined : parseInt(e.target.value) })}
+                      className="text-center font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono uppercase text-muted-foreground mb-1 block">
+                      1. połowa (12 rund) — {match.team2}
+                    </label>
+                    <Input
+                      type="number" min="0" max="12"
+                      value={maps[activeMapIdx].half1Score2 ?? ""}
+                      onChange={e => updateMap(activeMapIdx, { half1Score2: e.target.value === "" ? undefined : parseInt(e.target.value) })}
+                      className="text-center font-mono"
+                    />
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground font-mono">
                   Wpisz statystyki graczy w zakładkach <span className="text-foreground">Stats {match.team1}</span> i <span className="text-foreground">Stats {match.team2}</span>.
                 </p>
