@@ -250,6 +250,30 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       .sort((a, b) => b.played - a.played || b.winRate - a.winRate);
   }, [mapEvents, mapRange, worldDate]);
 
+  // ===== Win % rund po stronach T / CT (ten sam filtr czasowy) =====
+  const sideStats = useMemo(() => {
+    let cutoff = "";
+    if (mapRange !== "all") {
+      const d = new Date(`${worldDate}T12:00:00`);
+      const months = mapRange === "1m" ? 1 : mapRange === "3m" ? 3 : mapRange === "6m" ? 6 : 12;
+      d.setMonth(d.getMonth() - months);
+      cutoff = d.toISOString().slice(0, 10);
+    }
+    let tWon = 0, tPlayed = 0, ctWon = 0, ctPlayed = 0;
+    sideEvents.forEach(ev => {
+      if (cutoff && (!ev.date || ev.date < cutoff)) return;
+      tWon += ev.tWon; tPlayed += ev.tPlayed;
+      ctWon += ev.ctWon; ctPlayed += ev.ctPlayed;
+    });
+    return {
+      tWon, tPlayed, ctWon, ctPlayed,
+      tRate: tPlayed > 0 ? Math.round((tWon / tPlayed) * 100) : 0,
+      ctRate: ctPlayed > 0 ? Math.round((ctWon / ctPlayed) * 100) : 0,
+      hasData: tPlayed + ctPlayed > 0,
+    };
+  }, [sideEvents, mapRange, worldDate]);
+
+
 
   const handleUploadClick = () => fileInputRef.current?.click();
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
