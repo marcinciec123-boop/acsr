@@ -222,7 +222,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       {pastRanking.map(r => (
                         <div key={r.team} className="flex items-center gap-3 px-2 py-1.5 rounded-md bg-secondary/30">
                           <span className="w-8 text-right font-mono text-xs text-muted-foreground tabular-nums">#{r.rank}</span>
-                          <TeamLogo teamName={r.team} size="sm" />
+                          <TeamLogo teamName={r.team} size={22} />
                           <span className="flex-1 text-sm font-heading truncate">{r.team}</span>
                           <span className="font-mono text-xs tabular-nums text-primary">{r.points.toLocaleString()} pkt</span>
                         </div>
