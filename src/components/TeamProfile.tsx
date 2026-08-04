@@ -101,6 +101,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
     const mapEvents: { map: string; won: boolean; date: string }[] = [];
+    const sideEvents: { date: string; tWon: number; ctWon: number; tPlayed: number; ctPlayed: number }[] = [];
 
 
 
