@@ -211,6 +211,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       recentMatches: matches,
       upcomingMatches: upcoming,
       mapEvents,
+      sideEvents,
 
 
       totals: {
