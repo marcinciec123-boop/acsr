@@ -295,10 +295,28 @@ const buildMapStats = (
     fixSide(team2Players, sumT1K);
   }
 
+  // ===== Strony i wynik pierwszej połowy (połowa = 12 rund) =====
+  const team1StartSide: "T" | "CT" = rand() < 0.5 ? "T" : "CT";
+  const firstHalfRounds = Math.min(12, totalRounds);
+  // Rozkład rund w pierwszej połowie proporcjonalny do końcowego wyniku,
+  // z lekkim losowym odchyleniem (CT zwykle nieco mocniejsze).
+  const share = totalRounds > 0 ? team1Rounds / totalRounds : 0.5;
+  const bias = team1StartSide === "CT" ? 0.06 : -0.06;
+  let half1Score1 = Math.round(firstHalfRounds * Math.min(0.92, Math.max(0.08, share + bias + randRange(-0.12, 0.12))));
+  half1Score1 = Math.max(0, Math.min(firstHalfRounds, Math.min(half1Score1, team1Rounds)));
+  let half1Score2 = firstHalfRounds - half1Score1;
+  if (half1Score2 > team2Rounds) {
+    half1Score2 = team2Rounds;
+    half1Score1 = firstHalfRounds - half1Score2;
+  }
+
   return {
     map: mapName,
     score1: team1Rounds,
     score2: team2Rounds,
+    team1StartSide,
+    half1Score1,
+    half1Score2,
     team1Players,
     team2Players,
   };
