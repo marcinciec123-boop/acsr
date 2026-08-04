@@ -124,6 +124,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
         const isT1 = m.team1 === teamName;
         const isT2 = m.team2 === teamName;
         if (!isT1 && !isT2) continue;
+        if (m.team1 === "BYE" || m.team2 === "BYE") continue;
         const ownScore = isT1 ? m.score1 : m.score2;
         const oppScore = isT1 ? m.score2 : m.score1;
         const opponent = isT1 ? m.team2 : m.team1;
@@ -146,9 +147,28 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             const d = isT1 ? mp.score2 : mp.score1;
             if (o + d <= 0) continue;
             if (o > d) mapsW++; else mapsL++;
-            mapEvents.push({ map: mp.map || "?", won: o > d, date: (m.playedAt || t.endDate || "").slice(0, 10) });
+            const date = (m.playedAt || t.endDate || "").slice(0, 10);
+            mapEvents.push({ map: mp.map || "?", won: o > d, date });
+
+            // Rundy po stronach (połowa = 12 rund).
+            const h1a = mp.half1Score1, h1b = mp.half1Score2;
+            if (mp.team1StartSide && typeof h1a === "number" && typeof h1b === "number" && h1a + h1b > 0) {
+              const firstHalfRounds = h1a + h1b;
+              const secondHalfRounds = (mp.score1 + mp.score2) - firstHalfRounds;
+              const ownFirst = isT1 ? h1a : h1b;
+              const ownSecond = Math.max(0, o - ownFirst);
+              const startSide = isT1
+                ? mp.team1StartSide
+                : (mp.team1StartSide === "T" ? "CT" : "T");
+              const tWon = startSide === "T" ? ownFirst : ownSecond;
+              const ctWon = startSide === "T" ? ownSecond : ownFirst;
+              const tPlayed = startSide === "T" ? firstHalfRounds : Math.max(0, secondHalfRounds);
+              const ctPlayed = startSide === "T" ? Math.max(0, secondHalfRounds) : firstHalfRounds;
+              sideEvents.push({ date, tWon, ctWon, tPlayed, ctPlayed });
+            }
           }
         }
+
 
         // Bo1 → pokazujemy realny wynik rund (13:6), nie wynik map (1:0).
         const [d1, d2] = getDisplayScore(m);
