@@ -9,6 +9,7 @@ import { initTheme } from "./lib/theme";
 import { initFont } from "./lib/font";
 import { installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
+import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
 
 initTheme();
 initFont();
