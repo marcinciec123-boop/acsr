@@ -202,6 +202,35 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 <Sparkles className="w-3.5 h-3.5" />
                 Podziel punkty ÷2
               </Button>
+              <Dialog open={showPast} onOpenChange={setShowPast}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Ranking z dnia
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Ranking historyczny</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 pt-2">
+                    <Input type="date" value={pastDate} onChange={e => setPastDate(e.target.value)} />
+                    <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-1">
+                      {pastRanking.length === 0 && (
+                        <p className="text-sm font-mono text-muted-foreground">Brak danych dla tej daty.</p>
+                      )}
+                      {pastRanking.map(r => (
+                        <div key={r.team} className="flex items-center gap-3 px-2 py-1.5 rounded-md bg-secondary/30">
+                          <span className="w-8 text-right font-mono text-xs text-muted-foreground tabular-nums">#{r.rank}</span>
+                          <TeamLogo teamName={r.team} size="sm" />
+                          <span className="flex-1 text-sm font-heading truncate">{r.team}</span>
+                          <span className="font-mono text-xs tabular-nums text-primary">{r.points.toLocaleString()} pkt</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-1.5">
