@@ -447,8 +447,44 @@ const NewsFeed = () => {
           </div>
         )}
 
+        {/* Search + filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Szukaj: tytuł, treść, tag, drużyna..."
+              className="w-full h-9 pl-8 pr-2 rounded-md border border-border bg-secondary/40 text-sm font-mono text-foreground"
+            />
+          </div>
+          <select
+            value={yearFilter}
+            onChange={e => setYearFilter(e.target.value)}
+            className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+          >
+            <option value="all">Wszystkie lata</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button
+            onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+            className="h-9 px-2.5 rounded-md border border-border bg-secondary/40 text-xs font-mono text-muted-foreground hover:text-foreground"
+          >
+            {sortDir === "desc" ? "Najnowsze" : "Najstarsze"}
+          </button>
+          <button
+            onClick={() => setPinnedOnly(v => !v)}
+            className={cn(
+              "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors",
+              pinnedOnly ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Tylko przypięte
+          </button>
+        </div>
+
         {/* Category filter pills */}
-        {allCategories.length > 0 && (
+        {usedCategories.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mb-5 pb-3 border-b border-border">
             <button
               onClick={() => setFilter(null)}
@@ -459,7 +495,7 @@ const NewsFeed = () => {
             >
               Wszystkie ({posts.length})
             </button>
-            {allCategories.map(cat => {
+            {usedCategories.map(cat => {
               const meta = CATEGORY_BADGES[cat] || { label: cat, color: "bg-secondary/40 text-foreground border-border" };
               const count = posts.filter(p => p.category === cat).length;
               return (
@@ -488,12 +524,58 @@ const NewsFeed = () => {
               className="mb-6"
             >
               <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                <input
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  placeholder="Nagłówek (opcjonalnie)"
+                  className="w-full h-10 px-3 rounded-md border border-border bg-secondary/50 text-sm font-heading font-bold text-foreground"
+                />
                 <Textarea
-                  placeholder="Co nowego w świecie CS:GO..."
+                  placeholder="Treść artykułu..."
                   value={newContent}
                   onChange={e => setNewContent(e.target.value)}
                   className="bg-secondary/50 border-border min-h-[100px] resize-none"
                 />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={newCategory}
+                    onChange={e => setNewCategory(e.target.value)}
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  >
+                    <option value="">Bez kategorii</option>
+                    {allCategories.map(cat => (
+                      <option key={cat} value={cat}>{CATEGORY_BADGES[cat]?.label || cat}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={newDate}
+                    onChange={e => setNewDate(e.target.value)}
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newAuthor}
+                    onChange={e => setNewAuthor(e.target.value)}
+                    placeholder="Autor / redakcja"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newSource}
+                    onChange={e => setNewSource(e.target.value)}
+                    placeholder="Źródło (opcjonalnie)"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newTags}
+                    onChange={e => setNewTags(e.target.value)}
+                    placeholder="Tagi po przecinku (np. NAVI, Major, transfer)"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground sm:col-span-2"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-xs font-mono text-muted-foreground cursor-pointer">
+                  <input type="checkbox" checked={newPinned} onChange={e => setNewPinned(e.target.checked)} />
+                  Przypnij post na górze
+                </label>
                 {newImage && (
                   <div className="relative inline-block">
                     <img src={newImage} alt="Preview" className="max-h-48 rounded-md" />
@@ -513,11 +595,11 @@ const NewsFeed = () => {
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); setNewContent(""); setNewImage(null); }}>
+                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); resetForm(); }}>
                       Anuluj
                     </Button>
-                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newImage}>
-                      Opublikuj
+                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newTitle.trim() && !newImage}>
+                      {editingId ? "Zapisz zmiany" : "Opublikuj"}
                     </Button>
                   </div>
                 </div>
@@ -525,6 +607,7 @@ const NewsFeed = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
 
         {/* Posts */}
         <div className="space-y-4">
