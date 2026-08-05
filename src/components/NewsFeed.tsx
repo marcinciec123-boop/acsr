@@ -237,24 +237,54 @@ const NewsFeed = () => {
     reader.readAsDataURL(file);
   };
 
+  const resetForm = () => {
+    setNewContent(""); setNewTitle(""); setNewAuthor(""); setNewCategory("");
+    setNewTags(""); setNewSource(""); setNewPinned(false); setNewImage(null);
+    setNewDate(getWorldNowIso().slice(0, 10));
+    setEditingId(null);
+  };
+
+  const startEdit = (post: NewsPost) => {
+    setEditingId(post.id);
+    setNewContent(post.content || "");
+    setNewTitle(post.title || "");
+    setNewAuthor(post.author || "");
+    setNewCategory(post.category || "");
+    setNewTags((post.tags || []).join(", "));
+    setNewSource(post.source || "");
+    setNewPinned(!!post.pinned);
+    setNewDate((post.date || getWorldNowIso()).slice(0, 10));
+    setNewImage(post.imageId ? imageCache[post.imageId] || null : null);
+    setShowNew(true);
+  };
+
   const handlePost = async () => {
-    if (!newContent.trim() && !newImage) return;
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    let imageId: string | undefined;
-    if (newImage) {
-      imageId = "img_" + id;
+    if (!newContent.trim() && !newTitle.trim() && !newImage) return;
+    const id = editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    let imageId: string | undefined = editingId ? posts.find(p => p.id === editingId)?.imageId : undefined;
+    if (newImage && !(imageId && imageCache[imageId] === newImage)) {
+      imageId = "img_" + id + "_" + Math.random().toString(36).slice(2, 5);
       await saveImage(imageId, newImage);
       setImageCache(prev => ({ ...prev, [imageId!]: newImage! }));
     }
+    if (!newImage) imageId = undefined;
+    const tags = newTags.split(",").map(t => t.trim()).filter(Boolean);
+    const existingTime = editingId ? (posts.find(p => p.id === editingId)?.date || "").slice(10) : "";
     const post: NewsPost = {
       id,
       content: newContent.trim(),
+      title: newTitle.trim() || undefined,
+      author: newAuthor.trim() || undefined,
+      category: newCategory || undefined,
+      tags: tags.length ? tags : undefined,
+      source: newSource.trim() || undefined,
+      pinned: newPinned || undefined,
       imageId,
-      date: getWorldNowIso(),
+      date: newDate + (existingTime || getWorldNowIso().slice(10)),
     };
-    setPosts(prev => [post, ...prev]);
-    setNewContent("");
-    setNewImage(null);
+    setPosts(prev => editingId ? prev.map(p => p.id === editingId ? post : p) : [post, ...prev]);
+    toast.success(editingId ? "Zaktualizowano post" : "Opublikowano post");
+    resetForm();
     setShowNew(false);
   };
 
@@ -283,15 +313,27 @@ const NewsFeed = () => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   };
 
-  const allCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
+  const allCategories = Array.from(new Set([
+    ...Object.keys(CATEGORY_BADGES),
+    ...posts.map(p => p.category).filter(Boolean) as string[],
+  ]));
+  const usedCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
+  const years = Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
 
+  const q = search.trim().toLowerCase();
   const sorted = [...posts]
     .filter(p => !filter || p.category === filter)
+    .filter(p => yearFilter === "all" || (p.date || "").slice(0, 4) === yearFilter)
+    .filter(p => !pinnedOnly || p.pinned)
+    .filter(p => !q || [p.title, p.content, p.author, p.category, ...(p.tags || [])]
+      .filter(Boolean).join(" ").toLowerCase().includes(q))
     .sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      return sortDir === "desc" ? diff : -diff;
     });
+
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
