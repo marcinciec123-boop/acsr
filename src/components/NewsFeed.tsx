@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown, CheckSquare, Square } from "lucide-react";
+import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown, CheckSquare, Square, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -164,13 +164,26 @@ const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
   const [showNew, setShowNew] = useState(false);
   const [newContent, setNewContent] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newAuthor, setNewAuthor] = useState("");
+  const [newCategory, setNewCategory] = useState<string>("");
+  const [newTags, setNewTags] = useState("");
+  const [newSource, setNewSource] = useState("");
+  const [newDate, setNewDate] = useState<string>(() => getWorldNowIso().slice(0, 10));
+  const [newPinned, setNewPinned] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState<string>("all");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [pinnedOnly, setPinnedOnly] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const i = setInterval(() => {
@@ -224,24 +237,54 @@ const NewsFeed = () => {
     reader.readAsDataURL(file);
   };
 
+  const resetForm = () => {
+    setNewContent(""); setNewTitle(""); setNewAuthor(""); setNewCategory("");
+    setNewTags(""); setNewSource(""); setNewPinned(false); setNewImage(null);
+    setNewDate(getWorldNowIso().slice(0, 10));
+    setEditingId(null);
+  };
+
+  const startEdit = (post: NewsPost) => {
+    setEditingId(post.id);
+    setNewContent(post.content || "");
+    setNewTitle(post.title || "");
+    setNewAuthor(post.author || "");
+    setNewCategory(post.category || "");
+    setNewTags((post.tags || []).join(", "));
+    setNewSource(post.source || "");
+    setNewPinned(!!post.pinned);
+    setNewDate((post.date || getWorldNowIso()).slice(0, 10));
+    setNewImage(post.imageId ? imageCache[post.imageId] || null : null);
+    setShowNew(true);
+  };
+
   const handlePost = async () => {
-    if (!newContent.trim() && !newImage) return;
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    let imageId: string | undefined;
-    if (newImage) {
-      imageId = "img_" + id;
+    if (!newContent.trim() && !newTitle.trim() && !newImage) return;
+    const id = editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    let imageId: string | undefined = editingId ? posts.find(p => p.id === editingId)?.imageId : undefined;
+    if (newImage && !(imageId && imageCache[imageId] === newImage)) {
+      imageId = "img_" + id + "_" + Math.random().toString(36).slice(2, 5);
       await saveImage(imageId, newImage);
       setImageCache(prev => ({ ...prev, [imageId!]: newImage! }));
     }
+    if (!newImage) imageId = undefined;
+    const tags = newTags.split(",").map(t => t.trim()).filter(Boolean);
+    const existingTime = editingId ? (posts.find(p => p.id === editingId)?.date || "").slice(10) : "";
     const post: NewsPost = {
       id,
       content: newContent.trim(),
+      title: newTitle.trim() || undefined,
+      author: newAuthor.trim() || undefined,
+      category: newCategory || undefined,
+      tags: tags.length ? tags : undefined,
+      source: newSource.trim() || undefined,
+      pinned: newPinned || undefined,
       imageId,
-      date: getWorldNowIso(),
+      date: newDate + (existingTime || getWorldNowIso().slice(10)),
     };
-    setPosts(prev => [post, ...prev]);
-    setNewContent("");
-    setNewImage(null);
+    setPosts(prev => editingId ? prev.map(p => p.id === editingId ? post : p) : [post, ...prev]);
+    toast.success(editingId ? "Zaktualizowano post" : "Opublikowano post");
+    resetForm();
     setShowNew(false);
   };
 
@@ -270,15 +313,27 @@ const NewsFeed = () => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   };
 
-  const allCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
+  const allCategories = Array.from(new Set([
+    ...Object.keys(CATEGORY_BADGES),
+    ...posts.map(p => p.category).filter(Boolean) as string[],
+  ]));
+  const usedCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
+  const years = Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
 
+  const q = search.trim().toLowerCase();
   const sorted = [...posts]
     .filter(p => !filter || p.category === filter)
+    .filter(p => yearFilter === "all" || (p.date || "").slice(0, 4) === yearFilter)
+    .filter(p => !pinnedOnly || p.pinned)
+    .filter(p => !q || [p.title, p.content, p.author, p.category, ...(p.tags || [])]
+      .filter(Boolean).join(" ").toLowerCase().includes(q))
     .sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      return sortDir === "desc" ? diff : -diff;
     });
+
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -392,8 +447,44 @@ const NewsFeed = () => {
           </div>
         )}
 
+        {/* Search + filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Szukaj: tytuł, treść, tag, drużyna..."
+              className="w-full h-9 pl-8 pr-2 rounded-md border border-border bg-secondary/40 text-sm font-mono text-foreground"
+            />
+          </div>
+          <select
+            value={yearFilter}
+            onChange={e => setYearFilter(e.target.value)}
+            className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+          >
+            <option value="all">Wszystkie lata</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button
+            onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+            className="h-9 px-2.5 rounded-md border border-border bg-secondary/40 text-xs font-mono text-muted-foreground hover:text-foreground"
+          >
+            {sortDir === "desc" ? "Najnowsze" : "Najstarsze"}
+          </button>
+          <button
+            onClick={() => setPinnedOnly(v => !v)}
+            className={cn(
+              "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors",
+              pinnedOnly ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Tylko przypięte
+          </button>
+        </div>
+
         {/* Category filter pills */}
-        {allCategories.length > 0 && (
+        {usedCategories.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mb-5 pb-3 border-b border-border">
             <button
               onClick={() => setFilter(null)}
@@ -404,7 +495,7 @@ const NewsFeed = () => {
             >
               Wszystkie ({posts.length})
             </button>
-            {allCategories.map(cat => {
+            {usedCategories.map(cat => {
               const meta = CATEGORY_BADGES[cat] || { label: cat, color: "bg-secondary/40 text-foreground border-border" };
               const count = posts.filter(p => p.category === cat).length;
               return (
@@ -433,12 +524,58 @@ const NewsFeed = () => {
               className="mb-6"
             >
               <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                <input
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  placeholder="Nagłówek (opcjonalnie)"
+                  className="w-full h-10 px-3 rounded-md border border-border bg-secondary/50 text-sm font-heading font-bold text-foreground"
+                />
                 <Textarea
-                  placeholder="Co nowego w świecie CS:GO..."
+                  placeholder="Treść artykułu..."
                   value={newContent}
                   onChange={e => setNewContent(e.target.value)}
                   className="bg-secondary/50 border-border min-h-[100px] resize-none"
                 />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={newCategory}
+                    onChange={e => setNewCategory(e.target.value)}
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  >
+                    <option value="">Bez kategorii</option>
+                    {allCategories.map(cat => (
+                      <option key={cat} value={cat}>{CATEGORY_BADGES[cat]?.label || cat}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={newDate}
+                    onChange={e => setNewDate(e.target.value)}
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newAuthor}
+                    onChange={e => setNewAuthor(e.target.value)}
+                    placeholder="Autor / redakcja"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newSource}
+                    onChange={e => setNewSource(e.target.value)}
+                    placeholder="Źródło (opcjonalnie)"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
+                    value={newTags}
+                    onChange={e => setNewTags(e.target.value)}
+                    placeholder="Tagi po przecinku (np. NAVI, Major, transfer)"
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground sm:col-span-2"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-xs font-mono text-muted-foreground cursor-pointer">
+                  <input type="checkbox" checked={newPinned} onChange={e => setNewPinned(e.target.checked)} />
+                  Przypnij post na górze
+                </label>
                 {newImage && (
                   <div className="relative inline-block">
                     <img src={newImage} alt="Preview" className="max-h-48 rounded-md" />
@@ -458,11 +595,11 @@ const NewsFeed = () => {
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); setNewContent(""); setNewImage(null); }}>
+                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); resetForm(); }}>
                       Anuluj
                     </Button>
-                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newImage}>
-                      Opublikuj
+                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newTitle.trim() && !newImage}>
+                      {editingId ? "Zapisz zmiany" : "Opublikuj"}
                     </Button>
                   </div>
                 </div>
@@ -470,6 +607,7 @@ const NewsFeed = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
 
         {/* Posts */}
         <div className="space-y-4">
@@ -517,8 +655,24 @@ const NewsFeed = () => {
                     </Badge>
                   )}
                 </div>
+                {post.title && (
+                  <h3 className="font-heading font-bold text-foreground text-lg mb-1.5 leading-snug">{post.title}</h3>
+                )}
                 {post.content && (
                   <p className="text-foreground text-sm whitespace-pre-wrap mb-3 leading-relaxed">{post.content}</p>
+                )}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {post.tags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setSearch(tag)}
+                        className="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-secondary/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {post.imageId && imageCache[post.imageId] && (
                   <img
@@ -528,11 +682,22 @@ const NewsFeed = () => {
                   />
                 )}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono">
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono flex-wrap">
                     <Clock className="w-3 h-3" />
                     {formatDate(post.date)}
+                    {post.author && <span>· {post.author}</span>}
+                    {post.source && <span className="opacity-70">· {post.source}</span>}
                   </div>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => startEdit(post)}
+                      title="Edytuj"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -542,6 +707,7 @@ const NewsFeed = () => {
                     >
                       {post.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                     </Button>
+
                     <Button
                       variant="ghost"
                       size="icon"

@@ -1,4 +1,5 @@
 // ===== Player Match Statistics & HLTV 3.0-style Rating =====
+import { getActiveMaps } from "@/lib/mapPool";
 
 export interface PlayerMatchStats {
   playerName: string;
@@ -67,10 +68,10 @@ export function calculateRating(stats: PlayerMatchStats): number {
   return Math.round(Math.max(0, rating) * 100) / 100;
 }
 
-const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
+
 
 function pickMaps(count: number): string[] {
-  const shuffled = [...MAP_POOL].sort(() => Math.random() - 0.5);
+  const shuffled = [...getActiveMaps()].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
 
@@ -276,7 +277,7 @@ export function generateMatchStats(
     const map = generateMapStats(
       team1Roster, team2Roster, team1, team2,
       t1Rounds, t2Rounds,
-      i + 1, mapNames[i] || MAP_POOL[i % MAP_POOL.length]
+      i + 1, mapNames[i] || getActiveMaps()[i % getActiveMaps().length]
     );
     maps.push(map);
   }

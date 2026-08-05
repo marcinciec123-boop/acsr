@@ -7,6 +7,7 @@ import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 import { getWorldDate, setWorldDate, resetWorldClock, formatWorldDate, WORLD_CLOCK_EVENT, WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
 import TeamsManagementPanel from "./TeamsManagementPanel";
+import MapPoolPanel from "./MapPoolPanel";
 import ThemeSwitcher from "./ThemeSwitcher";
 import FontSwitcher from "./FontSwitcher";
 
@@ -115,11 +116,14 @@ const SettingsTab = ({
         {/* Fictional world clock */}
         <WorldClockCard />
 
+        {/* Map pool */}
+        <MapPoolPanel />
 
         {/* Teams management */}
         <div className="mb-6">
           <TeamsManagementPanel />
         </div>
+
 
         {/* Season Status */}
         {totalCount > 0 && (

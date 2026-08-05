@@ -22,7 +22,14 @@ import { countryFlag, normalizeCountry } from "@/lib/flags";
 import { getWorldDate } from "@/lib/worldClock";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
-const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
+import { getActiveMaps } from "@/lib/mapPool";
+const MAP_POOL_FALLBACK: string[] = [];
+const MAP_POOL = new Proxy(MAP_POOL_FALLBACK, {
+  get(_t, prop, recv) { return Reflect.get(getActiveMaps(), prop, recv); },
+  has(_t, prop) { return Reflect.has(getActiveMaps(), prop); },
+  ownKeys() { return Reflect.ownKeys(getActiveMaps()); },
+  getOwnPropertyDescriptor(_t, prop) { return Reflect.getOwnPropertyDescriptor(getActiveMaps(), prop); },
+}) as string[];
 
 interface Props {
   match: MatchResult;

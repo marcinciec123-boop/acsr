@@ -23,6 +23,8 @@ export interface RankingSnapshot {
   points: Record<string, number>;        // teamName -> points
   ranks?: Record<string, number>;        // teamName -> world rank at this date
   rosters?: Record<string, string[]>;    // active five at this date
+  /** Reconstructed on the fly (never persisted). */
+  synthetic?: boolean;
 }
 
 export function loadRankingHistory(): RankingSnapshot[] {
@@ -47,9 +49,10 @@ const getTournamentMatches = (tournament: TournamentData): MatchResult[] => {
   return matches;
 };
 
+/** Ranks over the complete club set; stable tie-break by name to avoid churn. */
 const buildRanks = (points: Record<string, number>): Record<string, number> => Object.fromEntries(
   Object.entries(points)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([teamA, a], [teamB, b]) => (b - a) || teamA.localeCompare(teamB))
     .map(([team], index) => [team, index + 1]),
 );
 
@@ -58,6 +61,9 @@ const buildRanks = (points: Record<string, number>): Record<string, number> => O
  * The present ranking remains the source of truth: known historical deltas are
  * reversed to derive the baseline, then replayed chronologically. This keeps
  * the final point totals exact while restoring every historical event date.
+ *
+ * These snapshots are SYNTHETIC — they are recomputed on demand and never
+ * written to storage, so a later manual point edit can't freeze a wrong value.
  */
 export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
   const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
@@ -97,38 +103,58 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
   deltasByDate.forEach(daily => daily.forEach((delta, team) => {
     knownTotals.set(team, (knownTotals.get(team) || 0) + delta);
   }));
+  // No clamping here: clamping the baseline breaks the invariant
+  // baseline + all deltas === current points, which is what produced the
+  // wildly wrong historical charts.
   const running: Record<string, number> = Object.fromEntries(clubs.map(team => [
     team.name,
-    Math.max(0, (team.points || 0) - (knownTotals.get(team.name) || 0)),
+    (team.points || 0) - (knownTotals.get(team.name) || 0),
   ]));
 
+  const dates = [...deltasByDate.entries()].sort(([a], [b]) => a.localeCompare(b));
   const snapshots: RankingSnapshot[] = [];
-  [...deltasByDate.entries()].sort(([a], [b]) => a.localeCompare(b)).forEach(([date, daily]) => {
-    daily.forEach((delta, team) => { running[team] = Math.max(0, (running[team] || 0) + delta); });
-    const points = { ...running };
-    snapshots.push({ date, points, ranks: buildRanks(points) });
+
+  // Opening snapshot (day before the first event) so charts start at the baseline.
+  if (dates.length > 0) {
+    const first = new Date(dates[0][0] + "T12:00:00");
+    first.setDate(first.getDate() - 1);
+    const openIso = first.toISOString().slice(0, 10);
+    const openPoints = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
+    snapshots.push({ date: openIso, points: openPoints, ranks: buildRanks(openPoints), synthetic: true });
+  }
+
+  dates.forEach(([date, daily]) => {
+    daily.forEach((delta, team) => { running[team] = (running[team] || 0) + delta; });
+    const points = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
+    snapshots.push({ date, points, ranks: buildRanks(points), synthetic: true });
   });
   return snapshots;
 }
 
-/** Persist a merged history, including tournaments played before this feature existed. */
+/**
+ * Persist history. Only REAL recorded snapshots are stored — synthetic
+ * reconstructions are recomputed on read, so they never get frozen into the
+ * save file (which previously caused stale, contradictory historical points).
+ */
 export async function synchronizeRankingHistory(): Promise<boolean> {
+  // Legacy saves baked reconstructions into storage; those entries never carry
+  // rosters, so they can be identified and dropped safely.
+  const real = loadRankingHistory().filter(s => !s.synthetic && Object.keys(s.rosters || {}).length > 0);
   const merged = new Map<string, RankingSnapshot>();
-  buildHistoricalRankingSnapshots().forEach(snapshot => merged.set(snapshot.date, snapshot));
-  loadRankingHistory().forEach(snapshot => {
-    const historical = merged.get(snapshot.date);
-    merged.set(snapshot.date, {
-      date: snapshot.date,
-      points: { ...(historical?.points || {}), ...snapshot.points },
-      ranks: { ...(historical?.ranks || {}), ...(snapshot.ranks || {}) },
-      rosters: { ...(historical?.rosters || {}), ...(snapshot.rosters || {}) },
+  real.forEach(s => {
+    const prev = merged.get(s.date);
+    merged.set(s.date, {
+      date: s.date,
+      points: { ...(prev?.points || {}), ...s.points },
+      ranks: { ...(prev?.ranks || {}), ...(s.ranks || {}) },
+      rosters: { ...(prev?.rosters || {}), ...(s.rosters || {}) },
     });
   });
   const history = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
   return saveToStorageAsync(KEY, history);
 }
 
-/** Save a complete snapshot for a tournament date; merges with same-day entry. */
+/** Save a complete snapshot for a date; merges with same-day entry. */
 export async function recordRankingSnapshot(reason?: string, dateOverride?: string): Promise<boolean> {
   const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
     || (teamDatabase as TeamData[]);
@@ -136,20 +162,17 @@ export async function recordRankingSnapshot(reason?: string, dateOverride?: stri
   const points: Record<string, number> = {};
   const ranks: Record<string, number> = {};
   const rosters: Record<string, string[]> = {};
-  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0));
+  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
   clubs.forEach((t, index) => {
     points[t.name] = t.points || 0;
     ranks[t.name] = index + 1;
     rosters[t.name] = splitRoster(t).active.slice(0, 5);
   });
 
-  const history = loadRankingHistory();
+  const history = loadRankingHistory().filter(s => !s.synthetic);
   const existing = history.findIndex(h => h.date === date);
-  if (existing >= 0) {
-    history[existing] = { date, points, ranks, rosters };
-  } else {
-    history.push({ date, points, ranks, rosters });
-  }
+  if (existing >= 0) history[existing] = { date, points, ranks, rosters };
+  else history.push({ date, points, ranks, rosters });
   history.sort((a, b) => a.date.localeCompare(b.date));
   void reason;
   const saved = await saveToStorageAsync(KEY, history);
@@ -180,26 +203,19 @@ export function installRankingHistoryAutoSync(): void {
 export interface TeamRankingPoint { date: string; points: number; rank?: number }
 
 /**
- * Pełna historia: rekonstrukcja z turniejów + zapisane migawki.
- * Rangi są przeliczane na kompletnym zbiorze klubów, więc historyczne
- * miejsca są dokładne co do pozycji (a nie tylko wśród drużyn z placementami).
+ * Pełna historia: rekonstrukcja z turniejów (syntetyczna) + zapisane migawki.
+ * Zapisana migawka ZAWSZE wygrywa dla swojej daty — rekonstrukcja tylko
+ * wypełnia dni, dla których nie ma realnego zapisu. Braki są przenoszone
+ * z ostatniego znanego stanu, więc ranking każdego dnia jest kompletny
+ * i pozycje są dokładne co do miejsca.
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
   buildHistoricalRankingSnapshots().forEach(s => merged.set(s.date, s));
-  loadRankingHistory().forEach(s => {
-    const base = merged.get(s.date);
-    merged.set(s.date, {
-      date: s.date,
-      points: { ...(base?.points || {}), ...s.points },
-      ranks: { ...(base?.ranks || {}), ...(s.ranks || {}) },
-      rosters: { ...(base?.rosters || {}), ...(s.rosters || {}) },
-    });
+  loadRankingHistory().filter(s => !s.synthetic).forEach(s => {
+    merged.set(s.date, { date: s.date, points: { ...s.points }, ranks: s.ranks, rosters: s.rosters });
   });
 
-  // Uzupełnij luki: drużyny bez wpisu w danym dniu zachowują ostatnią znaną
-  // liczbę punktów — dzięki temu ranking z każdego dnia jest kompletny,
-  // a pozycje wyliczane są na pełnej stawce.
   const carry: Record<string, number> = {};
   return [...merged.values()]
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -210,6 +226,7 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
     });
 }
 
+
 /** Pełny ranking (posortowany) obowiązujący danego dnia historii. */
 export function getRankingAt(dateIso: string): { team: string; points: number; rank: number }[] {
   const day = dateIso.slice(0, 10);
@@ -218,13 +235,15 @@ export function getRankingAt(dateIso: string): { team: string; points: number; r
   if (!snapshot) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
     return ranking.filter(isClub)
-      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name))
       .map((t, i) => ({ team: t.name, points: t.points || 0, rank: i + 1 }));
   }
   return Object.entries(snapshot.points)
-    .sort(([, a], [, b]) => b - a)
-    .map(([team, points], index) => ({ team, points, rank: index + 1 }));
+    .map(([team, points]) => ({ team, points: Number(points) || 0 }))
+    .sort((a, b) => (b.points - a.points) || a.team.localeCompare(b.team))
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
+
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
 export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {

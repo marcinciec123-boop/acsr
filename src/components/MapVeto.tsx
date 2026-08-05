@@ -2,8 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Ban, Check, Map, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
+import { useActiveMaps, getActiveMaps } from "@/lib/mapPool";
 
 export interface VetoAction {
   team: string;
@@ -50,7 +49,8 @@ function getVetoSequence(bo: number, team1: string, team2: string): { team: stri
 }
 
 const MapVeto = ({ team1, team2, bo, onComplete, onSkip }: MapVetoProps) => {
-  const [availableMaps, setAvailableMaps] = useState([...MAP_POOL]);
+  const MAP_POOL = useActiveMaps();
+  const [availableMaps, setAvailableMaps] = useState<string[]>(() => getActiveMaps());
   const [vetoHistory, setVetoHistory] = useState<VetoAction[]>([]);
   const [pickedMaps, setPickedMaps] = useState<string[]>([]);
   const sequence = getVetoSequence(bo, team1, team2);
