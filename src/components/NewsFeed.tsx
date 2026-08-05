@@ -164,13 +164,26 @@ const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
   const [showNew, setShowNew] = useState(false);
   const [newContent, setNewContent] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newAuthor, setNewAuthor] = useState("");
+  const [newCategory, setNewCategory] = useState<string>("");
+  const [newTags, setNewTags] = useState("");
+  const [newSource, setNewSource] = useState("");
+  const [newDate, setNewDate] = useState<string>(() => getWorldNowIso().slice(0, 10));
+  const [newPinned, setNewPinned] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState<string>("all");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [pinnedOnly, setPinnedOnly] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const i = setInterval(() => {
