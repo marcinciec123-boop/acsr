@@ -116,11 +116,14 @@ const SettingsTab = ({
         {/* Fictional world clock */}
         <WorldClockCard />
 
+        {/* Map pool */}
+        <MapPoolPanel />
 
         {/* Teams management */}
         <div className="mb-6">
           <TeamsManagementPanel />
         </div>
+
 
         {/* Season Status */}
         {totalCount > 0 && (
