@@ -49,7 +49,8 @@ function getVetoSequence(bo: number, team1: string, team2: string): { team: stri
 }
 
 const MapVeto = ({ team1, team2, bo, onComplete, onSkip }: MapVetoProps) => {
-  const [availableMaps, setAvailableMaps] = useState([...MAP_POOL]);
+  const MAP_POOL = useActiveMaps();
+  const [availableMaps, setAvailableMaps] = useState<string[]>(() => getActiveMaps());
   const [vetoHistory, setVetoHistory] = useState<VetoAction[]>([]);
   const [pickedMaps, setPickedMaps] = useState<string[]>([]);
   const sequence = getVetoSequence(bo, team1, team2);
