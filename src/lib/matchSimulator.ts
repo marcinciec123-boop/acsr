@@ -22,10 +22,15 @@ import type { TeamData } from "./types";
 import { getBenchedFor } from "./benchedPlayers";
 import { getTournamentLineup } from "./tournamentLineups";
 
-export const SIM_MAP_POOL = [
-  "Anubis", "Ancient", "Dust II", "Inferno",
-  "Mirage", "Nuke", "Overpass", "Train", "Vertigo",
-];
+import { getActiveMaps } from "./mapPool";
+
+/** Aktywna pula map (11) — zawsze aktualna względem ustawień. */
+export const SIM_MAP_POOL = new Proxy([] as string[], {
+  get(_t, prop, recv) { return Reflect.get(getActiveMaps(), prop, recv); },
+  has(_t, prop) { return Reflect.has(getActiveMaps(), prop); },
+  ownKeys() { return Reflect.ownKeys(getActiveMaps()); },
+  getOwnPropertyDescriptor(_t, prop) { return Reflect.getOwnPropertyDescriptor(getActiveMaps(), prop); },
+}) as string[];
 
 // ----- helpers -----------------------------------------------------------
 

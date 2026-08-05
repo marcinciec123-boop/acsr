@@ -2,8 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Ban, Check, Map, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const MAP_POOL = ["Anubis", "Ancient", "Cache", "Dust II", "Inferno", "Mirage", "Nuke", "Overpass", "Train", "Tuscan", "Vertigo"];
+import { useActiveMaps } from "@/lib/mapPool";
 
 export interface VetoAction {
   team: string;
