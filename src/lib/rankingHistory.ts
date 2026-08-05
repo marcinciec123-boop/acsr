@@ -137,7 +137,9 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
  * save file (which previously caused stale, contradictory historical points).
  */
 export async function synchronizeRankingHistory(): Promise<boolean> {
-  const real = loadRankingHistory().filter(s => !s.synthetic);
+  // Legacy saves baked reconstructions into storage; those entries never carry
+  // rosters, so they can be identified and dropped safely.
+  const real = loadRankingHistory().filter(s => !s.synthetic && Object.keys(s.rosters || {}).length > 0);
   const merged = new Map<string, RankingSnapshot>();
   real.forEach(s => {
     const prev = merged.get(s.date);
