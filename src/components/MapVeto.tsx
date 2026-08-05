@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Ban, Check, Map, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useActiveMaps } from "@/lib/mapPool";
+import { useActiveMaps, getActiveMaps } from "@/lib/mapPool";
 
 export interface VetoAction {
   team: string;
