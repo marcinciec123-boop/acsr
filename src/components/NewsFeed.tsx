@@ -655,8 +655,24 @@ const NewsFeed = () => {
                     </Badge>
                   )}
                 </div>
+                {post.title && (
+                  <h3 className="font-heading font-bold text-foreground text-lg mb-1.5 leading-snug">{post.title}</h3>
+                )}
                 {post.content && (
                   <p className="text-foreground text-sm whitespace-pre-wrap mb-3 leading-relaxed">{post.content}</p>
+                )}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {post.tags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setSearch(tag)}
+                        className="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-secondary/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {post.imageId && imageCache[post.imageId] && (
                   <img
@@ -666,11 +682,22 @@ const NewsFeed = () => {
                   />
                 )}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono">
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono flex-wrap">
                     <Clock className="w-3 h-3" />
                     {formatDate(post.date)}
+                    {post.author && <span>· {post.author}</span>}
+                    {post.source && <span className="opacity-70">· {post.source}</span>}
                   </div>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => startEdit(post)}
+                      title="Edytuj"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -680,6 +707,7 @@ const NewsFeed = () => {
                     >
                       {post.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                     </Button>
+
                     <Button
                       variant="ghost"
                       size="icon"
