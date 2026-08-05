@@ -152,8 +152,79 @@ export async function synchronizeRankingHistory(): Promise<boolean> {
   return saveToStorageAsync(KEY, history);
 }
 
+/** Save a complete snapshot for a date; merges with same-day entry. */
+export async function recordRankingSnapshot(reason?: string, dateOverride?: string): Promise<boolean> {
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
+    || (teamDatabase as TeamData[]);
+  const date = (dateOverride || getWorldDate()).slice(0, 10);
+  const points: Record<string, number> = {};
+  const ranks: Record<string, number> = {};
+  const rosters: Record<string, string[]> = {};
+  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
+  clubs.forEach((t, index) => {
+    points[t.name] = t.points || 0;
+    ranks[t.name] = index + 1;
+    rosters[t.name] = splitRoster(t).active.slice(0, 5);
+  });
 
-/** Pełny ranking (posortowany) obowiązujący danego dnia historii. */
+  const history = loadRankingHistory().filter(s => !s.synthetic);
+  const existing = history.findIndex(h => h.date === date);
+  if (existing >= 0) history[existing] = { date, points, ranks, rosters };
+  else history.push({ date, points, ranks, rosters });
+  history.sort((a, b) => a.date.localeCompare(b.date));
+  void reason;
+  const saved = await saveToStorageAsync(KEY, history);
+  if (!saved) return false;
+  return synchronizeRankingHistory();
+}
+
+/**
+ * Zapisuje snapshot przy KAŻDEJ zmianie punktów drużyn (mecz, ręczna edycja,
+ * zakończenie turnieju, transfer itd.). Debounce chroni przed lawiną zapisów.
+ */
+let autoSyncInstalled = false;
+export function installRankingHistoryAutoSync(): void {
+  if (autoSyncInstalled || typeof window === "undefined") return;
+  autoSyncInstalled = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const handler = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      void recordRankingSnapshot("points-change").catch(error =>
+        console.error("Ranking history auto-save failed:", error));
+    }, 600);
+  };
+  window.addEventListener("ranking:update", handler);
+  window.addEventListener("teams:update", handler);
+}
+
+export interface TeamRankingPoint { date: string; points: number; rank?: number }
+
+/**
+ * Pełna historia: rekonstrukcja z turniejów (syntetyczna) + zapisane migawki.
+ * Zapisana migawka ZAWSZE wygrywa dla swojej daty — rekonstrukcja tylko
+ * wypełnia dni, dla których nie ma realnego zapisu. Braki są przenoszone
+ * z ostatniego znanego stanu, więc ranking każdego dnia jest kompletny
+ * i pozycje są dokładne co do miejsca.
+ */
+export function getMergedRankingHistory(): RankingSnapshot[] {
+  const merged = new Map<string, RankingSnapshot>();
+  buildHistoricalRankingSnapshots().forEach(s => merged.set(s.date, s));
+  loadRankingHistory().filter(s => !s.synthetic).forEach(s => {
+    merged.set(s.date, { date: s.date, points: { ...s.points }, ranks: s.ranks, rosters: s.rosters });
+  });
+
+  const carry: Record<string, number> = {};
+  return [...merged.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(s => {
+      Object.entries(s.points).forEach(([team, pts]) => { carry[team] = pts; });
+      const points = { ...carry };
+      return { date: s.date, points, ranks: buildRanks(points), rosters: s.rosters };
+    });
+}
+
+
 export function getRankingAt(dateIso: string): { team: string; points: number; rank: number }[] {
   const day = dateIso.slice(0, 10);
   const history = getMergedRankingHistory().filter(s => s.date <= day);
