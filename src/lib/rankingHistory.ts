@@ -23,6 +23,8 @@ export interface RankingSnapshot {
   points: Record<string, number>;        // teamName -> points
   ranks?: Record<string, number>;        // teamName -> world rank at this date
   rosters?: Record<string, string[]>;    // active five at this date
+  /** Reconstructed on the fly (never persisted). */
+  synthetic?: boolean;
 }
 
 export function loadRankingHistory(): RankingSnapshot[] {
