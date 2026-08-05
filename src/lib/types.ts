@@ -178,7 +178,16 @@ export interface NewsPost {
   date: string;
   pinned?: boolean;
   category?: string;
+  /** Nagłówek posta (opcjonalny) */
+  title?: string;
+  /** Autor / redaktor */
+  author?: string;
+  /** Tagi do wyszukiwania (drużyny, gracze, turnieje) */
+  tags?: string[];
+  /** Źródło / link */
+  source?: string;
 }
+
 
 export interface RankingAdjustment {
   id: string;
