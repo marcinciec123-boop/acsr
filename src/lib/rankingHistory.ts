@@ -225,6 +225,7 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
 }
 
 
+/** Pełny ranking (posortowany) obowiązujący danego dnia historii. */
 export function getRankingAt(dateIso: string): { team: string; points: number; rank: number }[] {
   const day = dateIso.slice(0, 10);
   const history = getMergedRankingHistory().filter(s => s.date <= day);
@@ -232,13 +233,15 @@ export function getRankingAt(dateIso: string): { team: string; points: number; r
   if (!snapshot) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
     return ranking.filter(isClub)
-      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name))
       .map((t, i) => ({ team: t.name, points: t.points || 0, rank: i + 1 }));
   }
   return Object.entries(snapshot.points)
-    .sort(([, a], [, b]) => b - a)
-    .map(([team, points], index) => ({ team, points, rank: index + 1 }));
+    .map(([team, points]) => ({ team, points: Number(points) || 0 }))
+    .sort((a, b) => (b.points - a.points) || a.team.localeCompare(b.team))
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
+
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
 export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
