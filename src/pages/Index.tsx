@@ -7,6 +7,7 @@ import TransferPanel from "@/components/TransferPanel";
 import TeamProfile from "@/components/TeamProfile";
 import PlayerProfile from "@/components/PlayerProfile";
 import PlayersPanel from "@/components/PlayersPanel";
+import MatchesPanel from "@/components/MatchesPanel";
 import DeviceBackupPanel from "@/components/DeviceBackupPanel";
 import SettingsTab from "@/components/SettingsTab";
 import CommandPalette from "@/components/CommandPalette";
