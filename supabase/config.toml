@@ -2,3 +2,6 @@ project_id = "dmqzcyfwaeoydsylfofi"
 
 [functions.generate-news]
 verify_jwt = false
+
+[functions.generate-comments]
+verify_jwt = false
