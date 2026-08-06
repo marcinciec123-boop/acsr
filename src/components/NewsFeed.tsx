@@ -23,6 +23,8 @@ import { getAllTransfers } from "@/data/history";
 import { playerRoles } from "@/data/playerRoles";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { toast } from "sonner";
+import PostComments from "@/components/PostComments";
+import { deleteComments, generateComments } from "@/lib/newsComments";
 
 const STORAGE_KEY = "news_posts";
 
@@ -182,6 +184,7 @@ const NewsFeed = () => {
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [commentPending, setCommentPending] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
 
@@ -284,12 +287,23 @@ const NewsFeed = () => {
     };
     setPosts(prev => editingId ? prev.map(p => p.id === editingId ? post : p) : [post, ...prev]);
     toast.success(editingId ? "Zaktualizowano post" : "Opublikowano post");
+    const wasNew = !editingId;
     resetForm();
     setShowNew(false);
+    if (wasNew && (post.content || post.title)) {
+      setCommentPending(post.id);
+      generateComments(post)
+        .then(res => {
+          if (!res.ok) toast.error(res.error || "Nie udało się wygenerować komentarzy");
+          else toast.success(`Społeczność skomentowała (${res.count})`);
+        })
+        .finally(() => setCommentPending(null));
+    }
   };
 
   const handleDelete = async (post: NewsPost) => {
     if (post.imageId) await deleteImage(post.imageId);
+    deleteComments([post.id]);
     setPosts(prev => prev.filter(p => p.id !== post.id));
   };
 
@@ -304,6 +318,7 @@ const NewsFeed = () => {
     for (const p of removed) {
       if (p.imageId) await deleteImage(p.imageId);
     }
+    deleteComments(ids);
     setPosts(prev => prev.filter(p => !idSet.has(p.id)));
     setSelected([]);
     toast.success(`Usunięto ${removed.length} ${removed.length === 1 ? "post" : "postów"}`);
@@ -718,6 +733,7 @@ const NewsFeed = () => {
                     </Button>
                   </div>
                 </div>
+                <PostComments post={post} pending={commentPending === post.id} />
               </motion.div>
             );
           })}
