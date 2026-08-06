@@ -1,6 +1,6 @@
 // ===== Rozwijalna sekcja komentarzy pod postem =====
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,14 @@ const PostComments = ({ post, pending }: Props) => {
   const [comments, setLocal] = useState<NewsComment[]>(() => getComments(post.id));
   const [loading, setLoading] = useState(false);
   const [liked, setLiked] = useState<string[]>([]);
+
+  // Po zakończeniu generowania po publikacji — dociągnij świeże komentarze.
+  useEffect(() => {
+    if (pending) return;
+    const fresh = getComments(post.id);
+    if (fresh.length !== comments.length) setLocal(fresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, post.id]);
 
   const count = comments.length;
 
