@@ -15,7 +15,6 @@ import { getWorldNow, useWorldDate } from "@/lib/worldClock";
 import TeamLogo from "@/components/TeamLogo";
 import { TeamLink, TournamentLink } from "@/lib/profileNav";
 import PanelHeader from "@/components/PanelHeader";
-import { Button } from "@/components/ui/button";
 import { usePersistedState } from "@/lib/uiPrefs";
 
 interface Row {
