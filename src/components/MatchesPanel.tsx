@@ -136,9 +136,9 @@ const MatchesPanel = () => {
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-4xl">
         <PanelHeader
-          icon={<Swords className="w-6 h-6 text-primary" />}
+          icon={Swords}
           title="Mecze"
-          subtitle={`Nadchodzące: ${upcoming.length} · Ostatni tydzień: ${results.length}`}
+          meta={`Nadchodzące: ${upcoming.length} · Ostatni tydzień: ${results.length}`}
         />
 
         {/* Przełącznik */}
