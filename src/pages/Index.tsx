@@ -140,6 +140,7 @@ const Index = () => {
           {activeTab === "players" && (
             <PlayersPanel onSelectPlayer={handleSelectPlayer} onSelectTeam={handleSelectTeam} />
           )}
+          {activeTab === "matches" && <MatchesPanel />}
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
           {activeTab === "awards" && <AwardsHistoryPanel />}
