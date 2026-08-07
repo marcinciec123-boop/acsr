@@ -22,6 +22,8 @@ export interface Contract {
   /** ISO date (YYYY-MM-DD). */
   end_date: string;
   status: ContractStatus;
+  /** Miesięczna płaca w EUR. */
+  salary?: number;
 }
 
 const CONTRACTS_KEY = "player_contracts";
@@ -51,6 +53,53 @@ const hash = (value: string): number => {
   }
   return Math.abs(h);
 };
+
+// ===== Płace =====
+/** Formatuje kwotę w EUR (kompaktowo). */
+export function formatMoney(value: number): string {
+  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(value >= 10_000_000 ? 1 : 2)}M`;
+  if (value >= 1_000) return `€${Math.round(value / 1_000)}K`;
+  return `€${Math.round(value)}`;
+}
+
+/** Pozycja drużyny w rankingu klubowym (1-indexed) albo duża liczba gdy brak. */
+function teamRankOf(team: string): number {
+  const clubs = liveTeams().filter(t => !t.isNational).sort((a, b) => b.points - a.points);
+  const idx = clubs.findIndex(t => t.name === team);
+  return idx >= 0 ? idx + 1 : 120;
+}
+
+/**
+ * Losowa (deterministyczna) miesięczna płaca — im lepsza drużyna, tym większa.
+ * Top 1 ≈ €38K, top 10 ≈ €20K, top 50 ≈ €5K, poza setką ≈ €1.5K.
+ */
+export function suggestSalary(player: string, team: string): number {
+  if (!team || team === "-") return 0;
+  const rank = teamRankOf(team);
+  const base = 1_400 + 40_000 * Math.exp(-(rank - 1) / 26);
+  const h = hash(`salary|${player}|${team}`);
+  const variance = 0.78 + ((h % 1000) / 1000) * 0.5; // 0.78 - 1.28
+  const raw = base * variance;
+  const step = raw > 10_000 ? 500 : 100;
+  return Math.max(800, Math.round(raw / step) * step);
+}
+
+/**
+ * Losowa (deterministyczna) kwota odstępnego przy transferze klub → klub.
+ * Zależy od jakości gracza (płaca) oraz siły obu drużyn.
+ */
+export function suggestTransferFee(player: string, fromTeam: string, toTeam: string): number {
+  if (!fromTeam || !toTeam || fromTeam === "-" || toTeam === "-") return 0;
+  const salary = suggestSalary(player, toTeam) || suggestSalary(player, fromTeam);
+  const fromRank = teamRankOf(fromTeam);
+  const toRank = teamRankOf(toTeam);
+  const prestige = 0.6 + 1.8 * Math.exp(-(Math.min(fromRank, toRank) - 1) / 30);
+  const h = hash(`fee|${player}|${fromTeam}|${toTeam}`);
+  const variance = 0.55 + ((h % 1000) / 1000) * 1.5; // 0.55 - 2.05
+  const raw = salary * 12 * prestige * variance;
+  const step = raw > 500_000 ? 25_000 : raw > 50_000 ? 5_000 : 1_000;
+  return Math.max(5_000, Math.round(raw / step) * step);
+}
 
 export function loadContracts(): Contract[] {
   return loadFromStorage<Contract[]>(CONTRACTS_KEY, []);
@@ -98,6 +147,10 @@ export function ensureContracts(): void {
         if (existing.team !== team.name) {
           existing.team = team.name;
           existing.start_date = transferStartDate(player, team.name);
+          existing.salary = suggestSalary(player, team.name);
+          changed = true;
+        } else if (!existing.salary) {
+          existing.salary = suggestSalary(player, team.name);
           changed = true;
         }
         continue;
@@ -117,6 +170,7 @@ export function ensureContracts(): void {
         start_date: start,
         end_date: end,
         status: "active",
+        salary: suggestSalary(player, team.name),
       });
       activeByPlayer.set(player, list[list.length - 1]);
       changed = true;
@@ -182,6 +236,36 @@ export function processExpiredContracts(): number {
     window.dispatchEvent(new CustomEvent("ranking:update"));
   }
   return expiring.length;
+}
+
+/**
+ * Podpisuje nowy kontrakt (wygaszając poprzedni aktywny gracza).
+ * Używane przy ręcznym transferze — użytkownik ustala długość i płacę.
+ */
+export function signContract(
+  player: string,
+  team: string,
+  options: { months: number; salary: number; startDate?: string },
+): Contract | null {
+  const list = loadContracts();
+  for (const c of list) if (c.player === player && c.status === "active") c.status = "expired";
+  if (!team || team === "-") {
+    saveContracts(list);
+    return null;
+  }
+  const start = options.startDate || getWorldDate();
+  const contract: Contract = {
+    id: `ct-${hash(`${player}|${team}|${start}`).toString(36)}-${Date.now().toString(36)}`,
+    player,
+    team,
+    start_date: start,
+    end_date: addDays(start, Math.max(1, Math.round(options.months * 30.4))),
+    status: "active",
+    salary: Math.max(0, Math.round(options.salary)),
+  };
+  list.push(contract);
+  saveContracts(list);
+  return contract;
 }
 
 export type ContractUrgency = "ok" | "soon" | "urgent" | "critical";
