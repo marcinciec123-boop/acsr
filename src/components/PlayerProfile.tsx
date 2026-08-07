@@ -738,6 +738,12 @@ const PlayerProfile = ({
                 </p>
               </div>
               <div>
+                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Wartość transf.</p>
+                <p className="text-sm font-mono font-bold text-primary">
+                  {formatMoney(getMarketValue(playerName, contract.contract.team).value)}
+                </p>
+              </div>
+              <div>
                 <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Pozostało</p>
                 <p className={cn(
                   "text-sm font-mono font-bold",
@@ -748,6 +754,7 @@ const PlayerProfile = ({
                   {formatRemaining(contract.daysLeft)}
                 </p>
               </div>
+
             </div>
             {contract.urgency !== "ok" && (
               <p className={cn(
