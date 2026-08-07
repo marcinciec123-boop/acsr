@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { cn } from "@/lib/utils";
 import { countryFlag } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
+import TeamContractsSection from "@/components/TeamContractsSection";
 import {
   loadAllTeams, createTeam, updateTeam, disbandTeam,
   type CreateTeamInput,
