@@ -69,6 +69,7 @@ const emptyFAForm = (): FAFormState => ({
 });
 
 const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
+  const [streaksOpen, setStreaksOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState<RegionFilter>("all");
   const [teamStatus, setTeamStatus] = useState<TeamStatusFilter>("all");

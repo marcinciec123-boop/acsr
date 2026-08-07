@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, Trophy, Medal, DollarSign, Users, Gamepad2, Crown, Flame } from "lucide-react";
+import { BarChart3, Trophy, Medal, DollarSign, Users, Gamepad2, Crown } from "lucide-react";
 import PanelHeader from "@/components/PanelHeader";
 import TeamLogo from "@/components/TeamLogo";
 import MajorBadge from "@/components/MajorBadge";
