@@ -59,7 +59,16 @@ const collect = (tournaments: TournamentData[]): Row[] => {
 const fmtDay = (iso: string) =>
   new Date(iso).toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
 
-const fmtTime = (iso: string) => (iso.length > 10 ? iso.slice(11, 16) : "—");
+/** Godzina rozegrania: preferuj ręcznie ustawiony termin, potem znacznik meczu. */
+const timeSource = (m: MatchResult) => m.scheduledAt || m.playedAt;
+
+const fmtTime = (iso?: string) => {
+  if (!iso || iso.length <= 10) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso.slice(11, 16);
+  return d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+};
+
 
 const TIER_COLOR: Record<string, string> = {
   S: "bg-amber-500/15 text-amber-300 border-amber-500/40",
