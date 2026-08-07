@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { User, Search, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
+import { User, Search, Flame, ChevronDown, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import { retirePlayer, loadRetiredPlayers } from "@/lib/retiredPlayers";
 import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import PanelHeader from "@/components/PanelHeader";
+import HotStreaksPanel from "@/components/HotStreaksPanel";
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL", "Coach"];
 
@@ -419,6 +420,25 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             </>
           }
         />
+
+        {/* Hot streaks (collapsible) */}
+        <div className="bg-card border border-border rounded-lg mb-4 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setStreaksOpen(o => !o)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-secondary/40 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-sm font-mono uppercase tracking-wider text-foreground">
+              <Flame className="w-4 h-4 text-orange-400" /> Hot streaks
+            </span>
+            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", streaksOpen && "rotate-180")} />
+          </button>
+          {streaksOpen && (
+            <div className="border-t border-border p-3">
+              <HotStreaksPanel />
+            </div>
+          )}
+        </div>
 
         {/* Filters card */}
         <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">

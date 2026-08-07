@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Trophy, Medal, DollarSign, Users, Gamepad2, Crown, Flame } from "lucide-react";
 import PanelHeader from "@/components/PanelHeader";
-import HotStreaksPanel from "@/components/HotStreaksPanel";
 import TeamLogo from "@/components/TeamLogo";
 import MajorBadge from "@/components/MajorBadge";
 import { PlayerLink, TeamLink, useProfileNav } from "@/lib/profileNav";
@@ -91,11 +90,6 @@ const StatisticsPanel = () => {
         <Card icon={Gamepad2} label="Mecze / mapy" value={`${stats.matchCount} / ${stats.mapCount}`} sub="rozegrane" />
         <Card icon={Users} label="Organizacje" value={String(stats.orgs.length)} sub={`${stats.players.length} graczy z zarobkami`} />
       </div>
-
-      {/* Hot streaks */}
-      <Section title="Hot streaks" icon={Flame}>
-        <HotStreaksPanel />
-      </Section>
 
       {/* Tier distribution */}
       <Section title="Turnieje wg tieru" icon={Medal}>
