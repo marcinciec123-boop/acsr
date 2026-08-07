@@ -46,7 +46,7 @@ interface Props {
   onDelete?: (id: string) => void;
   /** Generate next Swiss round */
   onGenerateNextRound: (
-    pairings: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
+    pairings: { team1: string; team2: string; bo: 1 | 3 | 5; round: string; bracketSlot?: string }[],
   ) => void;
 }
 
@@ -247,12 +247,32 @@ export const SwissView = ({
     return out;
   })();
 
+  /** Odczytaj rekord (np. "2-0") zapisany w slocie szkieletu. */
+  const slotRecord = (m: MatchResult) => {
+    const s = m.bracketSlot || "";
+    const hit = /SW-R\d+-(\d+-\d+)/.exec(s);
+    return hit ? hit[1] : undefined;
+  };
+
   const handleBuildSkeleton = () => {
-    const toCreate: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
+    const toCreate: { team1: string; team2: string; bo: 1 | 3 | 5; round: string; bracketSlot?: string }[] = [];
     projected.forEach(r => {
       const label = swissRoundLabel(r.round);
-      const have = skeletonByRound.get(label)?.length || 0;
-      for (let i = have; i < r.matches; i++) {
+      const existing = skeletonByRound.get(label) || [];
+      // Uzupełniamy braki per kubełek rekordów, żeby terminy trzymały się
+      // konkretnych bilansów (2-0, 1-1, 0-2), a nie kolejności generowania.
+      r.buckets.forEach(b => {
+        const have = existing.filter(m => slotRecord(m) === b.record).length;
+        for (let i = have; i < b.matches; i++) {
+          toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label, bracketSlot: `SW-R${r.round}-${b.record}` });
+        }
+      });
+      // Sloty bez przypisanego rekordu (stare dane) — dopełnij do sumy.
+      const legacy = existing.filter(m => !slotRecord(m)).length;
+      const planned = r.buckets.reduce((a, b) => a + b.matches, 0);
+      const already = existing.length - legacy;
+      const deficit = r.matches - planned - Math.max(0, already - planned);
+      for (let i = legacy; i < Math.max(0, deficit); i++) {
         toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label });
       }
     });
