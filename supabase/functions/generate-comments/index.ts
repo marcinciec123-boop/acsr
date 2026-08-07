@@ -73,6 +73,8 @@ ${FACTS_RULES}
 ${NICK_RULES}
 ${STYLE_RULES}
 ZASADY WĄTKU:
+- PIERWSZA odpowiedź MUSI być napisana przez ORYGINALNEGO AUTORA (nick podany w "ORYGINALNY AUTOR"), czyli osobę, do której odezwała się redakcja. Ma zachować swój styl i charakter z poprzedniego wpisu (ten sam poziom ogarnięcia, ta sama emocja: hejter dalej hejtuje, ktoś kto pytał — dopytuje lub dziękuje).
+- Druga i trzecia odpowiedź (jeśli są) mogą być od innych, nowych użytkowników wtrącających się do rozmowy.
 - Każda odpowiedź odnosi się bezpośrednio do treści wpisu redakcji (a przez replyToIndex może też odpowiadać innej odpowiedzi w tej samej paczce).
 - Reakcje bywają różne: podziękowanie za wyjaśnienie, podważanie redakcji, "źródło?", czepianie się szczegółu, żart, ktoś kto broni redakcji przed hejterem.
 - Nie podszywaj się pod redakcję — piszesz wyłącznie jako zwykli użytkownicy.
