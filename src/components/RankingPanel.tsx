@@ -621,11 +621,12 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   )}
                 </div>
 
-                {/* Mobile: points pill on the right */}
-                <div className="md:hidden flex items-center gap-1">
-                  {PointsPill}
-                  <TrendBadge trend={trend} compact />
+                {/* Mobile: trend + points, wyrównane w kolumnach */}
+                <div className="md:hidden flex items-center gap-2">
+                  <span className="w-8 flex justify-end"><TrendBadge trend={trend} compact /></span>
+                  <span className="w-[92px] flex justify-end">{PointsPill}</span>
                 </div>
+
               </motion.div>
 
               {/* Rozwijane szczegóły */}
