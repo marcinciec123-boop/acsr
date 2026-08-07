@@ -24,6 +24,9 @@ interface Payload {
   targetContent?: string;
   /** Nicki już użyte w wątku — nie powtarzaj ich bez potrzeby */
   usedNicks?: string[];
+  /** Dla mode="reply": autor komentarza, na który odpowiedziała redakcja */
+  originalAuthor?: string;
+  originalContent?: string;
 }
 
 const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
