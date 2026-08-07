@@ -1,5 +1,5 @@
 // ===== Panel Mecze =====
-// Zestawienie nadchodzących meczów (najbliższe 3 dni) oraz rozegranych
+// Zestawienie nadchodzących meczów (najbliższe 7 dni) oraz rozegranych
 // (ostatni tydzień), pogrupowane po turniejach. Wszystko liczone względem
 // fikcyjnego kalendarza (worldClock).
 
@@ -147,7 +147,7 @@ const MatchesPanel = () => {
         <PanelHeader
           icon={Swords}
           title="Mecze"
-          meta={`Nadchodzące: ${upcoming.length} · Ostatni tydzień: ${results.length}`}
+          meta={`Nadchodzące: ${upcoming.length} · Ostatnie 14 dni: ${results.length}`}
         />
 
         {/* Przełącznik */}
@@ -159,7 +159,7 @@ const MatchesPanel = () => {
               mode === "upcoming" ? "bg-primary/15 text-primary border border-primary/40" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <CalendarClock className="w-4 h-4" /> Nadchodzące (3 dni)
+            <CalendarClock className="w-4 h-4" /> Nadchodzące (7 dni)
           </button>
           <button
             onClick={() => setMode("results")}
@@ -168,7 +168,7 @@ const MatchesPanel = () => {
               mode === "results" ? "bg-primary/15 text-primary border border-primary/40" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <History className="w-4 h-4" /> Rezultaty (7 dni)
+            <History className="w-4 h-4" /> Rezultaty (14 dni)
           </button>
         </div>
 
@@ -177,8 +177,8 @@ const MatchesPanel = () => {
             <Swords className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-mono text-sm">
               {mode === "upcoming"
-                ? "Brak zaplanowanych meczów w najbliższych 3 dniach."
-                : "Brak rozegranych meczów w ostatnim tygodniu."}
+                ? "Brak zaplanowanych meczów w najbliższych 7 dniach."
+                : "Brak rozegranych meczów w ostatnich 14 dniach."}
             </p>
           </div>
         )}
