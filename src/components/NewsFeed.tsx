@@ -687,105 +687,21 @@ const NewsFeed = () => {
         </div>
 
 
-        {/* New post form */}
-        <AnimatePresence>
-          {showNew && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-                <input
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  placeholder="Nagłówek (opcjonalnie)"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-secondary/50 text-sm font-heading font-bold text-foreground"
-                />
-                <Textarea
-                  placeholder="Treść artykułu..."
-                  value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  className="bg-secondary/50 border-border min-h-[100px] resize-none"
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select
-                    value={newCategory}
-                    onChange={e => setNewCategory(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  >
-                    <option value="">Bez kategorii</option>
-                    {allCategories.map(cat => (
-                      <option key={cat} value={cat}>{CATEGORY_BADGES[cat]?.label || cat}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={e => setNewDate(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    type="time"
-                    value={newTime}
-                    onChange={e => setNewTime(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newAuthor}
-                    onChange={e => setNewAuthor(e.target.value)}
-                    placeholder="Autor / redakcja"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newSource}
-                    onChange={e => setNewSource(e.target.value)}
-                    placeholder="Źródło (opcjonalnie)"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newTags}
-                    onChange={e => setNewTags(e.target.value)}
-                    placeholder="Tagi po przecinku (np. NAVI, Major, transfer)"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground sm:col-span-2"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-xs font-mono text-muted-foreground cursor-pointer">
-                  <input type="checkbox" checked={newPinned} onChange={e => setNewPinned(e.target.checked)} />
-                  Przypnij post na górze
-                </label>
-                {newImage && (
-                  <div className="relative inline-block">
-                    <img src={newImage} alt="Preview" className="max-h-48 rounded-md" />
-                    <button
-                      onClick={() => setNewImage(null)}
-                      className="absolute top-1 right-1 bg-background/80 rounded-full p-1"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <input type="file" ref={fileRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
-                    <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                      <Image className="w-4 h-4 mr-1" /> Zdjęcie
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); resetForm(); }}>
-                      Anuluj
-                    </Button>
-                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newTitle.trim() && !newImage}>
-                      {editingId ? "Zapisz zmiany" : "Opublikuj"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* New post form (izolowany komponent — brak re-renderu listy przy pisaniu) */}
+        {showNew && (
+          <div className="mb-6">
+            <NewsComposer
+              key={composerKey}
+              initial={draft}
+              editing={!!editingId}
+              categories={allCategories}
+              categoryLabel={categoryLabel}
+              onSubmit={handlePost}
+              onCancel={handleCancelComposer}
+            />
+          </div>
+        )}
+
 
 
         {/* Posts */}
