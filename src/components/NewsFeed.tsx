@@ -873,9 +873,11 @@ const NewsFeed = () => {
                   <img
                     src={imageCache[post.imageId]}
                     alt="Post"
-                    className="rounded-md max-w-full mb-3"
+                    className="rounded-md max-w-full mb-3 cursor-zoom-in hover:opacity-90 transition-opacity"
+                    onClick={() => setLightbox(imageCache[post.imageId!])}
                   />
                 )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono flex-wrap">
                     <Clock className="w-3 h-3" />
