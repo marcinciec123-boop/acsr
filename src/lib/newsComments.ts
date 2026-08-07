@@ -121,17 +121,23 @@ export const EDITOR_AUTHOR = "Redakcja";
 /** Dodaje odpowiedź redakcji pod wskazanym komentarzem. Zwraca id nowego wpisu. */
 export function addEditorReply(postId: string, parentId: string, content: string): string {
   const all = getComments(postId);
+  const parent = all.find(c => c.id === parentId);
+  // Odpowiedź redakcji zawsze późniejsza niż komentarz, na który odpowiada
+  const parentTs = parent ? Date.parse(parent.date) : NaN;
+  const nowTs = Date.parse(getWorldNowIso());
+  const ts = Math.max(isNaN(parentTs) ? 0 : parentTs + 12 * 60 * 1000, nowTs);
   const entry: NewsComment = {
     id: uid() + "ed",
     author: EDITOR_AUTHOR,
     content: content.trim(),
     likes: 0,
-    date: getWorldNowIso(),
+    date: new Date(ts).toISOString(),
     replyTo: parentId,
     editor: true,
   };
   const idx = all.findIndex(c => c.id === parentId);
   const next = idx === -1 ? [...all, entry] : [...all.slice(0, idx + 1), entry, ...all.slice(idx + 1)];
+
   setComments(postId, next);
   return entry.id;
 }
