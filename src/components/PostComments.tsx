@@ -13,6 +13,8 @@ import {
   addEditorReply,
   getComments,
   setComments,
+  getPostLikes,
+  setPostLikes,
   type NewsComment,
 } from "@/lib/newsComments";
 import { toast } from "sonner";
@@ -42,6 +44,8 @@ const PostComments = ({ post, pending }: Props) => {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [replying, setReplying] = useState<string | null>(null);
+  const [postLikeCount, setPostLikeCount] = useState(() => getPostLikes(post.id));
+  const [postLiked, setPostLiked] = useState(false);
   // Zwinięte wątki — zapamiętywane w localStorage; domyślnie wszystkie zwinięte.
   const storeKey = `news:collapsed:${post.id}`;
   const parentsOf = (list: NewsComment[]) =>
@@ -83,10 +87,11 @@ const PostComments = ({ post, pending }: Props) => {
     if (pending) return;
     const fresh = getComments(post.id);
     if (fresh.length !== comments.length) setLocal(fresh);
+    setPostLikeCount(getPostLikes(post.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, post.id]);
 
-  const count = comments.length;
+  const count = comments.filter(c => !c.replyTo).length;
 
   const regenerate = async () => {
     setLoading(true);
@@ -94,6 +99,7 @@ const PostComments = ({ post, pending }: Props) => {
     if (!res.ok) toast.error(res.error || "Nie udało się wygenerować komentarzy");
     else {
       setLocal(getComments(post.id));
+      setPostLikeCount(getPostLikes(post.id));
       setOpen(true);
       toast.success(`Wygenerowano ${res.count} komentarzy`);
     }
@@ -124,6 +130,22 @@ const PostComments = ({ post, pending }: Props) => {
           <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", open && "rotate-180")} />
         </button>
         {pending && count === 0 && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
+        <button
+          type="button"
+          onClick={() => {
+            const next = postLikeCount + (postLiked ? -1 : 1);
+            setPostLikeCount(next);
+            setPostLiked(v => !v);
+            setPostLikes(post.id, next);
+          }}
+          className={cn(
+            "flex items-center gap-1 text-xs font-mono transition-colors",
+            postLiked ? "text-primary" : "text-muted-foreground hover:text-primary",
+          )}
+          title="Polub artykuł"
+        >
+          <ThumbsUp className="w-3.5 h-3.5" /> {postLikeCount}
+        </button>
         {open && count > 0 && (
           <Button
             variant="ghost"
