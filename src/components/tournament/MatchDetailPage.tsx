@@ -441,8 +441,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 lossPoints={previews.team2Wins.lossPoints}
                 expected={previews.team1Wins.expectedWinner}
                 upset={previews.team1Wins.upset}
-                rankIfWin={predictRankDelta(match.team1, previews.team1Wins.winPoints, ranking)}
-                rankIfLose={predictRankDelta(match.team1, -previews.team2Wins.lossPoints, ranking)}
+                rankIfWin={predictRankDeltaPair(match.team1, previews.team1Wins.winPoints, match.team2, -previews.team1Wins.lossPoints, ranking).a}
+                rankIfLose={predictRankDeltaPair(match.team2, previews.team2Wins.winPoints, match.team1, -previews.team2Wins.lossPoints, ranking).b}
                 highlighted={winner1}
               />
               <PredictionCard
@@ -452,8 +452,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 lossPoints={previews.team1Wins.lossPoints}
                 expected={previews.team2Wins.expectedWinner}
                 upset={previews.team2Wins.upset}
-                rankIfWin={predictRankDelta(match.team2, previews.team2Wins.winPoints, ranking)}
-                rankIfLose={predictRankDelta(match.team2, -previews.team1Wins.lossPoints, ranking)}
+                rankIfWin={predictRankDeltaPair(match.team2, previews.team2Wins.winPoints, match.team1, -previews.team2Wins.lossPoints, ranking).a}
+                rankIfLose={predictRankDeltaPair(match.team1, previews.team1Wins.winPoints, match.team2, -previews.team1Wins.lossPoints, ranking).b}
                 highlighted={winner2}
               />
 
