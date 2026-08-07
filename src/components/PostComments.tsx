@@ -42,9 +42,24 @@ const PostComments = ({ post, pending }: Props) => {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [replying, setReplying] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  // Zwinięte wątki — zapamiętywane w localStorage; domyślnie wszystkie zwinięte.
+  const storeKey = `news:collapsed:${post.id}`;
+  const parentsOf = (list: NewsComment[]) =>
+    list.filter(c => list.some(x => x.replyTo === c.id)).map(c => c.id);
+  const [collapsedStored, setCollapsedStored] = useState<string[] | null>(() => {
+    try {
+      const raw = localStorage.getItem(storeKey);
+      return raw ? (JSON.parse(raw) as string[]) : null;
+    } catch { return null; }
+  });
+  const collapsed = collapsedStored ?? parentsOf(comments);
+  const persistCollapsed = (next: string[]) => {
+    setCollapsedStored(next);
+    try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ }
+  };
   const toggleCollapse = (id: string) =>
-    setCollapsed(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    persistCollapsed(collapsed.includes(id) ? collapsed.filter(x => x !== id) : [...collapsed, id]);
+
 
 
   const sendEditorReply = async (parentId: string) => {
