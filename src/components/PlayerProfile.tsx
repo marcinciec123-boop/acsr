@@ -23,7 +23,7 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
-import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, type ContractInfo } from "@/lib/contracts";
+import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, getMarketValue, type ContractInfo } from "@/lib/contracts";
 import { WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { useEffect } from "react";
 import { FileSignature, AlertTriangle } from "lucide-react";
