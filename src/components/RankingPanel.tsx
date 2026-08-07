@@ -453,17 +453,18 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
         {/* === MAIN TABLE === */}
         <div className="bg-card/80 border border-border rounded-xl overflow-hidden backdrop-blur-sm">
           {/* Header — desktop only */}
-          <div className="hidden md:grid grid-cols-[50px_110px_1fr_70px_80px_70px_70px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/20 border-b border-primary/20 text-xs font-mono text-primary/60 uppercase tracking-[0.2em]">
+          <div className="hidden md:grid grid-cols-[50px_60px_110px_1fr_70px_80px_70px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/20 border-b border-primary/20 text-xs font-mono text-primary/60 uppercase tracking-[0.2em]">
             <div className="text-center">#</div>
+            <div className="text-center">Trend</div>
             <div className="text-center">Punkty</div>
             <div>Team_ID</div>
             <div className="text-center">Class</div>
             <div className="text-center">Region</div>
             <div className="text-center">Forma</div>
-            <div className="text-center">Trend</div>
             <div className="text-right">Skład</div>
             <div className="text-right">Akcje</div>
           </div>
+
 
 
 
@@ -521,13 +522,18 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   // Mobile: compact 3-column row
                   "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
                   // Desktop: full table
-                  "md:grid-cols-[50px_110px_1fr_70px_80px_70px_70px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
+                  "md:grid-cols-[50px_60px_110px_1fr_70px_80px_70px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
                 {/* Rank */}
                 <div className="text-center font-mono flex md:block justify-center">
                   {RankBadge}
+                </div>
+
+                {/* Trend — desktop */}
+                <div className="hidden md:flex justify-center">
+                  <TrendBadge trend={trend} compact />
                 </div>
 
                 {/* Points — desktop */}
@@ -546,6 +552,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                     />
                   ) : PointsPill}
                 </div>
+
 
 
                 {/* Team */}
@@ -587,10 +594,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <Sparkline team={team.name} />
                 </div>
 
-                {/* Trend — desktop */}
-                <div className="hidden md:flex justify-center">
-                  <TrendBadge trend={trend} compact />
-                </div>
+
 
 
                 {/* Roster — desktop */}
@@ -621,11 +625,12 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   )}
                 </div>
 
-                {/* Mobile: points pill on the right */}
-                <div className="md:hidden flex items-center gap-1">
-                  {PointsPill}
-                  <TrendBadge trend={trend} compact />
+                {/* Mobile: trend + points, wyrównane w kolumnach */}
+                <div className="md:hidden flex items-center gap-2">
+                  <span className="w-8 flex justify-end"><TrendBadge trend={trend} compact /></span>
+                  <span className="w-[92px] flex justify-end">{PointsPill}</span>
                 </div>
+
               </motion.div>
 
               {/* Rozwijane szczegóły */}
