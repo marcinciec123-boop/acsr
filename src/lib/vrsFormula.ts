@@ -125,3 +125,33 @@ export const predictRankDelta = (
   const to = projectedSorted.findIndex(t => t.name === teamName) + 1;
   return { from, to, delta: from - to }; // positive = moved up
 };
+
+/**
+ * Compute rank shifts for BOTH teams of a match at once, applying both point
+ * deltas simultaneously. Needed because a loser can drop a position purely by
+ * being overtaken by the team it lost to (even with a tiny point swing).
+ */
+export const predictRankDeltaPair = (
+  teamA: string,
+  deltaA: number,
+  teamB: string,
+  deltaB: number,
+  ranking: TeamData[] = getRankingSnapshot(),
+): { a: { from: number; to: number; delta: number }; b: { from: number; to: number; delta: number } } => {
+  const currentSorted = [...ranking].sort((x, y) => (y.points || 0) - (x.points || 0));
+  const fromA = currentSorted.findIndex(t => t.name === teamA) + 1;
+  const fromB = currentSorted.findIndex(t => t.name === teamB) + 1;
+  const projected = ranking.map(t => {
+    if (t.name === teamA) return { ...t, points: Math.max(0, (t.points || 0) + deltaA) };
+    if (t.name === teamB) return { ...t, points: Math.max(0, (t.points || 0) + deltaB) };
+    return t;
+  });
+  const projectedSorted = [...projected].sort((x, y) => (y.points || 0) - (x.points || 0));
+  const toA = projectedSorted.findIndex(t => t.name === teamA) + 1;
+  const toB = projectedSorted.findIndex(t => t.name === teamB) + 1;
+  const fb = (from: number, to: number) =>
+    from === 0
+      ? { from: ranking.length + 1, to: ranking.length + 1, delta: 0 }
+      : { from, to, delta: from - to };
+  return { a: fb(fromA, toA), b: fb(fromB, toB) };
+};
