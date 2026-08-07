@@ -3,6 +3,7 @@
 // które reagują na konkretną treść artykułu (AI, edge function `generate-comments`).
 
 import { supabase } from "@/integrations/supabase/client";
+import { loadAllTeams } from "./teamManagement";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
 
