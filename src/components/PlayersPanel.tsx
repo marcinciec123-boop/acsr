@@ -1,3 +1,4 @@
+import PlayerAvatar from "@/components/PlayerAvatar";
 import { useState, useMemo, useEffect } from "react";
 import { User, Search, Flame, ChevronDown, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
