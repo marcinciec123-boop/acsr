@@ -172,6 +172,10 @@ const NewsFeed = () => {
   const [newTags, setNewTags] = useState("");
   const [newSource, setNewSource] = useState("");
   const [newDate, setNewDate] = useState<string>(() => getWorldNowIso().slice(0, 10));
+  const [newTime, setNewTime] = useState<string>(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  });
   const [newPinned, setNewPinned] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<string | null>(null);
@@ -244,6 +248,8 @@ const NewsFeed = () => {
     setNewContent(""); setNewTitle(""); setNewAuthor(""); setNewCategory("");
     setNewTags(""); setNewSource(""); setNewPinned(false); setNewImage(null);
     setNewDate(getWorldNowIso().slice(0, 10));
+    const now = new Date();
+    setNewTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
     setEditingId(null);
   };
 
@@ -257,6 +263,8 @@ const NewsFeed = () => {
     setNewSource(post.source || "");
     setNewPinned(!!post.pinned);
     setNewDate((post.date || getWorldNowIso()).slice(0, 10));
+    const pd = new Date(post.date || getWorldNowIso());
+    setNewTime(Number.isNaN(pd.getTime()) ? "12:00" : `${String(pd.getHours()).padStart(2, "0")}:${String(pd.getMinutes()).padStart(2, "0")}`);
     setNewImage(post.imageId ? imageCache[post.imageId] || null : null);
     setShowNew(true);
   };
@@ -272,7 +280,8 @@ const NewsFeed = () => {
     }
     if (!newImage) imageId = undefined;
     const tags = newTags.split(",").map(t => t.trim()).filter(Boolean);
-    const existingTime = editingId ? (posts.find(p => p.id === editingId)?.date || "").slice(10) : "";
+    const localDt = new Date(`${newDate}T${newTime || "12:00"}:00`);
+    const isoDate = Number.isNaN(localDt.getTime()) ? getWorldNowIso() : localDt.toISOString();
     const post: NewsPost = {
       id,
       content: newContent.trim(),
@@ -283,7 +292,7 @@ const NewsFeed = () => {
       source: newSource.trim() || undefined,
       pinned: newPinned || undefined,
       imageId,
-      date: newDate + (existingTime || getWorldNowIso().slice(10)),
+      date: isoDate,
     };
     setPosts(prev => editingId ? prev.map(p => p.id === editingId ? post : p) : [post, ...prev]);
     toast.success(editingId ? "Zaktualizowano post" : "Opublikowano post");
