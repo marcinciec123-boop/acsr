@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import NewsComposer, { type ComposerDraft } from "@/components/news/NewsComposer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown, CheckSquare, Square, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -162,23 +163,22 @@ const buildSnapshot = (): WorldSnapshot => {
   };
 };
 
+const emptyDraft = (): ComposerDraft => {
+  const now = new Date();
+  return {
+    title: "", content: "", category: "",
+    date: getWorldNowIso().slice(0, 10),
+    time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    author: "", source: "", tags: "", pinned: false, image: null,
+  };
+};
+
 const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
   const [showNew, setShowNew] = useState(false);
-  const [newContent, setNewContent] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [newAuthor, setNewAuthor] = useState("");
-  const [newCategory, setNewCategory] = useState<string>("");
-  const [newTags, setNewTags] = useState("");
-  const [newSource, setNewSource] = useState("");
-  const [newDate, setNewDate] = useState<string>(() => getWorldNowIso().slice(0, 10));
-  const [newTime, setNewTime] = useState<string>(() => {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  });
-  const [newPinned, setNewPinned] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newImage, setNewImage] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ComposerDraft>(() => emptyDraft());
+  const [composerKey, setComposerKey] = useState(0);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -205,12 +205,13 @@ const NewsFeed = () => {
 
 
   useEffect(() => {
+    if (showNew) return; // brak odpytywania storage podczas pisania artykułu
     const i = setInterval(() => {
       const fresh = loadFromStorage<NewsPost[]>(STORAGE_KEY, []);
       if (fresh.length !== posts.length) setPosts(fresh);
-    }, 1500);
+    }, 4000);
     return () => clearInterval(i);
-  }, [posts.length]);
+  }, [posts.length, showNew]);
 
   const handleAIGenerate = async (mode: AIPostMode) => {
     setAiLoading(mode);
@@ -249,62 +250,53 @@ const NewsFeed = () => {
     loadImages();
   }, [posts]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert("Maksymalny rozmiar: 5MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => setNewImage(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const resetForm = () => {
-    setNewContent(""); setNewTitle(""); setNewAuthor(""); setNewCategory("");
-    setNewTags(""); setNewSource(""); setNewPinned(false); setNewImage(null);
-    setNewDate(getWorldNowIso().slice(0, 10));
-    const now = new Date();
-    setNewTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+  const resetForm = useCallback(() => {
+    setDraft(emptyDraft());
     setEditingId(null);
-  };
+    setComposerKey(k => k + 1);
+  }, []);
 
   const startEdit = (post: NewsPost) => {
-    setEditingId(post.id);
-    setNewContent(post.content || "");
-    setNewTitle(post.title || "");
-    setNewAuthor(post.author || "");
-    setNewCategory(post.category || "");
-    setNewTags((post.tags || []).join(", "));
-    setNewSource(post.source || "");
-    setNewPinned(!!post.pinned);
-    setNewDate((post.date || getWorldNowIso()).slice(0, 10));
     const pd = new Date(post.date || getWorldNowIso());
-    setNewTime(Number.isNaN(pd.getTime()) ? "12:00" : `${String(pd.getHours()).padStart(2, "0")}:${String(pd.getMinutes()).padStart(2, "0")}`);
-    setNewImage(post.imageId ? imageCache[post.imageId] || null : null);
+    setEditingId(post.id);
+    setDraft({
+      title: post.title || "",
+      content: post.content || "",
+      category: post.category || "",
+      date: (post.date || getWorldNowIso()).slice(0, 10),
+      time: Number.isNaN(pd.getTime()) ? "12:00" : `${String(pd.getHours()).padStart(2, "0")}:${String(pd.getMinutes()).padStart(2, "0")}`,
+      author: post.author || "",
+      source: post.source || "",
+      tags: (post.tags || []).join(", "),
+      pinned: !!post.pinned,
+      image: post.imageId ? imageCache[post.imageId] || null : null,
+    });
+    setComposerKey(k => k + 1);
     setShowNew(true);
   };
 
-  const handlePost = async () => {
-    if (!newContent.trim() && !newTitle.trim() && !newImage) return;
+  const handlePost = useCallback(async (d: ComposerDraft) => {
+    if (!d.content.trim() && !d.title.trim() && !d.image) return;
     const id = editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     let imageId: string | undefined = editingId ? posts.find(p => p.id === editingId)?.imageId : undefined;
-    if (newImage && !(imageId && imageCache[imageId] === newImage)) {
+    if (d.image && !(imageId && imageCache[imageId] === d.image)) {
       imageId = "img_" + id + "_" + Math.random().toString(36).slice(2, 5);
-      await saveImage(imageId, newImage);
-      setImageCache(prev => ({ ...prev, [imageId!]: newImage! }));
+      await saveImage(imageId, d.image);
+      setImageCache(prev => ({ ...prev, [imageId!]: d.image! }));
     }
-    if (!newImage) imageId = undefined;
-    const tags = newTags.split(",").map(t => t.trim()).filter(Boolean);
-    const localDt = new Date(`${newDate}T${newTime || "12:00"}:00`);
+    if (!d.image) imageId = undefined;
+    const tags = d.tags.split(",").map(t => t.trim()).filter(Boolean);
+    const localDt = new Date(`${d.date}T${d.time || "12:00"}:00`);
     const isoDate = Number.isNaN(localDt.getTime()) ? getWorldNowIso() : localDt.toISOString();
     const post: NewsPost = {
       id,
-      content: newContent.trim(),
-      title: newTitle.trim() || undefined,
-      author: newAuthor.trim() || undefined,
-      category: newCategory || undefined,
+      content: d.content.trim(),
+      title: d.title.trim() || undefined,
+      author: d.author.trim() || undefined,
+      category: d.category || undefined,
       tags: tags.length ? tags : undefined,
-      source: newSource.trim() || undefined,
-      pinned: newPinned || undefined,
+      source: d.source.trim() || undefined,
+      pinned: d.pinned || undefined,
       imageId,
       date: isoDate,
     };
@@ -322,7 +314,11 @@ const NewsFeed = () => {
         })
         .finally(() => setCommentPending(null));
     }
-  };
+  }, [editingId, posts, imageCache, resetForm]);
+
+
+  const categoryLabel = useCallback((cat: string) => CATEGORY_BADGES[cat]?.label || cat, []);
+  const handleCancelComposer = useCallback(() => { setShowNew(false); resetForm(); }, [resetForm]);
 
   const handleDelete = async (post: NewsPost) => {
     if (post.imageId) await deleteImage(post.imageId);
@@ -351,20 +347,20 @@ const NewsFeed = () => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   };
 
-  const allCategories = Array.from(new Set([
+  const allCategories = useMemo(() => Array.from(new Set([
     ...Object.keys(CATEGORY_BADGES),
     ...posts.map(p => p.category).filter(Boolean) as string[],
-  ]));
-  const usedCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
-  const years = Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
+  ])), [posts]);
+  const usedCategories = useMemo(() => Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[], [posts]);
+  const years = useMemo(() => Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse(), [posts]);
 
-  const authors = Array.from(new Set(posts.map(p => p.author).filter(Boolean))).sort() as string[];
-  const allTags = Array.from(new Set(posts.flatMap(p => p.tags || []))).sort();
+  const authors = useMemo(() => Array.from(new Set(posts.map(p => p.author).filter(Boolean))).sort() as string[], [posts]);
+  const allTags = useMemo(() => Array.from(new Set(posts.flatMap(p => p.tags || []))).sort(), [posts]);
   const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const MONTH_LABELS = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
 
   const q = search.trim().toLowerCase();
-  const sorted = [...posts]
+  const sorted = useMemo(() => [...posts]
     .filter(p => cats.length === 0 || (p.category && cats.includes(p.category)))
     .filter(p => yearFilter === "all" || (p.date || "").slice(0, 4) === yearFilter)
     .filter(p => monthFilter === "all" || (p.date || "").slice(5, 7) === monthFilter)
@@ -381,7 +377,8 @@ const NewsFeed = () => {
       if (!a.pinned && b.pinned) return 1;
       const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
       return sortDir === "desc" ? diff : -diff;
-    });
+    }), [posts, cats, yearFilter, monthFilter, authorFilter, tagFilter, dateFrom, dateTo, imageOnly, pinnedOnly, q, sortDir]);
+
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [
     ...cats.map(c => ({ key: `cat-${c}`, label: CATEGORY_BADGES[c]?.label || c, clear: () => setCats(prev => prev.filter(x => x !== c)) })),
@@ -415,7 +412,7 @@ const NewsFeed = () => {
     return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
-  const eventCount = buildSnapshot().events?.length ?? 0;
+  const eventCount = useMemo(() => buildSnapshot().events?.length ?? 0, [posts.length]);
 
   return (
     <section className="py-6">
@@ -705,105 +702,21 @@ const NewsFeed = () => {
         </div>
 
 
-        {/* New post form */}
-        <AnimatePresence>
-          {showNew && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-                <input
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  placeholder="Nagłówek (opcjonalnie)"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-secondary/50 text-sm font-heading font-bold text-foreground"
-                />
-                <Textarea
-                  placeholder="Treść artykułu..."
-                  value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  className="bg-secondary/50 border-border min-h-[100px] resize-none"
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select
-                    value={newCategory}
-                    onChange={e => setNewCategory(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  >
-                    <option value="">Bez kategorii</option>
-                    {allCategories.map(cat => (
-                      <option key={cat} value={cat}>{CATEGORY_BADGES[cat]?.label || cat}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={e => setNewDate(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    type="time"
-                    value={newTime}
-                    onChange={e => setNewTime(e.target.value)}
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newAuthor}
-                    onChange={e => setNewAuthor(e.target.value)}
-                    placeholder="Autor / redakcja"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newSource}
-                    onChange={e => setNewSource(e.target.value)}
-                    placeholder="Źródło (opcjonalnie)"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
-                  />
-                  <input
-                    value={newTags}
-                    onChange={e => setNewTags(e.target.value)}
-                    placeholder="Tagi po przecinku (np. NAVI, Major, transfer)"
-                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground sm:col-span-2"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-xs font-mono text-muted-foreground cursor-pointer">
-                  <input type="checkbox" checked={newPinned} onChange={e => setNewPinned(e.target.checked)} />
-                  Przypnij post na górze
-                </label>
-                {newImage && (
-                  <div className="relative inline-block">
-                    <img src={newImage} alt="Preview" className="max-h-48 rounded-md" />
-                    <button
-                      onClick={() => setNewImage(null)}
-                      className="absolute top-1 right-1 bg-background/80 rounded-full p-1"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <input type="file" ref={fileRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
-                    <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                      <Image className="w-4 h-4 mr-1" /> Zdjęcie
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => { setShowNew(false); resetForm(); }}>
-                      Anuluj
-                    </Button>
-                    <Button size="sm" onClick={handlePost} disabled={!newContent.trim() && !newTitle.trim() && !newImage}>
-                      {editingId ? "Zapisz zmiany" : "Opublikuj"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* New post form (izolowany komponent — brak re-renderu listy przy pisaniu) */}
+        {showNew && (
+          <div className="mb-6">
+            <NewsComposer
+              key={composerKey}
+              initial={draft}
+              editing={!!editingId}
+              categories={allCategories}
+              categoryLabel={categoryLabel}
+              onSubmit={handlePost}
+              onCancel={handleCancelComposer}
+            />
+          </div>
+        )}
+
 
 
         {/* Posts */}
