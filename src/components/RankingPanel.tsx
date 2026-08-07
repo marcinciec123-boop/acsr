@@ -594,10 +594,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <Sparkline team={team.name} />
                 </div>
 
-                {/* Trend — desktop */}
-                <div className="hidden md:flex justify-center">
-                  <TrendBadge trend={trend} compact />
-                </div>
+
 
 
                 {/* Roster — desktop */}
