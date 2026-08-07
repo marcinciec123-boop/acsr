@@ -150,9 +150,15 @@ export async function generateReplies(
       cur = cur.replyTo ? byId.get(cur.replyTo) : undefined;
     }
 
+    // Autor komentarza, na który odpowiedziała redakcja — to on ma odpisać jako pierwszy
+    const parentUser = target.replyTo ? byId.get(target.replyTo) : undefined;
+    const originalAuthor = parentUser && !parentUser.editor ? parentUser.author : undefined;
+
     const { data, error } = await supabase.functions.invoke("generate-comments", {
       body: {
         mode: "reply",
+        originalAuthor,
+        originalContent: parentUser?.content,
         title: post.title || "",
         content: post.content || "",
         category: post.category || "",
@@ -178,7 +184,8 @@ export async function generateReplies(
       const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
       return {
         id: ids[i],
-        author: (c.author || "anon").trim().slice(0, 24),
+        // pierwsza odpowiedź zawsze od oryginalnego autora, do którego odezwała się redakcja
+        author: (i === 0 && originalAuthor ? originalAuthor : c.author || "anon").trim().slice(0, 24),
         content: c.content!.trim(),
         likes: Math.max(-20, Math.min(999, Math.round(c.likes ?? 0))),
         date: new Date(base + (i + 1) * 4 * 60 * 1000).toISOString(),

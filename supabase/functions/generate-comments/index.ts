@@ -24,6 +24,9 @@ interface Payload {
   targetContent?: string;
   /** Nicki już użyte w wątku — nie powtarzaj ich bez potrzeby */
   usedNicks?: string[];
+  /** Dla mode="reply": autor komentarza, na który odpowiedziała redakcja */
+  originalAuthor?: string;
+  originalContent?: string;
 }
 
 const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
@@ -70,6 +73,8 @@ ${FACTS_RULES}
 ${NICK_RULES}
 ${STYLE_RULES}
 ZASADY WĄTKU:
+- PIERWSZA odpowiedź MUSI być napisana przez ORYGINALNEGO AUTORA (nick podany w "ORYGINALNY AUTOR"), czyli osobę, do której odezwała się redakcja. Ma zachować swój styl i charakter z poprzedniego wpisu (ten sam poziom ogarnięcia, ta sama emocja: hejter dalej hejtuje, ktoś kto pytał — dopytuje lub dziękuje).
+- Druga i trzecia odpowiedź (jeśli są) mogą być od innych, nowych użytkowników wtrącających się do rozmowy.
 - Każda odpowiedź odnosi się bezpośrednio do treści wpisu redakcji (a przez replyToIndex może też odpowiadać innej odpowiedzi w tej samej paczce).
 - Reakcje bywają różne: podziękowanie za wyjaśnienie, podważanie redakcji, "źródło?", czepianie się szczegółu, żart, ktoś kto broni redakcji przed hejterem.
 - Nie podszywaj się pod redakcję — piszesz wyłącznie jako zwykli użytkownicy.
@@ -112,7 +117,10 @@ Deno.serve(async (req) => {
                 .join("\n")}`
             : "",
           `WPIS REDAKCJI, NA KTÓRY REAGUJEMY:\n${body.targetAuthor || "Redakcja"}: ${(body.targetContent || "").slice(0, 1200)}`,
-          body.usedNicks?.length ? `NICKI JUŻ UŻYTE (nie powtarzaj): ${body.usedNicks.slice(0, 40).join(", ")}` : "",
+          body.originalAuthor
+            ? `ORYGINALNY AUTOR (redakcja odpowiedziała właśnie jemu — pierwsza odpowiedź MUSI być od niego, z tym samym nickiem i stylem): ${body.originalAuthor}${body.originalContent ? `\nJego poprzedni komentarz: ${body.originalContent.slice(0, 600)}` : ""}`
+            : "",
+          body.usedNicks?.length ? `NICKI JUŻ UŻYTE (nie powtarzaj, poza ORYGINALNYM AUTOREM): ${body.usedNicks.slice(0, 40).join(", ")}` : "",
           `\nNapisz dokładnie ${count} odpowiedzi użytkowników na wpis redakcji. Mają brzmieć jak żywi ludzie, nie jak AI.`,
         ].filter(Boolean).join("\n\n")
       : [
