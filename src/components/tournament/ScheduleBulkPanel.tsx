@@ -38,6 +38,12 @@ const addMinutes = (iso: string, minutes: number) => {
 
 const label = (name?: string) => (!name || name === "TBD" ? "TBD" : name);
 
+/** Bilans slotu Swiss (np. "2-0") zapisany w bracketSlot. */
+const swissRecord = (slot?: string) => {
+  const hit = /SW-R\d+-(\d+-\d+)/.exec(slot || "");
+  return hit ? hit[1] : undefined;
+};
+
 export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
