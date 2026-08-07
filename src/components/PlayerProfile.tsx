@@ -213,6 +213,14 @@ const PlayerProfile = ({
                     <Shield className="w-3.5 h-3.5" />
                     {countryFlag(currentTeam.country)}
                     <span className="font-bold text-foreground group-hover:text-primary">{currentTeam.name}</span>
+                    {contract?.urgency === "critical" && (
+                      <span
+                        title={`Kontrakt wygasa za ${formatRemaining(contract.daysLeft)}`}
+                        className="text-[hsl(var(--loss))] font-bold text-xs leading-none"
+                      >
+                        !
+                      </span>
+                    )}
                     {teamRank && <span className="font-mono text-xs">(#{teamRank})</span>}
                     {isCoachOfTeam && (
                       <span className="ml-1 text-xs font-mono uppercase px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
