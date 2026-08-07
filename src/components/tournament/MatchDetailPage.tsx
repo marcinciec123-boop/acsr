@@ -13,7 +13,7 @@ import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
-import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
+import { predictBothOutcomes, predictMatch, predictRankDelta, predictRankDeltaPair, getRankingSnapshot } from "@/lib/vrsFormula";
 import { MatchComparePanel } from "./MatchComparePanel";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
