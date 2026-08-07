@@ -153,9 +153,12 @@ const PostComments = ({ post, pending }: Props) => {
                     children.set(c.replyTo, arr);
                   } else roots.push(c);
                 });
+                const descCount = (id: string): number =>
+                  (children.get(id) || []).reduce((n, ch) => n + 1 + descCount(ch.id), 0);
                 const ordered: NewsComment[] = [];
                 const walk = (c: NewsComment) => {
                   ordered.push(c);
+                  if (collapsed.includes(c.id)) return;
                   (children.get(c.id) || []).forEach(walk);
                 };
                 roots.forEach(walk);
@@ -163,12 +166,15 @@ const PostComments = ({ post, pending }: Props) => {
                 return ordered.map(c => {
                   const depth = Math.min(depthOf(c), 3);
                   const parent = c.replyTo ? byId.get(c.replyTo) : undefined;
+                  const hidden = descCount(c.id);
+                  const isCollapsed = collapsed.includes(c.id);
                   return (
                     <div
                       key={c.id}
                       className={cn("flex gap-2", depth > 0 && "border-l-2 border-border/60 pl-2")}
                       style={depth > 0 ? { marginLeft: depth * 14 } : undefined}
                     >
+
                       <span
                         className={cn(
                           "w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90",
