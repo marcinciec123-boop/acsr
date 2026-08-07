@@ -9,6 +9,7 @@ import { customTransfersGlobal, type Transfer as RawTransfer } from "@/data/hist
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldDate, getWorldNowIso, WORLD_CLOCK_EVENT } from "./worldClock";
 import { removeFromAllBenches } from "./benchedPlayers";
+import { computeAllPlayersBasicStats, type BasicPlayerStats } from "./playerCareerStats";
 import type { TeamData, Transfer } from "./types";
 
 export type ContractStatus = "active" | "expired";
