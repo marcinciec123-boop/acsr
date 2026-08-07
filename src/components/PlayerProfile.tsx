@@ -21,6 +21,13 @@ import TeamLogo from "@/components/TeamLogo";
 import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
+import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
+
+const fmtDate = (iso: string | null): string =>
+  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" }) : "?";
+
+const fmtRange = (from: string | null, to: string | null): string =>
+  `${fmtDate(from)} — ${to ? fmtDate(to) : "obecnie"}`;
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
@@ -74,6 +81,11 @@ const PlayerProfile = ({
   const playerTransfers = useMemo(
     () => getAllTransfers().filter(t => t.player === playerName),
     [playerName],
+  );
+
+  const teamHistory = useMemo(
+    () => buildPlayerTeamHistory(playerName, rankingSource),
+    [playerName, rankingSource],
   );
 
   const teamStanding = currentTeam
