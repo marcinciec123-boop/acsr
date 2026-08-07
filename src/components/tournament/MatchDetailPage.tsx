@@ -240,8 +240,12 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
   }, [match.id]);
 
-  const winnerRankDelta = useMemo(() => winnerName ? predictRankDelta(winnerName, pointsWin, ranking) : null, [winnerName, pointsWin, ranking]);
-  const loserRankDelta = useMemo(() => loserName ? predictRankDelta(loserName, -pointsLose, ranking) : null, [loserName, pointsLose, ranking]);
+  const resultRankPair = useMemo(
+    () => (winnerName && loserName ? predictRankDeltaPair(winnerName, pointsWin, loserName, -pointsLose, ranking) : null),
+    [winnerName, loserName, pointsWin, pointsLose, ranking],
+  );
+  const winnerRankDelta = resultRankPair?.a ?? null;
+  const loserRankDelta = resultRankPair?.b ?? null;
 
   const openConfirm = () => {
     if (!matchDecided || !winnerName || !loserName) {
