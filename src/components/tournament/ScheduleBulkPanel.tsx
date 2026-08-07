@@ -69,7 +69,10 @@ export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
   const toggle = (k: string) => setSelected(s => (s.includes(k) ? s.filter(x => x !== k) : [...s, k]));
 
   const applyBulk = () => {
-    const chosen = rows.filter(r => selected.includes(key(r)));
+    // Zachowujemy kolejność zaznaczania użytkownika (a nie kolejność na liście).
+    const chosen = selected
+      .map(k => rows.find(r => key(r) === k))
+      .filter((r): r is Row => !!r);
     if (chosen.length === 0) return;
     let cursor = `${date}T${time || "18:00"}`;
     chosen.forEach((r, i) => {
