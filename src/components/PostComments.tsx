@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2, CornerDownRight } from "lucide-react";
+import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2, CornerDownRight, Reply, Send, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import type { NewsPost } from "@/lib/types";
-import { generateComments, getComments, setComments, type NewsComment } from "@/lib/newsComments";
+import {
+  generateComments,
+  generateReplies,
+  addEditorReply,
+  getComments,
+  setComments,
+  type NewsComment,
+} from "@/lib/newsComments";
 import { toast } from "sonner";
 
 interface Props {
