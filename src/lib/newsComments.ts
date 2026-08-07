@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { loadAllTeams, loadArchivedTeams, loadExtraDisbands } from "./teamManagement";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
+import { nameChanges } from "@/data/history";
 
 const KEY = "news_comments";
 const LIKES_KEY = "news_post_likes";
@@ -26,7 +27,52 @@ export type CommentStore = Record<string, NewsComment[]>;
 
 export const loadAllComments = (): CommentStore => loadFromStorage<CommentStore>(KEY, {});
 
-export const getComments = (postId: string): NewsComment[] => loadAllComments()[postId] || [];
+function getForbiddenTeamNames(): string[] {
+  const activeNames = new Set(loadAllTeams().map(team => team.name));
+  return [...new Set([
+    ...loadArchivedTeams(),
+    ...loadExtraDisbands().map(disband => disband.team),
+    ...nameChanges
+      .filter(change => activeNames.has(change.newName))
+      .map(change => change.oldName),
+  ])].filter(name => !activeNames.has(name));
+}
+
+function mentionsForbiddenTeam(content: string, forbiddenNames: string[]): boolean {
+  const normalized = content.toLocaleLowerCase("pl-PL");
+  return forbiddenNames.some(name => normalized.includes(name.toLocaleLowerCase("pl-PL")));
+}
+
+function removeInvalidThreads(comments: NewsComment[], forbiddenNames: string[]): NewsComment[] {
+  if (forbiddenNames.length === 0) return comments;
+  const rejected = new Set(
+    comments
+      .filter(comment => mentionsForbiddenTeam(comment.content, forbiddenNames))
+      .map(comment => comment.id),
+  );
+  let changed = true;
+  while (changed) {
+    changed = false;
+    comments.forEach(comment => {
+      if (comment.replyTo && rejected.has(comment.replyTo) && !rejected.has(comment.id)) {
+        rejected.add(comment.id);
+        changed = true;
+      }
+    });
+  }
+  return comments.filter(comment => !rejected.has(comment.id));
+}
+
+export const getComments = (postId: string): NewsComment[] => {
+  const all = loadAllComments();
+  const stored = all[postId] || [];
+  const cleaned = removeInvalidThreads(stored, getForbiddenTeamNames());
+  if (cleaned.length !== stored.length) {
+    all[postId] = cleaned;
+    saveToStorage(KEY, all);
+  }
+  return cleaned;
+};
 
 export const setComments = (postId: string, comments: NewsComment[]): void => {
   const all = loadAllComments();
@@ -68,6 +114,7 @@ function buildFacts(post: { title?: string; content: string; tags?: string[] }, 
   const disbandedNames = new Set<string>([
     ...loadArchivedTeams(),
     ...loadExtraDisbands().map(d => d.team),
+    ...nameChanges.map(change => change.oldName),
   ]);
   const teams = loadAllTeams().filter(
     t => !t.isNational && !disbandedNames.has(t.name) && t.roster.filter(Boolean).length > 0,
@@ -136,7 +183,10 @@ export async function generateComments(
     const nowTs = Date.parse(getWorldNowIso());
     const base = Math.max(isNaN(postTs) ? 0 : postTs + 5 * 60 * 1000, nowTs);
 
-    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 45);
+    const forbiddenNames = getForbiddenTeamNames();
+    const kept = raw
+      .filter(c => c.content && c.content.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
+      .slice(0, 45);
     const ids = kept.map((_, i) => uid() + i);
     const comments: NewsComment[] = kept.map((c, i) => {
       const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
@@ -232,7 +282,10 @@ export async function generateReplies(
 
     const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
       data?.comments || [];
-    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 6);
+    const forbiddenNames = getForbiddenTeamNames();
+    const kept = raw
+      .filter(c => c.content && c.content.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
+      .slice(0, 6);
     if (kept.length === 0) return { ok: false, error: "Brak odpowiedzi w wynikach" };
 
     const base = Date.parse(target.date) || Date.parse(getWorldNowIso());

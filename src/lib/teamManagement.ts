@@ -16,6 +16,7 @@ import { addManualFreeAgent } from "./freeAgents";
 import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
+import { nameChanges } from "@/data/history";
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
@@ -64,7 +65,14 @@ function saveTeams(teams: TeamData[]): void {
 }
 
 export function loadAllTeams(): TeamData[] {
-  return loadTeamsRaw();
+  const teams = loadTeamsRaw();
+  const currentNames = new Set(teams.map(team => team.name));
+  const obsoleteNames = new Set(
+    nameChanges
+      .filter(change => currentNames.has(change.newName))
+      .map(change => change.oldName),
+  );
+  return teams.filter(team => !obsoleteNames.has(team.name));
 }
 
 export function loadArchivedTeams(): string[] {

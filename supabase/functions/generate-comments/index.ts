@@ -35,6 +35,7 @@ const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
 - Nie wymyślaj nazw drużyn, graczy, trenerów, turniejów ani wyników, których nie ma w artykule lub BAZIE DANYCH.
 - Nie podawaj miejsc w rankingu ani liczby punktów sprzecznych z BAZĄ DANYCH.
 - Wolno pisać wyłącznie o drużynach obecnych w BAZIE DANYCH jako AKTYWNE. Drużyny z listy "DRUŻYNY ROZWIĄZANE / NIEISTNIEJĄCE" nie istnieją — nie wymieniaj ich w ogóle (chyba że artykuł sam o nich mówi w czasie przeszłym).
+- Lista drużyn rozwiązanych i dawnych nazw jest zakazem bezwzględnym dla aktualnych rekomendacji. Nie wybieraj z niej "talentów", "underdogów" ani aktywnych składów, nawet jeśli taka nazwa pojawia się wcześniej w wątku.
 - Lepiej napisać komentarz ogólny/emocjonalny niż zmyślić fakt.
 - BAZA DANYCH zawiera WSZYSTKIE drużyny i graczy, nie tylko czołówkę. Korzystaj też z zespołów ze środka i dołu tabeli, jeśli artykuł ich dotyczy — nie sprowadzaj dyskusji do topowych drużyn, gdy tekst mówi o innych.
 - Zanim napiszesz komentarz, przeczytaj dokładnie, czego artykuł dotyczy (kto, co, jaki turniej, jaki wynik) i odnoś się właśnie do tego, a nie do ogólnych tematów sceny.`;
@@ -149,7 +150,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        temperature: 1.1,
+        temperature: 0.75,
         messages: [
           { role: "system", content: isReply ? SYSTEM_REPLY : SYSTEM },
           { role: "user", content: userPrompt },
