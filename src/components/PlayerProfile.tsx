@@ -93,6 +93,19 @@ const PlayerProfile = ({
     [playerName, rankingSource],
   );
 
+  const [contract, setContract] = useState<ContractInfo | null>(() => getContractInfo(playerName));
+  useEffect(() => {
+    const sync = () => setContract(getContractInfo(playerName));
+    sync();
+    window.addEventListener(CONTRACTS_EVENT, sync);
+    window.addEventListener(WORLD_CLOCK_EVENT, sync);
+    return () => {
+      window.removeEventListener(CONTRACTS_EVENT, sync);
+      window.removeEventListener(WORLD_CLOCK_EVENT, sync);
+    };
+  }, [playerName]);
+
+
   const teamStanding = currentTeam
     ? seasonStandings.find(s => s.team === currentTeam.name)
     : null;
