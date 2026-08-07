@@ -135,6 +135,7 @@ const TeamsManagementPanel = () => {
         <AnimatePresence initial={false}>
           {filtered.map(t => {
             const editing = editingName === t.name;
+            const contractsOpen = contractsFor === t.name;
             return (
               <motion.div
                 key={t.name}
@@ -143,10 +144,11 @@ const TeamsManagementPanel = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 className={cn(
-                  "border rounded-md p-2.5 flex items-center gap-3",
+                  "border rounded-md",
                   editing ? "border-primary/50 bg-primary/5" : "border-border bg-secondary/20",
                 )}
               >
+                <div className="p-2.5 flex items-center gap-3">
                 <TeamLogo teamName={t.name} size={32} />
 
                 {editing ? (
@@ -206,6 +208,15 @@ const TeamsManagementPanel = () => {
                     </>
                   ) : (
                     <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn("h-8 w-8 p-0", contractsOpen && "text-primary bg-primary/10")}
+                        onClick={() => setContractsFor(contractsOpen ? null : t.name)}
+                        title="Kontrakty i wartości transferowe"
+                      >
+                        <FileSignature className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEdit(t)} title="Edytuj">
                         <Edit3 className="w-3.5 h-3.5" />
                       </Button>
@@ -221,9 +232,12 @@ const TeamsManagementPanel = () => {
                     </>
                   )}
                 </div>
+                </div>
+                {contractsOpen && !editing && <TeamContractsSection team={t} />}
               </motion.div>
             );
           })}
+
         </AnimatePresence>
         {filtered.length === 0 && (
           <p className="text-center text-sm text-muted-foreground font-mono py-8">Brak drużyn pasujących do filtra.</p>
