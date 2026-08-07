@@ -71,16 +71,21 @@ function buildFacts(post: { title?: string; content: string; tags?: string[] }):
     (t.coach ? haystack.includes(t.coach.toLowerCase()) : false),
   );
 
-  const selected = [...new Set([...mentioned, ...ranked.slice(0, 15)])].slice(0, 30);
+  const line = (t: (typeof ranked)[number]) => {
+    const rank = rankOf.get(t.name);
+    const coach = t.coach ? `, trener: ${t.coach}` : "";
+    return `#${rank ?? "-"} ${t.name} (${t.country || "?"}, ${Math.round(t.points || 0)} pkt) — skład: ${t.roster.filter(Boolean).join(", ")}${coach}`;
+  };
 
-  return selected
-    .map(t => {
-      const rank = rankOf.get(t.name);
-      const coach = t.coach ? `, trener: ${t.coach}` : "";
-      return `#${rank ?? "-"} ${t.name} (${t.country || "?"}, ${Math.round(t.points || 0)} pkt) — skład: ${t.roster.filter(Boolean).join(", ")}${coach}`;
-    })
-    .join("\n");
+  // Cała baza — WSZYSTKIE drużyny i gracze, nie tylko czołówka.
+  const all = ranked.map(line).join("\n");
+  const focus = mentioned.length
+    ? `DRUŻYNY BEZPOŚREDNIO POWIĄZANE Z ARTYKUŁEM:\n${mentioned.map(line).join("\n")}\n\n`
+    : "";
+
+  return `${focus}PEŁNA BAZA DRUŻYN (${ranked.length}):\n${all}`;
 }
+
 
 /** Generuje komentarze pod postem i zapisuje je. Zwraca liczbę komentarzy. */
 export async function generateComments(
