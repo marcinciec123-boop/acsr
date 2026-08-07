@@ -809,10 +809,10 @@ const NewsFeed = () => {
           {sorted.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
               <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="font-mono text-sm">{filter ? "Brak postów w tej kategorii." : "Brak postów. Wygeneruj AI lub dodaj pierwszy!"}</p>
+              <p className="font-mono text-sm">{activeFilters.length ? "Brak postów pasujących do filtrów." : "Brak postów. Wygeneruj AI lub dodaj pierwszy!"}</p>
             </div>
           )}
-          {sorted.map((post, i) => {
+          {pageItems.map((post, i) => {
             const catMeta = post.category ? CATEGORY_BADGES[post.category] : null;
             return (
               <motion.div
@@ -918,6 +918,34 @@ const NewsFeed = () => {
             );
           })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-6">
+            <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => goPage(1)}>«</Button>
+            <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => goPage(currentPage - 1)}>Poprzednia</Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(n => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 2)
+              .map((n, idx, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {idx > 0 && n - arr[idx - 1] > 1 && <span className="text-xs text-muted-foreground px-1">…</span>}
+                  <button
+                    onClick={() => goPage(n)}
+                    className={cn(
+                      "h-8 min-w-8 px-2 rounded-md border text-xs font-mono transition-colors",
+                      n === currentPage
+                        ? "border-primary/40 bg-primary/20 text-primary"
+                        : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+            <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => goPage(currentPage + 1)}>Następna</Button>
+            <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => goPage(totalPages)}>»</Button>
+          </div>
+        )}
       </div>
     </section>
   );
