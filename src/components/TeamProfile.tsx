@@ -22,6 +22,7 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import { TeamLink, TournamentLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import TeamRankingTrend from "@/components/TeamRankingTrend";
@@ -847,7 +848,7 @@ const RosterGrid = ({
               className={cn("w-full", onSelectPlayer && "cursor-pointer")}
             >
               <div className="mx-auto mb-2 w-fit relative">
-                <TeamLogo teamName={team.name} size={48} rounded="full" />
+                <PlayerAvatar playerName={player} teamName={team.name} size={56} rounded="full" />
                 {benched && (
                   <span className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground border border-border rounded-full p-0.5">
                     <Armchair className="w-3 h-3" />

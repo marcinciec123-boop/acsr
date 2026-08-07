@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Camera, Trash2 } from "lucide-react";
 import { fileToLogoDataUrl, loadTeamLogo } from "@/lib/teamLogos";
@@ -9,6 +9,9 @@ import {
   loadPlayerPhoto,
   savePlayerPhoto,
 } from "@/lib/playerPhotos";
+import { loadFromStorage } from "@/lib/storage";
+import { teamDatabase } from "@/data/tournaments";
+import type { TeamData } from "@/lib/types";
 
 interface PlayerAvatarProps {
   playerName: string;
@@ -32,8 +35,14 @@ const initialsOf = (name: string): string => {
  * deterministic colours. Can be replaced by a custom uploaded photo.
  */
 const PlayerAvatar = ({
-  playerName, teamName, size = 48, className, rounded = "xl", editable = false,
+  playerName, teamName: teamNameProp, size = 48, className, rounded = "xl", editable = false,
 }: PlayerAvatarProps) => {
+  // Resolve the player's club when not supplied, so the jersey shows the crest.
+  const teamName = useMemo(() => {
+    if (teamNameProp) return teamNameProp;
+    const teams = loadFromStorage<TeamData[] | null>("ranking_data", null) ?? teamDatabase;
+    return teams.find(t => !t.isNational && (t.roster?.includes(playerName) || t.coach === playerName))?.name;
+  }, [teamNameProp, playerName]);
   const [photo, setPhoto] = useState<string | null>(null);
   const [teamLogo, setTeamLogo] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -145,7 +154,7 @@ const PlayerAvatar = ({
 
       {editable && (
         <div
-          className="absolute inset-0 flex items-center justify-center gap-1 bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-90 transition-opacity"
+          className="absolute inset-0 flex items-center justify-center gap-1 bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <button

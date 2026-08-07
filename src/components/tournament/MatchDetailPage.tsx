@@ -1181,7 +1181,7 @@ const MatchPlayerTotals = ({
                 <td className="px-3 py-2 text-foreground">
                   <span className="flex items-center gap-1.5">
                     <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(r.name)))}</span>
-                    <PlayerLink name={r.name}>{r.name}</PlayerLink>
+                    <PlayerLink name={r.name} avatar avatarSize={18} />
                   </span>
                 </td>
                 <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
