@@ -46,7 +46,9 @@ const collect = (tournaments: TournamentData[]): Row[] => {
           phaseName: p.name,
           groupName,
           match: m,
-          when: isPlayed(m) ? (m.playedAt || m.scheduledAt) : m.scheduledAt,
+          // ta sama podstawa co wyświetlana godzina (timeSource)
+          when: m.scheduledAt || m.playedAt,
+
         });
       };
       (p.bracket || []).forEach(m => push(m));
@@ -120,8 +122,13 @@ const MatchesPanel = () => {
     });
 
 
-    up.sort((a, b) => (a.when || "").localeCompare(b.when || ""));
-    res.sort((a, b) => (b.when || "").localeCompare(a.when || ""));
+    const tsOf = (r: Row) => {
+      const v = r.when ? new Date(r.when).getTime() : NaN;
+      return isNaN(v) ? 0 : v;
+    };
+    up.sort((a, b) => tsOf(a) - tsOf(b));
+    res.sort((a, b) => tsOf(b) - tsOf(a)); // najpóźniej rozegrany na górze
+
     return { upcoming: up, results: res, noDate: nd };
   }, [tournaments, worldDate]);
 
