@@ -324,6 +324,43 @@ export function signContract(
   return contract;
 }
 
+/**
+ * Odnawia (przedłuża) aktywny kontrakt gracza — nowa data końca i/lub płaca.
+ * Gdy gracz nie ma aktywnego kontraktu, tworzy nowy dla podanej drużyny.
+ */
+export function renewContract(
+  player: string,
+  options: { endDate: string; salary: number; team?: string },
+): Contract | null {
+  const list = loadContracts();
+  const active = list.find(c => c.player === player && c.status === "active");
+  const endDate = options.endDate.slice(0, 10);
+  const salary = Math.max(0, Math.round(options.salary));
+
+  if (active) {
+    active.end_date = endDate;
+    active.salary = salary;
+    saveContracts(list);
+    return active;
+  }
+
+  const team = options.team;
+  if (!team || team === "-") return null;
+  const start = getWorldDate();
+  const contract: Contract = {
+    id: `ct-${hash(`${player}|${team}|${start}`).toString(36)}-${Date.now().toString(36)}`,
+    player,
+    team,
+    start_date: start,
+    end_date: endDate,
+    status: "active",
+    salary,
+  };
+  list.push(contract);
+  saveContracts(list);
+  return contract;
+}
+
 export type ContractUrgency = "ok" | "soon" | "urgent" | "critical";
 
 export interface ContractInfo {
