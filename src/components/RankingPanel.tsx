@@ -505,18 +505,22 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
               </span>
             );
 
+            const isOpen = expandedTeam === team.name;
+
             return (
+              <div key={team.name} className={cn("border-t border-border/40", isOpen && "bg-secondary/20")}>
               <motion.div
-                key={team.name}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: Math.min(i * 0.008, 0.4) }}
+                onClick={() => setExpandedTeam(isOpen ? null : team.name)}
                 className={cn(
-                  "border-t border-border/40 items-center hover:bg-secondary/30 transition-colors group",
+                  "items-center hover:bg-secondary/30 transition-colors group cursor-pointer border-l-2",
+                  globalRank === 1 ? "border-l-[hsl(var(--gold))]" : globalRank === 2 ? "border-l-[hsl(var(--silver))]" : globalRank === 3 ? "border-l-[hsl(var(--bronze))]" : isOpen ? "border-l-primary" : "border-l-transparent",
                   // Mobile: compact 3-column row
                   "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
                   // Desktop: full table
-                  "md:grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
+                  "md:grid-cols-[50px_50px_1fr_70px_80px_70px_130px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
@@ -531,14 +535,14 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 </div>
 
                 {/* Team */}
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-center gap-1.5">
                   <button
-                    onClick={() => onSelectTeam?.(team.name)}
-                    className="flex items-center gap-2 md:gap-2.5 group/team text-left min-w-0 w-full"
+                    onClick={(e) => { e.stopPropagation(); onSelectTeam?.(team.name); }}
+                    className="flex items-center gap-2 md:gap-2.5 group/team text-left min-w-0 flex-1"
                   >
                     <TeamLogo teamName={team.name} size={28} rounded="md" />
                     <div className="min-w-0">
-                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base">
+                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base uppercase tracking-tight">
                         {team.name}
                       </div>
                       <div className="text-xs font-mono text-muted-foreground flex items-center gap-1">
@@ -551,6 +555,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       </div>
                     </div>
                   </button>
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform", isOpen && "rotate-180 text-primary")} />
                 </div>
 
                 {/* Tier — desktop */}
@@ -563,8 +568,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 {/* Region — desktop */}
                 <div className="hidden md:block text-center text-xs text-muted-foreground font-mono">{team.region}</div>
 
+                {/* Forma (sparkline) — desktop */}
+                <div className="hidden md:flex justify-center items-center">
+                  <Sparkline team={team.name} />
+                </div>
+
                 {/* Points — desktop */}
-                <div className="hidden md:block text-right">
+                <div className="hidden md:block text-right" onClick={e => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -588,7 +598,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 </div>
 
                 {/* Actions — desktop */}
-                <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                   {isEditing ? (
                     <>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleInlineEdit(team.name)}>
@@ -616,8 +626,56 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <TrendBadge trend={trend} compact />
                 </div>
               </motion.div>
+
+              {/* Rozwijane szczegóły */}
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  className="overflow-hidden border-l-2 border-l-primary bg-background/40"
+                >
+                  <div className="px-4 py-3 grid gap-3 md:grid-cols-[1fr_260px]">
+                    <div>
+                      <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary/60 mb-2">Skład</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {team.roster.length === 0 && <span className="text-xs font-mono text-muted-foreground">Brak zawodników</span>}
+                        {team.roster.map(p => (
+                          <button
+                            key={p}
+                            onClick={() => onSelectPlayer?.(p)}
+                            className="px-2 py-1 rounded-md border border-border bg-card text-xs font-heading font-bold hover:border-primary/50 hover:text-primary transition-colors"
+                          >
+                            {countryFlag(playerNationalities[p] || team.country)} {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 content-start">
+                      {[
+                        { k: "Pozycja", v: `#${globalRank}` },
+                        { k: "Punkty", v: team.points.toLocaleString() },
+                        { k: "Tier", v: tier.label },
+                        { k: "Region", v: team.region },
+                      ].map(s => (
+                        <div key={s.k} className="rounded-md border border-border bg-card/70 px-2.5 py-1.5">
+                          <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{s.k}</div>
+                          <div className="font-heading font-black text-sm text-foreground">{s.v}</div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => onSelectTeam?.(team.name)}
+                        className="col-span-2 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary text-xs font-mono uppercase tracking-[0.2em] hover:bg-primary/20 transition-colors"
+                      >
+                        Profil drużyny
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              </div>
             );
           })}
+
         </div>
 
         {/* === REGION DISTRIBUTION === */}
