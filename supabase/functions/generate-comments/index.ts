@@ -63,7 +63,7 @@ ${FACTS_RULES}
 ${NICK_RULES}
 ${STYLE_RULES}
 DYSKUSJA:
-- Od 30% do 50% komentarzy ma być ODPOWIEDZIAMI na wcześniejsze komentarze (replyToIndex = indeks wcześniejszego komentarza, zawsze mniejszy od własnego). Reszta ma replyToIndex = -1.
+- Liczba, o którą prosi użytkownik, dotyczy WĄTKÓW, czyli komentarzy głównych (replyToIndex = -1). Odpowiedzi (replyToIndex >= 0) są DODATKOWE i nie wliczają się do tej liczby — dodaj ich sporo (mniej więcej połowa wątków ma mieć 1-3 odpowiedzi).
 - Odpowiedź musi realnie nawiązywać do komentarza, na który odpowiada: kontra, przytyk, sprostowanie danych, żart, zgoda z dopiskiem. Rób krótkie łańcuszki (odpowiedź na odpowiedź) i mini-kłótnie 2-3 wiadomości.
 - W odpowiedziach można cytować nick rozmówcy (np. "@marcin97").`;
 
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const isReply = body.mode === "reply";
     const count = isReply
       ? Math.min(Math.max(body.count ?? (1 + Math.floor(Math.random() * 3)), 1), 6)
-      : Math.min(Math.max(body.count ?? (5 + Math.floor(Math.random() * 11)), 5), 15);
+      : Math.min(Math.max(body.count ?? (7 + Math.floor(Math.random() * 9)), 7), 15);
 
     const factsBlock = body.facts
       ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 6000)}`
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
           `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
           body.category ? `KATEGORIA: ${body.category}` : "",
           body.tags?.length ? `TAGI: ${body.tags.join(", ")}` : "",
-          `\nNapisz dokładnie ${count} komentarzy użytkowników pod tym artykułem. Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
+          `\nNapisz dokładnie ${count} WĄTKÓW (komentarzy głównych z replyToIndex = -1) pod tym artykułem. Do tego dodaj odpowiedzi wewnątrz wątków (replyToIndex >= 0) — odpowiedzi NIE liczą się do limitu ${count}, więc łącznie tablica ma mieć więcej pozycji (zwykle ${count + 3}-${count * 2}). Ustal też "postLikes" — liczbę polubień samego artykułu (0-4000, zależnie od tego jak nośny/kontrowersyjny jest temat). Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
         ].filter(Boolean).join("\n\n");
 
 
@@ -174,8 +174,9 @@ Deno.serve(async (req) => {
                     },
 
                   },
+                  postLikes: { type: "integer", description: "Liczba polubień samego artykułu (0-4000)" },
                 },
-                required: ["comments"],
+                required: ["comments", "postLikes"],
                 additionalProperties: false,
               },
             },
@@ -211,7 +212,7 @@ Deno.serve(async (req) => {
       });
     }
     const args = JSON.parse(toolCall.function.arguments);
-    return new Response(JSON.stringify({ comments: args.comments || [] }), {
+    return new Response(JSON.stringify({ comments: args.comments || [], postLikes: args.postLikes ?? 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
