@@ -163,6 +163,16 @@ const buildSnapshot = (): WorldSnapshot => {
   };
 };
 
+const emptyDraft = (): ComposerDraft => {
+  const now = new Date();
+  return {
+    title: "", content: "", category: "",
+    date: getWorldNowIso().slice(0, 10),
+    time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    author: "", source: "", tags: "", pinned: false, image: null,
+  };
+};
+
 const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
   const [showNew, setShowNew] = useState(false);
