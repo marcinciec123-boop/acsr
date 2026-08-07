@@ -109,10 +109,21 @@ const PostComments = ({ post, pending }: Props) => {
           <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", open && "rotate-180")} />
         </button>
         {pending && count === 0 && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
+        {open && count > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
+            onClick={() => setCollapsed(collapsed.length ? [] : comments.filter(c => comments.some(x => x.replyTo === c.id)).map(c => c.id))}
+          >
+            {collapsed.length ? "Rozwiń wszystkie" : "Zwiń wszystkie"}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
+          className={cn("h-6 px-2 text-xs font-mono text-muted-foreground", !(open && count > 0) && "ml-auto")}
+
           onClick={regenerate}
           disabled={loading}
         >
