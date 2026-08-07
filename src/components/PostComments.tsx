@@ -42,6 +42,10 @@ const PostComments = ({ post, pending }: Props) => {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [replying, setReplying] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const toggleCollapse = (id: string) =>
+    setCollapsed(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
 
   const sendEditorReply = async (parentId: string) => {
     const text = draft.trim();
