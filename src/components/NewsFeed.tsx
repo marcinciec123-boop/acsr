@@ -316,6 +316,9 @@ const NewsFeed = () => {
   }, [editingId, posts, imageCache, resetForm]);
 
 
+  const categoryLabel = useCallback((cat: string) => CATEGORY_BADGES[cat]?.label || cat, []);
+  const handleCancelComposer = useCallback(() => { setShowNew(false); resetForm(); }, [resetForm]);
+
   const handleDelete = async (post: NewsPost) => {
     if (post.imageId) await deleteImage(post.imageId);
     deleteComments([post.id]);
