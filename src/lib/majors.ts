@@ -4,8 +4,12 @@
 // event of the season: it carries the biggest weight in year-end awards and
 // gets a dedicated badge / glowing trophy in achievement cabinets.
 
+/** Qualifiers / closed & open quals are NOT Majors, even if "Major" is in the name. */
+const QUALIFIER_RE =
+  /\b(kwalifikacj\w*|qualifier[s]?|qual[s]?|eliminacj\w*|rmr|open\s*qual\w*|closed\s*qual\w*|last\s*chance)\b/i;
+
 export const isMajorName = (name?: string | null): boolean =>
-  !!name && /\bmajor\b/i.test(name);
+  !!name && /\bmajor\b/i.test(name) && !QUALIFIER_RE.test(name);
 
 /** Extra multiplier applied on top of the tier weight for Major events. */
 export const MAJOR_WEIGHT = 2.2;
