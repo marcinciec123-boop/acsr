@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2, CornerDownRight } from "lucide-react";
+import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2, CornerDownRight, Reply, Send, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import type { NewsPost } from "@/lib/types";
-import { generateComments, getComments, setComments, type NewsComment } from "@/lib/newsComments";
+import {
+  generateComments,
+  generateReplies,
+  addEditorReply,
+  getComments,
+  setComments,
+  type NewsComment,
+} from "@/lib/newsComments";
 import { toast } from "sonner";
 
 interface Props {
@@ -31,6 +39,25 @@ const PostComments = ({ post, pending }: Props) => {
   const [comments, setLocal] = useState<NewsComment[]>(() => getComments(post.id));
   const [loading, setLoading] = useState(false);
   const [liked, setLiked] = useState<string[]>([]);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [replying, setReplying] = useState<string | null>(null);
+
+  const sendEditorReply = async (parentId: string) => {
+    const text = draft.trim();
+    if (!text) return;
+    const newId = addEditorReply(post.id, parentId, text);
+    setLocal(getComments(post.id));
+    setDraft("");
+    setReplyTo(null);
+    setReplying(newId);
+    const res = await generateReplies(post, newId);
+    setLocal(getComments(post.id));
+    setReplying(null);
+    if (!res.ok) toast.error(res.error || "Nie udało się wygenerować reakcji");
+    else toast.success(`Społeczność odpowiedziała (${res.count})`);
+  };
+
 
   // Po zakończeniu generowania po publikacji — dociągnij świeże komentarze.
   useEffect(() => {
@@ -143,14 +170,29 @@ const PostComments = ({ post, pending }: Props) => {
                       style={depth > 0 ? { marginLeft: depth * 14 } : undefined}
                     >
                       <span
-                        className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90"
-                        style={{ background: avatarColor(c.author) }}
+                        className={cn(
+                          "w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90",
+                          c.editor && "ring-2 ring-primary",
+                        )}
+                        style={{ background: c.editor ? "hsl(var(--primary))" : avatarColor(c.author) }}
                       >
-                        {c.author.slice(0, 2).toUpperCase()}
+                        {c.editor ? <ShieldCheck className="w-3.5 h-3.5" /> : c.author.slice(0, 2).toUpperCase()}
                       </span>
-                      <div className="min-w-0 flex-1 rounded-md border border-border/50 bg-secondary/25 px-2.5 py-1.5">
+                      <div
+                        className={cn(
+                          "min-w-0 flex-1 rounded-md border px-2.5 py-1.5",
+                          c.editor
+                            ? "border-primary/50 bg-primary/10"
+                            : "border-border/50 bg-secondary/25",
+                        )}
+                      >
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-bold text-foreground">{c.author}</span>
+                          {c.editor && (
+                            <span className="px-1.5 py-0.5 rounded text-xs font-mono bg-primary/20 text-primary">
+                              REDAKCJA
+                            </span>
+                          )}
                           {parent && (
                             <span className="inline-flex items-center gap-0.5 text-xs font-mono text-primary/80">
                               <CornerDownRight className="w-3 h-3" />@{parent.author}
@@ -159,18 +201,63 @@ const PostComments = ({ post, pending }: Props) => {
                           <span className="text-xs font-mono text-muted-foreground opacity-70">{fmt(c.date)}</span>
                         </div>
                         <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap leading-relaxed">{c.content}</p>
-                        <button
-                          type="button"
-                          onClick={() => toggleLike(c.id)}
-                          className={cn(
-                            "mt-1 inline-flex items-center gap-1 text-xs font-mono transition-colors",
-                            liked.includes(c.id) ? "text-primary" : "text-muted-foreground hover:text-primary",
+                        <div className="mt-1 flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleLike(c.id)}
+                            className={cn(
+                              "inline-flex items-center gap-1 text-xs font-mono transition-colors",
+                              liked.includes(c.id) ? "text-primary" : "text-muted-foreground hover:text-primary",
+                            )}
+                          >
+                            <ThumbsUp className="w-3 h-3" /> {c.likes}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setDraft(""); }}
+                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Reply className="w-3 h-3" /> Odpowiedz jako redakcja
+                          </button>
+                          {replying === c.id && (
+                            <span className="inline-flex items-center gap-1 text-xs font-mono text-primary">
+                              <Loader2 className="w-3 h-3 animate-spin" /> reakcje…
+                            </span>
                           )}
-                        >
-                          <ThumbsUp className="w-3 h-3" /> {c.likes}
-                        </button>
+                        </div>
+
+                        {replyTo === c.id && (
+                          <div className="mt-2 space-y-2">
+                            <Textarea
+                              value={draft}
+                              onChange={e => setDraft(e.target.value)}
+                              placeholder={`Odpowiedź redakcji do @${c.author}…`}
+                              rows={3}
+                              className="text-xs"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs"
+                                disabled={!draft.trim() || replying !== null}
+                                onClick={() => sendEditorReply(c.id)}
+                              >
+                                <Send className="w-3 h-3 mr-1" /> Opublikuj i wygeneruj reakcje
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs"
+                                onClick={() => { setReplyTo(null); setDraft(""); }}
+                              >
+                                Anuluj
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
+
                   );
                 });
               })()}
