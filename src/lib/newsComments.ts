@@ -57,14 +57,18 @@ export const setPostLikes = (postId: string, likes: number): void => {
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-/** Buduje wyciąg z bazy danych (składy, trenerzy, punkty, miejsce w rankingu),
- *  żeby AI nie zmyślała przynależności graczy do drużyn. */
-function buildFacts(post: { title?: string; content: string; tags?: string[] }): string {
+/** Tier drużyny wg miejsca w rankingu: 1-10 S, 11-25 A, 26-50 B, 51+ C. */
+const tierOf = (rank: number) => (rank <= 10 ? "S" : rank <= 25 ? "A" : rank <= 50 ? "B" : "C");
+
+/** Buduje wyciąg z bazy danych (składy, trenerzy, punkty, miejsce w rankingu, tier),
+ *  żeby AI nie zmyślała przynależności graczy do drużyn.
+ *  `extra` = dodatkowy tekst (np. pytanie redakcji), żeby trafnie wykryć, o kim mowa. */
+function buildFacts(post: { title?: string; content: string; tags?: string[] }, extra = ""): string {
   const teams = loadAllTeams().filter(t => !t.isNational);
   const ranked = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
   const rankOf = new Map(ranked.map((t, i) => [t.name, i + 1]));
 
-  const haystack = `${post.title || ""} ${post.content || ""} ${(post.tags || []).join(" ")}`.toLowerCase();
+  const haystack = `${post.title || ""} ${post.content || ""} ${(post.tags || []).join(" ")} ${extra}`.toLowerCase();
   const mentioned = teams.filter(t =>
     haystack.includes(t.name.toLowerCase()) ||
     t.roster.some(p => p && haystack.includes(p.toLowerCase())) ||
@@ -72,19 +76,24 @@ function buildFacts(post: { title?: string; content: string; tags?: string[] }):
   );
 
   const line = (t: (typeof ranked)[number]) => {
-    const rank = rankOf.get(t.name);
+    const rank = rankOf.get(t.name) ?? 999;
     const coach = t.coach ? `, trener: ${t.coach}` : "";
-    return `#${rank ?? "-"} ${t.name} (${t.country || "?"}, ${Math.round(t.points || 0)} pkt) — skład: ${t.roster.filter(Boolean).join(", ")}${coach}`;
+    return `#${rank} [tier ${tierOf(rank)}] ${t.name} (${t.country || "?"}, ${Math.round(t.points || 0)} pkt) — skład: ${t.roster.filter(Boolean).join(", ")}${coach}`;
   };
 
   // Cała baza — WSZYSTKIE drużyny i gracze, nie tylko czołówka.
   const all = ranked.map(line).join("\n");
+  const lower = ranked.slice(25);
   const focus = mentioned.length
-    ? `DRUŻYNY BEZPOŚREDNIO POWIĄZANE Z ARTYKUŁEM:\n${mentioned.map(line).join("\n")}\n\n`
+    ? `DRUŻYNY BEZPOŚREDNIO POWIĄZANE Z ARTYKUŁEM/PYTANIEM:\n${mentioned.map(line).join("\n")}\n\n`
+    : "";
+  const lowerBlock = lower.length
+    ? `\n\nNIŻSZE TIERY (miejsca 26+, tier B i C — stąd bierz "skryte talenty", "underdogów", "rising stars"; ${lower.length} drużyn):\n${lower.map(line).join("\n")}`
     : "";
 
-  return `${focus}PEŁNA BAZA DRUŻYN (${ranked.length}):\n${all}`;
+  return `${focus}PEŁNA BAZA DRUŻYN (${ranked.length}), posortowana od najlepszej:\n${all}${lowerBlock}`;
 }
+
 
 
 /** Generuje komentarze pod postem i zapisuje je. Zwraca liczbę komentarzy. */
@@ -200,7 +209,7 @@ export async function generateReplies(
         content: post.content || "",
         category: post.category || "",
         tags: post.tags || [],
-        facts: buildFacts(post),
+        facts: buildFacts(post, `${target.content} ${parentUser?.content || ""} ${chain.map(c => c.content).join(" ")}`),
         thread: chain.slice(0, -1).map(c => ({ author: c.author, content: c.content })),
         targetAuthor: target.author,
         targetContent: target.content,

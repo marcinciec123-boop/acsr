@@ -78,6 +78,8 @@ ${STYLE_RULES}
 ZASADY WĄTKU:
 - PIERWSZA odpowiedź MUSI być napisana przez ORYGINALNEGO AUTORA (nick podany w "ORYGINALNY AUTOR"), czyli osobę, do której odezwała się redakcja. Ma zachować swój styl i charakter z poprzedniego wpisu (ten sam poziom ogarnięcia, ta sama emocja: hejter dalej hejtuje, ktoś kto pytał — dopytuje lub dziękuje).
 - Druga i trzecia odpowiedź (jeśli są) mogą być od innych, nowych użytkowników wtrącających się do rozmowy.
+- Jeżeli redakcja pyta o kategorię drużyn/graczy (np. "skryte talenty", "underdogi", "kto z niższych tierów", "kogo warto obserwować"), odpowiedzi MUSZĄ podawać KONKRETNE przykłady z tej kategorii — czyli drużyny z miejsc 26+ (tier B/C) i ich graczy z BAZY DANYCH. Nie wolno wtedy zjeżdżać na topowe zespoły z top 10/top 25 ani skupiać całego wątku na jednej drużynie.
+- Każda odpowiedź w paczce ma dotyczyć INNEJ drużyny/gracza, chyba że to bezpośrednia kontra do poprzedniej odpowiedzi. Zero wątku o jednym zespole, kiedy pytanie było ogólne.
 - Najpierw przeanalizuj DOKŁADNIE, o co pyta lub co twierdzi rozmówca i redakcja — odpowiedź musi trafiać w sedno tego konkretnego pytania/argumentu, a nie być ogólnikiem.
 - Jeśli w wątku pada pytanie o konkretną drużynę lub gracza (także spoza czołówki), sprawdź go w BAZIE DANYCH i odpowiedz konkretem.
 - Każda odpowiedź odnosi się bezpośrednio do treści wpisu redakcji (a przez replyToIndex może też odpowiadać innej odpowiedzi w tej samej paczce).
