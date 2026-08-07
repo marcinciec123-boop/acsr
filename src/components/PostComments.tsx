@@ -178,6 +178,18 @@ const PostComments = ({ post, pending }: Props) => {
                       className={cn("flex gap-2", depth > 0 && "border-l-2 border-border/60 pl-2")}
                       style={depth > 0 ? { marginLeft: depth * 14 } : undefined}
                     >
+                      {hidden > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(c.id)}
+                          title={isCollapsed ? "Rozwiń wątek" : "Zwiń wątek"}
+                          className="shrink-0 self-start mt-0.5 w-4 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isCollapsed && "-rotate-90")} />
+                        </button>
+                      ) : (
+                        <span className="shrink-0 w-4" />
+                      )}
 
                       <span
                         className={cn(
