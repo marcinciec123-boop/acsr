@@ -411,7 +411,7 @@ const NewsFeed = () => {
     return d.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
-  const eventCount = buildSnapshot().events?.length ?? 0;
+  const eventCount = useMemo(() => buildSnapshot().events?.length ?? 0, [posts.length]);
 
   return (
     <section className="py-6">
