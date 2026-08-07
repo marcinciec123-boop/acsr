@@ -303,7 +303,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
         {/* === PODIUM TOP 3 === */}
         {top3.length === 3 && (
-          <div className="grid grid-cols-3 gap-3 items-end mb-6 pt-2">
+          <div className="grid grid-cols-3 gap-3 items-end mb-6 pt-2 max-w-xl mx-auto">
             {[1, 0, 2].map((idx, displayIdx) => {
               const team = top3[idx];
               if (!team) return null;
