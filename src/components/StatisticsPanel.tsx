@@ -145,7 +145,7 @@ const StatisticsPanel = () => {
                     <div className="flex items-center gap-2 min-w-0">
                       <TeamLogo teamName={o.team} size={22} />
                       <TeamLink name={o.team} className="font-semibold text-foreground truncate" />
-                      {o.titles.some(t => t.major) && <MajorBadge size="sm" />}
+                      {o.titles.some(t => t.major) && <MajorBadge compact />}
                     </div>
                     <div className="relative h-1 mt-1 rounded-full bg-muted/40 overflow-hidden max-w-[220px]">
                       <div className="absolute inset-y-0 left-0 bg-primary/60" style={{ width: `${(o.earnings / maxOrg) * 100}%` }} />
@@ -236,7 +236,7 @@ const StatisticsPanel = () => {
                       >
                         {t.name}
                       </button>
-                      {t.major && <MajorBadge size="sm" />}
+                      {t.major && <MajorBadge compact />}
                       <span className={cn("px-1.5 py-0.5 rounded border text-2xs font-mono", tierColor[t.tier])}>{t.tier}</span>
                     </div>
                     <div className="text-xs text-muted-foreground font-mono">{t.startDate} · {t.location}</div>
