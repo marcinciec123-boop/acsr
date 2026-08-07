@@ -203,8 +203,20 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const top3 = sorted.slice(0, 3);
 
   return (
-    <section className="py-6">
-      <div className="container mx-auto px-4">
+    <section className="py-6 relative overflow-hidden">
+      {/* Tactical micro-grid + scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.12]"
+        style={{ backgroundImage: "radial-gradient(hsl(var(--primary)) 0.5px, transparent 0.5px)", backgroundSize: "16px 16px" }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.04] z-10"
+        style={{ background: "linear-gradient(hsl(var(--background)/0) 50%, hsl(var(--background)) 50%)", backgroundSize: "100% 3px" }}
+        aria-hidden
+      />
+      <div className="container mx-auto px-4 relative z-20">
+
         {/* === HEADER === */}
         <PanelHeader
           icon={Trophy}
