@@ -205,12 +205,13 @@ const NewsFeed = () => {
 
 
   useEffect(() => {
+    if (showNew) return; // brak odpytywania storage podczas pisania artykułu
     const i = setInterval(() => {
       const fresh = loadFromStorage<NewsPost[]>(STORAGE_KEY, []);
       if (fresh.length !== posts.length) setPosts(fresh);
-    }, 1500);
+    }, 4000);
     return () => clearInterval(i);
-  }, [posts.length]);
+  }, [posts.length, showNew]);
 
   const handleAIGenerate = async (mode: AIPostMode) => {
     setAiLoading(mode);
