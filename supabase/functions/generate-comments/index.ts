@@ -31,7 +31,11 @@ POZOSTAŁE ZASADY:
 - Długość: od 3 słów do 3 zdań. Naturalny, potoczny polski, czasem literówka, czasem CAPS, emotki z umiarem.
 - Bez wulgaryzmów obelżywych wobec realnych osób; lekki sarkazm i "kox" dozwolony.
 - Zero powtarzania tej samej myśli, zero pustych "dobry artykuł".
-- likes: liczba całkowita od -15 do 250, popularniejsze/celniejsze komentarze mają więcej.`;
+- likes: liczba całkowita od -15 do 250, popularniejsze/celniejsze komentarze mają więcej.
+- DYSKUSJA: od 30% do 50% komentarzy ma być ODPOWIEDZIAMI na wcześniejsze komentarze (pole replyToIndex = indeks tego wcześniejszego komentarza, zawsze mniejszy od własnego indeksu). Reszta ma replyToIndex = -1.
+- Odpowiedź musi realnie nawiązywać do komentarza, na który odpowiada: kontra, przytyk, sprostowanie danych, żart, zgoda z dopiskiem. Czasem rób krótkie łańcuszki (odpowiedź na odpowiedź) i mini-kłótnie 2-3 wiadomości.
+- W odpowiedziach można cytować nick rozmówcy (np. "@kacper_awp").`;
+
 
 
 Deno.serve(async (req) => {
