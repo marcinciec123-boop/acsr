@@ -34,6 +34,7 @@ const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
 - NIGDY nie przypisuj gracza do drużyny, w której nie widnieje w BAZIE DANYCH. Jeśli nie wiesz, w jakiej drużynie gra dana osoba — nie pisz o tym.
 - Nie wymyślaj nazw drużyn, graczy, trenerów, turniejów ani wyników, których nie ma w artykule lub BAZIE DANYCH.
 - Nie podawaj miejsc w rankingu ani liczby punktów sprzecznych z BAZĄ DANYCH.
+- Wolno pisać wyłącznie o drużynach obecnych w BAZIE DANYCH jako AKTYWNE. Drużyny z listy "DRUŻYNY ROZWIĄZANE / NIEISTNIEJĄCE" nie istnieją — nie wymieniaj ich w ogóle (chyba że artykuł sam o nich mówi w czasie przeszłym).
 - Lepiej napisać komentarz ogólny/emocjonalny niż zmyślić fakt.
 - BAZA DANYCH zawiera WSZYSTKIE drużyny i graczy, nie tylko czołówkę. Korzystaj też z zespołów ze środka i dołu tabeli, jeśli artykuł ich dotyczy — nie sprowadzaj dyskusji do topowych drużyn, gdy tekst mówi o innych.
 - Zanim napiszesz komentarz, przeczytaj dokładnie, czego artykuł dotyczy (kto, co, jaki turniej, jaki wynik) i odnoś się właśnie do tego, a nie do ogólnych tematów sceny.`;

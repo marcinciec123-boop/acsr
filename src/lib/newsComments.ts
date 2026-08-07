@@ -3,7 +3,7 @@
 // które reagują na konkretną treść artykułu (AI, edge function `generate-comments`).
 
 import { supabase } from "@/integrations/supabase/client";
-import { loadAllTeams } from "./teamManagement";
+import { loadAllTeams, loadArchivedTeams, loadExtraDisbands } from "./teamManagement";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
 
@@ -64,7 +64,14 @@ const tierOf = (rank: number) => (rank <= 10 ? "S" : rank <= 25 ? "A" : rank <= 
  *  żeby AI nie zmyślała przynależności graczy do drużyn.
  *  `extra` = dodatkowy tekst (np. pytanie redakcji), żeby trafnie wykryć, o kim mowa. */
 function buildFacts(post: { title?: string; content: string; tags?: string[] }, extra = ""): string {
-  const teams = loadAllTeams().filter(t => !t.isNational);
+  // Rozwiązane / zarchiwizowane drużyny nie istnieją — nie mogą trafić do faktów.
+  const disbandedNames = new Set<string>([
+    ...loadArchivedTeams(),
+    ...loadExtraDisbands().map(d => d.team),
+  ]);
+  const teams = loadAllTeams().filter(
+    t => !t.isNational && !disbandedNames.has(t.name) && t.roster.filter(Boolean).length > 0,
+  );
   const ranked = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
   const rankOf = new Map(ranked.map((t, i) => [t.name, i + 1]));
 
@@ -91,7 +98,11 @@ function buildFacts(post: { title?: string; content: string; tags?: string[] }, 
     ? `\n\nNIŻSZE TIERY (miejsca 26+, tier B i C — stąd bierz "skryte talenty", "underdogów", "rising stars"; ${lower.length} drużyn):\n${lower.map(line).join("\n")}`
     : "";
 
-  return `${focus}PEŁNA BAZA DRUŻYN (${ranked.length}), posortowana od najlepszej:\n${all}${lowerBlock}`;
+  const disbandedBlock = disbandedNames.size
+    ? `\n\nDRUŻYNY ROZWIĄZANE / NIEISTNIEJĄCE (ZAKAZ pisania o nich jak o aktywnych i zakaz przypisywania im graczy): ${[...disbandedNames].join(", ")}`
+    : "";
+
+  return `${focus}PEŁNA BAZA AKTYWNYCH DRUŻYN (${ranked.length}), posortowana od najlepszej:\n${all}${lowerBlock}${disbandedBlock}`;
 }
 
 
