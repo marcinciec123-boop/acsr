@@ -34,7 +34,9 @@ const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
 - NIGDY nie przypisuj gracza do drużyny, w której nie widnieje w BAZIE DANYCH. Jeśli nie wiesz, w jakiej drużynie gra dana osoba — nie pisz o tym.
 - Nie wymyślaj nazw drużyn, graczy, trenerów, turniejów ani wyników, których nie ma w artykule lub BAZIE DANYCH.
 - Nie podawaj miejsc w rankingu ani liczby punktów sprzecznych z BAZĄ DANYCH.
-- Lepiej napisać komentarz ogólny/emocjonalny niż zmyślić fakt.`;
+- Lepiej napisać komentarz ogólny/emocjonalny niż zmyślić fakt.
+- BAZA DANYCH zawiera WSZYSTKIE drużyny i graczy, nie tylko czołówkę. Korzystaj też z zespołów ze środka i dołu tabeli, jeśli artykuł ich dotyczy — nie sprowadzaj dyskusji do topowych drużyn, gdy tekst mówi o innych.
+- Zanim napiszesz komentarz, przeczytaj dokładnie, czego artykuł dotyczy (kto, co, jaki turniej, jaki wynik) i odnoś się właśnie do tego, a nie do ogólnych tematów sceny.`;
 
 const NICK_RULES = `NICKI (mają wyglądać jak prawdziwi ludzie z polskiego forum esportowego, MOCNO różnorodne — mieszaj poniższe style, nie trzymaj się jednego):
 - ksywka + liczba: "marcin97", "kubaa21", "Pawel_88", "damian2137"
@@ -55,6 +57,7 @@ const STYLE_RULES = `STYL (ma brzmieć jak prawdziwi ludzie, nie jak AI):
 - Charaktery: hejter, fanboy, analityk ze statystykami, żartowniś, świeżak z pytaniem, marudzący weteran ("za moich czasów..."), typ off-topic, ktoś kto tylko rzuca "^^ to", betiarz narzekający na kupon.
 - Ludzie piszą też o pobocznych rzeczach: kursy, oglądalność, godzina meczu, transmisja, ich własne typy.
 - Zero powtarzania tej samej myśli, zero pustego "dobry artykuł", zero podsumowań artykułu.
+- Każdy komentarz ma być ADEKWATNY do konkretnej treści: nawiązuj do faktów z tekstu (nazwiska, wyniki, daty, decyzje), a nie do przypadkowych topowych drużyn.
 - Bez wulgaryzmów obelżywych wobec realnych osób; sarkazm, ironia i "kox" dozwolone.
 - likes: liczba całkowita od -15 do 250; celne/śmieszne wyżej, kontrowersyjne na minusie.`;
 
@@ -75,6 +78,8 @@ ${STYLE_RULES}
 ZASADY WĄTKU:
 - PIERWSZA odpowiedź MUSI być napisana przez ORYGINALNEGO AUTORA (nick podany w "ORYGINALNY AUTOR"), czyli osobę, do której odezwała się redakcja. Ma zachować swój styl i charakter z poprzedniego wpisu (ten sam poziom ogarnięcia, ta sama emocja: hejter dalej hejtuje, ktoś kto pytał — dopytuje lub dziękuje).
 - Druga i trzecia odpowiedź (jeśli są) mogą być od innych, nowych użytkowników wtrącających się do rozmowy.
+- Najpierw przeanalizuj DOKŁADNIE, o co pyta lub co twierdzi rozmówca i redakcja — odpowiedź musi trafiać w sedno tego konkretnego pytania/argumentu, a nie być ogólnikiem.
+- Jeśli w wątku pada pytanie o konkretną drużynę lub gracza (także spoza czołówki), sprawdź go w BAZIE DANYCH i odpowiedz konkretem.
 - Każda odpowiedź odnosi się bezpośrednio do treści wpisu redakcji (a przez replyToIndex może też odpowiadać innej odpowiedzi w tej samej paczce).
 - Reakcje bywają różne: podziękowanie za wyjaśnienie, podważanie redakcji, "źródło?", czepianie się szczegółu, żart, ktoś kto broni redakcji przed hejterem.
 - Nie podszywaj się pod redakcję — piszesz wyłącznie jako zwykli użytkownicy.
@@ -102,7 +107,7 @@ Deno.serve(async (req) => {
       : Math.min(Math.max(body.count ?? (7 + Math.floor(Math.random() * 9)), 7), 15);
 
     const factsBlock = body.facts
-      ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 6000)}`
+      ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 40000)}`
       : "";
 
     const userPrompt = isReply
