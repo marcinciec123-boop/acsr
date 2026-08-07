@@ -68,7 +68,8 @@ function buildFacts(post: { title?: string; content: string; tags?: string[] }):
 
 /** Generuje komentarze pod postem i zapisuje je. Zwraca liczbę komentarzy. */
 export async function generateComments(
-  post: { id: string; title?: string; content: string; category?: string; tags?: string[] },
+  post: { id: string; title?: string; content: string; category?: string; tags?: string[]; date?: string },
+
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("generate-comments", {
