@@ -300,19 +300,28 @@ export const SwissView = ({
     const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
     if (plan.error || plan.pairings.length === 0) return;
     const label = swissRoundLabel(plan.round);
-    // Najpierw uzupełnij istniejące sloty TBD (zachowując ustawione terminy).
-    const slots = [...(skeletonByRound.get(label) || [])].sort((a, b) =>
-      (a.scheduledAt || "\uffff").localeCompare(b.scheduledAt || "\uffff"),
-    );
+    // Wypełniamy istniejące sloty TBD, dopasowując je po BILANSIE (np. 2-0),
+    // a nie po godzinie — dzięki temu terminy ustawione dla meczów 1-1 zostają
+    // przy meczach 1-1.
+    const pool = [...(skeletonByRound.get(label) || [])];
+    const takeSlot = (record: string) => {
+      let idx = pool.findIndex(m => slotRecord(m) === record);
+      if (idx === -1) idx = pool.findIndex(m => !slotRecord(m)); // stare sloty bez rekordu
+      if (idx === -1) return undefined;
+      return pool.splice(idx, 1)[0];
+    };
     const leftovers: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[] = [];
     plan.pairings.forEach(p => {
-      const slot = onPatchMatch ? slots.shift() : undefined;
+      const slot = onPatchMatch ? takeSlot(p.record) : undefined;
       if (slot) {
         onPatchMatch!(slot.id, { team1: p.team1, team2: p.team2, bo: p.bo, round: label });
       } else {
         leftovers.push({ team1: p.team1, team2: p.team2, bo: p.bo, round: label });
       }
     });
+    // Niewykorzystane sloty (np. mniej par niż projekcja) — usuń, żeby nie zostawały puste TBD.
+    if (onDelete) pool.forEach(m => onDelete(m.id));
+    if (leftovers.length) onGenerateNextRound(leftovers);
     if (leftovers.length) onGenerateNextRound(leftovers);
   };
 
