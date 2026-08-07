@@ -10,6 +10,7 @@ import { initFont } from "./lib/font";
 import { installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
+import { installContractsWatcher } from "./lib/contracts";
 
 initTheme();
 initFont();
@@ -30,6 +31,7 @@ const startApp = async () => {
   installMonthEndSnapshots();
   try { fixHistoricalMatchDates(); } catch (e) { console.error("Historical match date fix failed:", e); }
   try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
+  try { installContractsWatcher(); } catch (e) { console.error("Contracts init failed:", e); }
   void createDeviceBackup("auto", "Start aplikacji");
 
   createRoot(document.getElementById("root")!).render(<App />);
