@@ -82,18 +82,24 @@ export async function generateComments(
     if (error) return { ok: false, error: error.message };
     if (data?.error) return { ok: false, error: data.error };
 
-    const raw: { author?: string; content?: string; likes?: number }[] = data?.comments || [];
+    const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
+      data?.comments || [];
     const base = Date.parse(getWorldNowIso());
-    const comments: NewsComment[] = raw
-      .filter(c => c.content && c.content.trim())
-      .slice(0, 15)
-      .map((c, i) => ({
-        id: uid() + i,
+    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 15);
+    const ids = kept.map((_, i) => uid() + i);
+    const comments: NewsComment[] = kept.map((c, i) => {
+      const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
+      const parent = idx >= 0 && idx < i ? ids[idx] : undefined;
+      return {
+        id: ids[i],
         author: (c.author || "anon").trim().slice(0, 24),
         content: c.content!.trim(),
         likes: Math.max(-20, Math.min(999, Math.round(c.likes ?? 0))),
         date: new Date(base + i * 7 * 60 * 1000).toISOString(),
-      }));
+        ...(parent ? { replyTo: parent } : {}),
+      };
+    });
+
     if (comments.length === 0) return { ok: false, error: "Brak komentarzy w odpowiedzi" };
     setComments(post.id, comments);
     return { ok: true, count: comments.length };
