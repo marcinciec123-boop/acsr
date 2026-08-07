@@ -7,7 +7,7 @@ import { loadFromStorage } from "@/lib/storage";
 import type { TournamentData } from "@/lib/types";
 import { distributePrizePool, parsePrizePool } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
-import { isMajorName } from "@/lib/majors";
+import { isMajorTournament } from "@/lib/majors";
 
 export type Tier = "S" | "A" | "B" | "C";
 
@@ -84,7 +84,7 @@ export function computePortalStats(year: string | "total"): PortalStats {
   for (const t of list) {
     const tier = (t.tier || "C") as Tier;
     tierCounts[tier] = (tierCounts[tier] || 0) + 1;
-    const major = isMajorName(t.name);
+    const major = isMajorTournament(t);
     if (major) majorCount++;
 
     const pool = parsePrizePool(t.prizePool);
