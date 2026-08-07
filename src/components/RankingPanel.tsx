@@ -587,24 +587,11 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <Sparkline team={team.name} />
                 </div>
 
-                {/* Points — desktop */}
-                <div className="hidden md:block text-right" onClick={e => { if (isEditing) e.stopPropagation(); }}>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      value={editPoints}
-                      onChange={e => setEditPoints(e.target.value)}
-                      className="h-7 w-24 text-xs ml-auto"
-                      autoFocus
-                      onKeyDown={e => {
-                        if (e.key === "Enter") handleInlineEdit(team.name);
-                        if (e.key === "Escape") setEditingTeam(null);
-                      }}
-                    />
-                  ) : (
-                    <div className="flex justify-end">{PointsPill}</div>
-                  )}
+                {/* Trend — desktop */}
+                <div className="hidden md:flex justify-center">
+                  <TrendBadge trend={trend} compact />
                 </div>
+
 
                 {/* Roster — desktop */}
                 <div className="hidden md:block text-right text-xs font-mono text-muted-foreground">
