@@ -4,7 +4,7 @@
 // transfers chronologically from the current club roster.
 
 import { loadFromStorage, saveToStorageAsync } from "@/lib/storage";
-import { getWorldDate } from "@/lib/worldClock";
+import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { splitRoster } from "@/lib/benchedPlayers";
 import type { MatchResult, TournamentData } from "@/lib/types";
 
@@ -313,4 +313,52 @@ export function getTeamRosterAt(teamName: string, dateIso: string): string[] {
     if (tr.oldTeam === teamName) current.add(tr.player);
   }
   return Array.from(current).slice(0, 5);
+}
+
+// ===== Automatyczne migawki na koniec miesiąca =====
+// Gdy fikcyjny kalendarz przekroczy koniec miesiąca, zapisujemy migawkę
+// datowaną na jego ostatni dzień (o ile nie ma jeszcze realnego zapisu).
+
+const MONTH_MARK_KEY = "ranking_history_month_mark";
+
+const lastDayOfMonth = (year: number, month: number): string => {
+  const d = new Date(Date.UTC(year, month + 1, 0));
+  return d.toISOString().slice(0, 10);
+};
+
+/** Zapisuje brakujące migawki końca miesiąca aż do bieżącej daty świata. */
+export async function ensureMonthEndSnapshots(): Promise<void> {
+  const today = getWorldDate().slice(0, 10);
+  let mark = "";
+  try { mark = localStorage.getItem(MONTH_MARK_KEY) || ""; } catch { /* ignore */ }
+  if (mark >= today) return;
+
+  const existing = new Set(loadRankingHistory().filter(s => !s.synthetic).map(s => s.date));
+  const [y, m] = today.split("-").map(Number);
+  const targets: string[] = [];
+  // Sprawdź ostatnie 24 miesiące wstecz — wystarczająco na całą oś czasu sezonu.
+  for (let back = 1; back <= 24; back++) {
+    const date = new Date(Date.UTC(y, m - 1 - back, 1));
+    const iso = lastDayOfMonth(date.getUTCFullYear(), date.getUTCMonth());
+    if (iso >= today) continue;
+    if (!existing.has(iso)) targets.push(iso);
+  }
+  // Koniec bieżącego miesiąca, jeśli już minął (np. dziś jest 1. dzień kolejnego).
+  targets.sort();
+
+  for (const iso of targets) {
+    await recordRankingSnapshot("month-end", iso).catch(error =>
+      console.error("Month-end snapshot failed:", error));
+  }
+  try { localStorage.setItem(MONTH_MARK_KEY, today); } catch { /* ignore */ }
+}
+
+let monthEndInstalled = false;
+/** Nasłuchuje zmian zegara świata i dopisuje migawki końca miesiąca. */
+export function installMonthEndSnapshots(): void {
+  if (monthEndInstalled || typeof window === "undefined") return;
+  monthEndInstalled = true;
+  const run = () => { void ensureMonthEndSnapshots(); };
+  window.addEventListener(WORLD_CLOCK_EVENT, run);
+  run();
 }
