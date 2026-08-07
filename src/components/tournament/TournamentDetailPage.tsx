@@ -48,7 +48,7 @@ interface Props {
   onAddBracketMatch: (phaseId: string, round: string) => void;
   onAddBracketMatches?: (
     phaseId: string,
-    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
+    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string; bracketSlot?: string }[],
   ) => void;
   onMoveBracketMatch: (phaseId: string, matchId: string, dir: -1 | 1) => void;
   onAddGroupMatch?: (phaseId: string, groupId: string, round: string) => void;
