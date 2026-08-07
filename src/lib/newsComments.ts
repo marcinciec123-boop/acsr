@@ -8,6 +8,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
 
 const KEY = "news_comments";
+const LIKES_KEY = "news_post_likes";
 
 export interface NewsComment {
   id: string;
@@ -37,6 +38,21 @@ export const deleteComments = (postIds: string[]): void => {
   const all = loadAllComments();
   postIds.forEach(id => { delete all[id]; });
   saveToStorage(KEY, all);
+  const likes = loadFromStorage<LikesStore>(LIKES_KEY, {});
+  postIds.forEach(id => { delete likes[id]; });
+  saveToStorage(LIKES_KEY, likes);
+};
+
+type LikesStore = Record<string, number>;
+
+/** Polubienia całego posta (generowane przez AI razem z komentarzami). */
+export const getPostLikes = (postId: string): number =>
+  loadFromStorage<LikesStore>(LIKES_KEY, {})[postId] ?? 0;
+
+export const setPostLikes = (postId: string, likes: number): void => {
+  const all = loadFromStorage<LikesStore>(LIKES_KEY, {});
+  all[postId] = likes;
+  saveToStorage(LIKES_KEY, all);
 };
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -87,12 +103,15 @@ export async function generateComments(
 
     const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
       data?.comments || [];
+    if (typeof data?.postLikes === "number") {
+      setPostLikes(post.id, Math.max(0, Math.min(9999, Math.round(data.postLikes))));
+    }
     // Komentarze zawsze PO godzinie publikacji posta
     const postTs = post.date ? Date.parse(post.date) : NaN;
     const nowTs = Date.parse(getWorldNowIso());
     const base = Math.max(isNaN(postTs) ? 0 : postTs + 5 * 60 * 1000, nowTs);
 
-    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 15);
+    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 45);
     const ids = kept.map((_, i) => uid() + i);
     const comments: NewsComment[] = kept.map((c, i) => {
       const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
@@ -109,7 +128,9 @@ export async function generateComments(
 
     if (comments.length === 0) return { ok: false, error: "Brak komentarzy w odpowiedzi" };
     setComments(post.id, comments);
-    return { ok: true, count: comments.length };
+    // Liczymy tylko wątki (komentarze główne), odpowiedzi nie wliczamy
+    const threads = comments.filter(c => !c.replyTo).length;
+    return { ok: true, count: threads };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown" };
   }
