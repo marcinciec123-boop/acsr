@@ -121,7 +121,7 @@ const PlayerAvatar = ({
 
       {editable && (
         <div
-          className="absolute inset-0 hidden group-hover:flex items-center justify-center gap-1 bg-background/70 backdrop-blur-sm"
+          className="absolute inset-0 flex items-center justify-center gap-1 bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-90 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <button
