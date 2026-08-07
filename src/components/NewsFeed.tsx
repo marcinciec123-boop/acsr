@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import NewsComposer, { type ComposerDraft } from "@/components/news/NewsComposer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Newspaper, Plus, Pin, PinOff, Trash2, Image, X, Clock, Sparkles, Bot, ChevronDown, CheckSquare, Square, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -165,20 +166,9 @@ const buildSnapshot = (): WorldSnapshot => {
 const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
   const [showNew, setShowNew] = useState(false);
-  const [newContent, setNewContent] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [newAuthor, setNewAuthor] = useState("");
-  const [newCategory, setNewCategory] = useState<string>("");
-  const [newTags, setNewTags] = useState("");
-  const [newSource, setNewSource] = useState("");
-  const [newDate, setNewDate] = useState<string>(() => getWorldNowIso().slice(0, 10));
-  const [newTime, setNewTime] = useState<string>(() => {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  });
-  const [newPinned, setNewPinned] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newImage, setNewImage] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ComposerDraft>(() => emptyDraft());
+  const [composerKey, setComposerKey] = useState(0);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<string | null>(null);
 
