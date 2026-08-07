@@ -98,8 +98,8 @@ const MatchesPanel = () => {
     const rows = collect(tournaments);
     const now = getWorldNow();
     const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-    const in3 = new Date(dayStart); in3.setDate(in3.getDate() + 4); // dziś + 3 pełne dni
-    const weekAgo = new Date(dayStart); weekAgo.setDate(weekAgo.getDate() - 7);
+    const ahead = new Date(dayStart); ahead.setDate(ahead.getDate() + 8); // dziś + 7 pełnych dni
+    const back = new Date(dayStart); back.setDate(back.getDate() - 14);
 
     const up: Row[] = [];
     const res: Row[] = [];
@@ -113,11 +113,12 @@ const MatchesPanel = () => {
       }
       const ts = new Date(r.when).getTime();
       if (played) {
-        if (ts >= weekAgo.getTime() && ts <= in3.getTime()) res.push(r);
-      } else if (ts >= weekAgo.getTime() && ts < in3.getTime()) {
+        if (ts >= back.getTime() && ts <= ahead.getTime()) res.push(r);
+      } else if (ts >= back.getTime() && ts < ahead.getTime()) {
         up.push(r);
       }
     });
+
 
     up.sort((a, b) => (a.when || "").localeCompare(b.when || ""));
     res.sort((a, b) => (b.when || "").localeCompare(a.when || ""));
