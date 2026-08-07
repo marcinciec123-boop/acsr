@@ -90,10 +90,15 @@ Deno.serve(async (req) => {
                         author: { type: "string", description: "Nick użytkownika" },
                         content: { type: "string", description: "Treść komentarza po polsku" },
                         likes: { type: "integer", description: "Liczba polubień" },
+                        replyToIndex: {
+                          type: "integer",
+                          description: "Indeks (0-based) wcześniejszego komentarza w tej tablicy, na który to jest odpowiedź. -1 jeśli komentarz nie jest odpowiedzią. Musi być mniejszy niż indeks tego komentarza.",
+                        },
                       },
-                      required: ["author", "content", "likes"],
+                      required: ["author", "content", "likes", "replyToIndex"],
                       additionalProperties: false,
                     },
+
                   },
                 },
                 required: ["comments"],
