@@ -23,6 +23,10 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
+import { CONTRACTS_EVENT, formatRemaining, getContractInfo, type ContractInfo } from "@/lib/contracts";
+import { WORLD_CLOCK_EVENT } from "@/lib/worldClock";
+import { useEffect } from "react";
+import { FileSignature, AlertTriangle } from "lucide-react";
 
 const fmtDate = (iso: string | null): string =>
   iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" }) : "?";
