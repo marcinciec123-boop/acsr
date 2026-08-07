@@ -169,6 +169,12 @@ export interface Transfer {
   oldTeam: string;
   newTeam: string;
   date: string;
+  /** Kwota odstępnego (EUR) — tylko dla transferów klub → klub. */
+  fee?: number;
+  /** Długość podpisanego kontraktu w miesiącach. */
+  contractMonths?: number;
+  /** Miesięczna płaca w nowym klubie (EUR). */
+  salary?: number;
 }
 
 export interface NewsPost {
