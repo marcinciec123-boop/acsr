@@ -9,6 +9,7 @@ import { customTransfersGlobal, type Transfer as RawTransfer } from "@/data/hist
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldDate, getWorldNowIso, WORLD_CLOCK_EVENT } from "./worldClock";
 import { removeFromAllBenches } from "./benchedPlayers";
+import { computeAllPlayersBasicStats, type BasicPlayerStats } from "./playerCareerStats";
 import type { TeamData, Transfer } from "./types";
 
 export type ContractStatus = "active" | "expired";
@@ -84,22 +85,77 @@ export function suggestSalary(player: string, team: string): number {
   return Math.max(800, Math.round(raw / step) * step);
 }
 
+// ===== Wartość transferowa =====
+let ratingCache: { at: number; map: Map<string, BasicPlayerStats> } | null = null;
+
+function ratingsMap(): Map<string, BasicPlayerStats> {
+  if (ratingCache && Date.now() - ratingCache.at < 30_000) return ratingCache.map;
+  let map = new Map<string, BasicPlayerStats>();
+  try {
+    map = computeAllPlayersBasicStats("year");
+  } catch {
+    map = new Map();
+  }
+  ratingCache = { at: Date.now(), map };
+  return map;
+}
+
+export interface MarketValue {
+  value: number;
+  /** Średni rating z ostatniego roku (0 gdy brak meczów). */
+  rating: number;
+  matches: number;
+  /** Mnożnik formy (1.0 = przeciętna). */
+  formFactor: number;
+}
+
 /**
- * Losowa (deterministyczna) kwota odstępnego przy transferze klub → klub.
- * Zależy od jakości gracza (płaca) oraz siły obu drużyn.
+ * Wartość transferowa gracza — bazuje na sile drużyny (ranking / płaca)
+ * oraz formie (średni rating z ostatniego roku, ważony liczbą meczów).
+ */
+export function getMarketValue(player: string, team?: string): MarketValue {
+  const club = team && team !== "-" ? team : (getActiveContract(player)?.team ?? "");
+  const stats = ratingsMap().get(player);
+  const rating = stats?.rating ?? 0;
+  const matches = stats?.matches ?? 0;
+
+  // Im mniej meczów, tym bliżej neutralnej formy (1.0).
+  const confidence = Math.min(1, matches / 25);
+  const raw = rating > 0 ? Math.pow(rating, 3.1) : 1;
+  const formFactor = Math.max(0.45, Math.min(2.4, 1 + (raw - 1) * confidence));
+
+  const salary = club ? suggestSalary(player, club) : 900;
+  const rank = club ? teamRankOf(club) : 120;
+  const prestige = 0.75 + 1.35 * Math.exp(-(rank - 1) / 32);
+  const h = hash(`mv|${player}|${club}`);
+  const variance = 0.88 + ((h % 1000) / 1000) * 0.28; // 0.88 - 1.16
+
+  const rawValue = salary * 12 * prestige * formFactor * variance;
+  const step = rawValue > 1_000_000 ? 50_000 : rawValue > 250_000 ? 10_000 : rawValue > 50_000 ? 5_000 : 1_000;
+  return {
+    value: Math.max(5_000, Math.round(rawValue / step) * step),
+    rating,
+    matches,
+    formFactor: Math.round(formFactor * 100) / 100,
+  };
+}
+
+/**
+ * Kwota odstępnego przy transferze klub → klub — pochodna wartości transferowej,
+ * skorygowana o prestiż klubu kupującego.
  */
 export function suggestTransferFee(player: string, fromTeam: string, toTeam: string): number {
   if (!fromTeam || !toTeam || fromTeam === "-" || toTeam === "-") return 0;
-  const salary = suggestSalary(player, toTeam) || suggestSalary(player, fromTeam);
-  const fromRank = teamRankOf(fromTeam);
+  const mv = getMarketValue(player, fromTeam).value;
   const toRank = teamRankOf(toTeam);
-  const prestige = 0.6 + 1.8 * Math.exp(-(Math.min(fromRank, toRank) - 1) / 30);
+  const demand = 0.8 + 0.9 * Math.exp(-(toRank - 1) / 40);
   const h = hash(`fee|${player}|${fromTeam}|${toTeam}`);
-  const variance = 0.55 + ((h % 1000) / 1000) * 1.5; // 0.55 - 2.05
-  const raw = salary * 12 * prestige * variance;
+  const variance = 0.8 + ((h % 1000) / 1000) * 0.6; // 0.8 - 1.4
+  const raw = mv * demand * variance;
   const step = raw > 500_000 ? 25_000 : raw > 50_000 ? 5_000 : 1_000;
   return Math.max(5_000, Math.round(raw / step) * step);
 }
+
 
 export function loadContracts(): Contract[] {
   return loadFromStorage<Contract[]>(CONTRACTS_KEY, []);
@@ -262,6 +318,43 @@ export function signContract(
     end_date: addDays(start, Math.max(1, Math.round(options.months * 30.4))),
     status: "active",
     salary: Math.max(0, Math.round(options.salary)),
+  };
+  list.push(contract);
+  saveContracts(list);
+  return contract;
+}
+
+/**
+ * Odnawia (przedłuża) aktywny kontrakt gracza — nowa data końca i/lub płaca.
+ * Gdy gracz nie ma aktywnego kontraktu, tworzy nowy dla podanej drużyny.
+ */
+export function renewContract(
+  player: string,
+  options: { endDate: string; salary: number; team?: string },
+): Contract | null {
+  const list = loadContracts();
+  const active = list.find(c => c.player === player && c.status === "active");
+  const endDate = options.endDate.slice(0, 10);
+  const salary = Math.max(0, Math.round(options.salary));
+
+  if (active) {
+    active.end_date = endDate;
+    active.salary = salary;
+    saveContracts(list);
+    return active;
+  }
+
+  const team = options.team;
+  if (!team || team === "-") return null;
+  const start = getWorldDate();
+  const contract: Contract = {
+    id: `ct-${hash(`${player}|${team}|${start}`).toString(36)}-${Date.now().toString(36)}`,
+    player,
+    team,
+    start_date: start,
+    end_date: endDate,
+    status: "active",
+    salary,
   };
   list.push(contract);
   saveContracts(list);

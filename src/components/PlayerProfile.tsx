@@ -23,7 +23,7 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
-import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, type ContractInfo } from "@/lib/contracts";
+import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, getMarketValue, type ContractInfo } from "@/lib/contracts";
 import { WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { useEffect } from "react";
 import { FileSignature, AlertTriangle } from "lucide-react";
@@ -738,6 +738,12 @@ const PlayerProfile = ({
                 </p>
               </div>
               <div>
+                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Wartość transf.</p>
+                <p className="text-sm font-mono font-bold text-primary">
+                  {formatMoney(getMarketValue(playerName, contract.contract.team).value)}
+                </p>
+              </div>
+              <div>
                 <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Pozostało</p>
                 <p className={cn(
                   "text-sm font-mono font-bold",
@@ -748,6 +754,7 @@ const PlayerProfile = ({
                   {formatRemaining(contract.daysLeft)}
                 </p>
               </div>
+
             </div>
             {contract.urgency !== "ok" && (
               <p className={cn(
