@@ -451,18 +451,20 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
         </div>
 
         {/* === MAIN TABLE === */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-card/80 border border-border rounded-xl overflow-hidden backdrop-blur-sm">
           {/* Header — desktop only */}
-          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-xs font-mono text-muted-foreground uppercase tracking-widest">
+          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_70px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/20 border-b border-primary/20 text-xs font-mono text-primary/60 uppercase tracking-[0.2em]">
             <div className="text-center">#</div>
             <div className="text-center">Trend</div>
-            <div>Drużyna</div>
-            <div className="text-center">Tier</div>
+            <div>Team_ID</div>
+            <div className="text-center">Class</div>
             <div className="text-center">Region</div>
+            <div className="text-center">Forma</div>
             <div className="text-right">Punkty</div>
             <div className="text-right">Skład</div>
             <div className="text-right">Akcje</div>
           </div>
+
 
           {filtered.length === 0 && (
             <div className="px-4 py-12 text-center text-sm text-muted-foreground font-mono">
