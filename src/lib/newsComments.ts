@@ -17,6 +17,8 @@ export interface NewsComment {
   date: string;
   /** Odpowiedź na komentarz o tym id (opcjonalnie) */
   replyTo?: string;
+  /** true = wpis redakcji (Twoja odpowiedź), a nie użytkownika */
+  editor?: boolean;
 }
 
 export type CommentStore = Record<string, NewsComment[]>;
