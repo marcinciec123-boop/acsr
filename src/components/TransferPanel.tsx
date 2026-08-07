@@ -32,6 +32,9 @@ import {
   persistPlayerMetadata,
 } from "@/lib/changeLog";
 import { removeFromAllBenches } from "@/lib/benchedPlayers";
+import {
+  formatMoney, getActiveContract, signContract, suggestSalary, suggestTransferFee,
+} from "@/lib/contracts";
 import { toast } from "@/hooks/use-toast";
 
 type TransferType = "all" | "join" | "leave" | "move";
@@ -299,6 +302,36 @@ const TransferPanel = () => {
 
   const refreshChangeLog = () => setChangeLog(loadChangeLog());
 
+  // ===== Warunki kontraktu przy nowym transferze =====
+  const prevContract = useMemo(
+    () => (transferPlayer ? getActiveContract(transferPlayer) : null),
+    [transferPlayer, showDialog],
+  );
+  const [contractMonths, setContractMonths] = useState(24);
+  const [salaryInput, setSalaryInput] = useState("");
+  const [feeInput, setFeeInput] = useState("");
+
+  const suggestedSalary = useMemo(
+    () => (transferPlayer && transferTo !== "-" ? suggestSalary(transferPlayer, transferTo) : 0),
+    [transferPlayer, transferTo],
+  );
+  const suggestedFee = useMemo(
+    () => (transferPlayer && transferFrom !== "-" && transferTo !== "-"
+      ? suggestTransferFee(transferPlayer, transferFrom, transferTo)
+      : 0),
+    [transferPlayer, transferFrom, transferTo],
+  );
+
+  // Prefill warunków po zmianie gracza/celu.
+  useEffect(() => {
+    setSalaryInput(suggestedSalary ? String(suggestedSalary) : "");
+    setFeeInput(suggestedFee ? String(suggestedFee) : "");
+  }, [suggestedSalary, suggestedFee]);
+
+  const salaryValue = Number(salaryInput) || 0;
+  const feeValue = Number(feeInput) || 0;
+  const salaryDelta = prevContract?.salary ? salaryValue - prevContract.salary : 0;
+
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
     const t: Transfer = {
@@ -307,6 +340,8 @@ const TransferPanel = () => {
       oldTeam: transferFrom,
       newTeam: transferTo,
       date: getWorldNowIso(),
+      ...(transferTo !== "-" ? { contractMonths, salary: salaryValue } : {}),
+      ...(transferFrom !== "-" && transferTo !== "-" ? { fee: feeValue } : {}),
     };
 
     // Snapshot BEFORE applying any mutation, for the change log.
@@ -368,6 +403,9 @@ const TransferPanel = () => {
     window.dispatchEvent(new CustomEvent("teams:update"));
     window.dispatchEvent(new CustomEvent("ranking:update"));
 
+    // Nowy kontrakt na ustalonych warunkach (lub wygaszenie przy zwolnieniu do FA).
+    signContract(t.player, transferTo, { months: contractMonths, salary: salaryValue });
+
     setTransfers(prev => [t, ...prev]);
     recordChange(
       "transfer",
@@ -376,6 +414,7 @@ const TransferPanel = () => {
     );
     refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
+    setContractMonths(24); setSalaryInput(""); setFeeInput("");
     setShowDialog(false);
   };
 
@@ -588,6 +627,96 @@ const TransferPanel = () => {
                     )}
                   </div>
 
+                  {transferPlayer && transferTo !== "-" && (
+                    <div className="rounded-lg border border-border bg-secondary/25 p-3 space-y-3">
+                      <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
+                        Warunki kontraktu
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Długość</label>
+                          <select
+                            value={contractMonths}
+                            onChange={e => setContractMonths(Number(e.target.value))}
+                            className="w-full px-2 py-1.5 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+                          >
+                            {[6, 12, 18, 24, 30, 36].map(m => (
+                              <option key={m} value={m}>{m} mies.</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Płaca / mies. (€)</label>
+                          <Input
+                            type="number"
+                            value={salaryInput}
+                            onChange={e => setSalaryInput(e.target.value)}
+                            className="h-[34px] bg-card font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {transferFrom !== "-" && (
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Kwota transferu (€)</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              value={feeInput}
+                              onChange={e => setFeeInput(e.target.value)}
+                              className="h-[34px] bg-card font-mono text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFeeInput(String(suggestTransferFee(transferPlayer, transferFrom, transferTo)))}
+                              className="px-2 rounded border border-border text-xs font-mono text-muted-foreground hover:text-foreground shrink-0"
+                              title="Wylosuj kwotę"
+                            >
+                              Losuj
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Porównanie warunków */}
+                      <div className="rounded border border-border/60 bg-card/60 p-2">
+                        <div className="grid grid-cols-3 gap-1 text-xs font-mono">
+                          <span className="text-muted-foreground">Warunki</span>
+                          <span className="text-muted-foreground text-right">Obecne</span>
+                          <span className="text-muted-foreground text-right">Nowe</span>
+
+                          <span className="text-muted-foreground">Klub</span>
+                          <span className="text-right truncate">{prevContract?.team || "—"}</span>
+                          <span className="text-right truncate text-foreground">{transferTo}</span>
+
+                          <span className="text-muted-foreground">Płaca</span>
+                          <span className="text-right">{prevContract?.salary ? formatMoney(prevContract.salary) : "—"}</span>
+                          <span className={cn(
+                            "text-right font-bold",
+                            salaryDelta > 0 ? "text-[hsl(var(--win))]" : salaryDelta < 0 ? "text-[hsl(var(--loss))]" : "text-foreground",
+                          )}>
+                            {salaryValue ? formatMoney(salaryValue) : "—"}
+                            {salaryDelta !== 0 && prevContract?.salary ? ` (${salaryDelta > 0 ? "+" : "-"}${formatMoney(Math.abs(salaryDelta))})` : ""}
+                          </span>
+
+                          <span className="text-muted-foreground">Koniec</span>
+                          <span className="text-right">
+                            {prevContract ? new Date(prevContract.end_date).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                          </span>
+                          <span className="text-right text-foreground">{contractMonths} mies.</span>
+
+                          {transferFrom !== "-" && (
+                            <>
+                              <span className="text-muted-foreground">Odstępne</span>
+                              <span className="text-right">—</span>
+                              <span className="text-right text-amber-400 font-bold">{feeValue ? formatMoney(feeValue) : "—"}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {transferPlayer && transferFrom !== "-" && (
                     <button
                       onClick={() => setTransferTo("-")}
@@ -691,7 +820,8 @@ const TransferPanel = () => {
                 <div className="col-span-1">#</div>
                 <div className="col-span-3">Gracz</div>
                 <div className="col-span-3">Z drużyny</div>
-                <div className="col-span-3">Do drużyny</div>
+                <div className="col-span-2">Do drużyny</div>
+                <div className="col-span-2">Kwota</div>
                 <div className="col-span-2">Data</div>
               </div>
               {filtered.length === 0 && (
@@ -719,11 +849,20 @@ const TransferPanel = () => {
                       <span className="text-[hsl(var(--loss))] text-xs font-mono">{t.oldTeam}</span>
                     )}
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
                     {t.newTeam === "-" ? (
                       <span className="text-muted-foreground italic text-xs">Free Agent</span>
                     ) : (
                       <span className="text-[hsl(var(--win))] text-xs font-mono">{t.newTeam}</span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-xs font-mono">
+                    {t.oldTeam !== "-" && t.newTeam !== "-" ? (
+                      <span className="text-amber-400">
+                        {formatMoney(t.fee ?? suggestTransferFee(t.player, t.oldTeam, t.newTeam))}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </div>
                   <div className="col-span-2 text-xs text-muted-foreground font-mono">
