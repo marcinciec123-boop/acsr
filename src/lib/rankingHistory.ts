@@ -343,13 +343,29 @@ export async function ensureMonthEndSnapshots(): Promise<void> {
     if (iso >= today) continue;
     if (!existing.has(iso)) targets.push(iso);
   }
-  // Koniec bieżącego miesiąca, jeśli już minął (np. dziś jest 1. dzień kolejnego).
   targets.sort();
 
-  for (const iso of targets) {
-    await recordRankingSnapshot("month-end", iso).catch(error =>
-      console.error("Month-end snapshot failed:", error));
-  }
+  if (targets.length === 0) return;
+
+  const history = loadRankingHistory().filter(s => !s.synthetic);
+  targets.forEach(iso => {
+    // Stan rankingu obowiązujący tego dnia (rekonstrukcja + realne migawki).
+    const standings = getRankingAt(iso);
+    if (standings.length === 0) return;
+    const points: Record<string, number> = {};
+    const ranks: Record<string, number> = {};
+    const rosters: Record<string, string[]> = {};
+    standings.forEach(entry => {
+      points[entry.team] = entry.points;
+      ranks[entry.team] = entry.rank;
+      const roster = getTeamRosterAt(entry.team, iso);
+      if (roster.length) rosters[entry.team] = roster.slice(0, 5);
+    });
+    history.push({ date: iso, points, ranks, rosters });
+  });
+  history.sort((a, b) => a.date.localeCompare(b.date));
+  await saveToStorageAsync(KEY, history);
+
   try { localStorage.setItem(MONTH_MARK_KEY, today); } catch { /* ignore */ }
 }
 
