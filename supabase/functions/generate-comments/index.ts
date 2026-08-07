@@ -13,17 +13,26 @@ interface Payload {
   category?: string;
   tags?: string[];
   count?: number;
+  /** Wyciąg z bazy danych aplikacji: składy, trenerzy, punkty, miejsca w rankingu */
+  facts?: string;
 }
 
 const SYSTEM = `Jesteś generatorem sekcji komentarzy pod artykułem na polskim portalu esportowym o CS:GO (klimat HLTV / forum / Wykop).
 Piszesz komentarze zwykłych użytkowników — różnorodne charaktery: hejter, fanboy drużyny, analityk-nerd ze statystykami, żartowniś, świeżak zadający pytanie, ktoś kto zgadza się z autorem, ktoś kto ostro polemizuje, ktoś kto pisze off-topic jednym zdaniem.
-ZASADY:
+ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
+- Jedynym źródłem prawdy jest sekcja "BAZA DANYCH" oraz treść artykułu. Twoja wiedza o prawdziwym CS/CS2 jest NIEAKTUALNA i zabroniona.
+- NIGDY nie przypisuj gracza do drużyny, w której nie widnieje w BAZIE DANYCH. Jeśli nie wiesz, w jakiej drużynie gra dana osoba — nie pisz o tym.
+- Nie wymyślaj nazw drużyn, graczy, trenerów, turniejów ani wyników, których nie ma w artykule lub BAZIE DANYCH.
+- Nie podawaj miejsc w rankingu ani liczby punktów sprzecznych z BAZĄ DANYCH.
+- Lepiej napisać komentarz ogólny/emocjonalny niż zmyślić fakt.
+POZOSTAŁE ZASADY:
 - Każdy komentarz MUSI odnosić się do konkretnej treści artykułu: nazw drużyn, graczy, turniejów, liczb i tez, które w nim padły.
 - Nicki jak na forum: małe litery, cyfry, podkreślenia (np. "kacper_awp", "b1t_enjoyer", "xdd420", "TaktycznyJanusz").
 - Długość: od 3 słów do 3 zdań. Naturalny, potoczny polski, czasem literówka, czasem CAPS, emotki z umiarem.
 - Bez wulgaryzmów obelżywych wobec realnych osób; lekki sarkazm i "kox" dozwolony.
 - Zero powtarzania tej samej myśli, zero pustych "dobry artykuł".
 - likes: liczba całkowita od -15 do 250, popularniejsze/celniejsze komentarze mają więcej.`;
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
