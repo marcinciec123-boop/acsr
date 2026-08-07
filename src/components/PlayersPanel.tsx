@@ -721,7 +721,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     <div className="mb-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.team!.name); }}
-                        className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                        className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate inline-block max-w-full text-left"
                         title={p.team!.name}
                       >
                         {countryFlag(p.team!.country)} {p.team!.name}
