@@ -5,7 +5,6 @@
 import type { TournamentData, MatchResult } from "./types";
 import { loadFromStorage } from "./storage";
 import { calculateRating } from "./playerStats";
-import { resolveTeamAlias } from "./teamManagement";
 
 export interface TeamStreak {
   team: string;
@@ -34,9 +33,7 @@ export interface StreakData {
 
 const RATING_THRESHOLD = 1.2;
 
-const alias = (n: string): string => {
-  try { return resolveTeamAlias(n) || n; } catch { return n; }
-};
+const alias = (n: string): string => n.trim();
 
 interface FlatMatch extends MatchResult {
   ts: number;
