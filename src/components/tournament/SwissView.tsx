@@ -433,9 +433,36 @@ export const SwissView = ({
       {/* Per-round detailed match sections */}
       {allRounds.length > 0 && (
         <div className="space-y-4">
-          {allRounds.map(({ round, matches: rm }) => {
-            const decisiveSomewhere = rm.some(m => (m.bo || 1) >= 3);
-            return (
+          {(() => {
+            // Bilans drużyn przed każdą rundą — do rozdzielenia meczów na grupy (0-0, 1-0, 0-1, ...)
+            const rec = new Map<string, { w: number; l: number }>();
+            const get = (t: string) => rec.get(t) || { w: 0, l: 0 };
+            return allRounds.map(({ round, matches: rm }) => {
+              const decisiveSomewhere = rm.some(m => (m.bo || 1) >= 3);
+              // Grupy wg bilansu przed rundą
+              const groups = new Map<string, MatchResult[]>();
+              rm.forEach(m => {
+                const a = get(m.team1);
+                const b = get(m.team2);
+                const key = `${Math.max(a.w, b.w)}-${Math.max(a.l, b.l)}`;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push(m);
+              });
+              // Aktualizuj bilanse po rundzie
+              rm.forEach(m => {
+                const played = (m.score1 || 0) !== (m.score2 || 0);
+                if (!played) return;
+                const w = (m.score1 || 0) > (m.score2 || 0) ? m.team1 : m.team2;
+                const l = w === m.team1 ? m.team2 : m.team1;
+                const rw = get(w); rec.set(w, { w: rw.w + 1, l: rw.l });
+                const rl = get(l); rec.set(l, { w: rl.w, l: rl.l + 1 });
+              });
+              const orderedGroups = [...groups.entries()].sort((x, y) => {
+                const [xw, xl] = x[0].split("-").map(Number);
+                const [yw, yl] = y[0].split("-").map(Number);
+                return yw - xw || xl - yl;
+              });
+              return (
               <div key={round} className="border border-border rounded-md overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 border-b border-border">
                   <h5 className="text-xs font-heading font-bold tracking-wide">
@@ -450,22 +477,52 @@ export const SwissView = ({
                     {rm.length} {rm.length === 1 ? "mecz" : "meczów"}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
-                  {rm.map(m => (
-                    <RoundMatchCard
-                      key={m.id}
-                      match={m}
-                      decisive={(m.bo || 1) >= 3}
-                      tier={tier}
-                      onUpdate={onUpdate}
-                      onOpenMatch={onOpenMatch}
-                      onDelete={onDelete}
-                    />
-                  ))}
+                <div className="divide-y divide-border/60">
+                  {orderedGroups.map(([key, gm]) => {
+                    const [gw, gl] = key.split("-").map(Number);
+                    const decisiveGroup = gw + 1 >= winCap || gl + 1 >= winCap;
+                    return (
+                      <div key={key}>
+                        {orderedGroups.length > 1 && (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-background/40">
+                            <span
+                              className={cn(
+                                "text-xs font-mono font-bold px-1.5 py-0.5 rounded border",
+                                decisiveGroup
+                                  ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
+                                  : "bg-secondary text-muted-foreground border-border",
+                              )}
+                            >
+                              {key}
+                            </span>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {gm.length} {gm.length === 1 ? "mecz" : "meczów"}
+                              {decisiveGroup && " • decydujące"}
+                            </span>
+                            <div className="flex-1 h-px bg-border/60" />
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
+                          {gm.map(m => (
+                            <RoundMatchCard
+                              key={m.id}
+                              match={m}
+                              decisive={(m.bo || 1) >= 3}
+                              tier={tier}
+                              onUpdate={onUpdate}
+                              onOpenMatch={onOpenMatch}
+                              onDelete={onDelete}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 
