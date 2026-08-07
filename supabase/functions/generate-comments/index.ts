@@ -91,18 +91,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const count = Math.min(Math.max(body.count ?? (5 + Math.floor(Math.random() * 11)), 5), 15);
+    const isReply = body.mode === "reply";
+    const count = isReply
+      ? Math.min(Math.max(body.count ?? (1 + Math.floor(Math.random() * 3)), 1), 6)
+      : Math.min(Math.max(body.count ?? (5 + Math.floor(Math.random() * 11)), 5), 15);
 
-    const userPrompt = [
-      body.facts
-        ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 6000)}`
-        : "",
-      body.title ? `TYTUŁ: ${body.title}` : "",
-      `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
-      body.category ? `KATEGORIA: ${body.category}` : "",
-      body.tags?.length ? `TAGI: ${body.tags.join(", ")}` : "",
-      `\nNapisz dokładnie ${count} komentarzy użytkowników pod tym artykułem. Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
-    ].filter(Boolean).join("\n\n");
+    const factsBlock = body.facts
+      ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 6000)}`
+      : "";
+
+    const userPrompt = isReply
+      ? [
+          factsBlock,
+          body.title ? `TYTUŁ ARTYKUŁU: ${body.title}` : "",
+          `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 2500)}`,
+          body.thread?.length
+            ? `WĄTEK DYSKUSJI (od najstarszego):\n${body.thread
+                .slice(-12)
+                .map(t => `${t.author}: ${t.content}`)
+                .join("\n")}`
+            : "",
+          `WPIS REDAKCJI, NA KTÓRY REAGUJEMY:\n${body.targetAuthor || "Redakcja"}: ${(body.targetContent || "").slice(0, 1200)}`,
+          body.usedNicks?.length ? `NICKI JUŻ UŻYTE (nie powtarzaj): ${body.usedNicks.slice(0, 40).join(", ")}` : "",
+          `\nNapisz dokładnie ${count} odpowiedzi użytkowników na wpis redakcji. Mają brzmieć jak żywi ludzie, nie jak AI.`,
+        ].filter(Boolean).join("\n\n")
+      : [
+          factsBlock,
+          body.title ? `TYTUŁ: ${body.title}` : "",
+          `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
+          body.category ? `KATEGORIA: ${body.category}` : "",
+          body.tags?.length ? `TAGI: ${body.tags.join(", ")}` : "",
+          `\nNapisz dokładnie ${count} komentarzy użytkowników pod tym artykułem. Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
+        ].filter(Boolean).join("\n\n");
 
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -113,10 +133,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 1.1,
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: isReply ? SYSTEM_REPLY : SYSTEM },
           { role: "user", content: userPrompt },
         ],
+
         tools: [
           {
             type: "function",
