@@ -245,7 +245,7 @@ const MatchesPanel = () => {
                             >
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-mono text-muted-foreground w-11 shrink-0">
-                                  {r.when ? fmtTime(r.when) : "—"}
+                                  {fmtTime(timeSource(m)) }
                                 </span>
                                 <span className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
                                   <TeamLink
@@ -254,12 +254,18 @@ const MatchesPanel = () => {
                                   />
                                   <TeamLogo teamName={m.team1} size={20} rounded="md" />
                                 </span>
-                                <span className={cn(
-                                  "text-sm font-mono font-bold shrink-0 px-2",
-                                  played ? "text-foreground" : "text-muted-foreground",
-                                )}>
-                                  {played ? `${s1} : ${s2}` : "vs"}
+                                <span className="text-sm font-mono font-bold shrink-0 px-2">
+                                  {played ? (
+                                    <>
+                                      <span className={win1 ? "text-emerald-400" : win2 ? "text-red-400" : "text-foreground"}>{s1}</span>
+                                      <span className="text-muted-foreground"> : </span>
+                                      <span className={win2 ? "text-emerald-400" : win1 ? "text-red-400" : "text-foreground"}>{s2}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground">vs</span>
+                                  )}
                                 </span>
+
                                 <span className="flex items-center gap-1.5 min-w-0 flex-1">
                                   <TeamLogo teamName={m.team2} size={20} rounded="md" />
                                   <TeamLink
