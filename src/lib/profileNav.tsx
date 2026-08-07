@@ -4,6 +4,7 @@
 // no-ops so components fall back to plain text.
 
 import React, { createContext, useContext, type ReactNode } from "react";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 export interface ProfileNav {
   openTeam: (name: string) => void;
@@ -55,13 +56,25 @@ export const PlayerLink = ({
   name,
   className,
   children,
+  avatar,
+  avatarSize = 20,
 }: {
   name?: string;
   className?: string;
   children?: ReactNode;
+  /** Show the player avatar before the name. Defaults to on for name-only links. */
+  avatar?: boolean;
+  avatarSize?: number;
 }) => {
   const nav = useProfileNav();
-  const content = children ?? name;
+  const showAvatar = (avatar ?? children === undefined) && isReal(name);
+  const label = children ?? name;
+  const content = showAvatar ? (
+    <span className="inline-flex items-center gap-1.5 align-middle min-w-0">
+      <PlayerAvatar playerName={name!} size={avatarSize} rounded="full" />
+      <span className="truncate">{label}</span>
+    </span>
+  ) : label;
   if (!nav || !isReal(name)) return <span className={className}>{content}</span>;
   const activate = (e: React.SyntheticEvent) => { e.stopPropagation(); nav.openPlayer(name!); };
   return (
