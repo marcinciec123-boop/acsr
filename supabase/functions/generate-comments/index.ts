@@ -117,7 +117,10 @@ Deno.serve(async (req) => {
                 .join("\n")}`
             : "",
           `WPIS REDAKCJI, NA KTÓRY REAGUJEMY:\n${body.targetAuthor || "Redakcja"}: ${(body.targetContent || "").slice(0, 1200)}`,
-          body.usedNicks?.length ? `NICKI JUŻ UŻYTE (nie powtarzaj): ${body.usedNicks.slice(0, 40).join(", ")}` : "",
+          body.originalAuthor
+            ? `ORYGINALNY AUTOR (redakcja odpowiedziała właśnie jemu — pierwsza odpowiedź MUSI być od niego, z tym samym nickiem i stylem): ${body.originalAuthor}${body.originalContent ? `\nJego poprzedni komentarz: ${body.originalContent.slice(0, 600)}` : ""}`
+            : "",
+          body.usedNicks?.length ? `NICKI JUŻ UŻYTE (nie powtarzaj, poza ORYGINALNYM AUTOREM): ${body.usedNicks.slice(0, 40).join(", ")}` : "",
           `\nNapisz dokładnie ${count} odpowiedzi użytkowników na wpis redakcji. Mają brzmieć jak żywi ludzie, nie jak AI.`,
         ].filter(Boolean).join("\n\n")
       : [
