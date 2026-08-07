@@ -209,7 +209,7 @@ export async function generateReplies(
         content: post.content || "",
         category: post.category || "",
         tags: post.tags || [],
-        facts: buildFacts(post),
+        facts: buildFacts(post, `${target.content} ${parentUser?.content || ""} ${chain.map(c => c.content).join(" ")}`),
         thread: chain.slice(0, -1).map(c => ({ author: c.author, content: c.content })),
         targetAuthor: target.author,
         targetContent: target.content,
