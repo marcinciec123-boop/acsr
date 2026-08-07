@@ -30,6 +30,7 @@ const TeamsManagementPanel = () => {
   });
   const [rosterInput, setRosterInput] = useState("");
   const [confirmDisband, setConfirmDisband] = useState<{ name: string; reason: string } | null>(null);
+  const [contractsFor, setContractsFor] = useState<string | null>(null);
 
   const refresh = () => setTeams(loadAllTeams());
 
