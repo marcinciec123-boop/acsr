@@ -56,6 +56,7 @@ export const TournamentUpcomingPanel = ({ tournament: t, onOpenMatch }: Props) =
   }, [t]);
 
   const [collapsed, setCollapsed] = usePersistedState<boolean>(`tour_upcoming_collapsed_${t.id}`, false);
+  const nums = useMemo(() => buildMatchNumbers(t), [t]);
 
   if (rows.length === 0) return null;
 
