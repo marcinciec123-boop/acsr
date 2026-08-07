@@ -110,10 +110,12 @@ export function buildPlayerTeamHistory(player: string, ranking?: TeamData[]): Te
   }
 
   const now = getWorldNowIso();
+  const coachTeams = new Set(source.filter(t => t.coach === player).map(t => t.name));
   return raw
     .map(s => ({
       ...s,
       current: s.to === null && currentTeam?.name === s.team,
+      coach: coachTeams.has(s.team),
       segments: benchSegments(player, s.team, s.from, s.to),
     }))
     .map(s => ({ ...s, to: s.to && s.to > now ? now : s.to }))
