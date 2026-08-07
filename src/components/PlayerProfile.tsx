@@ -23,10 +23,6 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
-import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, getMarketValue, type ContractInfo } from "@/lib/contracts";
-import { WORLD_CLOCK_EVENT } from "@/lib/worldClock";
-import { useEffect } from "react";
-import { FileSignature, AlertTriangle } from "lucide-react";
 
 const fmtDate = (iso: string | null): string =>
   iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" }) : "?";
@@ -92,19 +88,6 @@ const PlayerProfile = ({
     () => buildPlayerTeamHistory(playerName, rankingSource),
     [playerName, rankingSource],
   );
-
-  const [contract, setContract] = useState<ContractInfo | null>(() => getContractInfo(playerName));
-  useEffect(() => {
-    const sync = () => setContract(getContractInfo(playerName));
-    sync();
-    window.addEventListener(CONTRACTS_EVENT, sync);
-    window.addEventListener(WORLD_CLOCK_EVENT, sync);
-    return () => {
-      window.removeEventListener(CONTRACTS_EVENT, sync);
-      window.removeEventListener(WORLD_CLOCK_EVENT, sync);
-    };
-  }, [playerName]);
-
 
   const teamStanding = currentTeam
     ? seasonStandings.find(s => s.team === currentTeam.name)
@@ -213,14 +196,6 @@ const PlayerProfile = ({
                     <Shield className="w-3.5 h-3.5" />
                     {countryFlag(currentTeam.country)}
                     <span className="font-bold text-foreground group-hover:text-primary">{currentTeam.name}</span>
-                    {contract?.urgency === "critical" && (
-                      <span
-                        title={`Kontrakt wygasa za ${formatRemaining(contract.daysLeft)}`}
-                        className="text-[hsl(var(--loss))] font-bold text-xs leading-none"
-                      >
-                        !
-                      </span>
-                    )}
                     {teamRank && <span className="font-mono text-xs">(#{teamRank})</span>}
                     {isCoachOfTeam && (
                       <span className="ml-1 text-xs font-mono uppercase px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-300 bg-sky-500/10">
@@ -696,80 +671,6 @@ const PlayerProfile = ({
           </motion.div>
         )}
 
-        {/* === Current contract === */}
-        {contract && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}
-            className={cn(
-              "bg-card border rounded-lg p-4 mb-6",
-              contract.urgency === "ok" && "border-border",
-              contract.urgency === "soon" && "border-amber-500/40 bg-amber-500/[0.04]",
-              (contract.urgency === "urgent" || contract.urgency === "critical") &&
-                "border-[hsl(var(--loss))]/50 bg-[hsl(var(--loss))]/[0.06]",
-            )}
-          >
-            <h2 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2">
-              <FileSignature className="w-4 h-4 text-primary" /> Current Contract
-            </h2>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <div className="flex items-center gap-2.5">
-                <TeamLogo teamName={contract.contract.team} size={24} rounded="md" />
-                <button
-                  onClick={() => onSelectTeam(contract.contract.team)}
-                  className="font-heading font-bold text-foreground text-sm hover:underline hover:text-primary"
-                >
-                  {contract.contract.team}
-                </button>
-              </div>
-              <div>
-                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Początek</p>
-                <p className="text-sm font-mono text-foreground">
-                  {contract.contract.start_date ? fmtDate(contract.contract.start_date) : "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Koniec</p>
-                <p className="text-sm font-mono text-foreground">{fmtDate(contract.contract.end_date)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Płaca / mies.</p>
-                <p className="text-sm font-mono font-bold text-emerald-400">
-                  {contract.contract.salary ? formatMoney(contract.contract.salary) : "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Wartość transf.</p>
-                <p className="text-sm font-mono font-bold text-primary">
-                  {formatMoney(getMarketValue(playerName, contract.contract.team).value)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Pozostało</p>
-                <p className={cn(
-                  "text-sm font-mono font-bold",
-                  contract.urgency === "ok" && "text-foreground",
-                  contract.urgency === "soon" && "text-amber-400",
-                  (contract.urgency === "urgent" || contract.urgency === "critical") && "text-[hsl(var(--loss))]",
-                )}>
-                  {formatRemaining(contract.daysLeft)}
-                </p>
-              </div>
-
-            </div>
-            {contract.urgency !== "ok" && (
-              <p className={cn(
-                "mt-3 flex items-center gap-1.5 text-xs font-mono",
-                contract.urgency === "soon" ? "text-amber-400/90" : "text-[hsl(var(--loss))]",
-              )}>
-                <AlertTriangle className="w-3.5 h-3.5" />
-                {contract.urgency === "soon"
-                  ? "Kontrakt kończy się w ciągu 90 dni."
-                  : "Kontrakt wygasa lada moment — po wygaśnięciu gracz trafi do wolnych agentów."}
-              </p>
-            )}
-          </motion.div>
-        )}
-
         {/* === Team history (stints + bench periods) === */}
         {teamHistory.length > 0 && (
           <motion.div
@@ -790,11 +691,6 @@ const PlayerProfile = ({
                     >
                       {s.team}
                     </button>
-                    {s.coach && (
-                      <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">
-                        Coach
-                      </span>
-                    )}
                     <span className="ml-auto text-xs font-mono text-muted-foreground">
                       {fmtRange(s.from, s.to)}
                     </span>

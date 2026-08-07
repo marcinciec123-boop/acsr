@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Plus, Edit3, Save, X, Trash2, AlertTriangle, Search, Globe, FileSignature } from "lucide-react";
+import { Users, Plus, Edit3, Save, X, Trash2, AlertTriangle, Search, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { countryFlag } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
-import TeamContractsSection from "@/components/TeamContractsSection";
 import {
   loadAllTeams, createTeam, updateTeam, disbandTeam,
   type CreateTeamInput,
@@ -30,7 +29,6 @@ const TeamsManagementPanel = () => {
   });
   const [rosterInput, setRosterInput] = useState("");
   const [confirmDisband, setConfirmDisband] = useState<{ name: string; reason: string } | null>(null);
-  const [contractsFor, setContractsFor] = useState<string | null>(null);
 
   const refresh = () => setTeams(loadAllTeams());
 
@@ -137,7 +135,6 @@ const TeamsManagementPanel = () => {
         <AnimatePresence initial={false}>
           {filtered.map(t => {
             const editing = editingName === t.name;
-            const contractsOpen = contractsFor === t.name;
             return (
               <motion.div
                 key={t.name}
@@ -146,11 +143,10 @@ const TeamsManagementPanel = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 className={cn(
-                  "border rounded-md",
+                  "border rounded-md p-2.5 flex items-center gap-3",
                   editing ? "border-primary/50 bg-primary/5" : "border-border bg-secondary/20",
                 )}
               >
-                <div className="p-2.5 flex items-center gap-3">
                 <TeamLogo teamName={t.name} size={32} />
 
                 {editing ? (
@@ -210,15 +206,6 @@ const TeamsManagementPanel = () => {
                     </>
                   ) : (
                     <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className={cn("h-8 w-8 p-0", contractsOpen && "text-primary bg-primary/10")}
-                        onClick={() => setContractsFor(contractsOpen ? null : t.name)}
-                        title="Kontrakty i wartości transferowe"
-                      >
-                        <FileSignature className="w-3.5 h-3.5" />
-                      </Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEdit(t)} title="Edytuj">
                         <Edit3 className="w-3.5 h-3.5" />
                       </Button>
@@ -234,12 +221,9 @@ const TeamsManagementPanel = () => {
                     </>
                   )}
                 </div>
-                </div>
-                {contractsOpen && !editing && <TeamContractsSection team={t} />}
               </motion.div>
             );
           })}
-
         </AnimatePresence>
         {filtered.length === 0 && (
           <p className="text-center text-sm text-muted-foreground font-mono py-8">Brak drużyn pasujących do filtra.</p>
