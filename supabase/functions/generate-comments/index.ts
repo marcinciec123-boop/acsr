@@ -50,12 +50,16 @@ Deno.serve(async (req) => {
     const count = Math.min(Math.max(body.count ?? (5 + Math.floor(Math.random() * 11)), 5), 15);
 
     const userPrompt = [
+      body.facts
+        ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 6000)}`
+        : "",
       body.title ? `TYTUŁ: ${body.title}` : "",
       `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
       body.category ? `KATEGORIA: ${body.category}` : "",
       body.tags?.length ? `TAGI: ${body.tags.join(", ")}` : "",
-      `\nNapisz dokładnie ${count} komentarzy użytkowników pod tym artykułem. Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat".`,
+      `\nNapisz dokładnie ${count} komentarzy użytkowników pod tym artykułem. Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
     ].filter(Boolean).join("\n\n");
+
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
