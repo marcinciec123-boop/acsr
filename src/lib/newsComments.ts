@@ -107,3 +107,90 @@ export async function generateComments(
     return { ok: false, error: e instanceof Error ? e.message : "Unknown" };
   }
 }
+
+/** Nazwa autora wpisów redakcji w komentarzach. */
+export const EDITOR_AUTHOR = "Redakcja";
+
+/** Dodaje odpowiedź redakcji pod wskazanym komentarzem. Zwraca id nowego wpisu. */
+export function addEditorReply(postId: string, parentId: string, content: string): string {
+  const all = getComments(postId);
+  const entry: NewsComment = {
+    id: uid() + "ed",
+    author: EDITOR_AUTHOR,
+    content: content.trim(),
+    likes: 0,
+    date: getWorldNowIso(),
+    replyTo: parentId,
+    editor: true,
+  };
+  const idx = all.findIndex(c => c.id === parentId);
+  const next = idx === -1 ? [...all, entry] : [...all.slice(0, idx + 1), entry, ...all.slice(idx + 1)];
+  setComments(postId, next);
+  return entry.id;
+}
+
+/** Generuje reakcje społeczności na wpis redakcji (odpowiedzi do odpowiedzi). */
+export async function generateReplies(
+  post: { id: string; title?: string; content: string; category?: string; tags?: string[] },
+  editorCommentId: string,
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  try {
+    const all = getComments(post.id);
+    const byId = new Map(all.map(c => [c.id, c]));
+    const target = byId.get(editorCommentId);
+    if (!target) return { ok: false, error: "Nie znaleziono komentarza" };
+
+    // Wątek: łańcuch rodziców do korzenia (od najstarszego)
+    const chain: NewsComment[] = [];
+    let cur: NewsComment | undefined = target;
+    while (cur) {
+      chain.unshift(cur);
+      cur = cur.replyTo ? byId.get(cur.replyTo) : undefined;
+    }
+
+    const { data, error } = await supabase.functions.invoke("generate-comments", {
+      body: {
+        mode: "reply",
+        title: post.title || "",
+        content: post.content || "",
+        category: post.category || "",
+        tags: post.tags || [],
+        facts: buildFacts(post),
+        thread: chain.slice(0, -1).map(c => ({ author: c.author, content: c.content })),
+        targetAuthor: target.author,
+        targetContent: target.content,
+        usedNicks: [...new Set(all.map(c => c.author))],
+      },
+    });
+    if (error) return { ok: false, error: error.message };
+    if (data?.error) return { ok: false, error: data.error };
+
+    const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
+      data?.comments || [];
+    const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 6);
+    if (kept.length === 0) return { ok: false, error: "Brak odpowiedzi w wynikach" };
+
+    const base = Date.parse(target.date) || Date.parse(getWorldNowIso());
+    const ids = kept.map((_, i) => uid() + "r" + i);
+    const replies: NewsComment[] = kept.map((c, i) => {
+      const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
+      return {
+        id: ids[i],
+        author: (c.author || "anon").trim().slice(0, 24),
+        content: c.content!.trim(),
+        likes: Math.max(-20, Math.min(999, Math.round(c.likes ?? 0))),
+        date: new Date(base + (i + 1) * 4 * 60 * 1000).toISOString(),
+        replyTo: idx >= 0 && idx < i ? ids[idx] : editorCommentId,
+      };
+    });
+
+    const pos = all.findIndex(c => c.id === editorCommentId);
+    const next = pos === -1
+      ? [...all, ...replies]
+      : [...all.slice(0, pos + 1), ...replies, ...all.slice(pos + 1)];
+    setComments(post.id, next);
+    return { ok: true, count: replies.length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown" };
+  }
+}
