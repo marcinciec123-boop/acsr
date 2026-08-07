@@ -23,7 +23,7 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
-import { CONTRACTS_EVENT, formatRemaining, getContractInfo, type ContractInfo } from "@/lib/contracts";
+import { CONTRACTS_EVENT, formatMoney, formatRemaining, getContractInfo, type ContractInfo } from "@/lib/contracts";
 import { WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { useEffect } from "react";
 import { FileSignature, AlertTriangle } from "lucide-react";
@@ -730,6 +730,12 @@ const PlayerProfile = ({
               <div>
                 <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Koniec</p>
                 <p className="text-sm font-mono text-foreground">{fmtDate(contract.contract.end_date)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Płaca / mies.</p>
+                <p className="text-sm font-mono font-bold text-emerald-400">
+                  {contract.contract.salary ? formatMoney(contract.contract.salary) : "—"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Pozostało</p>
