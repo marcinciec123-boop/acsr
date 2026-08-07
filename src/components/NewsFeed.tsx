@@ -180,6 +180,8 @@ const NewsFeed = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
   const [cats, setCats] = useState<string[]>([]);
