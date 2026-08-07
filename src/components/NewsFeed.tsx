@@ -569,6 +569,12 @@ const NewsFeed = () => {
                     className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
                   />
                   <input
+                    type="time"
+                    value={newTime}
+                    onChange={e => setNewTime(e.target.value)}
+                    className="h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground"
+                  />
+                  <input
                     value={newAuthor}
                     onChange={e => setNewAuthor(e.target.value)}
                     placeholder="Autor / redakcja"
