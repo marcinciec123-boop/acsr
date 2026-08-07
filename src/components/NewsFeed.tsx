@@ -346,20 +346,20 @@ const NewsFeed = () => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   };
 
-  const allCategories = Array.from(new Set([
+  const allCategories = useMemo(() => Array.from(new Set([
     ...Object.keys(CATEGORY_BADGES),
     ...posts.map(p => p.category).filter(Boolean) as string[],
-  ]));
-  const usedCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
-  const years = Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
+  ])), [posts]);
+  const usedCategories = useMemo(() => Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[], [posts]);
+  const years = useMemo(() => Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse(), [posts]);
 
-  const authors = Array.from(new Set(posts.map(p => p.author).filter(Boolean))).sort() as string[];
-  const allTags = Array.from(new Set(posts.flatMap(p => p.tags || []))).sort();
+  const authors = useMemo(() => Array.from(new Set(posts.map(p => p.author).filter(Boolean))).sort() as string[], [posts]);
+  const allTags = useMemo(() => Array.from(new Set(posts.flatMap(p => p.tags || []))).sort(), [posts]);
   const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const MONTH_LABELS = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
 
   const q = search.trim().toLowerCase();
-  const sorted = [...posts]
+  const sorted = useMemo(() => [...posts]
     .filter(p => cats.length === 0 || (p.category && cats.includes(p.category)))
     .filter(p => yearFilter === "all" || (p.date || "").slice(0, 4) === yearFilter)
     .filter(p => monthFilter === "all" || (p.date || "").slice(5, 7) === monthFilter)
@@ -376,7 +376,8 @@ const NewsFeed = () => {
       if (!a.pinned && b.pinned) return 1;
       const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
       return sortDir === "desc" ? diff : -diff;
-    });
+    }), [posts, cats, yearFilter, monthFilter, authorFilter, tagFilter, dateFrom, dateTo, imageOnly, pinnedOnly, q, sortDir]);
+
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [
     ...cats.map(c => ({ key: `cat-${c}`, label: CATEGORY_BADGES[c]?.label || c, clear: () => setCats(prev => prev.filter(x => x !== c)) })),
