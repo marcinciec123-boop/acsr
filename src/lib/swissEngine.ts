@@ -249,7 +249,7 @@ export function computeSwissStage(
  */
 export interface NextRoundPlan {
   round: number;
-  pairings: { team1: string; team2: string; bo: 1 | 3 | 5; group: string; decisive: boolean }[];
+  pairings: { team1: string; team2: string; bo: 1 | 3 | 5; group: string; decisive: boolean; record: string }[];
   /** Teams that have no opponent (odd participants count). */
   byes: string[];
   /** Reason if generation isn't possible. */
@@ -316,7 +316,7 @@ export function planNextSwissRound(
     const bo = decisive ? decisiveBo : defaultBo;
     const groupLabel = bucketLabel(key, stage.winCap);
     localPairs.forEach(([t1, t2]) => {
-      pairings.push({ team1: t1.team, team2: t2.team, bo, group: groupLabel, decisive });
+      pairings.push({ team1: t1.team, team2: t2.team, bo, group: groupLabel, decisive, record: key });
     });
   }
 
