@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2 } from "lucide-react";
+import { MessageSquare, ChevronDown, ThumbsUp, RefreshCw, Loader2, CornerDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { NewsPost } from "@/lib/types";
