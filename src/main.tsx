@@ -10,6 +10,7 @@ import { initFont } from "./lib/font";
 import { installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
+import { installContractsWatcher } from "./lib/contracts";
 
 initTheme();
 initFont();
