@@ -521,71 +521,187 @@ const NewsFeed = () => {
         )}
 
         {/* Search + filters */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Szukaj: tytuł, treść, tag, drużyna..."
-              className="w-full h-9 pl-8 pr-2 rounded-md border border-border bg-secondary/40 text-sm font-mono text-foreground"
-            />
-          </div>
-          <select
-            value={yearFilter}
-            onChange={e => setYearFilter(e.target.value)}
-            className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
-          >
-            <option value="all">Wszystkie lata</option>
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <button
-            onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
-            className="h-9 px-2.5 rounded-md border border-border bg-secondary/40 text-xs font-mono text-muted-foreground hover:text-foreground"
-          >
-            {sortDir === "desc" ? "Najnowsze" : "Najstarsze"}
-          </button>
-          <button
-            onClick={() => setPinnedOnly(v => !v)}
-            className={cn(
-              "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors",
-              pinnedOnly ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Tylko przypięte
-          </button>
-        </div>
-
-        {/* Category filter pills */}
-        {usedCategories.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap mb-5 pb-3 border-b border-border">
+        <div className="rounded-xl border border-border bg-card/60 p-3 mb-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Szukaj: tytuł, treść, tag, drużyna..."
+                className="w-full h-9 pl-8 pr-2 rounded-md border border-border bg-secondary/40 text-sm font-mono text-foreground"
+              />
+            </div>
             <button
-              onClick={() => setFilter(null)}
+              onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+              className="h-9 px-2.5 rounded-md border border-border bg-secondary/40 text-xs font-mono text-muted-foreground hover:text-foreground"
+            >
+              {sortDir === "desc" ? "Najnowsze" : "Najstarsze"}
+            </button>
+            <button
+              onClick={() => setShowFilters(v => !v)}
               className={cn(
-                "text-xs px-2.5 py-1 rounded-full font-mono border transition-colors",
-                !filter ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary",
+                "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors flex items-center gap-1.5",
+                showFilters || activeFilters.length
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
               )}
             >
-              Wszystkie ({posts.length})
+              Filtry{activeFilters.length ? ` (${activeFilters.length})` : ""}
+              <ChevronDown className={cn("w-3 h-3 transition-transform", showFilters && "rotate-180")} />
             </button>
-            {usedCategories.map(cat => {
-              const meta = CATEGORY_BADGES[cat] || { label: cat, color: "bg-secondary/40 text-foreground border-border" };
-              const count = posts.filter(p => p.category === cat).length;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setFilter(filter === cat ? null : cat)}
-                  className={cn(
-                    "text-xs px-2.5 py-1 rounded-full font-mono border transition-colors",
-                    filter === cat ? meta.color : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary",
-                  )}
-                >
-                  {meta.label} ({count})
-                </button>
-              );
-            })}
           </div>
-        )}
+
+          {/* Active filter chips */}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeFilters.map(f => (
+                <button
+                  key={f.key}
+                  onClick={f.clear}
+                  className="text-xs font-mono px-2 py-0.5 rounded-full border border-primary/40 bg-primary/10 text-primary flex items-center gap-1 hover:bg-primary/20"
+                >
+                  {f.label} <X className="w-3 h-3" />
+                </button>
+              ))}
+              <button onClick={clearAll} className="text-xs font-mono px-2 py-0.5 text-muted-foreground hover:text-foreground underline">
+                wyczyść wszystkie
+              </button>
+            </div>
+          )}
+
+          <AnimatePresence initial={false}>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-1 space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <select
+                      value={yearFilter}
+                      onChange={e => setYearFilter(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    >
+                      <option value="all">Wszystkie lata</option>
+                      {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select
+                      value={monthFilter}
+                      onChange={e => setMonthFilter(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    >
+                      <option value="all">Wszystkie miesiące</option>
+                      {MONTHS.map((m, i) => <option key={m} value={m}>{MONTH_LABELS[i]}</option>)}
+                    </select>
+                    <select
+                      value={authorFilter}
+                      onChange={e => setAuthorFilter(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    >
+                      <option value="all">Wszyscy autorzy</option>
+                      {authors.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <select
+                      value={tagFilter}
+                      onChange={e => setTagFilter(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    >
+                      <option value="all">Wszystkie tagi</option>
+                      {allTags.map(t => <option key={t} value={t}>#{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-mono text-muted-foreground">Zakres dat:</span>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    />
+                    <span className="text-xs text-muted-foreground">—</span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className="h-9 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+                    />
+                    <button
+                      onClick={() => setPinnedOnly(v => !v)}
+                      className={cn(
+                        "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors",
+                        pinnedOnly ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Tylko przypięte
+                    </button>
+                    <button
+                      onClick={() => setImageOnly(v => !v)}
+                      className={cn(
+                        "h-9 px-2.5 rounded-md border text-xs font-mono transition-colors",
+                        imageOnly ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Ze zdjęciem
+                    </button>
+                  </div>
+
+                  {/* Category multi-select pills */}
+                  {usedCategories.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap pt-1 border-t border-border/60">
+                      <button
+                        onClick={() => setCats([])}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-full font-mono border transition-colors mt-2",
+                          cats.length === 0 ? "bg-primary/20 text-primary border-primary/40" : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary",
+                        )}
+                      >
+                        Wszystkie ({posts.length})
+                      </button>
+                      {usedCategories.map(cat => {
+                        const meta = CATEGORY_BADGES[cat] || { label: cat, color: "bg-secondary/40 text-foreground border-border" };
+                        const count = posts.filter(p => p.category === cat).length;
+                        const on = cats.includes(cat);
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => setCats(prev => on ? prev.filter(c => c !== cat) : [...prev, cat])}
+                            className={cn(
+                              "text-xs px-2.5 py-1 rounded-full font-mono border transition-colors mt-2",
+                              on ? meta.color : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary",
+                            )}
+                          >
+                            {meta.label} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Result count + page size */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/60">
+            <span className="text-xs font-mono text-muted-foreground pt-2">
+              Znaleziono {sorted.length} {sorted.length === 1 ? "post" : "postów"} · strona {currentPage}/{totalPages}
+            </span>
+            <div className="flex items-center gap-1.5 pt-2">
+              <span className="text-xs font-mono text-muted-foreground">Na stronę:</span>
+              <select
+                value={pageSize}
+                onChange={e => setPageSize(Number(e.target.value))}
+                className="h-8 px-2 rounded-md border border-border bg-secondary/40 text-xs font-mono text-foreground"
+              >
+                {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
 
         {/* New post form */}
         <AnimatePresence>
