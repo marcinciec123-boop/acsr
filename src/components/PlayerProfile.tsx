@@ -790,6 +790,11 @@ const PlayerProfile = ({
                     >
                       {s.team}
                     </button>
+                    {s.coach && (
+                      <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">
+                        Coach
+                      </span>
+                    )}
                     <span className="ml-auto text-xs font-mono text-muted-foreground">
                       {fmtRange(s.from, s.to)}
                     </span>
