@@ -42,6 +42,10 @@ const PostComments = ({ post, pending }: Props) => {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [replying, setReplying] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const toggleCollapse = (id: string) =>
+    setCollapsed(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
 
   const sendEditorReply = async (parentId: string) => {
     const text = draft.trim();
@@ -105,10 +109,21 @@ const PostComments = ({ post, pending }: Props) => {
           <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", open && "rotate-180")} />
         </button>
         {pending && count === 0 && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
+        {open && count > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
+            onClick={() => setCollapsed(collapsed.length ? [] : comments.filter(c => comments.some(x => x.replyTo === c.id)).map(c => c.id))}
+          >
+            {collapsed.length ? "Rozwiń wszystkie" : "Zwiń wszystkie"}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
+          className={cn("h-6 px-2 text-xs font-mono text-muted-foreground", !(open && count > 0) && "ml-auto")}
+
           onClick={regenerate}
           disabled={loading}
         >
@@ -153,9 +168,12 @@ const PostComments = ({ post, pending }: Props) => {
                     children.set(c.replyTo, arr);
                   } else roots.push(c);
                 });
+                const descCount = (id: string): number =>
+                  (children.get(id) || []).reduce((n, ch) => n + 1 + descCount(ch.id), 0);
                 const ordered: NewsComment[] = [];
                 const walk = (c: NewsComment) => {
                   ordered.push(c);
+                  if (collapsed.includes(c.id)) return;
                   (children.get(c.id) || []).forEach(walk);
                 };
                 roots.forEach(walk);
@@ -163,12 +181,27 @@ const PostComments = ({ post, pending }: Props) => {
                 return ordered.map(c => {
                   const depth = Math.min(depthOf(c), 3);
                   const parent = c.replyTo ? byId.get(c.replyTo) : undefined;
+                  const hidden = descCount(c.id);
+                  const isCollapsed = collapsed.includes(c.id);
                   return (
                     <div
                       key={c.id}
                       className={cn("flex gap-2", depth > 0 && "border-l-2 border-border/60 pl-2")}
                       style={depth > 0 ? { marginLeft: depth * 14 } : undefined}
                     >
+                      {hidden > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(c.id)}
+                          title={isCollapsed ? "Rozwiń wątek" : "Zwiń wątek"}
+                          className="shrink-0 self-start mt-0.5 w-4 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isCollapsed && "-rotate-90")} />
+                        </button>
+                      ) : (
+                        <span className="shrink-0 w-4" />
+                      )}
+
                       <span
                         className={cn(
                           "w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90",
@@ -199,6 +232,16 @@ const PostComments = ({ post, pending }: Props) => {
                             </span>
                           )}
                           <span className="text-xs font-mono text-muted-foreground opacity-70">{fmt(c.date)}</span>
+                          {isCollapsed && hidden > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleCollapse(c.id)}
+                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-secondary/60 text-muted-foreground hover:text-primary"
+                            >
+                              +{hidden} {hidden === 1 ? "odpowiedź" : "odpowiedzi"}
+                            </button>
+                          )}
+
                         </div>
                         <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap leading-relaxed">{c.content}</p>
                         <div className="mt-1 flex items-center gap-3">
