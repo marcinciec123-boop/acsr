@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Camera, Trash2 } from "lucide-react";
-import { fileToLogoDataUrl } from "@/lib/teamLogos";
+import { fileToLogoDataUrl, loadTeamLogo } from "@/lib/teamLogos";
 import {
   PLAYER_PHOTO_EVENT,
   deletePlayerPhoto,
@@ -35,6 +35,7 @@ const PlayerAvatar = ({
   playerName, teamName, size = 48, className, rounded = "xl", editable = false,
 }: PlayerAvatarProps) => {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [teamLogo, setTeamLogo] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -49,6 +50,20 @@ const PlayerAvatar = ({
     window.addEventListener(PLAYER_PHOTO_EVENT, onUpdate);
     return () => { active = false; window.removeEventListener(PLAYER_PHOTO_EVENT, onUpdate); };
   }, [playerName]);
+
+  useEffect(() => {
+    let active = true;
+    if (!teamName) { setTeamLogo(null); return; }
+    loadTeamLogo(teamName).then(url => { if (active) setTeamLogo(url); });
+    const onLogo = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { teamName?: string } | undefined;
+      if (!detail?.teamName || detail.teamName === teamName) {
+        loadTeamLogo(teamName).then(url => { if (active) setTeamLogo(url); });
+      }
+    };
+    window.addEventListener("teamlogo:update", onLogo);
+    return () => { active = false; window.removeEventListener("teamlogo:update", onLogo); };
+  }, [teamName]);
 
   const handleFile = useCallback(async (file: File | undefined) => {
     if (!file) return;
@@ -107,15 +122,24 @@ const PlayerAvatar = ({
           {/* shoulder stripes */}
           <path d="M18 74 C24 66 31 61 39 58 L41 64 C34 67 28 71 23 78 Z" fill={colors.accent} opacity="0.85" />
           <path d="M82 74 C76 66 69 61 61 58 L59 64 C66 67 72 71 77 78 Z" fill={colors.accent} opacity="0.85" />
-          {/* chest initials */}
-          <text
-            x="50" y="90" textAnchor="middle"
-            fontSize="15" fontWeight="700" letterSpacing="1"
-            fill="hsl(0 0% 100%)" opacity="0.92"
-            fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
-          >
-            {initials}
-          </text>
+          {/* chest crest: team logo, fallback to initials */}
+          {teamLogo ? (
+            <image
+              href={teamLogo}
+              x="34" y="70" width="32" height="26"
+              preserveAspectRatio="xMidYMid meet"
+              opacity="0.97"
+            />
+          ) : (
+            <text
+              x="50" y="90" textAnchor="middle"
+              fontSize="15" fontWeight="700" letterSpacing="1"
+              fill="hsl(0 0% 100%)" opacity="0.92"
+              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+            >
+              {initials}
+            </text>
+          )}
         </svg>
       )}
 
