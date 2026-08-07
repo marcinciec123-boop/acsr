@@ -76,6 +76,8 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editPoints, setEditPoints] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
   const [showPast, setShowPast] = useState(false);
   const [pastDate, setPastDate] = useState(() => getWorldDate());
   const pastRanking = useMemo(() => (showPast ? getRankingAt(pastDate) : []), [showPast, pastDate]);
