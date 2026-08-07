@@ -16,8 +16,24 @@ import { playerNationalities } from "@/data/playerNationalities";
 import TeamLogo from "@/components/TeamLogo";
 import PanelHeader from "@/components/PanelHeader";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
-import { getRankingAt } from "@/lib/rankingHistory";
+import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { CalendarClock } from "lucide-react";
+
+// Mini wykres punktów (sparkline) — broadcast style
+const Sparkline = ({ team, width = 46, height = 14 }: { team: string; width?: number; height?: number }) => {
+  const pts = useMemo(() => getTeamRankingSeries(team).slice(-14).map(p => p.points), [team]);
+  if (pts.length < 2) return <span className="inline-block" style={{ width, height }} />;
+  const min = Math.min(...pts), max = Math.max(...pts);
+  const span = max - min || 1;
+  const d = pts.map((v, i) => `${(i / (pts.length - 1)) * width},${height - ((v - min) / span) * height}`).join(" L");
+  const rising = pts[pts.length - 1] >= pts[0];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={rising ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]"} fill="none" aria-hidden>
+      <path d={`M${d}`} stroke="currentColor" strokeWidth="1.5" opacity="0.7" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+};
+
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
@@ -60,6 +76,8 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editPoints, setEditPoints] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
   const [showPast, setShowPast] = useState(false);
   const [pastDate, setPastDate] = useState(() => getWorldDate());
   const pastRanking = useMemo(() => (showPast ? getRankingAt(pastDate) : []), [showPast, pastDate]);
@@ -185,8 +203,20 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const top3 = sorted.slice(0, 3);
 
   return (
-    <section className="py-6">
-      <div className="container mx-auto px-4">
+    <section className="py-6 relative overflow-hidden">
+      {/* Tactical micro-grid + scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.12]"
+        style={{ backgroundImage: "radial-gradient(hsl(var(--primary)) 0.5px, transparent 0.5px)", backgroundSize: "16px 16px" }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.04] z-10"
+        style={{ background: "linear-gradient(hsl(var(--background)/0) 50%, hsl(var(--background)) 50%)", backgroundSize: "100% 3px" }}
+        aria-hidden
+      />
+      <div className="container mx-auto px-4 relative z-20">
+
         {/* === HEADER === */}
         <PanelHeader
           icon={Trophy}
@@ -273,17 +303,14 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
         {/* === PODIUM TOP 3 === */}
         {top3.length === 3 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-3 items-end mb-6 pt-2 max-w-xl mx-auto">
             {[1, 0, 2].map((idx, displayIdx) => {
               const team = top3[idx];
               if (!team) return null;
               const rank = idx + 1;
-              const meta =
-                rank === 1 ? { icon: Crown, color: "text-[hsl(var(--gold))]", border: "border-[hsl(var(--gold)/0.5)]", glow: "shadow-[0_0_30px_hsl(var(--gold)/0.15)]", label: "Mistrz" }
-                : rank === 2 ? { icon: Medal, color: "text-[hsl(var(--silver))]", border: "border-[hsl(var(--silver)/0.5)]", glow: "shadow-[0_0_20px_hsl(var(--silver)/0.1)]", label: "Wicemistrz" }
-                : { icon: Award, color: "text-[hsl(var(--bronze))]", border: "border-[hsl(var(--bronze)/0.5)]", glow: "shadow-[0_0_20px_hsl(var(--bronze)/0.1)]", label: "3. miejsce" };
-              const Icon = meta.icon;
-              const trend = trendFor(team.name, rank);
+              const isChamp = rank === 1;
+              const barColor = rank === 1 ? "bg-[hsl(var(--gold))]" : rank === 2 ? "bg-[hsl(var(--silver))]" : "bg-[hsl(var(--bronze))]";
+              const label = rank === 1 ? "Champion" : `Rank_0${rank}`;
               return (
                 <motion.button
                   key={team.name}
@@ -292,43 +319,39 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   transition={{ delay: displayIdx * 0.08 }}
                   onClick={() => onSelectTeam?.(team.name)}
                   className={cn(
-                    "group relative bg-card border rounded-xl p-4 text-left hover:border-primary/60 transition-all hover:-translate-y-0.5",
-                    meta.border, meta.glow,
-                    rank === 1 && "md:scale-105 md:order-2 md:py-6",
-                    rank === 2 && "md:order-1",
-                    rank === 3 && "md:order-3",
+                    "group flex flex-col items-center gap-2",
+                    rank === 1 ? "order-2 z-10 scale-105" : rank === 2 ? "order-1 translate-y-2" : "order-3 translate-y-2",
                   )}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Icon className={cn("w-5 h-5", meta.color)} />
-                      <span className={cn("text-xs font-mono uppercase tracking-wider", meta.color)}>#{rank} • {meta.label}</span>
-                    </div>
-                    <TrendBadge trend={trend} />
+                  <div className={cn(
+                    "relative w-full aspect-square bg-card border flex items-center justify-center overflow-hidden transition-all",
+                    isChamp
+                      ? "border-[hsl(var(--gold)/0.45)] shadow-[0_0_25px_hsl(var(--gold)/0.15)]"
+                      : "border-border group-hover:border-primary/50",
+                  )}>
+                    <div className="absolute inset-0 opacity-[0.05] bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,currentColor_5px,currentColor_6px)] text-foreground" />
+                    {isChamp && (
+                      <>
+                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[hsl(var(--gold))]" />
+                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[hsl(var(--gold))]" />
+                        <div className="absolute inset-0" style={{ background: "radial-gradient(circle at center, hsl(var(--gold)/0.12) 0%, transparent 70%)" }} />
+                      </>
+                    )}
+                    <TeamLogo teamName={team.name} size={isChamp ? 56 : 44} rounded="md" />
+                    <div className={cn("absolute bottom-0 w-full", isChamp ? "h-1.5" : "h-1", barColor)} />
                   </div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <TeamLogo teamName={team.name} size={rank === 1 ? 56 : 48} />
-                    <div className="min-w-0">
-                      <div className="font-heading font-black text-foreground truncate group-hover:text-primary transition-colors">
-                        {team.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono flex items-center gap-1">
-                        <span>{countryFlag(team.country)}</span>
-                        <span>{team.country}</span>
-                        <span className="text-border">•</span>
-                        <span>{team.region}</span>
-                      </div>
+                  <div className="text-center min-w-0 w-full">
+                    <p className={cn(
+                      "text-xs font-mono uppercase tracking-widest",
+                      isChamp ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground",
+                    )}>{label}</p>
+                    <p className="text-xs md:text-sm font-heading font-black uppercase truncate group-hover:text-primary transition-colors">{team.name}</p>
+                    <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                      <Sparkline team={team.name} width={isChamp ? 30 : 24} height={10} />
+                      <span className="text-xs font-mono text-primary tabular-nums">{team.points.toLocaleString()}</span>
                     </div>
-                  </div>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className={cn("text-2xl font-mono font-black tracking-tight", meta.color)}>
-                        {team.points.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono uppercase tracking-wider">punktów rankingowych</div>
-                    </div>
-                    <div className="text-right text-xs font-mono text-muted-foreground">
-                      <div>{team.roster.length} graczy</div>
+                    <div className="text-xs font-mono text-muted-foreground mt-0.5">
+                      {countryFlag(team.country)} {team.country}
                     </div>
                   </div>
                 </motion.button>
@@ -336,6 +359,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
             })}
           </div>
         )}
+
 
         {/* === FILTERS === */}
         <div className="bg-card/60 border border-border rounded-xl p-3 mb-4 space-y-3">
@@ -427,18 +451,20 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
         </div>
 
         {/* === MAIN TABLE === */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-card/80 border border-border rounded-xl overflow-hidden backdrop-blur-sm">
           {/* Header — desktop only */}
-          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/30 border-b border-border text-xs font-mono text-muted-foreground uppercase tracking-widest">
+          <div className="hidden md:grid grid-cols-[50px_50px_1fr_70px_80px_70px_130px_60px_50px] gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary/60 to-secondary/20 border-b border-primary/20 text-xs font-mono text-primary/60 uppercase tracking-[0.2em]">
             <div className="text-center">#</div>
             <div className="text-center">Trend</div>
-            <div>Drużyna</div>
-            <div className="text-center">Tier</div>
+            <div>Team_ID</div>
+            <div className="text-center">Class</div>
             <div className="text-center">Region</div>
+            <div className="text-center">Forma</div>
             <div className="text-right">Punkty</div>
             <div className="text-right">Skład</div>
             <div className="text-right">Akcje</div>
           </div>
+
 
           {filtered.length === 0 && (
             <div className="px-4 py-12 text-center text-sm text-muted-foreground font-mono">
@@ -479,18 +505,22 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
               </span>
             );
 
+            const isOpen = expandedTeam === team.name;
+
             return (
+              <div key={team.name} className={cn("border-t border-border/40", isOpen && "bg-secondary/20")}>
               <motion.div
-                key={team.name}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: Math.min(i * 0.008, 0.4) }}
+                onClick={() => setExpandedTeam(isOpen ? null : team.name)}
                 className={cn(
-                  "border-t border-border/40 items-center hover:bg-secondary/30 transition-colors group",
+                  "items-center hover:bg-secondary/30 transition-colors group cursor-pointer border-l-2",
+                  globalRank === 1 ? "border-l-[hsl(var(--gold))]" : globalRank === 2 ? "border-l-[hsl(var(--silver))]" : globalRank === 3 ? "border-l-[hsl(var(--bronze))]" : isOpen ? "border-l-primary" : "border-l-transparent",
                   // Mobile: compact 3-column row
                   "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
                   // Desktop: full table
-                  "md:grid-cols-[50px_50px_1fr_70px_80px_130px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
+                  "md:grid-cols-[50px_50px_1fr_70px_80px_70px_130px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
@@ -505,14 +535,14 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 </div>
 
                 {/* Team */}
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-center gap-1.5">
                   <button
-                    onClick={() => onSelectTeam?.(team.name)}
-                    className="flex items-center gap-2 md:gap-2.5 group/team text-left min-w-0 w-full"
+                    onClick={(e) => { e.stopPropagation(); onSelectTeam?.(team.name); }}
+                    className="flex items-center gap-2 md:gap-2.5 group/team text-left min-w-0 flex-1"
                   >
                     <TeamLogo teamName={team.name} size={28} rounded="md" />
                     <div className="min-w-0">
-                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base">
+                      <div className="font-heading font-bold text-foreground group-hover/team:text-primary transition-colors truncate text-sm md:text-base uppercase tracking-tight">
                         {team.name}
                       </div>
                       <div className="text-xs font-mono text-muted-foreground flex items-center gap-1">
@@ -525,6 +555,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                       </div>
                     </div>
                   </button>
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform", isOpen && "rotate-180 text-primary")} />
                 </div>
 
                 {/* Tier — desktop */}
@@ -537,8 +568,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 {/* Region — desktop */}
                 <div className="hidden md:block text-center text-xs text-muted-foreground font-mono">{team.region}</div>
 
+                {/* Forma (sparkline) — desktop */}
+                <div className="hidden md:flex justify-center items-center">
+                  <Sparkline team={team.name} />
+                </div>
+
                 {/* Points — desktop */}
-                <div className="hidden md:block text-right">
+                <div className="hidden md:block text-right" onClick={e => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -562,7 +598,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 </div>
 
                 {/* Actions — desktop */}
-                <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                   {isEditing ? (
                     <>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleInlineEdit(team.name)}>
@@ -590,8 +626,56 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <TrendBadge trend={trend} compact />
                 </div>
               </motion.div>
+
+              {/* Rozwijane szczegóły */}
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  className="overflow-hidden border-l-2 border-l-primary bg-background/40"
+                >
+                  <div className="px-4 py-3 grid gap-3 md:grid-cols-[1fr_260px]">
+                    <div>
+                      <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary/60 mb-2">Skład</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {team.roster.length === 0 && <span className="text-xs font-mono text-muted-foreground">Brak zawodników</span>}
+                        {team.roster.map(p => (
+                          <button
+                            key={p}
+                            onClick={() => onSelectPlayer?.(p)}
+                            className="px-2 py-1 rounded-md border border-border bg-card text-xs font-heading font-bold hover:border-primary/50 hover:text-primary transition-colors"
+                          >
+                            {countryFlag(playerNationalities[p] || team.country)} {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 content-start">
+                      {[
+                        { k: "Pozycja", v: `#${globalRank}` },
+                        { k: "Punkty", v: team.points.toLocaleString() },
+                        { k: "Tier", v: tier.label },
+                        { k: "Region", v: team.region },
+                      ].map(s => (
+                        <div key={s.k} className="rounded-md border border-border bg-card/70 px-2.5 py-1.5">
+                          <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{s.k}</div>
+                          <div className="font-heading font-black text-sm text-foreground">{s.v}</div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => onSelectTeam?.(team.name)}
+                        className="col-span-2 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary text-xs font-mono uppercase tracking-[0.2em] hover:bg-primary/20 transition-colors"
+                      >
+                        Profil drużyny
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              </div>
             );
           })}
+
         </div>
 
         {/* === REGION DISTRIBUTION === */}
