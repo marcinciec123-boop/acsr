@@ -21,6 +21,13 @@ import TeamLogo from "@/components/TeamLogo";
 import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForPlayer } from "@/lib/majors";
 import { TournamentLink } from "@/lib/profileNav";
+import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
+
+const fmtDate = (iso: string | null): string =>
+  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" }) : "?";
+
+const fmtRange = (from: string | null, to: string | null): string =>
+  `${fmtDate(from)} — ${to ? fmtDate(to) : "obecnie"}`;
 
 const ROLE_OPTIONS: PlayerRole[] = ["Entry", "Lurker", "AWPer", "Anchor", "IGL"];
 
@@ -74,6 +81,11 @@ const PlayerProfile = ({
   const playerTransfers = useMemo(
     () => getAllTransfers().filter(t => t.player === playerName),
     [playerName],
+  );
+
+  const teamHistory = useMemo(
+    () => buildPlayerTeamHistory(playerName, rankingSource),
+    [playerName, rankingSource],
   );
 
   const teamStanding = currentTeam
@@ -654,7 +666,55 @@ const PlayerProfile = ({
           </motion.div>
         )}
 
+        {/* === Team history (stints + bench periods) === */}
+        {teamHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+            className="bg-card border border-border rounded-lg p-4 mb-6"
+          >
+            <h2 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2">
+              <UsersIcon className="w-4 h-4 text-primary" /> Historia drużyn
+            </h2>
+            <div className="space-y-2">
+              {teamHistory.map((s, i) => (
+                <div key={`${s.team}-${i}`} className="p-2.5 bg-secondary/20 rounded border border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <TeamLogo teamName={s.team} size={24} rounded="md" />
+                    <button
+                      onClick={() => onSelectTeam(s.team)}
+                      className="font-heading font-bold text-foreground text-sm hover:underline hover:text-primary"
+                    >
+                      {s.team}
+                    </button>
+                    <span className="ml-auto text-xs font-mono text-muted-foreground">
+                      {fmtRange(s.from, s.to)}
+                    </span>
+                    {s.current && (
+                      <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                        Obecnie
+                      </span>
+                    )}
+                  </div>
+                  {s.segments.some(seg => seg.inactive) && (
+                    <div className="mt-1.5 pl-8 space-y-1">
+                      {s.segments.filter(seg => seg.inactive).map((seg, j) => (
+                        <div key={j} className="flex items-center gap-2 text-xs font-mono">
+                          <span className="px-1.5 py-0.5 rounded bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))] uppercase">
+                            Inactive
+                          </span>
+                          <span className="text-muted-foreground">{fmtRange(seg.from, seg.to)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* === Transfer history === */}
+
         {playerTransfers.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}

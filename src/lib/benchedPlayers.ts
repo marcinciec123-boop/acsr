@@ -10,6 +10,7 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import type { TeamData } from "./types";
+import { getWorldNowIso } from "./worldClock";
 
 const BENCH_KEY = "benched_players";
 
@@ -43,6 +44,7 @@ export function benchPlayer(team: string, player: string): void {
   cur.add(player);
   map[team] = [...cur];
   saveBenched(map);
+  recordBenchEvent(team, player, "bench");
 }
 
 export function activatePlayer(team: string, player: string): void {
@@ -50,6 +52,7 @@ export function activatePlayer(team: string, player: string): void {
   const cur = (map[team] || []).filter(p => p !== player);
   map[team] = cur;
   saveBenched(map);
+  recordBenchEvent(team, player, "activate");
 }
 
 export function clearBenchFor(team: string): void {
@@ -83,4 +86,27 @@ export function splitRoster(team: TeamData): { active: string[]; bench: string[]
 /** Active roster used by the match simulator (max 5, benched excluded). */
 export function getActiveRoster(team: TeamData): string[] {
   return splitRoster(team).active;
+}
+
+// ===== Bench history log =====
+// Every bench/activate action is timestamped with the fictional world date
+// so player profiles can render "Inactive" periods inside a team stint.
+
+export interface BenchLogEntry {
+  team: string;
+  player: string;
+  action: "bench" | "activate";
+  date: string; // ISO
+}
+
+const BENCH_LOG_KEY = "bench_log";
+
+export function loadBenchLog(): BenchLogEntry[] {
+  return loadFromStorage<BenchLogEntry[]>(BENCH_LOG_KEY, []);
+}
+
+export function recordBenchEvent(team: string, player: string, action: "bench" | "activate", date?: string): void {
+  const log = loadBenchLog();
+  log.push({ team, player, action, date: date || getWorldNowIso() });
+  saveToStorage(BENCH_LOG_KEY, log);
 }
