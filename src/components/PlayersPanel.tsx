@@ -1,3 +1,4 @@
+import PlayerAvatar from "@/components/PlayerAvatar";
 import { useState, useMemo, useEffect } from "react";
 import { User, Search, Flame, ChevronDown, UserMinus, X as XIcon, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -601,7 +602,8 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   )}
                 >
                   <div className="flex items-start justify-between mb-2 gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <PlayerAvatar playerName={p.name} teamName={p.team?.name} size={34} rounded="lg" />
                       {p.country
                         ? <span className="text-base shrink-0">{countryFlag(p.country)}</span>
                         : <span className="text-base shrink-0 text-muted-foreground/40">🏳️</span>}
