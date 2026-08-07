@@ -249,7 +249,7 @@ export function computeSwissStage(
  */
 export interface NextRoundPlan {
   round: number;
-  pairings: { team1: string; team2: string; bo: 1 | 3 | 5; group: string; decisive: boolean }[];
+  pairings: { team1: string; team2: string; bo: 1 | 3 | 5; group: string; decisive: boolean; record: string }[];
   /** Teams that have no opponent (odd participants count). */
   byes: string[];
   /** Reason if generation isn't possible. */
@@ -316,7 +316,7 @@ export function planNextSwissRound(
     const bo = decisive ? decisiveBo : defaultBo;
     const groupLabel = bucketLabel(key, stage.winCap);
     localPairs.forEach(([t1, t2]) => {
-      pairings.push({ team1: t1.team, team2: t2.team, bo, group: groupLabel, decisive });
+      pairings.push({ team1: t1.team, team2: t2.team, bo, group: groupLabel, decisive, record: key });
     });
   }
 
@@ -384,9 +384,19 @@ function bucketLabel(key: string, winCap: number): string {
   return "Mid";
 }
 
+/** Etykieta kubełka rekordów, np. "2-0". */
+export const swissRecordLabel = (record: string) => record;
+
+export interface ProjectedRound {
+  round: number;
+  matches: number;
+  /** Rozbicie na kubełki rekordów (np. 2-0, 1-1, 0-2), od najlepszego do najgorszego. */
+  buckets: { record: string; label: string; matches: number }[];
+}
+
 /** Projekcja liczby meczów w kolejnych (jeszcze nierozegranych) rundach Swiss.
  *  Używane do wygenerowania szkieletu TBD pod planowanie terminów. */
-export function projectFutureRounds(stage: SwissStageData): { round: number; matches: number }[] {
+export function projectFutureRounds(stage: SwissStageData): ProjectedRound[] {
   const cap = stage.winCap;
   // Aktualne "kubełki" rekordów drużyn wciąż w grze.
   const buckets = new Map<string, number>();
@@ -417,41 +427,54 @@ export function projectFutureRounds(stage: SwissStageData): { round: number; mat
     .forEach(s => bump(`${s.wins}-${s.losses}`));
 
 
-  const out: { round: number; matches: number }[] = [];
+  const out: ProjectedRound[] = [];
   let round = stage.currentRound + 1;
   let guard = 0;
+  const orderRecords = (a: string, b: string) => {
+    const [aw, al] = a.split("-").map(Number);
+    const [bw, bl] = b.split("-").map(Number);
+    if (bw !== aw) return bw - aw;
+    return al - bl;
+  };
   while (guard++ < 20) {
-    const active = Array.from(buckets.entries()).filter(([k]) => {
-      const [w, l] = k.split("-").map(Number);
-      return w < cap && l < cap;
-    });
+    const active = Array.from(buckets.entries())
+      .filter(([k]) => {
+        const [w, l] = k.split("-").map(Number);
+        return w < cap && l < cap;
+      })
+      .sort((a, b) => orderRecords(a[0], b[0]));
     const total = active.reduce((a, [, c]) => a + c, 0);
     const matches = Math.floor(total / 2);
     if (matches < 1) break;
-    out.push({ round, matches });
 
     const next = new Map<string, number>();
+    const bucketRows: ProjectedRound["buckets"] = [];
     let carry = 0;
     active.forEach(([k, c]) => {
       const [w, l] = k.split("-").map(Number);
       const pairs = Math.floor((c + carry) / 2);
       carry = (c + carry) % 2;
+      if (pairs > 0) bucketRows.push({ record: k, label: bucketLabel(k, cap), matches: pairs });
       const add = (key: string, n: number) => { if (n > 0) next.set(key, (next.get(key) || 0) + n); };
       add(`${w + 1}-${l}`, pairs);
       add(`${w}-${l + 1}`, pairs);
     });
     if (carry > 0) {
       // Nieparzysta drużyna zostaje z niezmienionym rekordem (bye/float).
-      const last = active[active.length - 1];
-      if (last) {
-        const [w, l] = last[0].split("-").map(Number);
+      const lastActive = active[active.length - 1];
+      if (lastActive) {
+        const [w, l] = lastActive[0].split("-").map(Number);
         next.set(`${w}-${l}`, (next.get(`${w}-${l}`) || 0) + carry);
       }
     }
+
+    out.push({ round, matches, buckets: bucketRows });
+
     buckets.clear();
     next.forEach((v, k) => buckets.set(k, v));
     round += 1;
   }
   return out;
 }
+
 

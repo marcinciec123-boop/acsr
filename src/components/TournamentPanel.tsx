@@ -711,7 +711,7 @@ const TournamentPanel = () => {
   const addBracketMatches = (
     tournamentId: string,
     phaseId: string,
-    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string }[],
+    matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string; bracketSlot?: string }[],
   ) => {
     setTournaments(prev => prev.map(t => {
       if (t.id !== tournamentId) return t;
@@ -727,6 +727,7 @@ const TournamentPanel = () => {
             score2: 0,
             round: m.round,
             bo: m.bo,
+            ...(m.bracketSlot ? { bracketSlot: m.bracketSlot } : {}),
           }));
           return { ...p, bracket: [...(p.bracket || []), ...created] };
         }),

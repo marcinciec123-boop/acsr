@@ -38,6 +38,12 @@ const addMinutes = (iso: string, minutes: number) => {
 
 const label = (name?: string) => (!name || name === "TBD" ? "TBD" : name);
 
+/** Bilans slotu Swiss (np. "2-0") zapisany w bracketSlot. */
+const swissRecord = (slot?: string) => {
+  const hit = /SW-R\d+-(\d+-\d+)/.exec(slot || "");
+  return hit ? hit[1] : undefined;
+};
+
 export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -168,7 +174,11 @@ export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
                       ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
                       : "termin —"}
                   </span>
-                  <span className="text-xs font-medium truncate flex-1 text-right">{label(m.team1)}</span>
+                  <span className="text-xs font-medium truncate flex-1 text-right">
+                    {swissRecord(m.bracketSlot) && label(m.team1) === "TBD"
+                      ? `TBD (${swissRecord(m.bracketSlot)})`
+                      : label(m.team1)}
+                  </span>
                   <span className="text-xs font-mono text-muted-foreground shrink-0">vs</span>
                   <span className="text-xs font-medium truncate flex-1">{label(m.team2)}</span>
                   <span className="text-xs font-mono text-muted-foreground shrink-0 hidden sm:inline truncate max-w-[190px]">
