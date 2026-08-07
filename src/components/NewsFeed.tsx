@@ -239,62 +239,53 @@ const NewsFeed = () => {
     loadImages();
   }, [posts]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert("Maksymalny rozmiar: 5MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => setNewImage(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const resetForm = () => {
-    setNewContent(""); setNewTitle(""); setNewAuthor(""); setNewCategory("");
-    setNewTags(""); setNewSource(""); setNewPinned(false); setNewImage(null);
-    setNewDate(getWorldNowIso().slice(0, 10));
-    const now = new Date();
-    setNewTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+  const resetForm = useCallback(() => {
+    setDraft(emptyDraft());
     setEditingId(null);
-  };
+    setComposerKey(k => k + 1);
+  }, []);
 
   const startEdit = (post: NewsPost) => {
-    setEditingId(post.id);
-    setNewContent(post.content || "");
-    setNewTitle(post.title || "");
-    setNewAuthor(post.author || "");
-    setNewCategory(post.category || "");
-    setNewTags((post.tags || []).join(", "));
-    setNewSource(post.source || "");
-    setNewPinned(!!post.pinned);
-    setNewDate((post.date || getWorldNowIso()).slice(0, 10));
     const pd = new Date(post.date || getWorldNowIso());
-    setNewTime(Number.isNaN(pd.getTime()) ? "12:00" : `${String(pd.getHours()).padStart(2, "0")}:${String(pd.getMinutes()).padStart(2, "0")}`);
-    setNewImage(post.imageId ? imageCache[post.imageId] || null : null);
+    setEditingId(post.id);
+    setDraft({
+      title: post.title || "",
+      content: post.content || "",
+      category: post.category || "",
+      date: (post.date || getWorldNowIso()).slice(0, 10),
+      time: Number.isNaN(pd.getTime()) ? "12:00" : `${String(pd.getHours()).padStart(2, "0")}:${String(pd.getMinutes()).padStart(2, "0")}`,
+      author: post.author || "",
+      source: post.source || "",
+      tags: (post.tags || []).join(", "),
+      pinned: !!post.pinned,
+      image: post.imageId ? imageCache[post.imageId] || null : null,
+    });
+    setComposerKey(k => k + 1);
     setShowNew(true);
   };
 
-  const handlePost = async () => {
-    if (!newContent.trim() && !newTitle.trim() && !newImage) return;
+  const handlePost = useCallback(async (d: ComposerDraft) => {
+    if (!d.content.trim() && !d.title.trim() && !d.image) return;
     const id = editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     let imageId: string | undefined = editingId ? posts.find(p => p.id === editingId)?.imageId : undefined;
-    if (newImage && !(imageId && imageCache[imageId] === newImage)) {
+    if (d.image && !(imageId && imageCache[imageId] === d.image)) {
       imageId = "img_" + id + "_" + Math.random().toString(36).slice(2, 5);
-      await saveImage(imageId, newImage);
-      setImageCache(prev => ({ ...prev, [imageId!]: newImage! }));
+      await saveImage(imageId, d.image);
+      setImageCache(prev => ({ ...prev, [imageId!]: d.image! }));
     }
-    if (!newImage) imageId = undefined;
-    const tags = newTags.split(",").map(t => t.trim()).filter(Boolean);
-    const localDt = new Date(`${newDate}T${newTime || "12:00"}:00`);
+    if (!d.image) imageId = undefined;
+    const tags = d.tags.split(",").map(t => t.trim()).filter(Boolean);
+    const localDt = new Date(`${d.date}T${d.time || "12:00"}:00`);
     const isoDate = Number.isNaN(localDt.getTime()) ? getWorldNowIso() : localDt.toISOString();
     const post: NewsPost = {
       id,
-      content: newContent.trim(),
-      title: newTitle.trim() || undefined,
-      author: newAuthor.trim() || undefined,
-      category: newCategory || undefined,
+      content: d.content.trim(),
+      title: d.title.trim() || undefined,
+      author: d.author.trim() || undefined,
+      category: d.category || undefined,
       tags: tags.length ? tags : undefined,
-      source: newSource.trim() || undefined,
-      pinned: newPinned || undefined,
+      source: d.source.trim() || undefined,
+      pinned: d.pinned || undefined,
       imageId,
       date: isoDate,
     };
@@ -312,7 +303,8 @@ const NewsFeed = () => {
         })
         .finally(() => setCommentPending(null));
     }
-  };
+  }, [editingId, posts, imageCache, resetForm]);
+
 
   const handleDelete = async (post: NewsPost) => {
     if (post.imageId) await deleteImage(post.imageId);
