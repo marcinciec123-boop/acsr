@@ -10,6 +10,7 @@ import type { MatchResult, TournamentData } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { TeamLink } from "@/lib/profileNav";
+import { buildMatchNumbers } from "@/lib/matchNumbers";
 import { usePersistedState } from "@/lib/uiPrefs";
 
 interface Row {

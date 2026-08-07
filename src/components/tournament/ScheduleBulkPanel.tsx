@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MatchResult, TournamentData } from "@/lib/types";
 import { getWorldDate } from "@/lib/worldClock";
+import { buildMatchNumbers } from "@/lib/matchNumbers";
 import { usePersistedState } from "@/lib/uiPrefs";
 
 interface Row {
@@ -56,6 +57,8 @@ export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
     });
     return out;
   }, [t]);
+
+  const nums = useMemo(() => buildMatchNumbers(t), [t]);
 
   const [open, setOpen] = usePersistedState<boolean>(`tour_schedule_bulk_open_${t.id}`, false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -157,6 +160,9 @@ export const ScheduleBulkPanel = ({ tournament: t, onUpdateMatch }: Props) => {
                     onChange={() => toggle(k)}
                     className="accent-primary w-3.5 h-3.5 shrink-0"
                   />
+                  <span className="text-xs font-mono text-muted-foreground/60 w-[34px] shrink-0 tabular-nums">
+                    {nums[m.id] ? `#${nums[m.id]}` : ""}
+                  </span>
                   <span className="text-xs font-mono text-muted-foreground w-[124px] shrink-0 truncate">
                     {m.scheduledAt
                       ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
