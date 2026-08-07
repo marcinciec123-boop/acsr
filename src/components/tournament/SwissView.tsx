@@ -267,12 +267,9 @@ export const SwissView = ({
           toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label, bracketSlot: `SW-R${r.round}-${b.record}` });
         }
       });
-      // Sloty bez przypisanego rekordu (stare dane) — dopełnij do sumy.
-      const legacy = existing.filter(m => !slotRecord(m)).length;
-      const planned = r.buckets.reduce((a, b) => a + b.matches, 0);
-      const already = existing.length - legacy;
-      const deficit = r.matches - planned - Math.max(0, already - planned);
-      for (let i = legacy; i < Math.max(0, deficit); i++) {
+      // Dopełnienie (stare dane bez rekordu / reszty) do łącznej liczby meczów.
+      const totalAfter = existing.length + toCreate.filter(c => c.round === label).length;
+      for (let i = totalAfter; i < r.matches; i++) {
         toCreate.push({ team1: "TBD", team2: "TBD", bo, round: label });
       }
     });
