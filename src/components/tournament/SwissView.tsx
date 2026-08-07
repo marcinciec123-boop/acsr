@@ -579,7 +579,9 @@ export const SwissView = ({
                       )}
                       title="Otwórz mecz, aby ustawić termin"
                     >
-                      <span className="italic text-muted-foreground">TBD vs TBD</span>
+                      <span className="italic text-muted-foreground">
+                        {slotRecord(m) ? `TBD (${slotRecord(m)})` : "TBD vs TBD"}
+                      </span>
                       <span className="font-mono text-muted-foreground">
                         {m.scheduledAt
                           ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
