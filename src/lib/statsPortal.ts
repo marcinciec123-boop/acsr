@@ -1,0 +1,158 @@
+// ===== Statistics Portal =====
+// Liquipedia-style aggregate statistics computed from the local tournament
+// database: prize money totals, earnings per organization/player, medal
+// counts and the largest prize pools — filterable per year.
+
+import { loadFromStorage } from "@/lib/storage";
+import type { TournamentData } from "@/lib/types";
+import { distributePrizePool, parsePrizePool } from "@/lib/prizeDistribution";
+import { resolveLineup } from "@/lib/tournamentLineups";
+import { isMajorName } from "@/lib/majors";
+
+export type Tier = "S" | "A" | "B" | "C";
+
+export interface OrgStat {
+  team: string;
+  earnings: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+  events: number;
+  titles: { id: string; name: string; tier: Tier; major: boolean }[];
+}
+
+export interface PlayerStat {
+  player: string;
+  earnings: number;
+  gold: number;
+  events: number;
+  teams: string[];
+}
+
+export interface BigPool {
+  id: string;
+  name: string;
+  pool: number;
+  tier: Tier;
+  major: boolean;
+  startDate: string;
+  location: string;
+  winner?: string;
+}
+
+export interface PortalStats {
+  years: string[];
+  tournamentCount: number;
+  tierCounts: Record<Tier, number>;
+  totalPrize: number;
+  lanPrize: number;
+  onlinePrize: number;
+  matchCount: number;
+  mapCount: number;
+  orgs: OrgStat[];
+  players: PlayerStat[];
+  biggestPools: BigPool[];
+  majorCount: number;
+}
+
+const yearOf = (t: TournamentData): string => (t.startDate || "").slice(0, 4);
+
+const isOnline = (t: TournamentData): boolean =>
+  /online|zdalnie/i.test(t.location || "");
+
+export function loadStatsTournaments(): TournamentData[] {
+  return loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
+}
+
+export function computePortalStats(year: string | "total"): PortalStats {
+  const all = loadStatsTournaments();
+  const years = Array.from(new Set(all.map(yearOf).filter(Boolean))).sort().reverse();
+  const list = year === "total" ? all : all.filter(t => yearOf(t) === year);
+
+  const tierCounts: Record<Tier, number> = { S: 0, A: 0, B: 0, C: 0 };
+  let totalPrize = 0;
+  let lanPrize = 0;
+  let onlinePrize = 0;
+  let matchCount = 0;
+  let mapCount = 0;
+  let majorCount = 0;
+
+  const orgMap = new Map<string, OrgStat>();
+  const playerMap = new Map<string, PlayerStat>();
+  const biggestPools: BigPool[] = [];
+
+  for (const t of list) {
+    const tier = (t.tier || "C") as Tier;
+    tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+    const major = isMajorName(t.name);
+    if (major) majorCount++;
+
+    const pool = parsePrizePool(t.prizePool);
+    const distributed = distributePrizePool(pool, t.participants?.length || t.teams || 8);
+    const awarded = Object.values(distributed).reduce((a, b) => a + b, 0);
+    totalPrize += awarded;
+    if (isOnline(t)) onlinePrize += awarded; else lanPrize += awarded;
+
+    // matches / maps
+    const collect = (t.phases || []).flatMap(p => [
+      ...(p.bracket || []),
+      ...((p.groups || []).flatMap(g => g.matches || [])),
+    ]).concat(t.matches || []);
+    for (const m of collect) {
+      if ((m.score1 || 0) + (m.score2 || 0) > 0) {
+        matchCount++;
+        mapCount += (m.maps || []).filter(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0).length || 1;
+      }
+    }
+
+    const winner = (t.placements || []).find(p => p.placement === 1)?.team;
+    if (pool > 0) {
+      biggestPools.push({
+        id: t.id, name: t.name, pool, tier, major,
+        startDate: t.startDate, location: t.location, winner,
+      });
+    }
+
+    for (const pl of t.placements || []) {
+      if (!pl.team) continue;
+      const prize = distributed[pl.placement] || 0;
+      const org = orgMap.get(pl.team) || {
+        team: pl.team, earnings: 0, gold: 0, silver: 0, bronze: 0, events: 0, titles: [],
+      };
+      org.earnings += prize;
+      org.events += 1;
+      if (pl.placement === 1) { org.gold++; org.titles.push({ id: t.id, name: t.name, tier, major }); }
+      else if (pl.placement === 2) org.silver++;
+      else if (pl.placement === 3 || pl.placement === 4) org.bronze++;
+      orgMap.set(pl.team, org);
+
+      const roster = resolveLineup(t.id, pl.team).filter(Boolean).slice(0, 5);
+      if (roster.length) {
+        const share = Math.round(prize / roster.length);
+        for (const p of roster) {
+          const ps = playerMap.get(p) || { player: p, earnings: 0, gold: 0, events: 0, teams: [] };
+          ps.earnings += share;
+          ps.events += 1;
+          if (pl.placement === 1) ps.gold++;
+          if (!ps.teams.includes(pl.team)) ps.teams.push(pl.team);
+          playerMap.set(p, ps);
+        }
+      }
+    }
+  }
+
+  return {
+    years,
+    tournamentCount: list.length,
+    tierCounts,
+    totalPrize,
+    lanPrize,
+    onlinePrize,
+    matchCount,
+    mapCount,
+    majorCount,
+    orgs: [...orgMap.values()].sort((a, b) => b.earnings - a.earnings || b.gold - a.gold),
+    players: [...playerMap.values()].sort((a, b) => b.earnings - a.earnings || b.gold - a.gold),
+    biggestPools: biggestPools.sort((a, b) => b.pool - a.pool).slice(0, 25),
+  };
+}

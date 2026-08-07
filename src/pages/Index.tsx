@@ -14,6 +14,7 @@ import CommandPalette from "@/components/CommandPalette";
 import WorldClockWidget from "@/components/WorldClockWidget";
 import YearAwardsCeremony from "@/components/YearAwardsCeremony";
 import AwardsHistoryPanel from "@/components/AwardsHistoryPanel";
+import StatisticsPanel from "@/components/StatisticsPanel";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -145,6 +146,7 @@ const Index = () => {
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
           {activeTab === "awards" && <AwardsHistoryPanel />}
+          {activeTab === "stats" && <StatisticsPanel />}
           {activeTab === "backup" && <DeviceBackupPanel />}
           {activeTab === "settings" && <SettingsTab />}
         </div>
