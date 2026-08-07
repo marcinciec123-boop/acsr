@@ -522,13 +522,18 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   // Mobile: compact 3-column row
                   "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
                   // Desktop: full table
-                  "md:grid-cols-[50px_110px_1fr_70px_80px_70px_70px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
+                  "md:grid-cols-[50px_60px_110px_1fr_70px_80px_70px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
                 {/* Rank */}
                 <div className="text-center font-mono flex md:block justify-center">
                   {RankBadge}
+                </div>
+
+                {/* Trend — desktop */}
+                <div className="hidden md:flex justify-center">
+                  <TrendBadge trend={trend} compact />
                 </div>
 
                 {/* Points — desktop */}
@@ -547,6 +552,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                     />
                   ) : PointsPill}
                 </div>
+
 
 
                 {/* Team */}
