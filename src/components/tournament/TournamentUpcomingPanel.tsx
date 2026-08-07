@@ -10,6 +10,7 @@ import type { MatchResult, TournamentData } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { TeamLink } from "@/lib/profileNav";
+import { buildMatchNumbers } from "@/lib/matchNumbers";
 import { usePersistedState } from "@/lib/uiPrefs";
 
 interface Row {
@@ -55,6 +56,7 @@ export const TournamentUpcomingPanel = ({ tournament: t, onOpenMatch }: Props) =
   }, [t]);
 
   const [collapsed, setCollapsed] = usePersistedState<boolean>(`tour_upcoming_collapsed_${t.id}`, false);
+  const nums = useMemo(() => buildMatchNumbers(t), [t]);
 
   if (rows.length === 0) return null;
 
@@ -84,6 +86,9 @@ export const TournamentUpcomingPanel = ({ tournament: t, onOpenMatch }: Props) =
                 key={k}
                 className="flex items-center gap-2 rounded border border-border/40 bg-secondary/20 px-2 py-1.5 transition-colors hover:border-primary/50"
               >
+                <span className="text-xs font-mono text-muted-foreground/60 w-[34px] shrink-0 tabular-nums">
+                  {nums[m.id] ? `#${nums[m.id]}` : ""}
+                </span>
                 <span className="text-xs font-mono text-muted-foreground w-[124px] shrink-0 truncate">
                   {m.scheduledAt
                     ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
