@@ -180,6 +180,8 @@ const NewsFeed = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<string | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
   const [cats, setCats] = useState<string[]>([]);
@@ -873,9 +875,11 @@ const NewsFeed = () => {
                   <img
                     src={imageCache[post.imageId]}
                     alt="Post"
-                    className="rounded-md max-w-full mb-3"
+                    className="rounded-md max-w-full mb-3 cursor-zoom-in hover:opacity-90 transition-opacity"
+                    onClick={() => setLightbox(imageCache[post.imageId!])}
                   />
                 )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono flex-wrap">
                     <Clock className="w-3 h-3" />
@@ -947,7 +951,37 @@ const NewsFeed = () => {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {lightbox && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={() => setLightbox(null)}
+          >
+            <button
+              className="absolute top-4 right-4 p-2 rounded-md border border-border bg-secondary/60 text-foreground hover:text-primary"
+              onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+              title="Zamknij"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.94 }}
+              src={lightbox}
+              alt="Podgląd"
+              className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
+
   );
 };
 
