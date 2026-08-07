@@ -86,6 +86,9 @@ export const TournamentUpcomingPanel = ({ tournament: t, onOpenMatch }: Props) =
                 key={k}
                 className="flex items-center gap-2 rounded border border-border/40 bg-secondary/20 px-2 py-1.5 transition-colors hover:border-primary/50"
               >
+                <span className="text-xs font-mono text-muted-foreground/60 w-[34px] shrink-0 tabular-nums">
+                  {nums[m.id] ? `#${nums[m.id]}` : ""}
+                </span>
                 <span className="text-xs font-mono text-muted-foreground w-[124px] shrink-0 truncate">
                   {m.scheduledAt
                     ? `${m.scheduledAt.slice(0, 10)} ${m.scheduledAt.slice(11, 16)}`
