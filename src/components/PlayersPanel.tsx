@@ -643,7 +643,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       {p.previousTeam && p.previousTeam !== "-" && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onSelectTeam?.(p.previousTeam!); }}
-                          className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate block w-full text-left"
+                          className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors truncate inline-block max-w-full text-left"
                           title={`Poprzednio: ${p.previousTeam}`}
                         >
                           ex-{p.previousTeam}
