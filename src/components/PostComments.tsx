@@ -221,6 +221,16 @@ const PostComments = ({ post, pending }: Props) => {
                             </span>
                           )}
                           <span className="text-xs font-mono text-muted-foreground opacity-70">{fmt(c.date)}</span>
+                          {isCollapsed && hidden > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleCollapse(c.id)}
+                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-secondary/60 text-muted-foreground hover:text-primary"
+                            >
+                              +{hidden} {hidden === 1 ? "odpowiedź" : "odpowiedzi"}
+                            </button>
+                          )}
+
                         </div>
                         <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap leading-relaxed">{c.content}</p>
                         <div className="mt-1 flex items-center gap-3">
