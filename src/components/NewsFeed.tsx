@@ -182,8 +182,18 @@ const NewsFeed = () => {
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState<AIPostMode | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [cats, setCats] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [yearFilter, setYearFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [authorFilter, setAuthorFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [imageOnly, setImageOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -218,6 +228,8 @@ const NewsFeed = () => {
   };
 
   useEffect(() => { saveToStorage(STORAGE_KEY, posts); }, [posts]);
+
+  useEffect(() => { setPage(1); }, [search, cats, yearFilter, monthFilter, authorFilter, tagFilter, dateFrom, dateTo, imageOnly, pinnedOnly, sortDir, pageSize]);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -344,10 +356,21 @@ const NewsFeed = () => {
   const usedCategories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
   const years = Array.from(new Set(posts.map(p => (p.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
 
+  const authors = Array.from(new Set(posts.map(p => p.author).filter(Boolean))).sort() as string[];
+  const allTags = Array.from(new Set(posts.flatMap(p => p.tags || []))).sort();
+  const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
+  const MONTH_LABELS = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+
   const q = search.trim().toLowerCase();
   const sorted = [...posts]
-    .filter(p => !filter || p.category === filter)
+    .filter(p => cats.length === 0 || (p.category && cats.includes(p.category)))
     .filter(p => yearFilter === "all" || (p.date || "").slice(0, 4) === yearFilter)
+    .filter(p => monthFilter === "all" || (p.date || "").slice(5, 7) === monthFilter)
+    .filter(p => authorFilter === "all" || p.author === authorFilter)
+    .filter(p => tagFilter === "all" || (p.tags || []).includes(tagFilter))
+    .filter(p => !dateFrom || (p.date || "").slice(0, 10) >= dateFrom)
+    .filter(p => !dateTo || (p.date || "").slice(0, 10) <= dateTo)
+    .filter(p => !imageOnly || !!p.imageId)
     .filter(p => !pinnedOnly || p.pinned)
     .filter(p => !q || [p.title, p.content, p.author, p.category, ...(p.tags || [])]
       .filter(Boolean).join(" ").toLowerCase().includes(q))
@@ -357,6 +380,32 @@ const NewsFeed = () => {
       const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
       return sortDir === "desc" ? diff : -diff;
     });
+
+  const activeFilters: { key: string; label: string; clear: () => void }[] = [
+    ...cats.map(c => ({ key: `cat-${c}`, label: CATEGORY_BADGES[c]?.label || c, clear: () => setCats(prev => prev.filter(x => x !== c)) })),
+    ...(yearFilter !== "all" ? [{ key: "year", label: `Rok ${yearFilter}`, clear: () => setYearFilter("all") }] : []),
+    ...(monthFilter !== "all" ? [{ key: "month", label: MONTH_LABELS[MONTHS.indexOf(monthFilter)], clear: () => setMonthFilter("all") }] : []),
+    ...(authorFilter !== "all" ? [{ key: "author", label: `Autor: ${authorFilter}`, clear: () => setAuthorFilter("all") }] : []),
+    ...(tagFilter !== "all" ? [{ key: "tag", label: `#${tagFilter}`, clear: () => setTagFilter("all") }] : []),
+    ...(dateFrom ? [{ key: "from", label: `Od ${dateFrom}`, clear: () => setDateFrom("") }] : []),
+    ...(dateTo ? [{ key: "to", label: `Do ${dateTo}`, clear: () => setDateTo("") }] : []),
+    ...(imageOnly ? [{ key: "img", label: "Ze zdjęciem", clear: () => setImageOnly(false) }] : []),
+    ...(pinnedOnly ? [{ key: "pin", label: "Przypięte", clear: () => setPinnedOnly(false) }] : []),
+    ...(q ? [{ key: "q", label: `"${search.trim()}"`, clear: () => setSearch("") }] : []),
+  ];
+  const clearAll = () => {
+    setCats([]); setYearFilter("all"); setMonthFilter("all"); setAuthorFilter("all");
+    setTagFilter("all"); setDateFrom(""); setDateTo(""); setImageOnly(false);
+    setPinnedOnly(false); setSearch("");
+  };
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const goPage = (n: number) => {
+    setPage(Math.min(Math.max(1, n), totalPages));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
 
   const formatDate = (iso: string) => {
