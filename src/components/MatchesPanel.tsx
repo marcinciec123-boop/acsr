@@ -129,6 +129,7 @@ const MatchesPanel = () => {
 
   // Grupowanie: dzień → turniej
   const grouped = useMemo(() => {
+    const desc = mode === "results";
     const byDay = new Map<string, Map<string, Row[]>>();
     active.forEach(r => {
       const day = (r.when || "").slice(0, 10);
@@ -138,8 +139,24 @@ const MatchesPanel = () => {
       if (!byT.has(key)) byT.set(key, []);
       byT.get(key)!.push(r);
     });
-    return Array.from(byDay.entries());
-  }, [active]);
+    const best = (rows: Row[]) =>
+      rows.reduce((acc, r) => {
+        const w = r.when || "";
+        if (!acc) return w;
+        return desc ? (w > acc ? w : acc) : (w < acc ? w : acc);
+      }, "");
+    // W rezultatach: turnieje w obrębie dnia wg najpóźniejszego meczu
+    const days = Array.from(byDay.entries()).map(([day, byT]) => {
+      const sortedT = Array.from(byT.entries()).sort((a, b) => {
+        const av = best(a[1]);
+        const bv = best(b[1]);
+        return desc ? bv.localeCompare(av) : av.localeCompare(bv);
+      });
+      return [day, new Map(sortedT)] as [string, Map<string, Row[]>];
+    });
+    return days;
+  }, [active, mode]);
+
 
   return (
     <section className="py-6">
