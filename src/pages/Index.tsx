@@ -145,6 +145,7 @@ const Index = () => {
           {activeTab === "tournaments" && <TournamentPanel />}
           {activeTab === "transfers" && <TransferPanel />}
           {activeTab === "awards" && <AwardsHistoryPanel />}
+          {activeTab === "stats" && <StatisticsPanel />}
           {activeTab === "backup" && <DeviceBackupPanel />}
           {activeTab === "settings" && <SettingsTab />}
         </div>
