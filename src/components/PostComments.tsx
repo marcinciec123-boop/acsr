@@ -129,7 +129,7 @@ const PostComments = ({ post, pending }: Props) => {
             variant="ghost"
             size="sm"
             className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
-            onClick={() => setCollapsed(collapsed.length ? [] : comments.filter(c => comments.some(x => x.replyTo === c.id)).map(c => c.id))}
+            onClick={() => persistCollapsed(collapsed.length ? [] : parentsOf(comments))}
           >
             {collapsed.length ? "Rozwiń wszystkie" : "Zwiń wszystkie"}
           </Button>
