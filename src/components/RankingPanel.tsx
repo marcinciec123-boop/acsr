@@ -16,8 +16,24 @@ import { playerNationalities } from "@/data/playerNationalities";
 import TeamLogo from "@/components/TeamLogo";
 import PanelHeader from "@/components/PanelHeader";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
-import { getRankingAt } from "@/lib/rankingHistory";
+import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { CalendarClock } from "lucide-react";
+
+// Mini wykres punktów (sparkline) — broadcast style
+const Sparkline = ({ team, width = 46, height = 14 }: { team: string; width?: number; height?: number }) => {
+  const pts = useMemo(() => getTeamRankingSeries(team).slice(-14).map(p => p.points), [team]);
+  if (pts.length < 2) return <span className="inline-block" style={{ width, height }} />;
+  const min = Math.min(...pts), max = Math.max(...pts);
+  const span = max - min || 1;
+  const d = pts.map((v, i) => `${(i / (pts.length - 1)) * width},${height - ((v - min) / span) * height}`).join(" L");
+  const rising = pts[pts.length - 1] >= pts[0];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={rising ? "text-[hsl(var(--win))]" : "text-[hsl(var(--loss))]"} fill="none" aria-hidden>
+      <path d={`M${d}`} stroke="currentColor" strokeWidth="1.5" opacity="0.7" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+};
+
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";
 
