@@ -106,34 +106,76 @@ const PostComments = ({ post, pending }: Props) => {
                   Brak komentarzy — kliknij „Generuj”, żeby społeczność się wypowiedziała.
                 </p>
               )}
-              {comments.map(c => (
-                <div key={c.id} className="flex gap-2">
-                  <span
-                    className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90"
-                    style={{ background: avatarColor(c.author) }}
-                  >
-                    {c.author.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1 rounded-md border border-border/50 bg-secondary/25 px-2.5 py-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono font-bold text-foreground">{c.author}</span>
-                      <span className="text-xs font-mono text-muted-foreground opacity-70">{fmt(c.date)}</span>
-                    </div>
-                    <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap leading-relaxed">{c.content}</p>
-                    <button
-                      type="button"
-                      onClick={() => toggleLike(c.id)}
-                      className={cn(
-                        "mt-1 inline-flex items-center gap-1 text-xs font-mono transition-colors",
-                        liked.includes(c.id) ? "text-primary" : "text-muted-foreground hover:text-primary",
-                      )}
+              {(() => {
+                const byId = new Map(comments.map(c => [c.id, c]));
+                const depthOf = (c: NewsComment): number => {
+                  let d = 0, cur = c;
+                  while (cur.replyTo && byId.has(cur.replyTo) && d < 4) {
+                    cur = byId.get(cur.replyTo)!;
+                    d++;
+                  }
+                  return d;
+                };
+                // Ułóż wątkowo: rodzic, potem jego odpowiedzi (rekurencyjnie)
+                const children = new Map<string, NewsComment[]>();
+                const roots: NewsComment[] = [];
+                comments.forEach(c => {
+                  if (c.replyTo && byId.has(c.replyTo)) {
+                    const arr = children.get(c.replyTo) || [];
+                    arr.push(c);
+                    children.set(c.replyTo, arr);
+                  } else roots.push(c);
+                });
+                const ordered: NewsComment[] = [];
+                const walk = (c: NewsComment) => {
+                  ordered.push(c);
+                  (children.get(c.id) || []).forEach(walk);
+                };
+                roots.forEach(walk);
+
+                return ordered.map(c => {
+                  const depth = Math.min(depthOf(c), 3);
+                  const parent = c.replyTo ? byId.get(c.replyTo) : undefined;
+                  return (
+                    <div
+                      key={c.id}
+                      className={cn("flex gap-2", depth > 0 && "border-l-2 border-border/60 pl-2")}
+                      style={depth > 0 ? { marginLeft: depth * 14 } : undefined}
                     >
-                      <ThumbsUp className="w-3 h-3" /> {c.likes}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <span
+                        className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-white/90"
+                        style={{ background: avatarColor(c.author) }}
+                      >
+                        {c.author.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1 rounded-md border border-border/50 bg-secondary/25 px-2.5 py-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono font-bold text-foreground">{c.author}</span>
+                          {parent && (
+                            <span className="inline-flex items-center gap-0.5 text-xs font-mono text-primary/80">
+                              <CornerDownRight className="w-3 h-3" />@{parent.author}
+                            </span>
+                          )}
+                          <span className="text-xs font-mono text-muted-foreground opacity-70">{fmt(c.date)}</span>
+                        </div>
+                        <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap leading-relaxed">{c.content}</p>
+                        <button
+                          type="button"
+                          onClick={() => toggleLike(c.id)}
+                          className={cn(
+                            "mt-1 inline-flex items-center gap-1 text-xs font-mono transition-colors",
+                            liked.includes(c.id) ? "text-primary" : "text-muted-foreground hover:text-primary",
+                          )}
+                        >
+                          <ThumbsUp className="w-3 h-3" /> {c.likes}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
+
           </motion.div>
         )}
       </AnimatePresence>
