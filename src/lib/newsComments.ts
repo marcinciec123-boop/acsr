@@ -87,7 +87,11 @@ export async function generateComments(
 
     const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
       data?.comments || [];
-    const base = Date.parse(getWorldNowIso());
+    // Komentarze zawsze PO godzinie publikacji posta
+    const postTs = post.date ? Date.parse(post.date) : NaN;
+    const nowTs = Date.parse(getWorldNowIso());
+    const base = Math.max(isNaN(postTs) ? 0 : postTs + 5 * 60 * 1000, nowTs);
+
     const kept = raw.filter(c => c.content && c.content.trim()).slice(0, 15);
     const ids = kept.map((_, i) => uid() + i);
     const comments: NewsComment[] = kept.map((c, i) => {
