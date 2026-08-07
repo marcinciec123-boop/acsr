@@ -39,6 +39,25 @@ const PostComments = ({ post, pending }: Props) => {
   const [comments, setLocal] = useState<NewsComment[]>(() => getComments(post.id));
   const [loading, setLoading] = useState(false);
   const [liked, setLiked] = useState<string[]>([]);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [replying, setReplying] = useState<string | null>(null);
+
+  const sendEditorReply = async (parentId: string) => {
+    const text = draft.trim();
+    if (!text) return;
+    const newId = addEditorReply(post.id, parentId, text);
+    setLocal(getComments(post.id));
+    setDraft("");
+    setReplyTo(null);
+    setReplying(newId);
+    const res = await generateReplies(post, newId);
+    setLocal(getComments(post.id));
+    setReplying(null);
+    if (!res.ok) toast.error(res.error || "Nie udało się wygenerować reakcji");
+    else toast.success(`Społeczność odpowiedziała (${res.count})`);
+  };
+
 
   // Po zakończeniu generowania po publikacji — dociągnij świeże komentarze.
   useEffect(() => {
