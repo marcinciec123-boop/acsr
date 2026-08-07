@@ -13,7 +13,7 @@ import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
-import { predictBothOutcomes, predictMatch, predictRankDelta, getRankingSnapshot } from "@/lib/vrsFormula";
+import { predictBothOutcomes, predictMatch, predictRankDelta, predictRankDeltaPair, getRankingSnapshot } from "@/lib/vrsFormula";
 import { MatchComparePanel } from "./MatchComparePanel";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
@@ -240,8 +240,12 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     if (match.pointsLoser !== undefined) setPointsLose(match.pointsLoser);
   }, [match.id]);
 
-  const winnerRankDelta = useMemo(() => winnerName ? predictRankDelta(winnerName, pointsWin, ranking) : null, [winnerName, pointsWin, ranking]);
-  const loserRankDelta = useMemo(() => loserName ? predictRankDelta(loserName, -pointsLose, ranking) : null, [loserName, pointsLose, ranking]);
+  const resultRankPair = useMemo(
+    () => (winnerName && loserName ? predictRankDeltaPair(winnerName, pointsWin, loserName, -pointsLose, ranking) : null),
+    [winnerName, loserName, pointsWin, pointsLose, ranking],
+  );
+  const winnerRankDelta = resultRankPair?.a ?? null;
+  const loserRankDelta = resultRankPair?.b ?? null;
 
   const openConfirm = () => {
     if (!matchDecided || !winnerName || !loserName) {
@@ -437,8 +441,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 lossPoints={previews.team2Wins.lossPoints}
                 expected={previews.team1Wins.expectedWinner}
                 upset={previews.team1Wins.upset}
-                rankIfWin={predictRankDelta(match.team1, previews.team1Wins.winPoints, ranking)}
-                rankIfLose={predictRankDelta(match.team1, -previews.team2Wins.lossPoints, ranking)}
+                rankIfWin={predictRankDeltaPair(match.team1, previews.team1Wins.winPoints, match.team2, -previews.team1Wins.lossPoints, ranking).a}
+                rankIfLose={predictRankDeltaPair(match.team2, previews.team2Wins.winPoints, match.team1, -previews.team2Wins.lossPoints, ranking).b}
                 highlighted={winner1}
               />
               <PredictionCard
@@ -448,8 +452,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 lossPoints={previews.team1Wins.lossPoints}
                 expected={previews.team2Wins.expectedWinner}
                 upset={previews.team2Wins.upset}
-                rankIfWin={predictRankDelta(match.team2, previews.team2Wins.winPoints, ranking)}
-                rankIfLose={predictRankDelta(match.team2, -previews.team1Wins.lossPoints, ranking)}
+                rankIfWin={predictRankDeltaPair(match.team2, previews.team2Wins.winPoints, match.team1, -previews.team2Wins.lossPoints, ranking).a}
+                rankIfLose={predictRankDeltaPair(match.team1, previews.team1Wins.winPoints, match.team2, -previews.team1Wins.lossPoints, ranking).b}
                 highlighted={winner2}
               />
 
