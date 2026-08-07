@@ -46,7 +46,9 @@ const collect = (tournaments: TournamentData[]): Row[] => {
           phaseName: p.name,
           groupName,
           match: m,
-          when: isPlayed(m) ? (m.playedAt || m.scheduledAt) : m.scheduledAt,
+          // ta sama podstawa co wyświetlana godzina (timeSource)
+          when: m.scheduledAt || m.playedAt,
+
         });
       };
       (p.bracket || []).forEach(m => push(m));
