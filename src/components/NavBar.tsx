@@ -18,6 +18,7 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "tournaments", label: "Turnieje", icon: <Trophy className="w-4 h-4" /> },
   { id: "transfers", label: "Transfery", icon: <ArrowRightLeft className="w-4 h-4" /> },
   { id: "awards", label: "Nagrody", icon: <Award className="w-4 h-4" /> },
+  { id: "stats", label: "Statystyki", icon: <BarChart3 className="w-4 h-4" /> },
   { id: "backup", label: "Zapis", icon: <HardDrive className="w-4 h-4" /> },
   { id: "settings", label: "Ustawienia", icon: <Settings className="w-4 h-4" /> },
 ];
