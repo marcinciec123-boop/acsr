@@ -640,42 +640,63 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   animate={{ height: "auto", opacity: 1 }}
                   className="overflow-hidden border-l-2 border-l-primary bg-background/40"
                 >
-                  <div className="px-4 py-3 grid gap-3 md:grid-cols-[1fr_260px]">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary/60 mb-2">Skład</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {team.roster.length === 0 && <span className="text-xs font-mono text-muted-foreground">Brak zawodników</span>}
-                        {team.roster.map(p => (
+                  <div className="px-4 py-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary/70">Skład</p>
+                      <div className="h-px flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
+                      <button
+                        onClick={() => onSelectTeam?.(team.name)}
+                        className="shrink-0 px-3 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary text-xs font-mono uppercase tracking-[0.15em] hover:bg-primary/20 transition-colors"
+                      >
+                        Profil drużyny
+                      </button>
+                    </div>
+
+                    <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+                      {team.roster.length === 0 && (
+                        <span className="text-xs font-mono text-muted-foreground col-span-full">Brak zawodników</span>
+                      )}
+                      {team.roster.map(p => {
+                        const role = playerRoles[p];
+                        return (
                           <button
                             key={p}
                             onClick={() => onSelectPlayer?.(p)}
-                            className="px-2 py-1 rounded-md border border-border bg-card text-xs font-heading font-bold hover:border-primary/50 hover:text-primary transition-colors"
+                            className="group/pl flex items-center gap-2.5 rounded-lg border border-border bg-card/70 hover:bg-card hover:border-primary/50 transition-colors p-2 text-left min-w-0"
                           >
-                            {countryFlag(playerNationalities[p] || team.country)} {p}
+                            <PlayerAvatar playerName={p} teamName={team.name} size={44} rounded="lg" className="shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-xs">{countryFlag(playerNationalities[p] || team.country)}</span>
+                                <span className="font-heading font-bold text-sm text-foreground truncate group-hover/pl:text-primary transition-colors">{p}</span>
+                              </div>
+                              {role && (
+                                <span className={cn("mt-1 inline-block text-2xs font-mono px-1.5 py-0.5 rounded border", roleColors[role])}>
+                                  {roleIcons[role]} {role}
+                                </span>
+                              )}
+                            </div>
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                    <div className="grid grid-cols-2 gap-2 content-start">
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                       {[
                         { k: "Pozycja", v: `#${globalRank}` },
                         { k: "Punkty", v: team.points.toLocaleString() },
                         { k: "Tier", v: tier.label },
                         { k: "Region", v: team.region },
+                        { k: "Zawodnicy", v: String(team.roster.length) },
                       ].map(s => (
-                        <div key={s.k} className="rounded-md border border-border bg-card/70 px-2.5 py-1.5">
-                          <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{s.k}</div>
+                        <div key={s.k} className="rounded-md border border-border bg-card/60 px-2.5 py-1.5">
+                          <div className="text-2xs font-mono uppercase tracking-widest text-muted-foreground">{s.k}</div>
                           <div className="font-heading font-black text-sm text-foreground">{s.v}</div>
                         </div>
                       ))}
-                      <button
-                        onClick={() => onSelectTeam?.(team.name)}
-                        className="col-span-2 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary text-xs font-mono uppercase tracking-[0.2em] hover:bg-primary/20 transition-colors"
-                      >
-                        Profil drużyny
-                      </button>
                     </div>
                   </div>
+
                 </motion.div>
               )}
               </div>
