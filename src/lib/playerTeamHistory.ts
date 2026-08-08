@@ -22,6 +22,8 @@ export interface TeamStint {
   to: string | null;
   segments: HistorySegment[];
   current: boolean;
+  /** Gracz pełnił w tym okresie rolę trenera. */
+  coach?: boolean;
 }
 
 function datedTransfers(player: string): Transfer[] {
