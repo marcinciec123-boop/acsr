@@ -825,7 +825,7 @@ const RosterGrid = ({
     return map;
   }, [list.join("|")]);
   return (
-    <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
+    <div className={cn("grid gap-3 items-stretch", compact ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5")}>
       {list.map((player, i) => {
         const playerCountry = playerNationalities[player] || team.country;
         const realName = playerRealNames[player];
@@ -837,7 +837,7 @@ const RosterGrid = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04 }}
             className={cn(
-              "relative bg-secondary/30 border border-border rounded-lg p-3 text-center transition-all",
+              "relative h-full flex flex-col bg-secondary/30 border border-border rounded-lg p-3 text-center transition-all",
               benched && "opacity-70 border-dashed",
               onSelectPlayer && "hover:border-primary/50 hover:bg-secondary/50",
             )}
@@ -845,31 +845,31 @@ const RosterGrid = ({
             <button
               type="button"
               onClick={() => onSelectPlayer?.(player)}
-              className={cn("w-full", onSelectPlayer && "cursor-pointer")}
+              className={cn("w-full flex-1 flex flex-col", onSelectPlayer && "cursor-pointer")}
             >
               <div className="mx-auto mb-2 w-fit relative">
-                <PlayerAvatar playerName={player} teamName={team.name} size={88} rounded="full" />
+                <PlayerAvatar playerName={player} teamName={team.name} size={112} rounded="full" />
                 {benched && (
                   <span className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground border border-border rounded-full p-0.5">
                     <Armchair className="w-3 h-3" />
                   </span>
                 )}
               </div>
-              <p className="font-heading font-bold text-foreground text-xs sm:text-sm truncate">{player}</p>
-              {realName && (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  {realName.firstName} {realName.lastName}
-                </p>
-              )}
+              <p className="font-heading font-bold text-foreground text-base sm:text-lg leading-tight break-words">{player}</p>
+              <p className="text-sm text-muted-foreground mt-0.5 leading-snug break-words min-h-[2.5rem] flex items-start justify-center">
+                <span className="line-clamp-2">{realName ? `${realName.firstName} ${realName.lastName}` : ""}</span>
+              </p>
               {playerRoles[player] && (
-                <span className={cn("inline-flex items-center gap-1 text-xs font-mono font-bold mt-1 px-1.5 py-0.5 rounded-full border", roleColors[playerRoles[player]])}>
+                <span className={cn("inline-flex items-center gap-1 text-sm font-mono font-bold mt-1 px-2 py-0.5 rounded-full border self-center", roleColors[playerRoles[player]])}>
                   {roleIcons[playerRoles[player]]} {playerRoles[player]}
                 </span>
               )}
-              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+              <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                 <span>{countryFlag(playerCountry)}</span>
                 <span className="truncate">{playerCountry}</span>
               </p>
+              <div className="flex-1" />
+
               {stats && stats.matches > 0 ? (
                 <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-xs font-mono">
                   <div className="flex flex-col items-center" title={`Rating (${stats.matches} meczów)`}>
