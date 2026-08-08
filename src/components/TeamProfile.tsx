@@ -848,7 +848,7 @@ const RosterGrid = ({
               className={cn("w-full", onSelectPlayer && "cursor-pointer")}
             >
               <div className="mx-auto mb-2 w-fit relative">
-                <PlayerAvatar playerName={player} teamName={team.name} size={56} rounded="full" />
+                <PlayerAvatar playerName={player} teamName={team.name} size={88} rounded="full" />
                 {benched && (
                   <span className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground border border-border rounded-full p-0.5">
                     <Armchair className="w-3 h-3" />

@@ -125,7 +125,7 @@ const PlayerProfile = ({
               <PlayerAvatar
                 playerName={playerName}
                 teamName={currentTeam?.name}
-                size={112}
+                size={148}
                 rounded="2xl"
                 editable
                 className="ring-4 ring-background/50 shadow-xl"

@@ -57,7 +57,7 @@ export const PlayerLink = ({
   className,
   children,
   avatar,
-  avatarSize = 20,
+  avatarSize = 26,
 }: {
   name?: string;
   className?: string;
