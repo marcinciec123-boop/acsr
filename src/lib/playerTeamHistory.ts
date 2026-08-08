@@ -110,10 +110,16 @@ export function buildPlayerTeamHistory(player: string, ranking?: TeamData[]): Te
   }
 
   const now = getWorldNowIso();
+  // Trener: albo drużyna ma go zapisanego jako coacha, albo jego rola to "Coach".
+  const isCoachRole = (playerRoles as Record<string, string>)[player] === "Coach";
+  const coachTeams = new Set(
+    source.filter(t => t.coach === player).map(t => t.name),
+  );
   return raw
     .map(s => ({
       ...s,
       current: s.to === null && currentTeam?.name === s.team,
+      coach: isCoachRole || coachTeams.has(s.team),
       segments: benchSegments(player, s.team, s.from, s.to),
     }))
     .map(s => ({ ...s, to: s.to && s.to > now ? now : s.to }))
