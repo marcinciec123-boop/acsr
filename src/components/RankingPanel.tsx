@@ -14,6 +14,8 @@ import { teamDatabase } from "@/data/tournaments";
 import { countryFlag } from "@/lib/flags";
 import { playerNationalities } from "@/data/playerNationalities";
 import TeamLogo from "@/components/TeamLogo";
+import PlayerAvatar from "@/components/PlayerAvatar";
+import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import PanelHeader from "@/components/PanelHeader";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
