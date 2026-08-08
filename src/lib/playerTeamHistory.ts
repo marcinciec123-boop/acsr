@@ -8,6 +8,7 @@ import { getAllTransfers } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import { loadBenchLog, getBenchedFor } from "./benchedPlayers";
 import { getWorldNowIso } from "./worldClock";
+import { playerRoles } from "@/data/playerRoles";
 import type { TeamData, Transfer } from "./types";
 
 export interface HistorySegment {
