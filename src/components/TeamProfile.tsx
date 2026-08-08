@@ -871,7 +871,7 @@ const RosterGrid = ({
               <div className="flex-1" />
 
               {stats && stats.matches > 0 ? (
-                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-xs font-mono">
+                <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-3 gap-0.5 text-sm font-mono">
                   <div className="flex flex-col items-center" title={`Rating (${stats.matches} meczów)`}>
                     <span className="text-muted-foreground uppercase">Rtg</span>
                     <span className={cn("font-bold tabular-nums", getRatingColor(stats.rating))}>{stats.rating.toFixed(2)}</span>
@@ -886,7 +886,7 @@ const RosterGrid = ({
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/60 text-center">
+                <div className="mt-2 pt-2 border-t border-border/40 text-sm font-mono text-muted-foreground/60 text-center">
                   Brak statystyk
                 </div>
               )}
