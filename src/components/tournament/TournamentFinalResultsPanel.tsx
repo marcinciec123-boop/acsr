@@ -6,7 +6,7 @@ import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { TeamLink } from "@/lib/profileNav";
-import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
+import { formatMoney, parsePrizePool, resolveTournamentPrizes } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { freezeRanks, getFrozenRanks } from "@/lib/frozenRanks";
 import { loadFromStorage } from "@/lib/storage";
@@ -147,8 +147,12 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
   const teamMeta = useMemo(() => new Map([...teamDatabase, ...ranking].map(team => [team.name, team])), [ranking]);
   const totalPool = parsePrizePool(tournament.prizePool);
   const prizeMap = useMemo(
-    () => distributePrizePool(totalPool, Math.max(tournament.teams || 0, placements.length)),
-    [placements.length, totalPool, tournament.teams],
+    () => resolveTournamentPrizes({
+      prizePool: tournament.prizePool,
+      customPrizes: (tournament as { customPrizes?: Record<string, number> }).customPrizes,
+      teams: Math.max(tournament.teams || 0, placements.length),
+    }),
+    [placements.length, tournament],
   );
 
   if (tournament.status !== "completed" || placements.length === 0) return null;

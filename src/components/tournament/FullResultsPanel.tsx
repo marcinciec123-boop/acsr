@@ -5,7 +5,7 @@ import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import type { TeamData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolveLineup } from "@/lib/tournamentLineups";
-import { distributePrizePool, parsePrizePool, formatMoney } from "@/lib/prizeDistribution";
+import { parsePrizePool, formatMoney, resolveTournamentPrizes } from "@/lib/prizeDistribution";
 import { loadFromStorage } from "@/lib/storage";
 import { countryFlag } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
@@ -26,8 +26,12 @@ const FullResultsPanel = ({ tournament, simulation, prevRankSnapshot }: Props) =
 
   const totalPool = parsePrizePool(tournament.prizePool);
   const prizeMap = useMemo(
-    () => distributePrizePool(totalPool, tournament.teams || placements.length),
-    [totalPool, tournament.teams, placements.length],
+    () => resolveTournamentPrizes({
+      prizePool: tournament.prizePool,
+      customPrizes: (tournament as { customPrizes?: Record<string, number> }).customPrizes,
+      teams: tournament.teams || placements.length,
+    }),
+    [tournament, placements.length],
   );
 
   // Current ranking (post-tournament, since ranking is applied when tournament ends)
