@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Users, Coins, ArrowLeftRight, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import TeamLogo from "@/components/TeamLogo";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { teamDatabase } from "@/data/tournaments";
@@ -363,7 +364,6 @@ const PlayerHero = ({
   const role = playerRoles[name] as PlayerRole | undefined;
   const country = resolvePlayerCountry(name);
   const flag = country ? countryFlag(country) : "";
-  const initial = (name || "?").charAt(0).toUpperCase();
   const ratingColor = getRatingColor(stats.careerRating);
   const winPct = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
 
@@ -381,8 +381,8 @@ const PlayerHero = ({
       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
 
       {/* Jersey-style initial */}
-      <div className="relative shrink-0 w-16 h-16 rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm flex items-center justify-center shadow-inner">
-        <span className="font-heading font-black text-3xl text-foreground/90 leading-none">{initial}</span>
+      <div className="relative shrink-0 w-16 h-16">
+        <PlayerAvatar playerName={name} teamName={team} size={64} rounded="xl" className="border border-border/60" />
         <TeamLogo teamName={team} size={18} rounded="md" className="absolute -bottom-1.5 -right-1.5 border-2 border-background rounded-md" />
       </div>
 
