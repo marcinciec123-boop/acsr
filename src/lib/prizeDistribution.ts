@@ -55,3 +55,33 @@ export function formatMoney(n: number): string {
   if (!n) return "—";
   return "$" + n.toLocaleString("en-US");
 }
+
+/** Share of a team's prize money that goes to the organisation (not players). */
+export const ORG_CUT = 0.25;
+
+/**
+ * Resolve prize money per placement for a tournament: manual overrides
+ * (customPrizes) take priority, otherwise the standard split of its own pool.
+ * Qualifiers always use their OWN prize pool — never the main event's.
+ */
+export function resolveTournamentPrizes(t: {
+  prizePool?: string;
+  customPrizes?: Record<string, number>;
+  participants?: string[];
+  teams?: number;
+}): Record<number, number> {
+  const base = distributePrizePool(
+    parsePrizePool(t.prizePool),
+    t.participants?.length || t.teams || 8,
+  );
+  const custom = t.customPrizes;
+  if (custom && Object.keys(custom).length) {
+    const out: Record<number, number> = { ...base };
+    for (const [k, v] of Object.entries(custom)) {
+      const place = parseInt(k, 10);
+      if (!Number.isNaN(place) && v !== null && v !== undefined) out[place] = v;
+    }
+    return out;
+  }
+  return base;
+}

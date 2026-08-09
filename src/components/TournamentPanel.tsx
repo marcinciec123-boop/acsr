@@ -15,6 +15,7 @@ import { getPointsForPlacement, teamDatabase, regionNames } from "@/data/tournam
 import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
+import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
@@ -129,6 +130,8 @@ const TournamentPanel = () => {
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
   const [customPoints, setCustomPoints] = useState<Record<string, number>>({});
+  const [customPrizesEnabled, setCustomPrizesEnabled] = useState(false);
+  const [customPrizes, setCustomPrizes] = useState<Record<string, number>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -242,6 +245,7 @@ const TournamentPanel = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(getWorldDate()); setNewEnd(getWorldDate());
     setNewLocation(""); setNewTier("A");
     setCustomPointsEnabled(false); setCustomPoints({});
+    setCustomPrizesEnabled(false); setCustomPrizes({});
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
@@ -363,6 +367,10 @@ const TournamentPanel = () => {
     // ===== Regional qualifier → build ONE TOURNAMENT PER REGION =====
     if (isQualifier && qualScope === "regional" && qualRegions.length > 0) {
       const created: TournamentData[] = [];
+      // Kwalifikacje mają WŁASNĄ pulę nagród — dzieloną równo między regiony.
+      const qualTotal = parsePrizePool(newPrize);
+      const perRegion = qualRegions.length > 0 ? Math.round(qualTotal / qualRegions.length) : 0;
+      const qualPoolPerRegion = perRegion > 0 ? formatMoney(perRegion) : "$0";
       const skipped: string[] = [];
       qualRegions.forEach(region => {
         const regionTeams = selectedTeams.filter(name => {
@@ -380,7 +388,7 @@ const TournamentPanel = () => {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + "-" + region.toLowerCase(),
           name: `${newName.trim()} — ${regionLabel}`,
           organizer: newOrg.trim(),
-          prizePool: newPrize.trim() || "$0",
+          prizePool: qualPoolPerRegion,
           startDate: newStart,
           endDate: newEnd,
           location: newLocation.trim(),
@@ -400,6 +408,7 @@ const TournamentPanel = () => {
             promotedTeams: [],
           },
           customPoints: customPointsEnabled ? customPoints : undefined,
+          customPrizes: customPrizesEnabled ? customPrizes : undefined,
         };
         created.push(t);
       });
@@ -452,6 +461,7 @@ const TournamentPanel = () => {
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
       customPoints: customPointsEnabled ? customPoints : undefined,
+      customPrizes: customPrizesEnabled ? customPrizes : undefined,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
@@ -1187,6 +1197,67 @@ const TournamentPanel = () => {
                   </>
                 )}
               </section>
+
+              {/* Custom prize money */}
+              <section className="space-y-2 border border-border rounded-md p-3 bg-secondary/20">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customPrizesEnabled}
+                    onChange={e => {
+                      setCustomPrizesEnabled(e.target.checked);
+                      if (e.target.checked && Object.keys(customPrizes).length === 0) {
+                        const defaults = distributePrizePool(
+                          parsePrizePool(newPrize),
+                          Math.max(2, selectedTeams.length || 2),
+                        );
+                        const map: Record<string, number> = {};
+                        Object.entries(defaults).forEach(([k, v]) => { map[k] = v; });
+                        setCustomPrizes(map);
+                      }
+                    }}
+                    className="accent-primary"
+                  />
+                  <span className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    Ręczny przydział nagród pieniężnych (per miejsce)
+                  </span>
+                </label>
+                {customPrizesEnabled && (
+                  <>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Kwoty w USD. Puste pole = domyślny podział puli. Suma:{" "}
+                      <span className="text-foreground font-bold">
+                        {formatMoney(Object.values(customPrizes).reduce((a, b) => a + (b || 0), 0))}
+                      </span>{" "}
+                      / pula {newPrize.trim() || "$0"}. 25% nagrody drużyny trafia do organizacji, reszta dzieli się na skład.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
+                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                        <div key={p} className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">#{p}</span>
+                          <Input
+                            type="number"
+                            value={customPrizes[String(p)] ?? ""}
+                            placeholder="$"
+                            onChange={e => {
+                              const v = e.target.value;
+                              setCustomPrizes(prev => {
+                                const next = { ...prev };
+                                if (v === "") delete next[String(p)];
+                                else next[String(p)] = parseInt(v, 10) || 0;
+                                return next;
+                              });
+                            }}
+                            className="h-7 text-xs font-mono"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+
+
 
               {/* Participants */}
               <section className="space-y-3">
