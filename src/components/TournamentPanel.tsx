@@ -15,6 +15,7 @@ import { getPointsForPlacement, teamDatabase, regionNames } from "@/data/tournam
 import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
+import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
@@ -129,6 +130,8 @@ const TournamentPanel = () => {
   const [newTier, setNewTier] = useState<"S" | "A" | "B" | "C">("A");
   const [customPointsEnabled, setCustomPointsEnabled] = useState(false);
   const [customPoints, setCustomPoints] = useState<Record<string, number>>({});
+  const [customPrizesEnabled, setCustomPrizesEnabled] = useState(false);
+  const [customPrizes, setCustomPrizes] = useState<Record<string, number>>({});
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -242,6 +245,7 @@ const TournamentPanel = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(getWorldDate()); setNewEnd(getWorldDate());
     setNewLocation(""); setNewTier("A");
     setCustomPointsEnabled(false); setCustomPoints({});
+    setCustomPrizesEnabled(false); setCustomPrizes({});
     setSelectedTeams([]); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
@@ -363,6 +367,10 @@ const TournamentPanel = () => {
     // ===== Regional qualifier → build ONE TOURNAMENT PER REGION =====
     if (isQualifier && qualScope === "regional" && qualRegions.length > 0) {
       const created: TournamentData[] = [];
+      // Kwalifikacje mają WŁASNĄ pulę nagród — dzieloną równo między regiony.
+      const qualTotal = parsePrizePool(newPrize);
+      const perRegion = qualRegions.length > 0 ? Math.round(qualTotal / qualRegions.length) : 0;
+      const qualPoolPerRegion = perRegion > 0 ? formatMoney(perRegion) : "$0";
       const skipped: string[] = [];
       qualRegions.forEach(region => {
         const regionTeams = selectedTeams.filter(name => {
@@ -380,7 +388,7 @@ const TournamentPanel = () => {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + "-" + region.toLowerCase(),
           name: `${newName.trim()} — ${regionLabel}`,
           organizer: newOrg.trim(),
-          prizePool: newPrize.trim() || "$0",
+          prizePool: qualPoolPerRegion,
           startDate: newStart,
           endDate: newEnd,
           location: newLocation.trim(),
@@ -400,6 +408,7 @@ const TournamentPanel = () => {
             promotedTeams: [],
           },
           customPoints: customPointsEnabled ? customPoints : undefined,
+          customPrizes: customPrizesEnabled ? customPrizes : undefined,
         };
         created.push(t);
       });
@@ -452,6 +461,7 @@ const TournamentPanel = () => {
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
       customPoints: customPointsEnabled ? customPoints : undefined,
+      customPrizes: customPrizesEnabled ? customPrizes : undefined,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
