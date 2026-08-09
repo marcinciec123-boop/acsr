@@ -525,7 +525,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   // Mobile: compact 3-column row
                   "grid grid-cols-[36px_1fr_auto] gap-2 px-3 py-2",
                   // Desktop: full table
-                  "md:grid-cols-[50px_60px_110px_1fr_70px_80px_70px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
+                  "md:grid-cols-[50px_1fr_70px_80px_70px_60px_110px_60px_50px] md:gap-2 md:px-4 md:py-2.5",
                   globalRank <= 3 && "bg-primary/[0.03]"
                 )}
               >
@@ -533,30 +533,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 <div className="text-center font-mono flex md:block justify-center">
                   {RankBadge}
                 </div>
-
-                {/* Trend — desktop */}
-                <div className="hidden md:flex justify-center">
-                  <TrendBadge trend={trend} compact />
-                </div>
-
-                {/* Points — desktop */}
-                <div className="hidden md:flex justify-center" onClick={e => { if (isEditing) e.stopPropagation(); }}>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      value={editPoints}
-                      onChange={e => setEditPoints(e.target.value)}
-                      className="h-7 w-24 text-xs"
-                      autoFocus
-                      onKeyDown={e => {
-                        if (e.key === "Enter") handleInlineEdit(team.name);
-                        if (e.key === "Escape") setEditingTeam(null);
-                      }}
-                    />
-                  ) : PointsPill}
-                </div>
-
-
 
                 {/* Team */}
                 <div className="min-w-0 flex items-center gap-1.5">
@@ -596,6 +572,29 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                 <div className="hidden md:flex justify-center items-center">
                   <Sparkline team={team.name} />
                 </div>
+
+                {/* Trend — desktop */}
+                <div className="hidden md:flex justify-center">
+                  <TrendBadge trend={trend} compact />
+                </div>
+
+                {/* Points — desktop */}
+                <div className="hidden md:flex justify-center" onClick={e => { if (isEditing) e.stopPropagation(); }}>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={editPoints}
+                      onChange={e => setEditPoints(e.target.value)}
+                      className="h-7 w-24 text-xs"
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === "Enter") handleInlineEdit(team.name);
+                        if (e.key === "Escape") setEditingTeam(null);
+                      }}
+                    />
+                  ) : PointsPill}
+                </div>
+
 
 
 
