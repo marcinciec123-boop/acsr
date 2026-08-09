@@ -1198,6 +1198,67 @@ const TournamentPanel = () => {
                 )}
               </section>
 
+              {/* Custom prize money */}
+              <section className="space-y-2 border border-border rounded-md p-3 bg-secondary/20">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customPrizesEnabled}
+                    onChange={e => {
+                      setCustomPrizesEnabled(e.target.checked);
+                      if (e.target.checked && Object.keys(customPrizes).length === 0) {
+                        const defaults = distributePrizePool(
+                          parsePrizePool(newPrize),
+                          Math.max(2, selectedTeams.length || 2),
+                        );
+                        const map: Record<string, number> = {};
+                        Object.entries(defaults).forEach(([k, v]) => { map[k] = v; });
+                        setCustomPrizes(map);
+                      }
+                    }}
+                    className="accent-primary"
+                  />
+                  <span className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
+                    Ręczny przydział nagród pieniężnych (per miejsce)
+                  </span>
+                </label>
+                {customPrizesEnabled && (
+                  <>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Kwoty w USD. Puste pole = domyślny podział puli. Suma:{" "}
+                      <span className="text-foreground font-bold">
+                        {formatMoney(Object.values(customPrizes).reduce((a, b) => a + (b || 0), 0))}
+                      </span>{" "}
+                      / pula {newPrize.trim() || "$0"}. 25% nagrody drużyny trafia do organizacji, reszta dzieli się na skład.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
+                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                        <div key={p} className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">#{p}</span>
+                          <Input
+                            type="number"
+                            value={customPrizes[String(p)] ?? ""}
+                            placeholder="$"
+                            onChange={e => {
+                              const v = e.target.value;
+                              setCustomPrizes(prev => {
+                                const next = { ...prev };
+                                if (v === "") delete next[String(p)];
+                                else next[String(p)] = parseInt(v, 10) || 0;
+                                return next;
+                              });
+                            }}
+                            className="h-7 text-xs font-mono"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+
+
+
               {/* Participants */}
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
