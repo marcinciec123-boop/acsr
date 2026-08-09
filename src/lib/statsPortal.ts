@@ -5,7 +5,9 @@
 
 import { loadFromStorage } from "@/lib/storage";
 import type { TournamentData } from "@/lib/types";
-import { distributePrizePool, parsePrizePool } from "@/lib/prizeDistribution";
+import { ORG_CUT, parsePrizePool, resolveTournamentPrizes } from "@/lib/prizeDistribution";
+import { getTeamRosterAt } from "@/lib/rankingHistory";
+import { getTournamentLineup } from "@/lib/tournamentLineups";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { isMajorTournament } from "@/lib/majors";
 
@@ -88,7 +90,7 @@ export function computePortalStats(year: string | "total"): PortalStats {
     if (major) majorCount++;
 
     const pool = parsePrizePool(t.prizePool);
-    const distributed = distributePrizePool(pool, t.participants?.length || t.teams || 8);
+    const distributed = resolveTournamentPrizes(t);
     const awarded = Object.values(distributed).reduce((a, b) => a + b, 0);
     totalPrize += awarded;
     if (isOnline(t)) onlinePrize += awarded; else lanPrize += awarded;
@@ -126,9 +128,18 @@ export function computePortalStats(year: string | "total"): PortalStats {
       else if (pl.placement === 3 || pl.placement === 4) org.bronze++;
       orgMap.set(pl.team, org);
 
-      const roster = resolveLineup(t.id, pl.team).filter(Boolean).slice(0, 5);
+      // Only players who actually represented the team at that event earn money:
+      // explicit tournament lineup > historical roster snapshot at the event date
+      // > current active roster (fallback for freshly created events).
+      const explicit = getTournamentLineup(t.id, pl.team);
+      const historical = getTeamRosterAt(pl.team, t.endDate || t.startDate || "");
+      const roster = (explicit.length ? explicit : historical.length ? historical : resolveLineup(t.id, pl.team))
+        .filter(Boolean)
+        .slice(0, 5);
       if (roster.length) {
-        const share = Math.round(prize / roster.length);
+        // 25% of the team's winnings goes to the organisation, the rest is split.
+        const playersPot = prize * (1 - ORG_CUT);
+        const share = Math.round(playersPot / roster.length);
         for (const p of roster) {
           const ps = playerMap.get(p) || { player: p, earnings: 0, gold: 0, events: 0, teams: [] };
           ps.earnings += share;
