@@ -5,6 +5,8 @@
 import type { TournamentData, MatchResult } from "./types";
 import { loadFromStorage } from "./storage";
 import { calculateRating } from "./playerStats";
+import { nationalTeamNames } from "./statsPortal";
+
 
 export interface TeamStreak {
   team: string;
