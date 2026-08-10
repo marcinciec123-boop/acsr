@@ -33,6 +33,9 @@ import { getRatingColor } from "@/lib/playerStats";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForTeam } from "@/lib/majors";
+import { getTeamEarnings } from "@/lib/statsPortal";
+import { formatMoney } from "@/lib/prizeDistribution";
+
 
 interface TeamProfileProps {
   teamName: string;
