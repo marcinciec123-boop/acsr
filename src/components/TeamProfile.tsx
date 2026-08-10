@@ -397,12 +397,19 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
               </div>
 
               {/* Stat strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <StatCell label="Mecze" value={`${totals.wins}-${totals.losses}`} accent={totals.winRate >= 50 ? "win" : "loss"} sub={`${totals.winRate}% WR`} />
                 <StatCell label="Mapy" value={`${totals.mapsW}-${totals.mapsL}`} sub="W-L" />
                 <StatCell label="Trofea" value={`${totals.firsts}🥇 ${totals.podiums}🏅`} sub={`${totals.events} eventów`} />
                 <StatCell label="Punkty" value={team.points.toLocaleString()} sub="ranking ACS" accent="primary" />
+                <StatCell
+                  label="Zarobki"
+                  value={earnings.earnings > 0 ? formatMoney(earnings.earnings) : "—"}
+                  sub={earnings.rank ? `#${earnings.rank} w zarobkach` : "brak nagród"}
+                  accent="primary"
+                />
               </div>
+
             </div>
 
             {/* Rank badge */}
