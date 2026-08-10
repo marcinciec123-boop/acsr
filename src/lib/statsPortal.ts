@@ -62,9 +62,20 @@ const yearOf = (t: TournamentData): string => (t.startDate || "").slice(0, 4);
 const isOnline = (t: TournamentData): boolean =>
   /online|zdalnie/i.test(t.location || "");
 
+/** Nazwy reprezentacji narodowych — pomijane w zarobkach organizacji. */
+export function nationalTeamNames(): Set<string> {
+  try {
+    const teams = loadFromStorage<{ name: string; isNational?: boolean }[]>("ranking_data", []) || [];
+    return new Set(teams.filter(t => t.isNational).map(t => t.name));
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export function loadStatsTournaments(): TournamentData[] {
   return loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
 }
+
 
 export function computePortalStats(year: string | "total"): PortalStats {
   const all = loadStatsTournaments();
@@ -79,9 +90,11 @@ export function computePortalStats(year: string | "total"): PortalStats {
   let mapCount = 0;
   let majorCount = 0;
 
+  const national = nationalTeamNames();
   const orgMap = new Map<string, OrgStat>();
   const playerMap = new Map<string, PlayerStat>();
   const biggestPools: BigPool[] = [];
+
 
   for (const t of list) {
     const tier = (t.tier || "C") as Tier;
@@ -117,7 +130,10 @@ export function computePortalStats(year: string | "total"): PortalStats {
 
     for (const pl of t.placements || []) {
       if (!pl.team) continue;
+      // Reprezentacje narodowe nie są organizacjami — pomijamy w zarobkach.
+      if (national.has(pl.team)) continue;
       const prize = distributed[pl.placement] || 0;
+
       const org = orgMap.get(pl.team) || {
         team: pl.team, earnings: 0, gold: 0, silver: 0, bronze: 0, events: 0, titles: [],
       };
@@ -167,3 +183,47 @@ export function computePortalStats(year: string | "total"): PortalStats {
     biggestPools: biggestPools.sort((a, b) => b.pool - a.pool).slice(0, 25),
   };
 }
+
+// ===== Lekki cache zarobków (profil drużyny / gracza) =====
+// computePortalStats jest kosztowne, a profile potrzebują tylko jednej pozycji.
+// Cache jest unieważniany przy każdej zmianie danych turniejów/rankingu.
+let earningsCache: { stats: PortalStats; stamp: number } | null = null;
+let cacheStamp = 0;
+const bumpCache = () => { cacheStamp++; earningsCache = null; };
+if (typeof window !== "undefined") {
+  ["tournaments:update", "teams:update", "ranking:update", "storage"].forEach(ev =>
+    window.addEventListener(ev, bumpCache),
+  );
+}
+
+function totalStats(): PortalStats {
+  if (earningsCache && earningsCache.stamp === cacheStamp) return earningsCache.stats;
+  const stats = computePortalStats("total");
+  earningsCache = { stats, stamp: cacheStamp };
+  return stats;
+}
+
+export interface EarningsSummary {
+  earnings: number;
+  events: number;
+  gold: number;
+  /** Miejsce w rankingu zarobków (1-based) lub null. */
+  rank: number | null;
+}
+
+export function getTeamEarnings(team: string): EarningsSummary {
+  const { orgs } = totalStats();
+  const idx = orgs.findIndex(o => o.team === team);
+  if (idx < 0) return { earnings: 0, events: 0, gold: 0, rank: null };
+  const o = orgs[idx];
+  return { earnings: o.earnings, events: o.events, gold: o.gold, rank: idx + 1 };
+}
+
+export function getPlayerEarnings(player: string): EarningsSummary {
+  const { players } = totalStats();
+  const idx = players.findIndex(p => p.player === player);
+  if (idx < 0) return { earnings: 0, events: 0, gold: 0, rank: null };
+  const p = players[idx];
+  return { earnings: p.earnings, events: p.events, gold: p.gold, rank: idx + 1 };
+}
+

@@ -5,6 +5,8 @@
 import type { TournamentData, MatchResult } from "./types";
 import { loadFromStorage } from "./storage";
 import { calculateRating } from "./playerStats";
+import { nationalTeamNames } from "./statsPortal";
+
 
 export interface TeamStreak {
   team: string;
@@ -45,7 +47,7 @@ function timestamp(m: MatchResult): number {
   return Number.isFinite(t) ? t : 0;
 }
 
-function collectMatches(list: TournamentData[]): FlatMatch[] {
+function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] {
   const out: FlatMatch[] = [];
   for (const t of list) {
     const ms: MatchResult[] = [
@@ -57,6 +59,8 @@ function collectMatches(list: TournamentData[]): FlatMatch[] {
     ];
     for (const m of ms) {
       if (!m.team1 || !m.team2 || m.team2 === "BYE" || m.team1 === "BYE") continue;
+      // Reprezentacje narodowe nie wchodzą do serii.
+      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
       if ((m.score1 || 0) + (m.score2 || 0) <= 0) continue;
       if (m.score1 === m.score2) continue;
       out.push({ ...m, ts: timestamp(m) });
@@ -65,9 +69,12 @@ function collectMatches(list: TournamentData[]): FlatMatch[] {
   return out.sort((a, b) => a.ts - b.ts);
 }
 
+
 export function computeStreaks(): StreakData {
   const all = loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
-  const matches = collectMatches(all);
+  const national = nationalTeamNames();
+  const matches = collectMatches(all, national);
+
 
   const teamRun = new Map<string, { win: number; loss: number; last?: number }>();
   const mapRun = new Map<string, { count: number; last?: number }>();
