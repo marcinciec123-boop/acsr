@@ -90,9 +90,11 @@ export function computePortalStats(year: string | "total"): PortalStats {
   let mapCount = 0;
   let majorCount = 0;
 
+  const national = nationalTeamNames();
   const orgMap = new Map<string, OrgStat>();
   const playerMap = new Map<string, PlayerStat>();
   const biggestPools: BigPool[] = [];
+
 
   for (const t of list) {
     const tier = (t.tier || "C") as Tier;
