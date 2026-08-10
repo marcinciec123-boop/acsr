@@ -70,7 +70,9 @@ function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] 
 
 export function computeStreaks(): StreakData {
   const all = loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
-  const matches = collectMatches(all);
+  const national = nationalTeamNames();
+  const matches = collectMatches(all, national);
+
 
   const teamRun = new Map<string, { win: number; loss: number; last?: number }>();
   const mapRun = new Map<string, { count: number; last?: number }>();
