@@ -45,7 +45,7 @@ function timestamp(m: MatchResult): number {
   return Number.isFinite(t) ? t : 0;
 }
 
-function collectMatches(list: TournamentData[]): FlatMatch[] {
+function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] {
   const out: FlatMatch[] = [];
   for (const t of list) {
     const ms: MatchResult[] = [
@@ -57,6 +57,8 @@ function collectMatches(list: TournamentData[]): FlatMatch[] {
     ];
     for (const m of ms) {
       if (!m.team1 || !m.team2 || m.team2 === "BYE" || m.team1 === "BYE") continue;
+      // Reprezentacje narodowe nie wchodzą do serii.
+      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
       if ((m.score1 || 0) + (m.score2 || 0) <= 0) continue;
       if (m.score1 === m.score2) continue;
       out.push({ ...m, ts: timestamp(m) });
@@ -64,6 +66,7 @@ function collectMatches(list: TournamentData[]): FlatMatch[] {
   }
   return out.sort((a, b) => a.ts - b.ts);
 }
+
 
 export function computeStreaks(): StreakData {
   const all = loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
