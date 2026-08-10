@@ -98,6 +98,8 @@ const PlayerProfile = ({
 
   // ===== Career stats from all manually-entered tournament match data =====
   const career = useMemo(() => computeCareerStats(playerName), [playerName]);
+  const earnings = useMemo(() => getPlayerEarnings(playerName), [playerName]);
+
 
   const avatarGradient = getAvatarColor(playerName);
   const [role, setRoleState] = useState<PlayerRole | "">((playerRoles[playerName] || "") as PlayerRole | "");
