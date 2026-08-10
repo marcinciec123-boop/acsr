@@ -62,9 +62,20 @@ const yearOf = (t: TournamentData): string => (t.startDate || "").slice(0, 4);
 const isOnline = (t: TournamentData): boolean =>
   /online|zdalnie/i.test(t.location || "");
 
+/** Nazwy reprezentacji narodowych — pomijane w zarobkach organizacji. */
+export function nationalTeamNames(): Set<string> {
+  try {
+    const teams = loadFromStorage<{ name: string; isNational?: boolean }[]>("ranking_data", []) || [];
+    return new Set(teams.filter(t => t.isNational).map(t => t.name));
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export function loadStatsTournaments(): TournamentData[] {
   return loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
 }
+
 
 export function computePortalStats(year: string | "total"): PortalStats {
   const all = loadStatsTournaments();
