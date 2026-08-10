@@ -229,6 +229,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     };
   }, [teamName]);
 
+  // Zarobki organizacji (bez reprezentacji narodowych).
+  const earnings = useMemo(() => getTeamEarnings(teamName), [teamName]);
+
+
   // ===== Win % na mapach z filtrem czasowym (wg fikcyjnego kalendarza) =====
   const worldDate = useWorldDate();
   const [mapRange, setMapRange] = usePersistedState<"1m" | "3m" | "6m" | "1y" | "all">(
