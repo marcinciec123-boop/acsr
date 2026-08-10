@@ -235,15 +235,8 @@ const PlayerProfile = ({
         {/* === Stats grid === */}
         {career.matchesPlayed > 0 ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
-              <StatCell icon={Crosshair} label="K/D" value={career.kdRatio.toFixed(2)} accent={career.kdRatio >= 1 ? "win" : "loss"} />
-              <StatCell icon={Zap} label="KPR" value={career.kpr.toFixed(2)} />
-              <StatCell icon={Skull} label="DPR" value={career.dpr.toFixed(2)} />
-              <StatCell icon={Activity} label="ADR" value={career.avgAdr.toString()} />
-              <StatCell icon={Target} label="KAST%" value={`${career.avgKast}`} />
-              <StatCell icon={Flame} label="UD" value={career.totalUd.toString()} subtitle="utility dmg" />
-              <StatCell icon={Zap} label="EF" value={career.totalEf.toString()} subtitle="enemies flashed" />
-            </div>
+            <PlayerStatsOverview career={career} earnings={earnings} />
+
 
             {/* === Trophies + best individual moments === */}
             {(career.trophies.length > 0 || career.mvpAwards.length > 0 || career.bestMatchRating || career.bestMapKills) && (
