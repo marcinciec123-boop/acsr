@@ -130,7 +130,10 @@ export function computePortalStats(year: string | "total"): PortalStats {
 
     for (const pl of t.placements || []) {
       if (!pl.team) continue;
+      // Reprezentacje narodowe nie są organizacjami — pomijamy w zarobkach.
+      if (national.has(pl.team)) continue;
       const prize = distributed[pl.placement] || 0;
+
       const org = orgMap.get(pl.team) || {
         team: pl.team, earnings: 0, gold: 0, silver: 0, bronze: 0, events: 0, titles: [],
       };
