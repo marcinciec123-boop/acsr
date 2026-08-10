@@ -127,8 +127,29 @@ const findInMap = (
   return out;
 };
 
+// ===== Cache statystyk kariery =====
+// Profile drużyn liczą statystyki dla 5+ graczy naraz — bez cache każde
+// renderowanie przemiata całą bazę turniejów od nowa.
+const careerCache = new Map<string, CareerStats>();
+if (typeof window !== "undefined") {
+  ["tournaments:update", "teams:update", "ranking:update", "storage"].forEach(ev =>
+    window.addEventListener(ev, () => careerCache.clear()),
+  );
+}
+
 export function computeCareerStats(playerName: string, tournaments?: TournamentData[]): CareerStats {
+  if (!tournaments) {
+    const hit = careerCache.get(playerName);
+    if (hit) return hit;
+  }
+  const result = computeCareerStatsUncached(playerName, tournaments);
+  if (!tournaments) careerCache.set(playerName, result);
+  return result;
+}
+
+function computeCareerStatsUncached(playerName: string, tournaments?: TournamentData[]): CareerStats {
   const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []);
+
 
   const matchEntries: CareerMatchEntry[] = [];
   const perMapAgg = new Map<string, { ratings: number[]; rounds: number; kills: number; adr: number[]; wins: number; played: number }>();
