@@ -259,7 +259,7 @@ const TournamentPanel = () => {
     setNewLocation(""); setNewTier("A");
     setCustomPointsEnabled(false); setCustomPoints({});
     setCustomPrizesEnabled(false); setCustomPrizes({});
-    setSelectedTeams([]); setTeamSearch("");
+    setSelectedTeams([]); setTotalSlots(0); setTeamSearch("");
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
     setQualScope("regional");
@@ -465,7 +465,7 @@ const TournamentPanel = () => {
       endDate: newEnd,
       location: newLocation.trim(),
       tier: newTier,
-      teams: selectedTeams.length,
+      teams: Math.max(totalSlots || 0, selectedTeams.length),
       format: phaseDrafts.map(p => formatLabel(p.format)).join(" → "),
       status: "upcoming",
       participants: selectedTeams,
@@ -1101,7 +1101,7 @@ const TournamentPanel = () => {
         }}
         activePhaseId={activePhaseByTournament[selectedTournament.id]}
         onActivePhaseChange={(phaseId) => setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }))}
-        mainTournaments={tournaments.filter(x => x.kind !== "qualifier" && x.id !== selectedTournament.id)}
+        mainTournaments={promotableTournaments.filter(x => x.id !== selectedTournament.id)}
         onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />
     ) : (
@@ -1166,7 +1166,7 @@ const TournamentPanel = () => {
                       setCustomPointsEnabled(e.target.checked);
                       if (e.target.checked && Object.keys(customPoints).length === 0) {
                         const defaults: Record<string, number> = {};
-                        const n = Math.max(2, selectedTeams.length || 2);
+                        const n = Math.max(2, slotCount || 2);
                         for (let p = 1; p <= n; p++) defaults[String(p)] = getDefaultPoints(newTier, p);
                         setCustomPoints(defaults);
                       }
@@ -1181,10 +1181,10 @@ const TournamentPanel = () => {
                   <>
                     <p className="text-xs font-mono text-muted-foreground">
                       Po zatwierdzeniu wyników drużyny dostaną tu ustawione punkty. Puste pole = wartość domyślna dla tieru.
-                      Liczba miejsc = liczba uczestników ({selectedTeams.length}).
+                      Liczba miejsc = łączna liczba slotów ({slotCount}).
                     </p>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-60 overflow-y-auto pr-1">
-                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                      {Array.from({ length: Math.max(0, slotCount) }, (_, i) => i + 1).map(p => (
                         <div key={p} className="flex items-center gap-1.5">
                           <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">
                             #{p}
@@ -1222,7 +1222,7 @@ const TournamentPanel = () => {
                       if (e.target.checked && Object.keys(customPrizes).length === 0) {
                         const defaults = distributePrizePool(
                           parsePrizePool(newPrize),
-                          Math.max(2, selectedTeams.length || 2),
+                          Math.max(2, slotCount || 2),
                         );
                         const map: Record<string, number> = {};
                         Object.entries(defaults).forEach(([k, v]) => { map[k] = v; });
@@ -1245,7 +1245,7 @@ const TournamentPanel = () => {
                       / pula {newPrize.trim() || "$0"}. 25% nagrody drużyny trafia do organizacji, reszta dzieli się na skład.
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
-                      {Array.from({ length: Math.max(0, selectedTeams.length) }, (_, i) => i + 1).map(p => (
+                      {Array.from({ length: Math.max(0, slotCount) }, (_, i) => i + 1).map(p => (
                         <div key={p} className="flex items-center gap-1.5">
                           <span className="text-xs font-mono text-muted-foreground w-10 shrink-0">#{p}</span>
                           <Input
@@ -1528,7 +1528,7 @@ const TournamentPanel = () => {
                         className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono"
                       >
                         <option value="">— brak (wybierzesz później) —</option>
-                        {tournaments.filter(x => x.kind !== "qualifier").map(x => (
+                        {promotableTournaments.map(x => (
                           <option key={x.id} value={x.id}>{x.name}</option>
                         ))}
                       </select>
