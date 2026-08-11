@@ -214,6 +214,16 @@ const TournamentPanel = () => {
 
   const teamMeta = useMemo(() => new Map(liveRanking.map(t => [t.name, t])), [liveRanking]);
 
+  /** Ile miejsc ma turniej (ręcznie ustawione sloty albo liczba wybranych drużyn). */
+  const slotCount = Math.max(totalSlots || 0, selectedTeams.length);
+
+  /** Turnieje główne, do których można jeszcze awansować (nie zakończone/zatwierdzone). */
+  const promotableTournaments = useMemo(
+    () => tournaments.filter(x => x.kind !== "qualifier" && x.status !== "completed" && !x.resultsConfirmed),
+    [tournaments],
+  );
+
+
   const archivedSet = useMemo(() => {
     const s = new Set(loadArchivedTeams());
     // Renamed teams: their oldName should not show up in tournament selection.
