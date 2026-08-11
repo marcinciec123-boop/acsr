@@ -1269,7 +1269,26 @@ const TournamentPanel = () => {
                     <Shuffle className="w-3 h-3" /> Losuj rozstawienie
                   </Button>
                 </div>
+                <div className="flex flex-wrap items-center gap-2 bg-secondary/20 border border-border rounded-md p-2">
+                  <label className="text-xs font-mono text-muted-foreground">Łączna liczba slotów:</label>
+                  <Input
+                    type="number"
+                    min="2"
+                    value={totalSlots === 0 ? "" : totalSlots}
+                    placeholder={String(selectedTeams.length || 0)}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setTotalSlots(v === "" ? 0 : Math.max(0, parseInt(v, 10) || 0));
+                    }}
+                    className="w-24 h-7 text-center text-xs"
+                  />
+                  <span className="text-xs font-mono text-muted-foreground">
+                    Puste = liczba wybranych drużyn. Zostaw większą liczbę, jeśli część miejsc uzupełnią kwalifikacje
+                    (punkty i nagrody rozpiszesz na wszystkie {slotCount} miejsc).
+                  </span>
+                </div>
                 {selectedTeams.length > 0 && (
+
                   <div className="bg-secondary/30 border border-border rounded-md p-2">
                     <p className="text-xs font-mono text-muted-foreground mb-1.5">
                       Rozstawienie (kolejność = seed). Użyj ↑↓ aby przesunąć, ✕ aby usunąć:
