@@ -1,13 +1,15 @@
 // ===== HLTV-style overview statystyk gracza =====
 // Górny pas z ratingiem i metrykami jakościowymi (POOR / OKAY / GOOD / GREAT)
 // oraz tabela "Statistics" w dwóch kolumnach.
+// Oceny są RELATYWNE — liczone jako percentyl na tle wszystkich graczy w bazie.
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { CareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import { formatMoney } from "@/lib/prizeDistribution";
 import type { EarningsSummary } from "@/lib/statsPortal";
+import { getBenchmarks, percentileOf, type BenchmarkKey } from "@/lib/playerBenchmarks";
 
 type Quality = "poor" | "okay" | "good" | "great";
 
@@ -29,35 +31,35 @@ const QUALITY_TEXT: Record<Quality, string> = {
   great: "text-primary",
 };
 
-/** Skala rosnąca: progi [poor<, okay<, good<] — powyżej = great. */
-const scaleUp = (v: number, t: [number, number, number]): Quality =>
-  v < t[0] ? "poor" : v < t[1] ? "okay" : v < t[2] ? "good" : "great";
-
-/** Skala malejąca (mniej = lepiej). */
-const scaleDown = (v: number, t: [number, number, number]): Quality =>
-  v > t[0] ? "poor" : v > t[1] ? "okay" : v > t[2] ? "good" : "great";
+/** Percentyl → ocena jakościowa (relatywnie do reszty ligi). */
+const qualityOf = (pct: number): Quality =>
+  pct < 25 ? "poor" : pct < 50 ? "okay" : pct < 80 ? "good" : "great";
 
 const Metric = ({
-  label, value, quality, pct,
-}: { label: string; value: string; quality: Quality; pct: number }) => (
-  <div className="flex-1 min-w-[110px] px-3 py-2">
-    <div className="flex items-baseline justify-center gap-1.5">
-      <span className="text-2xl font-heading font-bold tabular-nums text-foreground">{value}</span>
+  label, value, pct, avg,
+}: { label: string; value: string; pct: number; avg: string }) => {
+  const quality = qualityOf(pct);
+  return (
+    <div className="flex-1 min-w-[110px] px-3 py-2">
+      <div className="flex items-baseline justify-center gap-1.5">
+        <span className="text-2xl font-heading font-bold tabular-nums text-foreground">{value}</span>
+      </div>
+      <p className="text-2xs font-mono uppercase tracking-widest text-muted-foreground text-center mt-0.5">
+        {label}
+      </p>
+      <div className="mt-2 h-1.5 rounded-full bg-secondary/70 overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all", QUALITY_BAR[quality])}
+          style={{ width: `${Math.max(4, Math.min(100, pct))}%` }}
+        />
+      </div>
+      <p className={cn("text-2xs font-mono text-center mt-1", QUALITY_TEXT[quality])}>
+        {QUALITY_LABEL[quality]} · TOP {Math.max(1, 100 - pct)}%
+      </p>
+      <p className="text-2xs font-mono text-center text-muted-foreground/70">śr. {avg}</p>
     </div>
-    <p className="text-2xs font-mono uppercase tracking-widest text-muted-foreground text-center mt-0.5">
-      {label}
-    </p>
-    <div className="mt-2 h-1.5 rounded-full bg-secondary/70 overflow-hidden">
-      <div
-        className={cn("h-full rounded-full transition-all", QUALITY_BAR[quality])}
-        style={{ width: `${Math.max(4, Math.min(100, pct))}%` }}
-      />
-    </div>
-    <p className={cn("text-2xs font-mono text-center mt-1", QUALITY_TEXT[quality])}>
-      {QUALITY_LABEL[quality]}
-    </p>
-  </div>
-);
+  );
+};
 
 const Row = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 last:border-0 odd:bg-secondary/20">
@@ -76,12 +78,20 @@ const PlayerStatsOverview = ({ career, earnings }: Props) => {
   const udr = rounds ? career.totalUd / rounds : 0;
   const efr = rounds ? career.totalEf / rounds : 0;
 
-  const ratingQ = scaleUp(career.careerRating, [0.95, 1.05, 1.15]);
-  const dprQ = scaleDown(career.dpr, [0.72, 0.66, 0.60]);
-  const kastQ = scaleUp(career.avgKast, [66, 71, 75]);
-  const adrQ = scaleUp(career.avgAdr, [66, 74, 82]);
-  const kprQ = scaleUp(career.kpr, [0.62, 0.70, 0.78]);
-  const udQ = scaleUp(udr, [2.5, 4.5, 6.5]);
+  const bench = useMemo(() => getBenchmarks(), [career.player]);
+  const pct = useMemo(() => {
+    const p = (k: BenchmarkKey, v: number, lowerBetter = false) => percentileOf(k, v, lowerBetter);
+    return {
+      rating: p("rating", career.careerRating),
+      dpr: p("dpr", career.dpr, true),
+      kpr: p("kpr", career.kpr),
+      kast: p("kast", career.avgKast),
+      adr: p("adr", career.avgAdr),
+      udr: p("udr", udr),
+    };
+  }, [career.careerRating, career.dpr, career.kpr, career.avgKast, career.avgAdr, udr]);
+
+  const ratingQ = qualityOf(pct.rating);
 
   return (
     <div className="space-y-4 mb-6">
@@ -93,20 +103,26 @@ const PlayerStatsOverview = ({ career, earnings }: Props) => {
             <p className={cn("text-5xl font-heading font-black tabular-nums leading-none mt-1", getRatingColor(career.careerRating))}>
               {career.careerRating > 0 ? career.careerRating.toFixed(2) : "—"}
             </p>
-            <p className={cn("text-xs font-mono mt-1", QUALITY_TEXT[ratingQ])}>{QUALITY_LABEL[ratingQ]}</p>
+            <p className={cn("text-xs font-mono mt-1", QUALITY_TEXT[ratingQ])}>
+              {QUALITY_LABEL[ratingQ]} · TOP {Math.max(1, 100 - pct.rating)}%
+            </p>
             <p className="text-2xs font-mono text-muted-foreground mt-2">
               {career.mapsPlayed} map • {career.matchesPlayed} meczów
             </p>
+            <p className="text-2xs font-mono text-muted-foreground/70">
+              średnia ligi: {bench.avg.rating.toFixed(2)} ({bench.players} graczy)
+            </p>
           </div>
           <div className="flex flex-wrap flex-1 divide-x divide-border/40 py-2">
-            <Metric label="DPR" value={career.dpr.toFixed(2)} quality={dprQ} pct={(1 - Math.min(1, career.dpr / 0.9)) * 100} />
-            <Metric label="KPR" value={career.kpr.toFixed(2)} quality={kprQ} pct={(career.kpr / 1.0) * 100} />
-            <Metric label="KAST" value={`${career.avgKast}%`} quality={kastQ} pct={career.avgKast} />
-            <Metric label="ADR" value={career.avgAdr.toFixed(0)} quality={adrQ} pct={(career.avgAdr / 110) * 100} />
-            <Metric label="UD / runda" value={udr.toFixed(1)} quality={udQ} pct={(udr / 9) * 100} />
+            <Metric label="DPR" value={career.dpr.toFixed(2)} pct={pct.dpr} avg={bench.avg.dpr.toFixed(2)} />
+            <Metric label="KPR" value={career.kpr.toFixed(2)} pct={pct.kpr} avg={bench.avg.kpr.toFixed(2)} />
+            <Metric label="KAST" value={`${career.avgKast}%`} pct={pct.kast} avg={`${bench.avg.kast.toFixed(1)}%`} />
+            <Metric label="ADR" value={career.avgAdr.toFixed(0)} pct={pct.adr} avg={bench.avg.adr.toFixed(0)} />
+            <Metric label="UD / runda" value={udr.toFixed(1)} pct={pct.udr} avg={bench.avg.udr.toFixed(1)} />
           </div>
         </div>
       </div>
+
 
       {/* === Statistics === */}
       <div>
