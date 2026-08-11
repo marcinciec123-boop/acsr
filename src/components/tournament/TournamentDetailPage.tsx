@@ -268,6 +268,8 @@ export const TournamentDetailPage = ({
   const [editingWinnersRegion, setEditingWinnersRegion] = useState<string | null>(null);
   const [winnersDraft, setWinnersDraft] = useState<string[]>([]);
 
+  /** Awans dozwolony dopiero po zakończeniu turnieju kwalifikacyjnego. */
+  const qualifierFinished = t.status === "completed" || !!t.resultsConfirmed;
   const promoted = t.qualifierConfig?.promotedTeams || [];
   const allWinners = Object.values(winnersByRegion).flat();
   const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
@@ -682,6 +684,11 @@ export const TournamentDetailPage = ({
                 <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                   Awansuj zwycięzców do turnieju głównego
                 </label>
+                {!qualifierFinished && (
+                  <p className="text-xs font-mono text-[hsl(var(--loss))]">
+                    🔒 Awans możliwy dopiero po zakończeniu kwalifikacji (ustaw status „Zakończony").
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <select
                     value={linkedTarget}
@@ -696,11 +703,11 @@ export const TournamentDetailPage = ({
                   <Button
                     size="sm"
                     onClick={() => {
-                      if (linkedTarget && pendingPromotion.length > 0) {
+                      if (qualifierFinished && linkedTarget && pendingPromotion.length > 0) {
                         onPromoteWinners(pendingPromotion, linkedTarget);
                       }
                     }}
-                    disabled={!linkedTarget || pendingPromotion.length === 0}
+                    disabled={!qualifierFinished || !linkedTarget || pendingPromotion.length === 0}
                     className="gap-1.5"
                   >
                     <Send className="w-3 h-3" />
