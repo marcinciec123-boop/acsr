@@ -135,7 +135,10 @@ const TournamentPanel = () => {
 
   // Participants
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  /** Łączna liczba miejsc w turnieju (0 = tyle, ile wybranych drużyn). */
+  const [totalSlots, setTotalSlots] = useState<number>(0);
   const [teamSearch, setTeamSearch] = useState("");
+
   const [teamSort, setTeamSort] = useState<"name" | "rank" | "points-desc" | "points-asc" | "region" | "country">("rank");
 
   // Phases (custom builder)
