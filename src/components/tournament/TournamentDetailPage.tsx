@@ -268,6 +268,8 @@ export const TournamentDetailPage = ({
   const [editingWinnersRegion, setEditingWinnersRegion] = useState<string | null>(null);
   const [winnersDraft, setWinnersDraft] = useState<string[]>([]);
 
+  /** Awans dozwolony dopiero po zakończeniu turnieju kwalifikacyjnego. */
+  const qualifierFinished = t.status === "completed" || !!t.resultsConfirmed;
   const promoted = t.qualifierConfig?.promotedTeams || [];
   const allWinners = Object.values(winnersByRegion).flat();
   const pendingPromotion = allWinners.filter(w => !promoted.includes(w));
@@ -474,6 +476,16 @@ export const TournamentDetailPage = ({
           const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
           const sorted = [...ranking].filter(tm => !tm.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
           const rankMap = new Map(sorted.map((tm, i) => [tm.name, i + 1]));
+          // Sposób dostania się na turniej: kwalifikacja (jeśli drużyna została z niej
+          // awansowana do tego turnieju) albo zaproszenie z rankingu ACSR.
+          const allT = loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
+          const entryMap = new Map<string, string>();
+          for (const q of allT) {
+            if (q.kind !== "qualifier" || q.qualifierConfig?.linkedTournamentId !== t.id) continue;
+            for (const team of q.qualifierConfig?.promotedTeams || []) {
+              if (!entryMap.has(team)) entryMap.set(team, q.name);
+            }
+          }
           return (
             <div className="bg-card border border-border rounded-lg p-4 mb-6">
               <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3 flex items-center gap-2">
@@ -498,6 +510,22 @@ export const TournamentDetailPage = ({
                       <span className="text-muted-foreground">#{i + 1}</span>
                       {clickable && <TeamLogo teamName={p} size={18} rounded="md" />}
                       {p}
+                      {clickable && (() => {
+                        const q = entryMap.get(p);
+                        return (
+                          <span
+                            className={cn(
+                              "text-xs font-mono px-1.5 py-0.5 rounded border",
+                              q
+                                ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
+                                : "bg-secondary text-muted-foreground border-border",
+                            )}
+                            title={q ? `Awans z kwalifikacji: ${q}` : "Zaproszenie z rankingu ACSR"}
+                          >
+                            {q ? `Kwalifikacje: ${q}` : "ACSR Ranking"}
+                          </span>
+                        );
+                      })()}
                       {rank && (
                         <span
                           className="text-xs font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30"
@@ -682,6 +710,11 @@ export const TournamentDetailPage = ({
                 <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">
                   Awansuj zwycięzców do turnieju głównego
                 </label>
+                {!qualifierFinished && (
+                  <p className="text-xs font-mono text-[hsl(var(--loss))]">
+                    🔒 Awans możliwy dopiero po zakończeniu kwalifikacji (ustaw status „Zakończony").
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <select
                     value={linkedTarget}
@@ -696,11 +729,11 @@ export const TournamentDetailPage = ({
                   <Button
                     size="sm"
                     onClick={() => {
-                      if (linkedTarget && pendingPromotion.length > 0) {
+                      if (qualifierFinished && linkedTarget && pendingPromotion.length > 0) {
                         onPromoteWinners(pendingPromotion, linkedTarget);
                       }
                     }}
-                    disabled={!linkedTarget || pendingPromotion.length === 0}
+                    disabled={!qualifierFinished || !linkedTarget || pendingPromotion.length === 0}
                     className="gap-1.5"
                   >
                     <Send className="w-3 h-3" />
