@@ -97,7 +97,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     const matches: {
       id: string; tournamentId: string; tournamentName: string; date: string;
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
-      playedAt?: string;
+      playedAt?: string; scheduledAt?: string;
     }[] = [];
     const upcoming: {
       id: string; tournamentId: string; tournamentName: string; tier?: string;
@@ -188,15 +188,17 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           won,
           bo: m.bo, round: m.round,
           playedAt: m.playedAt,
+          scheduledAt: m.scheduledAt,
         });
       }
     }
 
     trophies.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
-    // Chronological: newest first by `playedAt`, fallback to tournament endDate.
+    // Chronological: the scheduled date+time is the actual match slot. `playedAt`
+    // is only a fallback because it may contain the generic fictional noon time.
     matches.sort((a, b) => {
-      const ka = a.playedAt || a.date || "";
-      const kb = b.playedAt || b.date || "";
+      const ka = a.scheduledAt || a.playedAt || a.date || "";
+      const kb = b.scheduledAt || b.playedAt || b.date || "";
       return kb.localeCompare(ka);
     });
     const totalMatches = wins + losses;

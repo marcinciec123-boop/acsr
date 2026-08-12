@@ -6,6 +6,8 @@
 import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating } from "./playerStats";
 import { loadFromStorage } from "./storage";
+import { teamDatabase } from "@/data/tournaments";
+import type { TeamData } from "./types";
 
 export type BenchmarkKey = "rating" | "kpr" | "dpr" | "kast" | "adr" | "udr";
 
@@ -28,6 +30,13 @@ const MIN_ROUNDS = 60;
 
 function build(tournaments?: TournamentData[]): Benchmarks {
   const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []) ?? [];
+  const storedTeams = loadFromStorage<TeamData[]>("ranking_data", []);
+  const teams = storedTeams.length > 0 ? storedTeams : teamDatabase;
+  const clubPlayers = new Set(
+    teams
+      .filter(team => !team.isNational)
+      .flatMap(team => team.roster),
+  );
   interface Acc {
     kills: number; deaths: number; assists: number;
     ud: number; ef: number; adrW: number; kastW: number; rounds: number;
@@ -74,7 +83,7 @@ function build(tournaments?: TournamentData[]): Benchmarks {
         push(map.team2Players, false, rounds);
       }
       for (const [name, a] of local) {
-        if (a.rounds === 0) continue;
+        if (a.rounds === 0 || !clubPlayers.has(name)) continue;
         const rating = calculateRating({
           playerName: name,
           team: a.isTeam1 ? match.team1 : match.team2,

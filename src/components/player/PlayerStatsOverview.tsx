@@ -1,7 +1,7 @@
 // ===== HLTV-style overview statystyk gracza =====
 // Górny pas z ratingiem i metrykami jakościowymi (POOR / OKAY / GOOD / GREAT)
 // oraz tabela "Statistics" w dwóch kolumnach.
-// Oceny są RELATYWNE — liczone jako percentyl na tle wszystkich graczy w bazie.
+// Metryki poza ratingiem są RELATYWNE — liczone na tle graczy mających klub.
 
 import { memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,10 @@ const QUALITY_TEXT: Record<Quality, string> = {
 const qualityOf = (pct: number): Quality =>
   pct < 25 ? "poor" : pct < 50 ? "okay" : pct < 80 ? "good" : "great";
 
+/** Rating ma stałe progi i nie zależy od średniej pozostałych graczy. */
+const ratingQualityOf = (rating: number): Quality =>
+  rating <= 0.95 ? "poor" : rating <= 1.04 ? "okay" : rating <= 1.15 ? "good" : "great";
+
 const Metric = ({
   label, value, pct, avg,
 }: { label: string; value: string; pct: number; avg: string }) => {
@@ -54,7 +58,7 @@ const Metric = ({
         />
       </div>
       <p className={cn("text-2xs font-mono text-center mt-1", QUALITY_TEXT[quality])}>
-        {QUALITY_LABEL[quality]} · TOP {Math.max(1, 100 - pct)}%
+        {QUALITY_LABEL[quality]}
       </p>
       <p className="text-2xs font-mono text-center text-muted-foreground/70">śr. {avg}</p>
     </div>
@@ -82,7 +86,6 @@ const PlayerStatsOverview = ({ career, earnings }: Props) => {
   const pct = useMemo(() => {
     const p = (k: BenchmarkKey, v: number, lowerBetter = false) => percentileOf(k, v, lowerBetter);
     return {
-      rating: p("rating", career.careerRating),
       dpr: p("dpr", career.dpr, true),
       kpr: p("kpr", career.kpr),
       kast: p("kast", career.avgKast),
@@ -91,7 +94,7 @@ const PlayerStatsOverview = ({ career, earnings }: Props) => {
     };
   }, [career.careerRating, career.dpr, career.kpr, career.avgKast, career.avgAdr, udr]);
 
-  const ratingQ = qualityOf(pct.rating);
+  const ratingQ = ratingQualityOf(career.careerRating);
 
   return (
     <div className="space-y-4 mb-6">
@@ -104,14 +107,12 @@ const PlayerStatsOverview = ({ career, earnings }: Props) => {
               {career.careerRating > 0 ? career.careerRating.toFixed(2) : "—"}
             </p>
             <p className={cn("text-xs font-mono mt-1", QUALITY_TEXT[ratingQ])}>
-              {QUALITY_LABEL[ratingQ]} · TOP {Math.max(1, 100 - pct.rating)}%
+              {QUALITY_LABEL[ratingQ]}
             </p>
             <p className="text-2xs font-mono text-muted-foreground mt-2">
               {career.mapsPlayed} map • {career.matchesPlayed} meczów
             </p>
-            <p className="text-2xs font-mono text-muted-foreground/70">
-              średnia ligi: {bench.avg.rating.toFixed(2)} ({bench.players} graczy)
-            </p>
+            <p className="text-2xs font-mono text-muted-foreground/70">stałe progi oceny ratingu</p>
           </div>
           <div className="flex flex-wrap flex-1 divide-x divide-border/40 py-2">
             <Metric label="DPR" value={career.dpr.toFixed(2)} pct={pct.dpr} avg={bench.avg.dpr.toFixed(2)} />

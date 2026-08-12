@@ -1,5 +1,5 @@
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Globe, ArrowRightLeft, Trophy, Shield, Target, Skull,
@@ -65,6 +65,12 @@ const getAvatarColor = (name: string): string => {
 const PlayerProfile = ({
   playerName, onBack, onSelectTeam, onSelectPlayer, seasonStandings, dynamicRanking,
 }: PlayerProfileProps) => {
+  const [benchTick, setBenchTick] = useState(0);
+  useEffect(() => {
+    const refresh = () => setBenchTick(value => value + 1);
+    window.addEventListener("bench:update", refresh);
+    return () => window.removeEventListener("bench:update", refresh);
+  }, []);
   const country = playerNationalities[playerName] || "??";
   const realName = playerRealNames[playerName];
   const rankingSource = dynamicRanking && dynamicRanking.length > 0 ? dynamicRanking : teamDatabase;
@@ -89,7 +95,7 @@ const PlayerProfile = ({
 
   const teamHistory = useMemo(
     () => buildPlayerTeamHistory(playerName, rankingSource),
-    [playerName, rankingSource],
+    [playerName, rankingSource, benchTick],
   );
 
   const teamStanding = currentTeam
@@ -703,12 +709,17 @@ const PlayerProfile = ({
                       </span>
                     )}
                   </div>
-                  {s.segments.some(seg => seg.inactive) && (
-                    <div className="mt-1.5 pl-8 space-y-1">
-                      {s.segments.filter(seg => seg.inactive).map((seg, j) => (
+                  {s.segments.length > 0 && (
+                    <div className="mt-2 pl-8 space-y-1 border-t border-border/40 pt-2">
+                      {s.segments.map((seg, j) => (
                         <div key={j} className="flex items-center gap-2 text-xs font-mono">
-                          <span className="px-1.5 py-0.5 rounded bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))] uppercase">
-                            Inactive
+                          <span className={cn(
+                            "min-w-[68px] text-center px-1.5 py-0.5 rounded uppercase",
+                            seg.inactive
+                              ? "bg-[hsl(var(--loss))]/15 text-[hsl(var(--loss))]"
+                              : "bg-[hsl(var(--win))]/15 text-[hsl(var(--win))]",
+                          )}>
+                            {seg.inactive ? "Inactive" : "Active"}
                           </span>
                           <span className="text-muted-foreground">{fmtRange(seg.from, seg.to)}</span>
                         </div>
