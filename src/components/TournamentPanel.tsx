@@ -16,7 +16,7 @@ import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
-import { buildPhase, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
+import { buildPhase, buildSwissRound1, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { normalizeAllTournamentByes, normalizeTournamentByes, stampPlayedAt } from "@/lib/normalizeMatches";
@@ -623,6 +623,13 @@ const TournamentPanel = () => {
         ...t,
         phases: t.phases.map(p => {
           if (p.id !== phaseId) return p;
+          if (p.format === "swiss") {
+            return {
+              ...p,
+              teams: [...teams],
+              bracket: buildSwissRound1(teams, p.bo),
+            };
+          }
           // Bracket: assign teams to first-round matches in pairs
           if (p.bracket && p.bracket.length > 0) {
             // Identify first round (preserve insertion order)
