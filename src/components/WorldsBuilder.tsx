@@ -219,7 +219,7 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
       phases.push(phase);
       if (idx < phaseDrafts.length - 1) {
         const nextCount = draft.advanceCount || phaseTeams.length;
-        teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-${idx}-${i + 1}`);
+        teamsForPhase = Array.from({ length: nextCount }, (_, i) => `TBD-P${idx}-${i + 1}`);
       }
     });
 
