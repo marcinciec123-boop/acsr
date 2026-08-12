@@ -41,18 +41,20 @@ export function isBenched(team: string, player: string): boolean {
 export function benchPlayer(team: string, player: string): void {
   const map = loadBenched();
   const cur = new Set(map[team] || []);
+  if (cur.has(player)) return;
   cur.add(player);
   map[team] = [...cur];
-  saveBenched(map);
   recordBenchEvent(team, player, "bench");
+  saveBenched(map);
 }
 
 export function activatePlayer(team: string, player: string): void {
   const map = loadBenched();
+  if (!(map[team] || []).includes(player)) return;
   const cur = (map[team] || []).filter(p => p !== player);
   map[team] = cur;
-  saveBenched(map);
   recordBenchEvent(team, player, "activate");
+  saveBenched(map);
 }
 
 export function clearBenchFor(team: string): void {

@@ -137,6 +137,13 @@ const PhaseSeedingPanel = ({
   });
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    if (open) return;
+    const base = [...phaseTeams];
+    while (base.length < slotCount) base.push("");
+    setDraft(base.slice(0, slotCount));
+  }, [phaseTeams, slotCount, open]);
+
   const move = (idx: number, dir: -1 | 1) => {
     setDraft(prev => {
       const next = [...prev];
@@ -932,13 +939,13 @@ export const TournamentDetailPage = ({
                     })()}
 
                     {/* Seeding panel */}
-                    {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
+                    {onReseedPhase && phase.format === "swiss" && (
                       <PhaseSeedingPanel
                         phaseTeams={phase.teams}
-                        allTeams={Array.from(new Set(t.participants)).sort()}
+                        allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
                         slotCount={Math.max(
                           phase.teams.length,
-                          (phase.bracket.filter(m => m.round === phase.bracket![0].round).length) * 2
+                          ((phase.bracket || []).filter(m => m.round === phase.bracket?.[0]?.round).length) * 2
                         )}
                         onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
                       />
@@ -975,7 +982,7 @@ export const TournamentDetailPage = ({
                         </div>
                       );
                     })()}
-                    {phase.bracket && phase.bracket.length > 0 && phase.format === "swiss" && (
+                    {phase.bracket && phase.format === "swiss" && (
                       <SwissView
                         phaseTeams={phase.teams}
                         matches={phase.bracket}

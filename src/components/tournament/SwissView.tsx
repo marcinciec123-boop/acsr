@@ -322,7 +322,6 @@ export const SwissView = ({
     // Niewykorzystane sloty (np. mniej par niż projekcja) — usuń, żeby nie zostawały puste TBD.
     if (onDelete) pool.forEach(m => onDelete(m.id));
     if (leftovers.length) onGenerateNextRound(leftovers);
-    if (leftovers.length) onGenerateNextRound(leftovers);
   };
 
   const nextPlan = planNextSwissRound(stage, { decisiveBo: 3 });

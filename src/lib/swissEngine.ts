@@ -12,6 +12,7 @@
 
 import type { MatchResult } from "./types";
 import { getDisplayScore } from "./matchDisplay";
+import { isPlaceholder } from "./teamHelpers";
 
 export interface SwissTeamStanding {
   team: string;
@@ -113,7 +114,7 @@ export function computeSwissStage(
   // Ensure teams that appear in bracket but not in phaseTeams (manual edits) are tracked too.
   bracket.forEach(m => {
     [m.team1, m.team2].forEach(name => {
-      if (name && !map.has(name)) {
+      if (name && !isPlaceholder(name) && !map.has(name)) {
         map.set(name, {
           team: name,
           wins: 0,
