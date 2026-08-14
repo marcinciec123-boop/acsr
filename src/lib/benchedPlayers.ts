@@ -90,6 +90,11 @@ export function getActiveRoster(team: TeamData): string[] {
   return splitRoster(team).active;
 }
 
+/** Incoming non-coach joins the bench when the active five is already full. */
+export function shouldAutoBenchIncoming(team: TeamData, player: string): boolean {
+  return !team.roster.includes(player) && getActiveRoster(team).length >= 5;
+}
+
 // ===== Bench history log =====
 // Every bench/activate action is timestamped with the fictional world date
 // so player profiles can render "Inactive" periods inside a team stint.

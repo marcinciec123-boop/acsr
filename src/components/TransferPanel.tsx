@@ -31,7 +31,7 @@ import {
   persistCurrentRosters, type ChangeLogEntry,
   persistPlayerMetadata,
 } from "@/lib/changeLog";
-import { benchPlayer, getActiveRoster, removeFromAllBenches } from "@/lib/benchedPlayers";
+import { benchPlayer, removeFromAllBenches, shouldAutoBenchIncoming } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
 
 type TransferType = "all" | "join" | "leave" | "move";
@@ -318,8 +318,7 @@ const TransferPanel = () => {
       : liveTeams.find(team => team.name === transferTo);
     const shouldBenchIncoming = !isCoach
       && !!targetBeforeTransfer
-      && !targetBeforeTransfer.roster.includes(t.player)
-      && getActiveRoster(targetBeforeTransfer).length >= 5;
+      && shouldAutoBenchIncoming(targetBeforeTransfer, t.player);
 
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
