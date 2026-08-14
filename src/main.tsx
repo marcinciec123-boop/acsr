@@ -43,7 +43,7 @@ const startApp = async () => {
   if ("requestIdleCallback" in window) {
     window.requestIdleCallback(runDeferredMaintenance, { timeout: 2500 });
   } else {
-    window.setTimeout(runDeferredMaintenance, 500);
+    setTimeout(runDeferredMaintenance, 500);
   }
 };
 

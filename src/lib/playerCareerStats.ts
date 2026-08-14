@@ -8,7 +8,7 @@ import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
 import { worldNowMs } from "./worldClock";
-import { compareMatchesNewestFirst, getMatchDateTime } from "./matchTime";
+import { compareMatchesNewestFirst } from "./matchTime";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -288,7 +288,7 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
-        playedAt: match.playedAt,
+        playedAt: match.playedAt || t.endDate,
         scheduledAt: match.scheduledAt,
         kills: mKills,
         deaths: mDeaths,
@@ -305,10 +305,7 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
   }
 
   // Sort all matches chronologically (newest first) for the recent list
-  matchEntries.sort((a, b) => compareMatchesNewestFirst(
-    { ...a, fallbackDate: ts.find(t => t.id === a.tournamentId)?.endDate },
-    { ...b, fallbackDate: ts.find(t => t.id === b.tournamentId)?.endDate },
-  ));
+  matchEntries.sort(compareMatchesNewestFirst);
 
   const matchesPlayed = matchEntries.length;
   const careerRating = matchesPlayed > 0
