@@ -31,7 +31,7 @@ import {
   persistCurrentRosters, type ChangeLogEntry,
   persistPlayerMetadata,
 } from "@/lib/changeLog";
-import { removeFromAllBenches } from "@/lib/benchedPlayers";
+import { benchPlayer, getActiveRoster, removeFromAllBenches } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
 
 type TransferType = "all" | "join" | "leave" | "move";
@@ -313,6 +313,13 @@ const TransferPanel = () => {
     const before = captureSnapshot();
 
     const isCoach = selectedEntry?.kind === "coach" || (playerRoles as Record<string, string>)[t.player] === "Coach";
+    const targetBeforeTransfer = transferTo === "-"
+      ? undefined
+      : liveTeams.find(team => team.name === transferTo);
+    const shouldBenchIncoming = !isCoach
+      && !!targetBeforeTransfer
+      && !targetBeforeTransfer.roster.includes(t.player)
+      && getActiveRoster(targetBeforeTransfer).length >= 5;
 
     // Update teamDatabase rosters (runtime)
     if (transferFrom !== "-") {
@@ -334,6 +341,7 @@ const TransferPanel = () => {
       // metadata (nationality, real name, role) as normal player overrides.
       persistPersonMetadataAfterSigning(t.player);
       removeManualFreeAgent(t.player, { clearOverrides: false });
+      if (shouldBenchIncoming) benchPlayer(transferTo, t.player, t.date);
     }
 
 
@@ -365,9 +373,6 @@ const TransferPanel = () => {
       });
       saveToStorage(RANKING_KEY, updated);
     }
-    window.dispatchEvent(new CustomEvent("teams:update"));
-    window.dispatchEvent(new CustomEvent("ranking:update"));
-
     setTransfers(prev => [t, ...prev]);
     recordChange(
       "transfer",

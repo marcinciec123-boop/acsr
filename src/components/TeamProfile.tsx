@@ -35,6 +35,7 @@ import MajorBadge from "@/components/MajorBadge";
 import { isMajorName, historicMajorsForTeam } from "@/lib/majors";
 import { getTeamEarnings } from "@/lib/statsPortal";
 import { formatMoney } from "@/lib/prizeDistribution";
+import { compareMatchesNewestFirst } from "@/lib/matchTime";
 
 
 interface TeamProfileProps {
@@ -196,11 +197,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     trophies.sort((a, b) => (b.endDate || "").localeCompare(a.endDate || ""));
     // Chronological: the scheduled date+time is the actual match slot. `playedAt`
     // is only a fallback because it may contain the generic fictional noon time.
-    matches.sort((a, b) => {
-      const ka = a.scheduledAt || a.playedAt || a.date || "";
-      const kb = b.scheduledAt || b.playedAt || b.date || "";
-      return kb.localeCompare(ka);
-    });
+    matches.sort((a, b) => compareMatchesNewestFirst(
+      { ...a, fallbackDate: a.date },
+      { ...b, fallbackDate: b.date },
+    ));
     const totalMatches = wins + losses;
     const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 

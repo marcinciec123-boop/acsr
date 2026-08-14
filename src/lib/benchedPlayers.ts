@@ -38,13 +38,13 @@ export function isBenched(team: string, player: string): boolean {
   return getBenchedFor(team).includes(player);
 }
 
-export function benchPlayer(team: string, player: string): void {
+export function benchPlayer(team: string, player: string, date?: string): void {
   const map = loadBenched();
   const cur = new Set(map[team] || []);
   if (cur.has(player)) return;
   cur.add(player);
   map[team] = [...cur];
-  recordBenchEvent(team, player, "bench");
+  recordBenchEvent(team, player, "bench", date);
   saveBenched(map);
 }
 

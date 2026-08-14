@@ -1,25 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import NavBar, { type Tab } from "@/components/NavBar";
-import NewsFeed from "@/components/NewsFeed";
-import RankingPanel from "@/components/RankingPanel";
-import TournamentPanel from "@/components/TournamentPanel";
-import TransferPanel from "@/components/TransferPanel";
-import TeamProfile from "@/components/TeamProfile";
-import PlayerProfile from "@/components/PlayerProfile";
-import PlayersPanel from "@/components/PlayersPanel";
-import MatchesPanel from "@/components/MatchesPanel";
-import DeviceBackupPanel from "@/components/DeviceBackupPanel";
-import SettingsTab from "@/components/SettingsTab";
 import CommandPalette from "@/components/CommandPalette";
 import WorldClockWidget from "@/components/WorldClockWidget";
-import YearAwardsCeremony from "@/components/YearAwardsCeremony";
-import AwardsHistoryPanel from "@/components/AwardsHistoryPanel";
-import StatisticsPanel from "@/components/StatisticsPanel";
 import type { TeamData } from "@/lib/types";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { ProfileNavProvider } from "@/lib/profileNav";
 import { readUiPref, writeUiPref } from "@/lib/uiPrefs";
+
+const NewsFeed = lazy(() => import("@/components/NewsFeed"));
+const RankingPanel = lazy(() => import("@/components/RankingPanel"));
+const TournamentPanel = lazy(() => import("@/components/TournamentPanel"));
+const TransferPanel = lazy(() => import("@/components/TransferPanel"));
+const TeamProfile = lazy(() => import("@/components/TeamProfile"));
+const PlayerProfile = lazy(() => import("@/components/PlayerProfile"));
+const PlayersPanel = lazy(() => import("@/components/PlayersPanel"));
+const MatchesPanel = lazy(() => import("@/components/MatchesPanel"));
+const DeviceBackupPanel = lazy(() => import("@/components/DeviceBackupPanel"));
+const SettingsTab = lazy(() => import("@/components/SettingsTab"));
+const YearAwardsCeremony = lazy(() => import("@/components/YearAwardsCeremony"));
+const AwardsHistoryPanel = lazy(() => import("@/components/AwardsHistoryPanel"));
+const StatisticsPanel = lazy(() => import("@/components/StatisticsPanel"));
+
+const PanelFallback = () => (
+  <div className="container mx-auto px-4 py-10 text-sm font-mono text-muted-foreground">
+    Wczytywanie panelu…
+  </div>
+);
 
 const loadRankingTeams = () =>
   loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
@@ -131,6 +138,7 @@ const Index = () => {
 
         {/* Tab contents stay mounted so state (e.g. selected tournament / match) is
             preserved when the user opens a profile and clicks back. */}
+        <Suspense fallback={<PanelFallback />}>
         <div style={profileOpen ? { display: "none" } : undefined}>
           {activeTab === "news" && <NewsFeed />}
           {activeTab === "rankings" && (
@@ -171,6 +179,7 @@ const Index = () => {
             onSelectPlayer={handleSelectPlayer}
           />
         )}
+        </Suspense>
 
         <footer className="border-t border-border py-6 mt-12">
           <div className="container mx-auto px-4 text-center">
@@ -181,7 +190,7 @@ const Index = () => {
         </footer>
 
         <WorldClockWidget />
-        <YearAwardsCeremony />
+        <Suspense fallback={null}><YearAwardsCeremony /></Suspense>
       </div>
     </ProfileNavProvider>
   );

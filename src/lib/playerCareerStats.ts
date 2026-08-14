@@ -8,6 +8,7 @@ import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
 import { worldNowMs } from "./worldClock";
+import { compareMatchesNewestFirst, getMatchDateTime } from "./matchTime";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -27,6 +28,8 @@ export interface CareerMatchEntry {
   round?: string;
   /** ISO timestamp from the match (when finalized) — used for chronological sort. */
   playedAt?: string;
+  /** Scheduled fictional-calendar slot, authoritative when present. */
+  scheduledAt?: string;
   /** Aggregated across all maps in this match */
   kills: number;
   deaths: number;
@@ -285,7 +288,8 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
-        playedAt: match.playedAt || match.scheduledAt || t.endDate,
+        playedAt: match.playedAt,
+        scheduledAt: match.scheduledAt,
         kills: mKills,
         deaths: mDeaths,
         assists: mAssists,
@@ -301,13 +305,10 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
   }
 
   // Sort all matches chronologically (newest first) for the recent list
-  const seq = new Map<typeof matchEntries[number], number>();
-  matchEntries.forEach((e, i) => seq.set(e, i));
-  matchEntries.sort((a, b) => {
-    const c = (b.playedAt || "").localeCompare(a.playedAt || "");
-    if (c !== 0) return c;
-    return (seq.get(b) ?? 0) - (seq.get(a) ?? 0);
-  });
+  matchEntries.sort((a, b) => compareMatchesNewestFirst(
+    { ...a, fallbackDate: ts.find(t => t.id === a.tournamentId)?.endDate },
+    { ...b, fallbackDate: ts.find(t => t.id === b.tournamentId)?.endDate },
+  ));
 
   const matchesPlayed = matchEntries.length;
   const careerRating = matchesPlayed > 0

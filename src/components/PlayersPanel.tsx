@@ -73,7 +73,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const [streaksOpen, setStreaksOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState<RegionFilter>("all");
-  const [teamStatus, setTeamStatus] = useState<TeamStatusFilter>("all");
+  const [teamStatus, setTeamStatus] = useState<TeamStatusFilter>("team");
   const [nationality, setNationality] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>("rating");
@@ -220,6 +220,9 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       }
       if (teamStatus === "fa" && !r.isFA) return false;
       if (teamStatus === "team" && r.isFA) return false;
+      // Coaches are an explicit opt-in category. The normal club/FA lists are
+      // player lists and stay free of coaching staff.
+      if (r.role === "Coach" && roleFilter !== "Coach") return false;
       if (region !== "all" && r.region !== region) return false;
       if (nationality !== "all" && r.country !== nationality) return false;
       if (roleFilter !== "all" && r.role !== roleFilter) return false;
@@ -524,7 +527,11 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                 </button>
               ))}
               <button
-                onClick={() => setRoleFilter(roleFilter === "Coach" ? "all" : "Coach")}
+                onClick={() => {
+                  const showingCoaches = roleFilter === "Coach";
+                  setRoleFilter(showingCoaches ? "all" : "Coach");
+                  setTeamStatus(showingCoaches ? "team" : "all");
+                }}
                 className={cn(
                   "px-2.5 py-1 text-xs font-mono rounded border transition-colors inline-flex items-center gap-1",
                   roleFilter === "Coach"
