@@ -94,7 +94,14 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
 
   const [teamsTick, setTeamsTick] = useState(0);
   useEffect(() => {
-    const bump = () => setTeamsTick(k => k + 1);
+    let refreshFrame = 0;
+    const bump = () => {
+      if (refreshFrame) return;
+      refreshFrame = requestAnimationFrame(() => {
+        refreshFrame = 0;
+        setTeamsTick(k => k + 1);
+      });
+    };
     window.addEventListener("teams:update", bump);
     window.addEventListener("ranking:update", bump);
     window.addEventListener("worldclock:update", bump);
@@ -102,6 +109,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       window.removeEventListener("teams:update", bump);
       window.removeEventListener("ranking:update", bump);
       window.removeEventListener("worldclock:update", bump);
+      if (refreshFrame) cancelAnimationFrame(refreshFrame);
     };
   }, []);
 

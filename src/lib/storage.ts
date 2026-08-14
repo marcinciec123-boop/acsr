@@ -36,7 +36,7 @@ export function saveToStorage<T>(key: string, data: T): boolean {
   const storageKey = STORAGE_PREFIX + key;
   try {
     const serialized = JSON.stringify(data);
-    void setDeviceValue(storageKey, serialized).then(() => scheduleDeviceBackup()).catch(error => {
+    void setDeviceValue(storageKey, serialized).catch(error => {
       console.error("Failed to save to device storage:", key, error);
     });
     try {

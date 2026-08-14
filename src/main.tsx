@@ -16,7 +16,6 @@ initFont();
 
 const startApp = async () => {
   await initializeDeviceStoreCache();
-  await migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
   await restoreLatestDeviceBackupIfLocalStateMissing().catch(error => {
     console.error("Device backup restore failed:", error);
     return false;
@@ -37,6 +36,7 @@ const startApp = async () => {
   // to paint or interact with the first screen. Run them after the browser has
   // had a chance to render the app.
   const runDeferredMaintenance = () => {
+    void migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
     void synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
     void createDeviceBackup("auto", "Start aplikacji");
   };

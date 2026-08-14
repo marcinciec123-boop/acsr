@@ -91,7 +91,14 @@ const Index = () => {
   const [teams, setTeams] = useState<TeamData[]>(loadRankingTeams);
 
   useEffect(() => {
-    const refreshTeams = () => setTeams(loadRankingTeams());
+    let refreshFrame = 0;
+    const refreshTeams = () => {
+      if (refreshFrame) return;
+      refreshFrame = requestAnimationFrame(() => {
+        refreshFrame = 0;
+        setTeams(loadRankingTeams());
+      });
+    };
     const onStorage = (event: StorageEvent) => {
       if (event.key === "csgo_hub_ranking_data") refreshTeams();
     };
@@ -102,6 +109,7 @@ const Index = () => {
       window.removeEventListener("teams:update", refreshTeams);
       window.removeEventListener("ranking:update", refreshTeams);
       window.removeEventListener("storage", onStorage);
+      if (refreshFrame) cancelAnimationFrame(refreshFrame);
     };
   }, []);
 
