@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { benchPlayer, shouldAutoBenchIncoming } from "@/lib/benchedPlayers";
+import { shouldAutoBenchIncoming } from "@/lib/benchedPlayers";
 import type { TeamData } from "@/lib/types";
 
 const team = (roster: string[]): TeamData => ({
@@ -19,7 +19,7 @@ describe("incoming transfer bench", () => {
 
   it("does not count an already benched player as active", () => {
     const current = team(["a", "b", "c", "d", "e", "oldBench"]);
-    benchPlayer(current.name, "oldBench", "2026-08-13T10:00:00");
+    localStorage.setItem("csgo_hub_benched_players", JSON.stringify({ [current.name]: ["oldBench"] }));
     expect(shouldAutoBenchIncoming(current, "f")).toBe(true);
     expect(shouldAutoBenchIncoming(team(["a", "b", "c", "d"]), "e")).toBe(false);
   });
