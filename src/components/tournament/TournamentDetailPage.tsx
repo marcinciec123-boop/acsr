@@ -939,7 +939,7 @@ export const TournamentDetailPage = ({
                     })()}
 
                     {/* Seeding panel */}
-                    {onReseedPhase && phase.format === "swiss" && (
+                    {onReseedPhase && phase.bracket && phase.bracket.length > 0 && (
                       <PhaseSeedingPanel
                         phaseTeams={phase.teams}
                         allTeams={Array.from(new Set([...t.participants, ...allTeams])).sort()}
@@ -947,7 +947,10 @@ export const TournamentDetailPage = ({
                           phase.teams.length,
                           ((phase.bracket || []).filter(m => m.round === phase.bracket?.[0]?.round).length) * 2
                         )}
-                        onSave={(teams) => onReseedPhase(phase.id, teams.filter(Boolean))}
+                        onSave={(teams) => onReseedPhase(
+                          phase.id,
+                          teams.map((team, slot) => team || `TBD-P${idx}-${slot + 1}`),
+                        )}
                       />
                     )}
                     {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (

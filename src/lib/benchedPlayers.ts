@@ -38,13 +38,13 @@ export function isBenched(team: string, player: string): boolean {
   return getBenchedFor(team).includes(player);
 }
 
-export function benchPlayer(team: string, player: string): void {
+export function benchPlayer(team: string, player: string, date?: string): void {
   const map = loadBenched();
   const cur = new Set(map[team] || []);
   if (cur.has(player)) return;
   cur.add(player);
   map[team] = [...cur];
-  recordBenchEvent(team, player, "bench");
+  recordBenchEvent(team, player, "bench", date);
   saveBenched(map);
 }
 
@@ -88,6 +88,11 @@ export function splitRoster(team: TeamData): { active: string[]; bench: string[]
 /** Active roster used by the match simulator (max 5, benched excluded). */
 export function getActiveRoster(team: TeamData): string[] {
   return splitRoster(team).active;
+}
+
+/** Incoming non-coach joins the bench when the active five is already full. */
+export function shouldAutoBenchIncoming(team: TeamData, player: string): boolean {
+  return !team.roster.includes(player) && getActiveRoster(team).length >= 5;
 }
 
 // ===== Bench history log =====

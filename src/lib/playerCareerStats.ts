@@ -8,6 +8,7 @@ import type { TournamentData, MatchResult, MapPlayerStats } from "./types";
 import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
 import { worldNowMs } from "./worldClock";
+import { compareMatchesNewestFirst } from "./matchTime";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -27,6 +28,8 @@ export interface CareerMatchEntry {
   round?: string;
   /** ISO timestamp from the match (when finalized) — used for chronological sort. */
   playedAt?: string;
+  /** Scheduled fictional-calendar slot, authoritative when present. */
+  scheduledAt?: string;
   /** Aggregated across all maps in this match */
   kills: number;
   deaths: number;
@@ -131,10 +134,14 @@ const findInMap = (
 // Profile drużyn liczą statystyki dla 5+ graczy naraz — bez cache każde
 // renderowanie przemiata całą bazę turniejów od nowa.
 const careerCache = new Map<string, CareerStats>();
+const basicStatsCache = new Map<RatingPeriod, Map<string, BasicPlayerStats>>();
 if (typeof window !== "undefined") {
-  ["tournaments:update", "teams:update", "ranking:update", "storage"].forEach(ev =>
-    window.addEventListener(ev, () => careerCache.clear()),
-  );
+  ["tournaments:update", "teams:update", "ranking:update", "storage"].forEach(ev => {
+    window.addEventListener(ev, () => {
+      careerCache.clear();
+      basicStatsCache.clear();
+    });
+  });
 }
 
 export function computeCareerStats(playerName: string, tournaments?: TournamentData[]): CareerStats {
@@ -285,7 +292,8 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
         won,
         bo: (match.bo || 1) as 1 | 3 | 5,
         round: match.round,
-        playedAt: match.playedAt || match.scheduledAt || t.endDate,
+        playedAt: match.playedAt || t.endDate,
+        scheduledAt: match.scheduledAt,
         kills: mKills,
         deaths: mDeaths,
         assists: mAssists,
@@ -301,13 +309,7 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
   }
 
   // Sort all matches chronologically (newest first) for the recent list
-  const seq = new Map<typeof matchEntries[number], number>();
-  matchEntries.forEach((e, i) => seq.set(e, i));
-  matchEntries.sort((a, b) => {
-    const c = (b.playedAt || "").localeCompare(a.playedAt || "");
-    if (c !== 0) return c;
-    return (seq.get(b) ?? 0) - (seq.get(a) ?? 0);
-  });
+  matchEntries.sort(compareMatchesNewestFirst);
 
   const matchesPlayed = matchEntries.length;
   const careerRating = matchesPlayed > 0
@@ -492,20 +494,16 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
         team, opponent, ownScore, oppScore, ownRounds, oppRounds, mapScores,
         won: ownScore > oppScore && (ownScore + oppScore) > 0,
         bo: (match.bo || 1) as 1 | 3 | 5,
-        round: match.round, playedAt: match.playedAt || match.scheduledAt || t.endDate,
+        round: match.round,
+        playedAt: match.playedAt || t.endDate,
+        scheduledAt: match.scheduledAt,
         kills: mKills, deaths: mDeaths, assists: mAssists,
         adr: Math.round(mAdrW / mRounds), kast: Math.round(mKastW / mRounds),
         ud: mUd, ef: mEf, rounds: mRounds, rating, maps: [],
       });
     }
   }
-  const seqE = new Map<typeof entries[number], number>();
-  entries.forEach((e, i) => seqE.set(e, i));
-  entries.sort((a, b) => {
-    const c = (b.playedAt || "").localeCompare(a.playedAt || "");
-    if (c !== 0) return c;
-    return (seqE.get(b) ?? 0) - (seqE.get(a) ?? 0);
-  });
+  entries.sort(compareMatchesNewestFirst);
   return entries;
 }
 
@@ -524,7 +522,8 @@ export function computePlayerRatingForPeriod(
   } else if (period === "month" || period === "year") {
     const cutoff = worldNowMs() - (period === "month" ? 30 : 365) * 24 * 60 * 60 * 1000;
     filtered = all.filter(m => {
-      const t = m.playedAt ? Date.parse(m.playedAt) : NaN;
+      const dateTime = m.scheduledAt || m.playedAt;
+      const t = dateTime ? Date.parse(dateTime) : NaN;
       return Number.isFinite(t) && t >= cutoff;
     });
   }
@@ -561,6 +560,10 @@ export function computeAllPlayersBasicStats(
   period: RatingPeriod = "all",
   tournaments?: TournamentData[],
 ): Map<string, BasicPlayerStats> {
+  if (!tournaments) {
+    const cached = basicStatsCache.get(period);
+    if (cached) return cached;
+  }
   const ts = tournaments ?? loadFromStorage<TournamentData[]>("tournaments_data", []);
   const perPlayer = new Map<string, BasicEntry[]>();
 
@@ -658,5 +661,6 @@ export function computeAllPlayersBasicStats(
       adr: totRounds > 0 ? Math.round(totAdrW / totRounds) : 0,
     });
   }
+  if (!tournaments) basicStatsCache.set(period, out);
   return out;
 }

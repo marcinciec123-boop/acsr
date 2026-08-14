@@ -25,6 +25,7 @@ import { TournamentLink } from "@/lib/profileNav";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
 import PlayerStatsOverview from "@/components/player/PlayerStatsOverview";
 import { getPlayerEarnings } from "@/lib/statsPortal";
+import { getMatchDateTime } from "@/lib/matchTime";
 
 
 const fmtDate = (iso: string | null): string =>
@@ -560,7 +561,12 @@ const PlayerProfile = ({
                           {m.round || "—"}
                         </td>
                         <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">
-                          {m.playedAt ? m.playedAt.slice(0, 10) : "—"}
+                          {(() => {
+                            const dateTime = getMatchDateTime(m);
+                            return dateTime
+                              ? `${dateTime.slice(0, 10)}${dateTime.length >= 16 ? ` ${dateTime.slice(11, 16)}` : ""}`
+                              : "—";
+                          })()}
                         </td>
                         <td className="py-2">
                           <button

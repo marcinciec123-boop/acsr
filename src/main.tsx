@@ -16,7 +16,6 @@ initFont();
 
 const startApp = async () => {
   await initializeDeviceStoreCache();
-  await migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
   await restoreLatestDeviceBackupIfLocalStateMissing().catch(error => {
     console.error("Device backup restore failed:", error);
     return false;
@@ -25,14 +24,27 @@ const startApp = async () => {
   // Restore custom transfers, roster mutations, and per-player overrides
   // from localStorage before the React tree mounts.
   bootstrapPersistedState();
-  await synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
   installRankingHistoryAutoSync();
   installMonthEndSnapshots();
   try { fixHistoricalMatchDates(); } catch (e) { console.error("Historical match date fix failed:", e); }
   try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
-  void createDeviceBackup("auto", "Start aplikacji");
+  const root = document.getElementById("root");
+  if (!root) return;
+  createRoot(root).render(<App />);
 
-  createRoot(document.getElementById("root")!).render(<App />);
+  // History cleanup and a full backup are important, but neither is required
+  // to paint or interact with the first screen. Run them after the browser has
+  // had a chance to render the app.
+  const runDeferredMaintenance = () => {
+    void migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
+    void synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
+    void createDeviceBackup("auto", "Start aplikacji");
+  };
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(runDeferredMaintenance, { timeout: 2500 });
+  } else {
+    setTimeout(runDeferredMaintenance, 500);
+  }
 };
 
 void startApp();
