@@ -15,6 +15,18 @@ interface StoredTransfer {
   date?: string;
 }
 import { teamDatabase, type TeamData } from "@/data/tournaments";
+import { canonicalTeamName, teamNameAt } from "@/lib/teamRenames";
+
+/** Scala klucze mapy pod aktualną nazwą drużyny (usuwa duplikaty po zmianie nazwy). */
+function canonicalizeMap<T>(map: Record<string, T> | undefined): Record<string, T> {
+  if (!map) return {};
+  const out: Record<string, T> = {};
+  Object.entries(map).forEach(([team, value]) => {
+    const key = canonicalTeamName(team);
+    if (out[key] === undefined || team === key) out[key] = value;
+  });
+  return out;
+}
 
 const KEY = "ranking_history_v1";
 
@@ -75,7 +87,8 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
     .sort((a, b) => a.endDate.localeCompare(b.endDate));
 
   const deltasByDate = new Map<string, Map<string, number>>();
-  const addDelta = (date: string, team: string, delta: number) => {
+  const addDelta = (date: string, rawTeam: string, delta: number) => {
+    const team = canonicalTeamName(rawTeam);
     if (!clubNames.has(team) || !delta) return;
     const daily = deltasByDate.get(date) || new Map<string, number>();
     daily.set(team, (daily.get(team) || 0) + delta);
@@ -220,15 +233,15 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
   return [...merged.values()]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(s => {
-      Object.entries(s.points).forEach(([team, pts]) => { carry[team] = pts; });
+      Object.entries(canonicalizeMap(s.points)).forEach(([team, pts]) => { carry[team] = pts; });
       const points = { ...carry };
-      return { date: s.date, points, ranks: buildRanks(points), rosters: s.rosters };
+      return { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeMap(s.rosters) };
     });
 }
 
 
 /** Pełny ranking (posortowany) obowiązujący danego dnia historii. */
-export function getRankingAt(dateIso: string): { team: string; points: number; rank: number }[] {
+export function getRankingAt(dateIso: string): { team: string; currentTeam: string; points: number; rank: number }[] {
   const day = dateIso.slice(0, 10);
   const history = getMergedRankingHistory().filter(s => s.date <= day);
   const snapshot = history[history.length - 1];
@@ -236,17 +249,18 @@ export function getRankingAt(dateIso: string): { team: string; points: number; r
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
     return ranking.filter(isClub)
       .sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name))
-      .map((t, i) => ({ team: t.name, points: t.points || 0, rank: i + 1 }));
+      .map((t, i) => ({ team: t.name, currentTeam: t.name, points: t.points || 0, rank: i + 1 }));
   }
   return Object.entries(snapshot.points)
-    .map(([team, points]) => ({ team, points: Number(points) || 0 }))
+    .map(([team, points]) => ({ team: teamNameAt(team, day), currentTeam: team, points: Number(points) || 0 }))
     .sort((a, b) => (b.points - a.points) || a.team.localeCompare(b.team))
     .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
-export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
+export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
+  const teamName = canonicalTeamName(rawTeamName);
   const series: TeamRankingPoint[] = getMergedRankingHistory()
     .filter(s => s.points[teamName] !== undefined)
     .map(s => ({ date: s.date, points: s.points[teamName], rank: s.ranks?.[teamName] }));
@@ -266,7 +280,8 @@ export function getTeamRankingSeries(teamName: string): TeamRankingPoint[] {
  * Roster at a given historical date, reconstructed by reversing all transfers
  * that happened AFTER `date` from the team's current roster.
  */
-export function getTeamRosterAt(teamName: string, dateIso: string): string[] {
+export function getTeamRosterAt(rawTeamName: string, dateIso: string): string[] {
+  const teamName = canonicalTeamName(rawTeamName);
   const snapshot = loadRankingHistory()
     .filter(s => s.date <= dateIso && (s.rosters?.[teamName]?.length || 0) > 0)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
