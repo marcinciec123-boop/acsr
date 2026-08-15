@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart3, Trophy, Target, Skull, Zap, Filter, X } from "lucide-react";
+import { BarChart3, Trophy, Target, Skull, Zap, Filter, X, Map as MapIcon, Clock, Crosshair, Layers } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,20 @@ import TeamLogo from "@/components/TeamLogo";
 interface Props {
   tournament: TournamentData;
 }
+
+interface MapAgg {
+  map: string;
+  played: number;
+  rounds: number;
+  overtimes: number;
+  kills: number;
+  ctRounds: number;
+  tRounds: number;
+  sidedRounds: number;
+  closest: number;      // min round diff
+  biggest: number;      // max round diff
+}
+
 
 interface PlayerAgg {
   name: string;
@@ -38,8 +52,12 @@ interface TeamAgg {
 const isPlaceholder = (s?: string) => !s || s === "BYE" || s === "TBD" || s.startsWith("TBD");
 
 export const TournamentStatsPanel = ({ tournament }: Props) => {
-  const { players, teams } = useMemo(() => {
+  const { players, teams, maps, summary } = useMemo(() => {
     const pmap = new Map<string, PlayerAgg>();
+    const mmap = new Map<string, MapAgg>();
+    let totalMatches = 0;
+    let totalKills = 0;
+
     const tmap = new Map<string, TeamAgg>();
 
     const ensurePlayer = (name: string, team: string): PlayerAgg => {
@@ -69,6 +87,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       if (isPlaceholder(m.team1) || isPlaceholder(m.team2)) continue;
       if ((m.score1 || 0) + (m.score2 || 0) === 0) continue;
 
+      totalMatches++;
       const t1 = ensureTeam(m.team1);
       const t2 = ensureTeam(m.team2);
       t1.matchesPlayed++; t2.matchesPlayed++;
@@ -80,6 +99,37 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         t1.roundsWon += map.score1; t1.roundsLost += map.score2;
         t2.roundsWon += map.score2; t2.roundsLost += map.score1;
         const totalRounds = (map.score1 || 0) + (map.score2 || 0);
+        if (totalRounds > 0 && map.map) {
+          const key = map.map;
+          let ma = mmap.get(key);
+          if (!ma) {
+            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0 };
+            mmap.set(key, ma);
+          }
+          ma.played++;
+          ma.rounds += totalRounds;
+          if (totalRounds > 24) ma.overtimes++;
+          const diff = Math.abs((map.score1 || 0) - (map.score2 || 0));
+          ma.closest = Math.min(ma.closest, diff);
+          ma.biggest = Math.max(ma.biggest, diff);
+          const mapKills = [...(map.team1Players || []), ...(map.team2Players || [])]
+            .reduce((s, p) => s + (p.kills || 0), 0);
+          ma.kills += mapKills;
+          totalKills += mapKills;
+          // Side split (only when half data exists and no overtime distortion)
+          if (map.team1StartSide && map.half1Score1 != null && map.half1Score2 != null && totalRounds <= 24) {
+            const h1a = map.half1Score1, h1b = map.half1Score2;
+            const h2a = (map.score1 || 0) - h1a, h2b = (map.score2 || 0) - h1b;
+            if (map.team1StartSide === "T") {
+              ma.tRounds += h1a + h2b;
+              ma.ctRounds += h1b + h2a;
+            } else {
+              ma.ctRounds += h1a + h2b;
+              ma.tRounds += h1b + h2a;
+            }
+            ma.sidedRounds += totalRounds;
+          }
+        }
         if (totalRounds <= 0) continue;
 
         const sides: { players?: MapPlayerStats[]; team: string }[] = [
@@ -143,7 +193,22 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       }))
       .sort((a, b) => b.avgRating - a.avgRating || b.winRate - a.winRate);
 
-    return { players, teams };
+    const mapsArr = Array.from(mmap.values()).sort((a, b) => b.played - a.played);
+    const totalMapsPlayed = mapsArr.reduce((s, m) => s + m.played, 0);
+    const totalRoundsPlayed = mapsArr.reduce((s, m) => s + m.rounds, 0);
+    const summary = {
+      matches: totalMatches,
+      mapsPlayed: totalMapsPlayed,
+      rounds: totalRoundsPlayed,
+      kills: totalKills,
+      overtimes: mapsArr.reduce((s, m) => s + m.overtimes, 0),
+      avgRoundsPerMap: totalMapsPlayed > 0 ? totalRoundsPlayed / totalMapsPlayed : 0,
+      killsPerRound: totalRoundsPlayed > 0 ? totalKills / totalRoundsPlayed : 0,
+      distinctMaps: mapsArr.length,
+    };
+
+    return { players, teams, maps: mapsArr, summary };
+
   }, [tournament]);
 
   // Placement-derived team sets for filter presets
