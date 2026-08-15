@@ -164,6 +164,10 @@ export function propagateRename(oldName: string, newName: string): void {
   const memTeam = teamDatabase.find(t => t.name === oldName);
   if (memTeam) memTeam.name = newName;
 
+  // 0a) Zapisz zdarzenie zmiany nazwy (historia rankingu pokazuje starą nazwę
+  // do dnia zmiany włącznie z okresem sprzed niej).
+  recordRename(oldName, newName, getWorldDate());
+
   // 0b) Persist name override so rename survives page reload (teamDatabase is
   // re-imported fresh each load with hardcoded names).
   const nameOv = loadFromStorage<Record<string, string>>(TEAM_NAME_OVERRIDE_KEY, {});
