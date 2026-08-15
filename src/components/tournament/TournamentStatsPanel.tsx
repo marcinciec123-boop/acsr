@@ -193,7 +193,22 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       }))
       .sort((a, b) => b.avgRating - a.avgRating || b.winRate - a.winRate);
 
-    return { players, teams };
+    const mapsArr = Array.from(mmap.values()).sort((a, b) => b.played - a.played);
+    const totalMapsPlayed = mapsArr.reduce((s, m) => s + m.played, 0);
+    const totalRoundsPlayed = mapsArr.reduce((s, m) => s + m.rounds, 0);
+    const summary = {
+      matches: totalMatches,
+      mapsPlayed: totalMapsPlayed,
+      rounds: totalRoundsPlayed,
+      kills: totalKills,
+      overtimes: mapsArr.reduce((s, m) => s + m.overtimes, 0),
+      avgRoundsPerMap: totalMapsPlayed > 0 ? totalRoundsPlayed / totalMapsPlayed : 0,
+      killsPerRound: totalRoundsPlayed > 0 ? totalKills / totalRoundsPlayed : 0,
+      distinctMaps: mapsArr.length,
+    };
+
+    return { players, teams, maps: mapsArr, summary };
+
   }, [tournament]);
 
   // Placement-derived team sets for filter presets
