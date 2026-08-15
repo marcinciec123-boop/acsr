@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart3, Trophy, Target, Skull, Zap, Filter, X } from "lucide-react";
+import { BarChart3, Trophy, Target, Skull, Zap, Filter, X, Map as MapIcon, Clock, Crosshair, Layers } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,20 @@ import TeamLogo from "@/components/TeamLogo";
 interface Props {
   tournament: TournamentData;
 }
+
+interface MapAgg {
+  map: string;
+  played: number;
+  rounds: number;
+  overtimes: number;
+  kills: number;
+  ctRounds: number;
+  tRounds: number;
+  sidedRounds: number;
+  closest: number;      // min round diff
+  biggest: number;      // max round diff
+}
+
 
 interface PlayerAgg {
   name: string;
