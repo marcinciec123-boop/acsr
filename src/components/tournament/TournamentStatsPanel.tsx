@@ -87,6 +87,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       if (isPlaceholder(m.team1) || isPlaceholder(m.team2)) continue;
       if ((m.score1 || 0) + (m.score2 || 0) === 0) continue;
 
+      totalMatches++;
       const t1 = ensureTeam(m.team1);
       const t2 = ensureTeam(m.team2);
       t1.matchesPlayed++; t2.matchesPlayed++;
@@ -98,7 +99,38 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         t1.roundsWon += map.score1; t1.roundsLost += map.score2;
         t2.roundsWon += map.score2; t2.roundsLost += map.score1;
         const totalRounds = (map.score1 || 0) + (map.score2 || 0);
-        if (totalRounds <= 0) continue;
+        if (totalRounds > 0 && map.map) {
+          const key = map.map;
+          let ma = mmap.get(key);
+          if (!ma) {
+            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0 };
+            mmap.set(key, ma);
+          }
+          ma.played++;
+          ma.rounds += totalRounds;
+          if (totalRounds > 24) ma.overtimes++;
+          const diff = Math.abs((map.score1 || 0) - (map.score2 || 0));
+          ma.closest = Math.min(ma.closest, diff);
+          ma.biggest = Math.max(ma.biggest, diff);
+          const mapKills = [...(map.team1Players || []), ...(map.team2Players || [])]
+            .reduce((s, p) => s + (p.kills || 0), 0);
+          ma.kills += mapKills;
+          totalKills += mapKills;
+          // Side split (only when half data exists and no overtime distortion)
+          if (map.team1StartSide && map.half1Score1 != null && map.half1Score2 != null && totalRounds <= 24) {
+            const h1a = map.half1Score1, h1b = map.half1Score2;
+            const h2a = (map.score1 || 0) - h1a, h2b = (map.score2 || 0) - h1b;
+            if (map.team1StartSide === "T") {
+              ma.tRounds += h1a + h2b;
+              ma.ctRounds += h1b + h2a;
+            } else {
+              ma.ctRounds += h1a + h2b;
+              ma.tRounds += h1b + h2a;
+            }
+            ma.sidedRounds += totalRounds;
+          }
+        }
+
 
         const sides: { players?: MapPlayerStats[]; team: string }[] = [
           { players: map.team1Players, team: m.team1 },
