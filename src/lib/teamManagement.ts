@@ -17,6 +17,7 @@ import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
+import { recordRename } from "./teamRenames";
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
