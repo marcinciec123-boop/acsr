@@ -52,8 +52,12 @@ interface TeamAgg {
 const isPlaceholder = (s?: string) => !s || s === "BYE" || s === "TBD" || s.startsWith("TBD");
 
 export const TournamentStatsPanel = ({ tournament }: Props) => {
-  const { players, teams } = useMemo(() => {
+  const { players, teams, maps, summary } = useMemo(() => {
     const pmap = new Map<string, PlayerAgg>();
+    const mmap = new Map<string, MapAgg>();
+    let totalMatches = 0;
+    let totalKills = 0;
+
     const tmap = new Map<string, TeamAgg>();
 
     const ensurePlayer = (name: string, team: string): PlayerAgg => {
