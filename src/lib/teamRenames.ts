@@ -14,11 +14,24 @@ export interface RenameEvent {
 
 const KEY = "team_rename_log";
 
+let logCache: RenameEvent[] | null = null;
+let nameCache = new Map<string, string>();
+
+function invalidate(): void {
+  logCache = null;
+  nameCache = new Map();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("teams:update", invalidate);
+}
+
 export function loadRenameLog(): RenameEvent[] {
+  if (logCache) return logCache;
   const stored = loadFromStorage<RenameEvent[]>(KEY, []);
   const all = [...nameChanges, ...stored].filter(r => r?.oldName && r?.newName && r.oldName !== r.newName);
   const seen = new Set<string>();
-  return all
+  logCache = all
     .filter(r => {
       const k = `${r.oldName}>${r.newName}`;
       if (seen.has(k)) return false;
@@ -26,6 +39,7 @@ export function loadRenameLog(): RenameEvent[] {
       return true;
     })
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  return logCache;
 }
 
 export function recordRename(oldName: string, newName: string, date: string): void {
@@ -33,10 +47,13 @@ export function recordRename(oldName: string, newName: string, date: string): vo
   const stored = loadFromStorage<RenameEvent[]>(KEY, []);
   if (stored.some(r => r.oldName === oldName && r.newName === newName)) return;
   saveToStorage(KEY, [...stored, { oldName, newName, date: (date || "").slice(0, 10) }]);
+  invalidate();
 }
 
 /** Aktualna (najnowsza) nazwa drużyny — podąża łańcuchem zmian. */
 export function canonicalTeamName(name: string): string {
+  const cached = nameCache.get(name);
+  if (cached) return cached;
   const log = loadRenameLog();
   let current = name;
   for (let i = 0; i < 20; i++) {
@@ -44,6 +61,7 @@ export function canonicalTeamName(name: string): string {
     if (!next) break;
     current = next.newName;
   }
+  nameCache.set(name, current);
   return current;
 }
 
