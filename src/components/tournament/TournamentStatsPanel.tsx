@@ -130,7 +130,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             ma.sidedRounds += totalRounds;
           }
         }
-
+        if (totalRounds <= 0) continue;
 
         const sides: { players?: MapPlayerStats[]; team: string }[] = [
           { players: map.team1Players, team: m.team1 },
