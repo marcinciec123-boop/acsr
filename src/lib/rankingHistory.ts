@@ -17,13 +17,22 @@ interface StoredTransfer {
 import { teamDatabase, type TeamData } from "@/data/tournaments";
 import { canonicalTeamName, teamNameAt } from "@/lib/teamRenames";
 
-/** Scala klucze mapy pod aktualną nazwą drużyny (usuwa duplikaty po zmianie nazwy). */
-function canonicalizeMap<T>(map: Record<string, T> | undefined): Record<string, T> {
+/**
+ * Scala aliasy do jednej tożsamości. Przy starym, uszkodzonym snapshotcie nie
+ * sumujemy wartości: wygrywa nazwa, która faktycznie obowiązywała w jego dniu.
+ */
+export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, date: string): Record<string, T> {
   if (!map) return {};
   const out: Record<string, T> = {};
-  Object.entries(map).forEach(([team, value]) => {
+  const priority: Record<string, number> = {};
+  Object.entries(map).forEach(([team, value], index) => {
     const key = canonicalTeamName(team);
-    if (out[key] === undefined || team === key) out[key] = value;
+    const historicalName = teamNameAt(key, date);
+    const score = team === historicalName ? 3 : team === key ? 2 : 1;
+    if (out[key] === undefined || score > (priority[key] ?? -1)) {
+      out[key] = value;
+      priority[key] = score * 100_000 - index;
+    }
   });
   return out;
 }
@@ -100,14 +109,9 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
     // Older completed tournaments predate `resultsConfirmed`, but their saved
     // placements are still authoritative historical ranking events.
     tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
-    getTournamentMatches(tournament).forEach(match => {
-      if (!match.resultConfirmed) return;
-      const winner = getMatchWinner(match);
-      if (!winner) return;
-      const loser = winner === match.team1 ? match.team2 : match.team1;
-      addDelta(date, winner, match.pointsWinner || 0);
-      addDelta(date, loser, -(match.pointsLoser || 0));
-    });
+    // The application awards ranking points from final placements. Match
+    // points are predictions/UI metadata and were never added to ranking_data;
+    // replaying them here used to corrupt every old ranking.
     // Preserve a point on the timeline even for old tournaments without saved deltas.
     if (!deltasByDate.has(date)) deltasByDate.set(date, new Map());
   });
@@ -152,15 +156,17 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
 export async function synchronizeRankingHistory(): Promise<boolean> {
   // Legacy saves baked reconstructions into storage; those entries never carry
   // rosters, so they can be identified and dropped safely.
-  const real = loadRankingHistory().filter(s => !s.synthetic && Object.keys(s.rosters || {}).length > 0);
+  const real = loadRankingHistory().filter(s => !s.synthetic);
   const merged = new Map<string, RankingSnapshot>();
   real.forEach(s => {
     const prev = merged.get(s.date);
+    const points = canonicalizeSnapshotMap(s.points, s.date);
+    const rosters = canonicalizeSnapshotMap(s.rosters, s.date);
     merged.set(s.date, {
       date: s.date,
-      points: { ...(prev?.points || {}), ...s.points },
-      ranks: { ...(prev?.ranks || {}), ...(s.ranks || {}) },
-      rosters: { ...(prev?.rosters || {}), ...(s.rosters || {}) },
+      points: { ...(prev?.points || {}), ...points },
+      ranks: buildRanks({ ...(prev?.points || {}), ...points }),
+      rosters: { ...(prev?.rosters || {}), ...rosters },
     });
   });
   const history = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -177,9 +183,10 @@ export async function recordRankingSnapshot(reason?: string, dateOverride?: stri
   const rosters: Record<string, string[]> = {};
   const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
   clubs.forEach((t, index) => {
-    points[t.name] = t.points || 0;
-    ranks[t.name] = index + 1;
-    rosters[t.name] = splitRoster(t).active.slice(0, 5);
+    const identity = canonicalTeamName(t.name);
+    points[identity] = t.points || 0;
+    ranks[identity] = index + 1;
+    rosters[identity] = splitRoster(t).active.slice(0, 5);
   });
 
   const history = loadRankingHistory().filter(s => !s.synthetic);
@@ -224,18 +231,26 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
-  buildHistoricalRankingSnapshots().forEach(s => merged.set(s.date, s));
-  loadRankingHistory().filter(s => !s.synthetic).forEach(s => {
-    merged.set(s.date, { date: s.date, points: { ...s.points }, ranks: s.ranks, rosters: s.rosters });
+  const real = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
+  const firstRealDate = real[0]?.date;
+  // A real snapshot is a complete checkpoint. Synthetic replay is only useful
+  // before the first checkpoint; mixing it between real snapshots overwrote
+  // exact saved states with an approximation derived from today's ranking.
+  buildHistoricalRankingSnapshots()
+    .filter(s => !firstRealDate || s.date < firstRealDate)
+    .forEach(s => merged.set(s.date, s));
+  real.forEach(s => {
+    const points = canonicalizeSnapshotMap(s.points, s.date);
+    merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
   });
 
   const carry: Record<string, number> = {};
   return [...merged.values()]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(s => {
-      Object.entries(canonicalizeMap(s.points)).forEach(([team, pts]) => { carry[team] = pts; });
+      Object.entries(canonicalizeSnapshotMap(s.points, s.date)).forEach(([team, pts]) => { carry[team] = pts; });
       const points = { ...carry };
-      return { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeMap(s.rosters) };
+      return { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) };
     });
 }
 
@@ -283,6 +298,7 @@ export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
 export function getTeamRosterAt(rawTeamName: string, dateIso: string): string[] {
   const teamName = canonicalTeamName(rawTeamName);
   const snapshot = loadRankingHistory()
+    .map(s => ({ ...s, rosters: canonicalizeSnapshotMap(s.rosters, s.date) }))
     .filter(s => s.date <= dateIso && (s.rosters?.[teamName]?.length || 0) > 0)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
   if (snapshot?.rosters?.[teamName]?.length) return snapshot.rosters[teamName].slice(0, 5);
@@ -371,10 +387,10 @@ export async function ensureMonthEndSnapshots(): Promise<void> {
     const ranks: Record<string, number> = {};
     const rosters: Record<string, string[]> = {};
     standings.forEach(entry => {
-      points[entry.team] = entry.points;
-      ranks[entry.team] = entry.rank;
-      const roster = getTeamRosterAt(entry.team, iso);
-      if (roster.length) rosters[entry.team] = roster.slice(0, 5);
+      points[entry.currentTeam] = entry.points;
+      ranks[entry.currentTeam] = entry.rank;
+      const roster = getTeamRosterAt(entry.currentTeam, iso);
+      if (roster.length) rosters[entry.currentTeam] = roster.slice(0, 5);
     });
     history.push({ date: iso, points, ranks, rosters });
   });

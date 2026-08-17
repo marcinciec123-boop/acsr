@@ -30,15 +30,19 @@ export function loadRenameLog(): RenameEvent[] {
   if (logCache) return logCache;
   const stored = loadFromStorage<RenameEvent[]>(KEY, []);
   const all = [...nameChanges, ...stored].filter(r => r?.oldName && r?.newName && r.oldName !== r.newName);
-  const seen = new Set<string>();
+  const byPair = new Map<string, RenameEvent>();
+  all.forEach(event => {
+    const normalized = { ...event, date: (event.date || "").slice(0, 10) };
+    const key = `${normalized.oldName}>${normalized.newName}`;
+    const previous = byPair.get(key);
+    // A saved user rename is authoritative over a bundled legacy alias. If both
+    // exist, retain the latest dated occurrence rather than an arbitrary import order.
+    if (!previous || normalized.date >= previous.date) byPair.set(key, normalized);
+  });
   logCache = all
-    .filter(r => {
-      const k = `${r.oldName}>${r.newName}`;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    })
-    .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    .map(event => byPair.get(`${event.oldName}>${event.newName}`))
+    .filter((event, index, entries): event is RenameEvent => !!event && entries.indexOf(event) === index)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.oldName.localeCompare(b.oldName));
   return logCache;
 }
 
@@ -56,8 +60,11 @@ export function canonicalTeamName(name: string): string {
   if (cached) return cached;
   const log = loadRenameLog();
   let current = name;
+  const visited = new Set<string>();
   for (let i = 0; i < 20; i++) {
-    const next = log.find(r => r.oldName === current);
+    if (visited.has(current)) break;
+    visited.add(current);
+    const next = log.filter(r => r.oldName === current).at(-1);
     if (!next) break;
     current = next.newName;
   }
@@ -71,21 +78,20 @@ export function teamNameAt(name: string, dateIso: string): string {
   const log = loadRenameLog();
   const canonical = canonicalTeamName(name);
 
-  // Zbuduj łańcuch zmian prowadzący do obecnej nazwy (od najstarszej).
-  const chain: RenameEvent[] = [];
-  let cursor = canonical;
+  // Walk backwards from the canonical identity. Picking the latest predecessor
+  // makes chained renames deterministic even when old saves contain duplicates.
+  let result = canonical;
+  const visited = new Set<string>();
   for (let i = 0; i < 20; i++) {
-    const prev = log.find(r => r.newName === cursor);
-    if (!prev) break;
-    chain.unshift(prev);
-    cursor = prev.oldName;
-  }
-  if (chain.length === 0) return canonical;
-
-  let result = chain[0].oldName;
-  for (const event of chain) {
-    if (event.date && day && event.date <= day) result = event.newName;
-    else if (!event.date) result = event.newName;
+    if (visited.has(result)) break;
+    visited.add(result);
+    const predecessors = log
+      .filter(event => event.newName === result)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.oldName.localeCompare(a.oldName));
+    const previous = predecessors[0];
+    if (!previous) break;
+    if (!day || !previous.date || previous.date <= day) break;
+    result = previous.oldName;
   }
   return result;
 }
