@@ -273,6 +273,19 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </span>
       </div>
 
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+        <StatCard icon={<Layers className="w-3 h-3 text-primary" />} label="Mecze" value={summary.matches} />
+        <StatCard icon={<MapIcon className="w-3 h-3 text-accent" />} label="Mapy" value={summary.mapsPlayed} />
+        <StatCard icon={<Target className="w-3 h-3 text-primary" />} label="Rundy" value={summary.rounds} />
+        <StatCard icon={<Skull className="w-3 h-3 text-loss" />} label="Zabójstwa" value={summary.kills} />
+        <StatCard icon={<Crosshair className="w-3 h-3 text-accent" />} label="Zab./rundę" value={summary.killsPerRound.toFixed(2)} />
+        <StatCard icon={<Clock className="w-3 h-3 text-muted-foreground" />} label="Ø rund/mapę" value={summary.avgRoundsPerMap.toFixed(1)} />
+        <StatCard icon={<Zap className="w-3 h-3 text-[hsl(var(--gold))]" />} label="Dogrywki" value={summary.overtimes} />
+      </div>
+
+
+
       {/* Team / phase filter */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -399,9 +412,75 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <MiniBoard title="Top ADR" icon={<Zap className="w-3 h-3 text-accent" />} entries={topByMetric("adr").map(p => ({ name: p.name, team: p.team, value: p.adr.toFixed(0) }))} />
         <MiniBoard title="Top KAST%" icon={<Target className="w-3 h-3 text-primary" />} entries={topByMetric("kast").map(p => ({ name: p.name, team: p.team, value: `${p.kast.toFixed(0)}%` }))} />
       </div>
+
+      {/* Map statistics */}
+      {maps.length > 0 && (
+        <div className="mt-4 bg-secondary/20 border border-border rounded-md overflow-hidden">
+          <div className="px-3 py-2 bg-secondary/40 border-b border-border flex items-center gap-1.5">
+            <MapIcon className="w-3 h-3 text-accent" />
+            <span className="text-xs font-mono uppercase tracking-wider text-foreground">Statystyki map</span>
+            <span className="text-xs font-mono text-muted-foreground">• {maps.length} map w rotacji</span>
+          </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px] divide-y divide-border/50">
+              <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                <span className="col-span-3">Mapa</span>
+                <span className="col-span-1 text-right">Zagrane</span>
+                <span className="col-span-1 text-right">%</span>
+                <span className="col-span-1 text-right">Ø rund</span>
+                <span className="col-span-1 text-right">OT</span>
+                <span className="col-span-2 text-right">CT / T win%</span>
+                <span className="col-span-1 text-right">Zab.</span>
+                <span className="col-span-2 text-right">Najciaśniej / Najwyżej</span>
+              </div>
+              {maps.map(m => {
+                const ctPct = m.sidedRounds > 0 ? (m.ctRounds / m.sidedRounds) * 100 : null;
+                return (
+                  <div key={m.map} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
+                    <span className="col-span-3 text-foreground truncate">{m.map}</span>
+                    <span className="col-span-1 text-right text-foreground font-bold">{m.played}</span>
+                    <span className="col-span-1 text-right text-muted-foreground">
+                      {summary.mapsPlayed > 0 ? ((m.played / summary.mapsPlayed) * 100).toFixed(0) : 0}%
+                    </span>
+                    <span className="col-span-1 text-right text-muted-foreground">{(m.rounds / m.played).toFixed(1)}</span>
+                    <span className="col-span-1 text-right text-muted-foreground">{m.overtimes || "—"}</span>
+                    <span className="col-span-2 text-right">
+                      {ctPct == null ? <span className="text-muted-foreground">—</span> : (
+                        <>
+                          <span className="text-primary font-bold">{ctPct.toFixed(0)}%</span>
+                          <span className="text-muted-foreground"> / </span>
+                          <span className="text-accent font-bold">{(100 - ctPct).toFixed(0)}%</span>
+                        </>
+                      )}
+                    </span>
+                    <span className="col-span-1 text-right text-muted-foreground">{m.kills || "—"}</span>
+                    <span className="col-span-2 text-right text-muted-foreground">
+                      {m.closest === 99 ? "—" : `+${m.closest}`} / +{m.biggest}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="px-3 py-1.5 border-t border-border text-xs font-mono text-muted-foreground">
+            CT/T win% liczone z połówek map bez dogrywki.
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const StatCard = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
+  <div className="bg-secondary/20 border border-border rounded-md px-3 py-2">
+    <div className="flex items-center gap-1.5 mb-0.5">
+      {icon}
+      <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground truncate">{label}</span>
+    </div>
+    <div className="text-base font-heading font-bold text-foreground tabular-nums">{value}</div>
+  </div>
+);
+
 
 const MiniBoard = ({ title, icon, entries }: { title: string; icon: React.ReactNode; entries: { name: string; team: string; value: string }[] }) => (
   <div className="bg-secondary/20 border border-border rounded-md overflow-hidden">
