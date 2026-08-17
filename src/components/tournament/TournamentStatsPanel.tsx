@@ -273,6 +273,19 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </span>
       </div>
 
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+        <StatCard icon={<Layers className="w-3 h-3 text-primary" />} label="Mecze" value={summary.matches} />
+        <StatCard icon={<MapIcon className="w-3 h-3 text-accent" />} label="Mapy" value={summary.mapsPlayed} />
+        <StatCard icon={<Target className="w-3 h-3 text-primary" />} label="Rundy" value={summary.rounds} />
+        <StatCard icon={<Skull className="w-3 h-3 text-loss" />} label="Zabójstwa" value={summary.kills} />
+        <StatCard icon={<Crosshair className="w-3 h-3 text-accent" />} label="Zab./rundę" value={summary.killsPerRound.toFixed(2)} />
+        <StatCard icon={<Clock className="w-3 h-3 text-muted-foreground" />} label="Ø rund/mapę" value={summary.avgRoundsPerMap.toFixed(1)} />
+        <StatCard icon={<Zap className="w-3 h-3 text-[hsl(var(--gold))]" />} label="Dogrywki" value={summary.overtimes} />
+      </div>
+
+
+
       {/* Team / phase filter */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
