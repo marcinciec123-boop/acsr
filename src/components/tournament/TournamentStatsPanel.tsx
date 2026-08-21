@@ -20,7 +20,10 @@ interface MapAgg {
   sidedRounds: number;
   closest: number;      // min round diff
   biggest: number;      // max round diff
+  best: { name: string; team: string; rating: number } | null;
+  teamPlays: Map<string, number>;
 }
+
 
 
 interface PlayerAgg {
@@ -99,15 +102,18 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         t1.roundsWon += map.score1; t1.roundsLost += map.score2;
         t2.roundsWon += map.score2; t2.roundsLost += map.score1;
         const totalRounds = (map.score1 || 0) + (map.score2 || 0);
+        let ma: MapAgg | undefined;
         if (totalRounds > 0 && map.map) {
           const key = map.map;
-          let ma = mmap.get(key);
+          ma = mmap.get(key);
           if (!ma) {
-            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0 };
+            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0, best: null, teamPlays: new Map() };
             mmap.set(key, ma);
           }
           ma.played++;
           ma.rounds += totalRounds;
+          ma.teamPlays.set(m.team1, (ma.teamPlays.get(m.team1) || 0) + 1);
+          ma.teamPlays.set(m.team2, (ma.teamPlays.get(m.team2) || 0) + 1);
           if (totalRounds > 24) ma.overtimes++;
           const diff = Math.abs((map.score1 || 0) - (map.score2 || 0));
           ma.closest = Math.min(ma.closest, diff);
@@ -157,6 +163,9 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             if (r > 0) {
               agg.ratings.push(r);
               sideRatings.push(r);
+              if (ma && (!ma.best || r > ma.best.rating)) {
+                ma.best = { name: pl.playerName, team: side.team, rating: r };
+              }
             }
           }
           if (sideRatings.length > 0) {
@@ -165,6 +174,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
           }
         }
       }
+
     }
 
     const players = Array.from(pmap.values())
@@ -273,6 +283,30 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </span>
       </div>
 
+      {/* Sub-tabs: Gracze vs Mapy/Turniej */}
+      <div className="bg-secondary/20 border border-border rounded-md p-1 mb-4 flex gap-1">
+        {([
+          { key: "players" as const, label: "Gracze i drużyny", icon: <Trophy className="w-3.5 h-3.5" /> },
+          { key: "maps" as const, label: "Mapy i turniej", icon: <MapIcon className="w-3.5 h-3.5" /> },
+        ]).map(tb => (
+          <button
+            key={tb.key}
+            type="button"
+            onClick={() => setTab(tb.key)}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono uppercase tracking-wider transition-colors border",
+              tab === tb.key
+                ? "bg-primary/15 text-primary border-primary/40"
+                : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/40",
+            )}
+          >
+            {tb.icon} {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "maps" && (
+      <>
       {/* Summary strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
         <StatCard icon={<Layers className="w-3 h-3 text-primary" />} label="Mecze" value={summary.matches} />
@@ -283,11 +317,14 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <StatCard icon={<Clock className="w-3 h-3 text-muted-foreground" />} label="Ø rund/mapę" value={summary.avgRoundsPerMap.toFixed(1)} />
         <StatCard icon={<Zap className="w-3 h-3 text-[hsl(var(--gold))]" />} label="Dogrywki" value={summary.overtimes} />
       </div>
+      </>
+      )}
 
-
+      {tab === "players" && (<>
 
       {/* Team / phase filter */}
       <div className="mb-4 space-y-2">
+
         <div className="flex items-center gap-1.5 flex-wrap">
           <Filter className="w-3 h-3 text-muted-foreground" />
           <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground mr-1">Filtr MVP:</span>
@@ -412,9 +449,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <MiniBoard title="Top ADR" icon={<Zap className="w-3 h-3 text-accent" />} entries={topByMetric("adr").map(p => ({ name: p.name, team: p.team, value: p.adr.toFixed(0) }))} />
         <MiniBoard title="Top KAST%" icon={<Target className="w-3 h-3 text-primary" />} entries={topByMetric("kast").map(p => ({ name: p.name, team: p.team, value: `${p.kast.toFixed(0)}%` }))} />
       </div>
+      </>)}
 
       {/* Map statistics */}
-      {maps.length > 0 && (
+      {tab === "maps" && maps.length > 0 && (
         <div className="mt-4 bg-secondary/20 border border-border rounded-md overflow-hidden">
           <div className="px-3 py-2 bg-secondary/40 border-b border-border flex items-center gap-1.5">
             <MapIcon className="w-3 h-3 text-accent" />
@@ -422,8 +460,8 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             <span className="text-xs font-mono text-muted-foreground">• {maps.length} map w rotacji</span>
           </div>
           <div className="overflow-x-auto">
-            <div className="min-w-[640px] divide-y divide-border/50">
-              <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-[820px] divide-y divide-border/50">
+              <div className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 <span className="col-span-3">Mapa</span>
                 <span className="col-span-1 text-right">Zagrane</span>
                 <span className="col-span-1 text-right">%</span>
@@ -432,11 +470,14 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                 <span className="col-span-2 text-right">CT / T win%</span>
                 <span className="col-span-1 text-right">Zab.</span>
                 <span className="col-span-2 text-right">Najciaśniej / Najwyżej</span>
+                <span className="col-span-2">Najlepszy gracz</span>
+                <span className="col-span-2">Najczęściej grała</span>
               </div>
               {maps.map(m => {
                 const ctPct = m.sidedRounds > 0 ? (m.ctRounds / m.sidedRounds) * 100 : null;
+                const topTeam = Array.from(m.teamPlays.entries()).sort((a, b) => b[1] - a[1])[0];
                 return (
-                  <div key={m.map} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
+                  <div key={m.map} className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
                     <span className="col-span-3 text-foreground truncate">{m.map}</span>
                     <span className="col-span-1 text-right text-foreground font-bold">{m.played}</span>
                     <span className="col-span-1 text-right text-muted-foreground">
@@ -457,6 +498,22 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                     <span className="col-span-2 text-right text-muted-foreground">
                       {m.closest === 99 ? "—" : `+${m.closest}`} / +{m.biggest}
                     </span>
+                    <span className="col-span-2 min-w-0 truncate">
+                      {m.best ? (
+                        <>
+                          <span className="text-foreground">{m.best.name}</span>{" "}
+                          <span className={cn("font-bold", getRatingColor(m.best.rating))}>{m.best.rating.toFixed(2)}</span>
+                        </>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </span>
+                    <span className="col-span-2 min-w-0 inline-flex items-center gap-1.5 text-muted-foreground">
+                      {topTeam ? (
+                        <>
+                          <TeamLogo teamName={topTeam[0]} size={14} rounded="md" />
+                          <span className="truncate">{topTeam[0]} ({topTeam[1]})</span>
+                        </>
+                      ) : "—"}
+                    </span>
                   </div>
                 );
               })}
@@ -468,6 +525,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </div>
       )}
     </div>
+
   );
 };
 
