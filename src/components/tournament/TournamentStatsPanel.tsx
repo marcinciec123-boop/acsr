@@ -102,15 +102,18 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         t1.roundsWon += map.score1; t1.roundsLost += map.score2;
         t2.roundsWon += map.score2; t2.roundsLost += map.score1;
         const totalRounds = (map.score1 || 0) + (map.score2 || 0);
+        let ma: MapAgg | undefined;
         if (totalRounds > 0 && map.map) {
           const key = map.map;
-          let ma = mmap.get(key);
+          ma = mmap.get(key);
           if (!ma) {
-            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0 };
+            ma = { map: key, played: 0, rounds: 0, overtimes: 0, kills: 0, ctRounds: 0, tRounds: 0, sidedRounds: 0, closest: 99, biggest: 0, best: null, teamPlays: new Map() };
             mmap.set(key, ma);
           }
           ma.played++;
           ma.rounds += totalRounds;
+          ma.teamPlays.set(m.team1, (ma.teamPlays.get(m.team1) || 0) + 1);
+          ma.teamPlays.set(m.team2, (ma.teamPlays.get(m.team2) || 0) + 1);
           if (totalRounds > 24) ma.overtimes++;
           const diff = Math.abs((map.score1 || 0) - (map.score2 || 0));
           ma.closest = Math.min(ma.closest, diff);
@@ -160,6 +163,9 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             if (r > 0) {
               agg.ratings.push(r);
               sideRatings.push(r);
+              if (ma && (!ma.best || r > ma.best.rating)) {
+                ma.best = { name: pl.playerName, team: side.team, rating: r };
+              }
             }
           }
           if (sideRatings.length > 0) {
@@ -168,6 +174,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
           }
         }
       }
+
     }
 
     const players = Array.from(pmap.values())
