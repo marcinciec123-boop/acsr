@@ -20,7 +20,10 @@ interface MapAgg {
   sidedRounds: number;
   closest: number;      // min round diff
   biggest: number;      // max round diff
+  best: { name: string; team: string; rating: number } | null;
+  teamPlays: Map<string, number>;
 }
+
 
 
 interface PlayerAgg {
