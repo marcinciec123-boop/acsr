@@ -449,9 +449,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <MiniBoard title="Top ADR" icon={<Zap className="w-3 h-3 text-accent" />} entries={topByMetric("adr").map(p => ({ name: p.name, team: p.team, value: p.adr.toFixed(0) }))} />
         <MiniBoard title="Top KAST%" icon={<Target className="w-3 h-3 text-primary" />} entries={topByMetric("kast").map(p => ({ name: p.name, team: p.team, value: `${p.kast.toFixed(0)}%` }))} />
       </div>
+      </>)}
 
       {/* Map statistics */}
-      {maps.length > 0 && (
+      {tab === "maps" && maps.length > 0 && (
         <div className="mt-4 bg-secondary/20 border border-border rounded-md overflow-hidden">
           <div className="px-3 py-2 bg-secondary/40 border-b border-border flex items-center gap-1.5">
             <MapIcon className="w-3 h-3 text-accent" />
@@ -459,8 +460,8 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             <span className="text-xs font-mono text-muted-foreground">• {maps.length} map w rotacji</span>
           </div>
           <div className="overflow-x-auto">
-            <div className="min-w-[640px] divide-y divide-border/50">
-              <div className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-[820px] divide-y divide-border/50">
+              <div className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 <span className="col-span-3">Mapa</span>
                 <span className="col-span-1 text-right">Zagrane</span>
                 <span className="col-span-1 text-right">%</span>
@@ -469,11 +470,14 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                 <span className="col-span-2 text-right">CT / T win%</span>
                 <span className="col-span-1 text-right">Zab.</span>
                 <span className="col-span-2 text-right">Najciaśniej / Najwyżej</span>
+                <span className="col-span-2">Najlepszy gracz</span>
+                <span className="col-span-2">Najczęściej grała</span>
               </div>
               {maps.map(m => {
                 const ctPct = m.sidedRounds > 0 ? (m.ctRounds / m.sidedRounds) * 100 : null;
+                const topTeam = Array.from(m.teamPlays.entries()).sort((a, b) => b[1] - a[1])[0];
                 return (
-                  <div key={m.map} className="grid grid-cols-12 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
+                  <div key={m.map} className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
                     <span className="col-span-3 text-foreground truncate">{m.map}</span>
                     <span className="col-span-1 text-right text-foreground font-bold">{m.played}</span>
                     <span className="col-span-1 text-right text-muted-foreground">
@@ -494,6 +498,22 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                     <span className="col-span-2 text-right text-muted-foreground">
                       {m.closest === 99 ? "—" : `+${m.closest}`} / +{m.biggest}
                     </span>
+                    <span className="col-span-2 min-w-0 truncate">
+                      {m.best ? (
+                        <>
+                          <span className="text-foreground">{m.best.name}</span>{" "}
+                          <span className={cn("font-bold", getRatingColor(m.best.rating))}>{m.best.rating.toFixed(2)}</span>
+                        </>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </span>
+                    <span className="col-span-2 min-w-0 inline-flex items-center gap-1.5 text-muted-foreground">
+                      {topTeam ? (
+                        <>
+                          <TeamLogo teamName={topTeam[0]} size={14} rounded="md" />
+                          <span className="truncate">{topTeam[0]} ({topTeam[1]})</span>
+                        </>
+                      ) : "—"}
+                    </span>
                   </div>
                 );
               })}
@@ -505,6 +525,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </div>
       )}
     </div>
+
   );
 };
 
