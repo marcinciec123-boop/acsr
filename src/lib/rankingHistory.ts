@@ -25,7 +25,7 @@ export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, d
   if (!map) return {};
   const out: Record<string, T> = {};
   const priority: Record<string, number> = {};
-  Object.entries(map).forEach(([team, value], index) => {
+  Object.entries(map).forEach(([team, value]) => {
     const key = canonicalTeamName(team);
     const historicalName = teamNameAt(key, date);
     const score = team === historicalName ? 3 : team === key ? 2 : 1;
@@ -53,22 +53,6 @@ export function loadRankingHistory(): RankingSnapshot[] {
 }
 
 const isClub = (team: TeamData) => !team.isNational;
-
-const getMatchWinner = (match: MatchResult): string => {
-  if (!match.team1 || !match.team2 || match.team1 === "BYE" || match.team2 === "BYE") return "";
-  if ((match.score1 || 0) + (match.score2 || 0) === 0 || match.score1 === match.score2) return "";
-  return match.score1 > match.score2 ? match.team1 : match.team2;
-};
-
-const getTournamentMatches = (tournament: TournamentData): MatchResult[] => {
-  const matches: MatchResult[] = [];
-  tournament.phases?.forEach(phase => {
-    if (phase.bracket) matches.push(...phase.bracket);
-    phase.groups?.forEach(group => matches.push(...group.matches));
-  });
-  if (tournament.matches) matches.push(...tournament.matches);
-  return matches;
-};
 
 /** Ranks over the complete club set; stable tie-break by name to avoid churn. */
 const buildRanks = (points: Record<string, number>): Record<string, number> => Object.fromEntries(

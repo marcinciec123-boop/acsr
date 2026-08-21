@@ -103,7 +103,10 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   useEffect(() => {
     const refresh = () => {
       const saved = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
-      if (saved) setTeams(normalizeCurrentTeams(saved));
+      if (saved) setTeams(previous => {
+        const next = normalizeCurrentTeams(saved);
+        return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+      });
     };
     window.addEventListener("teams:update", refresh);
     return () => window.removeEventListener("teams:update", refresh);
