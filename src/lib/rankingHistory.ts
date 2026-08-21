@@ -6,7 +6,7 @@
 import { loadFromStorage, saveToStorageAsync } from "@/lib/storage";
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { splitRoster } from "@/lib/benchedPlayers";
-import type { MatchResult, TournamentData } from "@/lib/types";
+import type { MatchResult, RankingAdjustment, TournamentData } from "@/lib/types";
 
 interface StoredTransfer {
   player: string;
@@ -31,7 +31,7 @@ export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, d
     const score = team === historicalName ? 3 : team === key ? 2 : 1;
     if (out[key] === undefined || score > (priority[key] ?? -1)) {
       out[key] = value;
-      priority[key] = score * 100_000 - index;
+      priority[key] = score;
     }
   });
   return out;
@@ -114,6 +114,13 @@ export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
     // replaying them here used to corrupt every old ranking.
     // Preserve a point on the timeline even for old tournaments without saved deltas.
     if (!deltasByDate.has(date)) deltasByDate.set(date, new Map());
+  });
+
+  // Manual edits are genuine dated ranking events as well. Omitting them made
+  // today's correction leak backwards into the baseline of every older day.
+  loadFromStorage<RankingAdjustment[]>("ranking_adjustments", []).forEach(adjustment => {
+    const date = (adjustment.date || "").slice(0, 10);
+    if (date) addDelta(date, adjustment.team, adjustment.points || 0);
   });
 
   const knownTotals = new Map<string, number>();
