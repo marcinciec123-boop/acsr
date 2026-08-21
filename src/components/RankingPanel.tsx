@@ -19,6 +19,7 @@ import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import PanelHeader from "@/components/PanelHeader";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
+import { canonicalTeamName } from "@/lib/teamRenames";
 import { CalendarClock } from "lucide-react";
 
 // Mini wykres punktów (sparkline) — broadcast style
@@ -43,6 +44,19 @@ const RANKING_KEY = "ranking_data";
 const ADJUSTMENTS_KEY = "ranking_adjustments";
 const SNAPSHOT_KEY = "ranking_snapshot_prev"; // poprzednia migawka do trendów
 
+const normalizeCurrentTeams = (source: TeamData[]): TeamData[] => {
+  const normalized = new Map<string, TeamData>();
+  source.forEach(team => {
+    const identity = canonicalTeamName(team.name);
+    const previous = normalized.get(identity);
+    const candidate = team.name === identity ? team : { ...team, name: identity };
+    // A row already saved under the current name is authoritative. Legacy alias
+    // rows are only a fallback and can no longer create a duplicate ranking row.
+    if (!previous || team.name === identity) normalized.set(identity, candidate);
+  });
+  return [...normalized.values()];
+};
+
 interface RankingPanelProps {
   onSelectTeam?: (name: string) => void;
   onSelectPlayer?: (name: string) => void;
@@ -59,8 +73,8 @@ const tierFor = (rank: number) => {
 const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const [teams, setTeams] = useState<TeamData[]>(() => {
     const saved = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
-    if (saved) return saved;
-    return teamDatabase.map(t => ({ ...t }));
+    if (saved) return normalizeCurrentTeams(saved);
+    return normalizeCurrentTeams(teamDatabase.map(t => ({ ...t })));
   });
   const [adjustments, setAdjustments] = useState<RankingAdjustment[]>(() =>
     loadFromStorage<RankingAdjustment[]>(ADJUSTMENTS_KEY, [])
@@ -86,6 +100,17 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
   useEffect(() => { saveToStorage(RANKING_KEY, teams); }, [teams]);
   useEffect(() => { saveToStorage(ADJUSTMENTS_KEY, adjustments); }, [adjustments]);
+  useEffect(() => {
+    const refresh = () => {
+      const saved = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
+      if (saved) setTeams(previous => {
+        const next = normalizeCurrentTeams(saved);
+        return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+      });
+    };
+    window.addEventListener("teams:update", refresh);
+    return () => window.removeEventListener("teams:update", refresh);
+  }, []);
 
   const sorted = useMemo(() => [...teams].filter(t => !t.isNational).sort((a, b) => b.points - a.points), [teams]);
 
