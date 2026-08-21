@@ -283,6 +283,30 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         </span>
       </div>
 
+      {/* Sub-tabs: Gracze vs Mapy/Turniej */}
+      <div className="bg-secondary/20 border border-border rounded-md p-1 mb-4 flex gap-1">
+        {([
+          { key: "players" as const, label: "Gracze i drużyny", icon: <Trophy className="w-3.5 h-3.5" /> },
+          { key: "maps" as const, label: "Mapy i turniej", icon: <MapIcon className="w-3.5 h-3.5" /> },
+        ]).map(tb => (
+          <button
+            key={tb.key}
+            type="button"
+            onClick={() => setTab(tb.key)}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono uppercase tracking-wider transition-colors border",
+              tab === tb.key
+                ? "bg-primary/15 text-primary border-primary/40"
+                : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/40",
+            )}
+          >
+            {tb.icon} {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "maps" && (
+      <>
       {/* Summary strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
         <StatCard icon={<Layers className="w-3 h-3 text-primary" />} label="Mecze" value={summary.matches} />
@@ -293,11 +317,14 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
         <StatCard icon={<Clock className="w-3 h-3 text-muted-foreground" />} label="Ø rund/mapę" value={summary.avgRoundsPerMap.toFixed(1)} />
         <StatCard icon={<Zap className="w-3 h-3 text-[hsl(var(--gold))]" />} label="Dogrywki" value={summary.overtimes} />
       </div>
+      </>
+      )}
 
-
+      {tab === "players" && (<>
 
       {/* Team / phase filter */}
       <div className="mb-4 space-y-2">
+
         <div className="flex items-center gap-1.5 flex-wrap">
           <Filter className="w-3 h-3 text-muted-foreground" />
           <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground mr-1">Filtr MVP:</span>
