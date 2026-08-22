@@ -231,8 +231,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
     };
   }, [tournament.placements]);
 
+  const [tab, setTab] = useState<"players" | "maps">("players");
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [presetKey, setPresetKey] = useState<"all" | "top2" | "top4" | "top8" | "custom">("all");
+
 
   const activeFilter = useMemo(() => {
     if (presetKey === "top2") return placedTeams.top2;
