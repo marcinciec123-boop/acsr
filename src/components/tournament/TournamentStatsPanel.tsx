@@ -231,8 +231,10 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
     };
   }, [tournament.placements]);
 
+  const [tab, setTab] = useState<"players" | "maps">("players");
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [presetKey, setPresetKey] = useState<"all" | "top2" | "top4" | "top8" | "custom">("all");
+
 
   const activeFilter = useMemo(() => {
     if (presetKey === "top2") return placedTeams.top2;
@@ -461,7 +463,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
           </div>
           <div className="overflow-x-auto">
             <div className="min-w-[820px] divide-y divide-border/50">
-              <div className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-1 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 <span className="col-span-3">Mapa</span>
                 <span className="col-span-1 text-right">Zagrane</span>
                 <span className="col-span-1 text-right">%</span>
@@ -477,7 +479,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
                 const ctPct = m.sidedRounds > 0 ? (m.ctRounds / m.sidedRounds) * 100 : null;
                 const topTeam = Array.from(m.teamPlays.entries()).sort((a, b) => b[1] - a[1])[0];
                 return (
-                  <div key={m.map} className="grid grid-cols-16 gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
+                  <div key={m.map} className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-1 px-3 py-1.5 text-xs font-mono items-center hover:bg-secondary/30">
                     <span className="col-span-3 text-foreground truncate">{m.map}</span>
                     <span className="col-span-1 text-right text-foreground font-bold">{m.played}</span>
                     <span className="col-span-1 text-right text-muted-foreground">
