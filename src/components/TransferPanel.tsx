@@ -170,6 +170,24 @@ const TransferPanel = () => {
   const [transferTo, setTransferTo] = useState("-");
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerKind, setPickerKind] = useState<"all" | "player" | "coach" | "fa">("all");
+  const [contractSalary, setContractSalary] = useState<number>(0);
+  const [contractMonths, setContractMonths] = useState<number>(12);
+  const [contractBuyout, setContractBuyout] = useState("");
+  const [contractNote, setContractNote] = useState("");
+
+  // Aktualny kontrakt wybranej osoby (żeby widzieć, na czym stoi transfer).
+  const existingContract = useMemo(
+    () => (transferPlayer ? getActiveContract(transferPlayer) : undefined),
+    [transferPlayer, dataVersion],
+  );
+
+  // Sugerowane warunki liczone z siły drużyny i formy zawodnika.
+  useEffect(() => {
+    if (!transferPlayer || transferTo === "-") return;
+    setContractSalary(suggestSalary(transferPlayer, transferTo));
+    setContractMonths(suggestDurationMonths(transferPlayer, transferTo));
+  }, [transferPlayer, transferTo]);
+
 
   useEffect(() => { saveToStorage(TRANSFERS_KEY, transfers); }, [transfers]);
 
