@@ -33,6 +33,11 @@ import {
 } from "@/lib/changeLog";
 import { benchPlayer, removeFromAllBenches, shouldAutoBenchIncoming } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
+import {
+  addMonthsIso, formatDatePl, formatSalary, getActiveContract, signContract,
+  suggestDurationMonths, suggestSalary, terminateContract,
+} from "@/lib/contracts";
+import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 
 type TransferType = "all" | "join" | "leave" | "move";
 type Section = "transfers" | "freeAgents" | "changes";
@@ -165,6 +170,24 @@ const TransferPanel = () => {
   const [transferTo, setTransferTo] = useState("-");
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerKind, setPickerKind] = useState<"all" | "player" | "coach" | "fa">("all");
+  const [contractSalary, setContractSalary] = useState<number>(0);
+  const [contractMonths, setContractMonths] = useState<number>(12);
+  const [contractBuyout, setContractBuyout] = useState("");
+  const [contractNote, setContractNote] = useState("");
+
+  // Aktualny kontrakt wybranej osoby (żeby widzieć, na czym stoi transfer).
+  const existingContract = useMemo(
+    () => (transferPlayer ? getActiveContract(transferPlayer) : undefined),
+    [transferPlayer, dataVersion],
+  );
+
+  // Sugerowane warunki liczone z siły drużyny i formy zawodnika.
+  useEffect(() => {
+    if (!transferPlayer || transferTo === "-") return;
+    setContractSalary(suggestSalary(transferPlayer, transferTo));
+    setContractMonths(suggestDurationMonths(transferPlayer, transferTo));
+  }, [transferPlayer, transferTo]);
+
 
   useEffect(() => { saveToStorage(TRANSFERS_KEY, transfers); }, [transfers]);
 
@@ -373,6 +396,32 @@ const TransferPanel = () => {
       saveToStorage(RANKING_KEY, updated);
     }
     setTransfers(prev => [t, ...prev]);
+
+    // ---- Kontrakt: nowy przy podpisaniu, zamknięcie przy odejściu do FA ----
+    if (transferTo === "-") {
+      terminateContract(t.player, "release", t.date);
+    } else {
+      const start = t.date;
+      const res = signContract(
+        {
+          player: t.player,
+          team: transferTo,
+          startDate: start,
+          endDate: addMonthsIso(start, Math.max(1, contractMonths || 12)),
+          salary: contractSalary || suggestSalary(t.player, transferTo),
+          terms: {
+            buyout: contractBuyout ? Number(contractBuyout) : undefined,
+            note: contractNote.trim() || undefined,
+            role: isCoach ? undefined : (playerRoles as Record<string, never>)[t.player],
+          },
+        },
+        { reason: "transfer", skipDuplicateCheck: true },
+      );
+      if (!res.ok) {
+        toast({ title: "Kontrakt niezapisany", description: res.error, variant: "destructive" });
+      }
+    }
+
     recordChange(
       "transfer",
       `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
@@ -380,6 +429,7 @@ const TransferPanel = () => {
     );
     refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
+    setContractBuyout(""); setContractNote("");
     setShowDialog(false);
   };
 
