@@ -429,6 +429,7 @@ const TransferPanel = () => {
     );
     refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
+    setContractBuyout(""); setContractNote("");
     setShowDialog(false);
   };
 
