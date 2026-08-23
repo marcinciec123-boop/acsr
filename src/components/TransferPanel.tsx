@@ -33,6 +33,11 @@ import {
 } from "@/lib/changeLog";
 import { benchPlayer, removeFromAllBenches, shouldAutoBenchIncoming } from "@/lib/benchedPlayers";
 import { toast } from "@/hooks/use-toast";
+import {
+  addMonthsIso, formatDatePl, formatSalary, getActiveContract, signContract,
+  suggestDurationMonths, suggestSalary, terminateContract,
+} from "@/lib/contracts";
+import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 
 type TransferType = "all" | "join" | "leave" | "move";
 type Section = "transfers" | "freeAgents" | "changes";
