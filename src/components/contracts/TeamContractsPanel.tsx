@@ -178,7 +178,7 @@ const TeamContractsPanel = ({ team, onSelectPlayer }: Props) => {
                 onClick={() => onSelectPlayer?.(c.player)}
                 className="flex items-center gap-2 min-w-0 text-left"
               >
-                <PlayerAvatar player={c.player} team={c.team} size={34} />
+                <PlayerAvatar playerName={c.player} teamName={c.team} size={34} />
                 <div className="min-w-0">
                   <p className="font-heading font-bold text-sm truncate hover:text-primary transition-colors">{c.player}</p>
                   <p className="text-xs font-mono text-muted-foreground truncate">
