@@ -396,6 +396,32 @@ const TransferPanel = () => {
       saveToStorage(RANKING_KEY, updated);
     }
     setTransfers(prev => [t, ...prev]);
+
+    // ---- Kontrakt: nowy przy podpisaniu, zamknięcie przy odejściu do FA ----
+    if (transferTo === "-") {
+      terminateContract(t.player, "release", t.date);
+    } else {
+      const start = t.date;
+      const res = signContract(
+        {
+          player: t.player,
+          team: transferTo,
+          startDate: start,
+          endDate: addMonthsIso(start, Math.max(1, contractMonths || 12)),
+          salary: contractSalary || suggestSalary(t.player, transferTo),
+          terms: {
+            buyout: contractBuyout ? Number(contractBuyout) : undefined,
+            note: contractNote.trim() || undefined,
+            role: isCoach ? undefined : (playerRoles as Record<string, never>)[t.player],
+          },
+        },
+        { reason: "transfer", skipDuplicateCheck: true },
+      );
+      if (!res.ok) {
+        toast({ title: "Kontrakt niezapisany", description: res.error, variant: "destructive" });
+      }
+    }
+
     recordChange(
       "transfer",
       `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
