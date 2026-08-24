@@ -53,7 +53,7 @@ function benchSegments(
   const events = loadBenchLog()
     .filter(e => e.player === player && e.team === team)
     .filter(e => (!from || e.date >= from) && (!to || e.date <= to))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
   // Currently benched with no log entry at all → whole (open) stint inactive
   if (events.length === 0) {
