@@ -10,6 +10,8 @@ import { initFont } from "./lib/font";
 import { installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
+import { seedMissingContracts } from "./lib/contracts";
+import { installContractExpiryWatcher, releaseExpiredContracts } from "./lib/contractExpiry";
 
 initTheme();
 initFont();
@@ -28,6 +30,10 @@ const startApp = async () => {
   installMonthEndSnapshots();
   try { fixHistoricalMatchDates(); } catch (e) { console.error("Historical match date fix failed:", e); }
   try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
+  // Kontrakty: uzupełnij brakujące i zamknij te, które wygasły w świecie gry.
+  try { seedMissingContracts(); } catch (e) { console.error("Contract seeding failed:", e); }
+  try { releaseExpiredContracts(); } catch (e) { console.error("Contract expiry failed:", e); }
+  installContractExpiryWatcher();
   const root = document.getElementById("root");
   if (!root) return;
   createRoot(root).render(<App />);

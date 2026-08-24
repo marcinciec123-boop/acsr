@@ -5,8 +5,11 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
-  ArrowDownCircle, ArrowUpCircle, Armchair,
+  ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
+import { summarizeTeamContracts } from "@/lib/contracts";
+import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
+import ContractsWidget from "@/components/contracts/ContractsWidget";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
@@ -45,7 +48,7 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers";
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "contracts";
 
 const placementColor = (p: number) =>
   p === 1 ? "text-accent border-accent/40 bg-accent/10"
@@ -326,6 +329,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
     { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
+    { id: "contracts", label: "Kontrakty", icon: FileSignature, count: summarizeTeamContracts(teamName).total },
   ];
 
   return (
@@ -553,6 +557,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
                   <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
+                <ContractsWidget team={teamName} onOpen={() => setActiveTab("contracts")} />
                 <TeamRankingTrend teamName={teamName} />
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
@@ -669,6 +674,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 </Card>
               </div>
             </div>
+          )}
+
+          {activeTab === "contracts" && (
+            <TeamContractsPanel team={teamName} onSelectPlayer={onSelectPlayer} />
           )}
 
           {activeTab === "roster" && (

@@ -642,6 +642,70 @@ const TransferPanel = () => {
                     )}
                   </div>
 
+                  {transferPlayer && existingContract && (
+                    <div className="rounded border border-border bg-secondary/30 p-2.5 space-y-1 text-xs font-mono">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Obecny kontrakt</span>
+                        <ContractStatusBadge contract={existingContract} compact showRemaining className="ml-auto" />
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{existingContract.team} • {formatSalary(existingContract.salary)}/mies.</span>
+                        <span>do {formatDatePl(existingContract.endDate)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {transferPlayer && transferTo !== "-" && (
+                    <div className="rounded border border-primary/30 bg-primary/5 p-2.5 space-y-2">
+                      <p className="text-xs font-mono uppercase tracking-wider text-primary">Warunki kontraktu</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Pensja / mies. (USD)</label>
+                          <Input
+                            type="number"
+                            value={contractSalary || ""}
+                            onChange={e => setContractSalary(Number(e.target.value))}
+                            className="h-8 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Długość (mies.)</label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={60}
+                            value={contractMonths || ""}
+                            onChange={e => setContractMonths(Number(e.target.value))}
+                            className="h-8 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Buyout (opc.)</label>
+                          <Input
+                            type="number"
+                            value={contractBuyout}
+                            onChange={e => setContractBuyout(e.target.value)}
+                            className="h-8 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-mono text-muted-foreground block mb-1">Uwagi (opc.)</label>
+                          <Input
+                            value={contractNote}
+                            onChange={e => setContractNote(e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-muted-foreground">Kontrakt do</span>
+                        <span className="text-primary">
+                          {formatDatePl(addMonthsIso(getWorldNowIso(), Math.max(1, contractMonths || 12)))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {transferPlayer && transferFrom !== "-" && (
                     <button
                       onClick={() => setTransferTo("-")}
@@ -650,6 +714,8 @@ const TransferPanel = () => {
                       Zwolnij do FA
                     </button>
                   )}
+
+
 
                   <Button
                     onClick={handleAddTransfer}

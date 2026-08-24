@@ -11,3 +11,4 @@ and are logged in `change_log` (lib/changeLog.ts) with snapshot-based revert. Bo
 ## Memories
 - [Player roles](mem://design/player-roles) — 5 roles per team, role colors and icons in playerRoles.ts
 - [Change log](mem://features/change-log) — Snapshot-based change history + revert-to-point in TransferPanel
+- [Contracts](mem://features/contracts) — Player contracts: salaries, statuses, renewals, auto-expiry to FA

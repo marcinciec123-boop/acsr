@@ -26,6 +26,7 @@ import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
 import PlayerStatsOverview from "@/components/player/PlayerStatsOverview";
 import { getPlayerEarnings } from "@/lib/statsPortal";
 import { getMatchDateTime } from "@/lib/matchTime";
+import PlayerContractCard from "@/components/contracts/PlayerContractCard";
 
 
 const fmtDate = (iso: string | null): string =>
@@ -680,6 +681,14 @@ const PlayerProfile = ({
             </div>
           </motion.div>
         )}
+
+        {/* === Contract === */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}
+          className="mb-6"
+        >
+          <PlayerContractCard player={playerName} />
+        </motion.div>
 
         {/* === Team history (stints + bench periods) === */}
         {teamHistory.length > 0 && (
