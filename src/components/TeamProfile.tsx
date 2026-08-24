@@ -675,6 +675,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             </div>
           )}
 
+          {activeTab === "contracts" && (
+            <TeamContractsPanel team={teamName} onSelectPlayer={onSelectPlayer} />
+          )}
+
           {activeTab === "roster" && (
             <RosterTabContent team={team} onSelectPlayer={onSelectPlayer} />
           )}
