@@ -326,6 +326,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
     { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
+    { id: "contracts", label: "Kontrakty", icon: FileSignature, count: summarizeTeamContracts(teamName).total },
   ];
 
   return (
