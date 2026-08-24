@@ -557,6 +557,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
                   <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
+                <ContractsWidget team={teamName} onOpen={() => setActiveTab("contracts")} />
                 <TeamRankingTrend teamName={teamName} />
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
