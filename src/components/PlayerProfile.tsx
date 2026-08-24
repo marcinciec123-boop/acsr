@@ -26,6 +26,7 @@ import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
 import PlayerStatsOverview from "@/components/player/PlayerStatsOverview";
 import { getPlayerEarnings } from "@/lib/statsPortal";
 import { getMatchDateTime } from "@/lib/matchTime";
+import PlayerContractCard from "@/components/contracts/PlayerContractCard";
 
 
 const fmtDate = (iso: string | null): string =>
