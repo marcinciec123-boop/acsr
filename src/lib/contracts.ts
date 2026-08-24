@@ -158,7 +158,7 @@ export function getCurrentContract(player: string, list?: PlayerContract[]): Pla
   const all = list ?? loadContracts();
   return all
     .filter(c => c.player === player && !c.terminatedAt)
-    .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+    .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""))[0];
 }
 
 /** Aktywny kontrakt = niezakończony i jeszcze nie wygasły. */
@@ -172,7 +172,7 @@ export function getContractHistory(player: string, list?: PlayerContract[]): Pla
   const all = list ?? loadContracts();
   return all
     .filter(c => c.player === player)
-    .sort((a, b) => b.startDate.localeCompare(a.startDate));
+    .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
 }
 
 export function getTeamContracts(team: string, list?: PlayerContract[]): PlayerContract[] {
