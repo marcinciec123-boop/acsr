@@ -45,7 +45,7 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers";
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "contracts";
 
 const placementColor = (p: number) =>
   p === 1 ? "text-accent border-accent/40 bg-accent/10"
