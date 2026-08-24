@@ -5,8 +5,11 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Trophy, Users, Globe, MapPin, User, ArrowRightLeft,
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
-  ArrowDownCircle, ArrowUpCircle, Armchair,
+  ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
+import { summarizeTeamContracts } from "@/lib/contracts";
+import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
+import ContractsWidget from "@/components/contracts/ContractsWidget";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
