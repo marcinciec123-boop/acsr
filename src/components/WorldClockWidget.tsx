@@ -4,10 +4,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   formatWorldDate,
+  getWorldNow,
   resetWorldClock,
   shiftWorldDays,
   WORLD_CLOCK_EVENT,
 } from "@/lib/worldClock";
+import {
+  contractsExpiringBetween,
+  formatDatePl,
+  formatSalary,
+  type PlayerContract,
+} from "@/lib/contracts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Floating "FIFA-career style" world clock panel.
@@ -32,6 +49,29 @@ const WorldClockWidget = () => {
   const toggle = (next: boolean) => {
     setCollapsed(next);
     try { localStorage.setItem(STORAGE_KEY, next ? "1" : "0"); } catch { /* ignore */ }
+  };
+
+  const [pending, setPending] = useState<{ delta: number; list: PlayerContract[] } | null>(null);
+
+  /** Krok zegara z walidacją wygasających kontraktów (tylko do przodu). */
+  const step = (delta: number) => {
+    if (delta > 0) {
+      const fromMs = getWorldNow().getTime();
+      const target = new Date(fromMs);
+      target.setDate(target.getDate() + delta);
+      const list = contractsExpiringBetween(fromMs, target.getTime());
+      if (list.length > 0) {
+        setPending({ delta, list });
+        return;
+      }
+    }
+    shiftWorldDays(delta);
+  };
+
+  const confirmPending = () => {
+    if (!pending) return;
+    shiftWorldDays(pending.delta);
+    setPending(null);
   };
 
   const label = formatWorldDate();
@@ -84,21 +124,21 @@ const WorldClockWidget = () => {
 
             <div className="grid grid-cols-4 gap-1 px-2 pb-2">
               <button
-                onClick={() => shiftWorldDays(-7)}
+                onClick={() => step(-7)}
                 className="col-span-1 h-9 rounded-md border border-border bg-secondary/40 hover:bg-secondary text-xs font-mono text-muted-foreground hover:text-foreground flex items-center justify-center gap-0.5"
                 title="Cofnij tydzień"
               >
                 <ChevronLeft className="w-3 h-3" />7
               </button>
               <button
-                onClick={() => shiftWorldDays(-1)}
+                onClick={() => step(-1)}
                 className="col-span-1 h-9 rounded-md border border-border bg-secondary/40 hover:bg-secondary text-xs font-mono text-muted-foreground hover:text-foreground flex items-center justify-center"
                 title="Cofnij dzień"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                onClick={() => shiftWorldDays(1)}
+                onClick={() => step(1)}
                 className={cn(
                   "col-span-1 h-9 rounded-md border text-xs font-mono font-black flex items-center justify-center",
                   "border-primary/50 bg-primary/15 text-primary hover:bg-primary/25",
@@ -108,7 +148,7 @@ const WorldClockWidget = () => {
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
-                onClick={() => shiftWorldDays(7)}
+                onClick={() => step(7)}
                 className="col-span-1 h-9 rounded-md border border-border bg-secondary/40 hover:bg-secondary text-xs font-mono text-muted-foreground hover:text-foreground flex items-center justify-center gap-0.5"
                 title="Do przodu o tydzień"
               >
@@ -118,7 +158,7 @@ const WorldClockWidget = () => {
 
             <div className="flex items-center justify-between gap-1 px-2 pb-2">
               <button
-                onClick={() => shiftWorldDays(1)}
+                onClick={() => step(1)}
                 className="flex-1 h-8 rounded-md border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-mono font-black uppercase tracking-wider"
               >
                 Następny dzień
@@ -134,6 +174,46 @@ const WorldClockWidget = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <AlertDialog open={!!pending} onOpenChange={open => { if (!open) setPending(null); }}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Wygasające kontrakty
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Przejście o {pending?.delta ?? 0} {pending?.delta === 1 ? "dzień" : "dni"} do przodu
+              spowoduje wygaśnięcie {pending?.list.length ?? 0} kontrakt(ów). Ci zawodnicy zostaną
+              automatycznie zwolnieni do wolnych agentów, a transfer trafi do historii.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            {pending?.list.map(c => (
+              <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <div className="font-bold text-foreground truncate">{c.player}</div>
+                  <div className="text-muted-foreground truncate">{c.team}</div>
+                </div>
+                <div className="text-right shrink-0 font-mono">
+                  <div className="text-destructive">{formatDatePl(c.endDate)}</div>
+                  <div className="text-muted-foreground">{formatSalary(c.salary)}/mies.</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Aby tego uniknąć, odnów kontrakty w zakładce „Kontrakty" w profilu drużyny i spróbuj ponownie.
+          </p>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj (zostań)</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPending} className="bg-destructive hover:bg-destructive/90">
+              Potwierdzam wygaśnięcie
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
