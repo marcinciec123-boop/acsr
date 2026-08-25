@@ -476,6 +476,19 @@ export interface ExpiredRelease {
 }
 
 /**
+ * Kontrakty, które wygasną przy przeskoku zegara świata z `fromMs` do `toMs`
+ * (jeszcze ważne dziś, ale po przejściu daty będą już po terminie).
+ */
+export function contractsExpiringBetween(fromMs: number, toMs: number): PlayerContract[] {
+  if (toMs <= fromMs) return [];
+  return loadContracts()
+    .filter(c => !c.terminatedAt)
+    .filter(c => daysLeft(c.endDate, fromMs) >= 0 && daysLeft(c.endDate, toMs) < 0)
+    .sort((a, b) => (a.endDate || "").localeCompare(b.endDate || ""));
+}
+
+
+/**
  * Automatyczna obsługa wygasania: kontrakty po dacie końca są zamykane,
  * a zawodnik trafia do wolnych agentów (transfer do "-"), co widać w panelu
  * transferów. Zwraca listę wykonanych zwolnień.
