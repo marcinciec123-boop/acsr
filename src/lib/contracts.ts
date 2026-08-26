@@ -390,6 +390,26 @@ export function renewContract(
   );
 }
 
+/**
+ * Szybkie przedłużenie wygasającego kontraktu o N miesięcy.
+ * Nowy kontrakt startuje w dniu wygaśnięcia starego, pensja bez zmian
+ * (chyba że podano inną).
+ */
+export function extendContract(
+  player: string,
+  months = 12,
+  salary?: number,
+): CreateContractResult {
+  const current = getCurrentContract(player);
+  if (!current) return { ok: false, error: "Zawodnik nie ma kontraktu do przedłużenia." };
+  return renewContract(player, {
+    months,
+    salary: salary ?? current.salary,
+    startDate: current.endDate,
+  });
+}
+
+
 /** Rozwiązanie kontraktu (np. przy odejściu do FA). */
 export function terminateContract(
   player: string,
