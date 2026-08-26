@@ -6,6 +6,7 @@ import type { Tournament, TournamentSimulation } from "@/data/tournaments";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 import { getWorldDate, setWorldDate, resetWorldClock, formatWorldDate, WORLD_CLOCK_EVENT, WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
+import { resetSeason } from "@/lib/seasonReset";
 import TeamsManagementPanel from "./TeamsManagementPanel";
 import MapPoolPanel from "./MapPoolPanel";
 import ThemeSwitcher from "./ThemeSwitcher";
