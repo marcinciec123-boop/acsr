@@ -11,6 +11,7 @@ import {
 } from "@/lib/worldClock";
 import {
   contractsExpiringBetween,
+  extendContract,
   formatDatePl,
   formatSalary,
   type PlayerContract,
