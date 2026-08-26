@@ -182,34 +182,82 @@ const WorldClockWidget = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Przejście o {pending?.delta ?? 0} {pending?.delta === 1 ? "dzień" : "dni"} do przodu
-              spowoduje wygaśnięcie {pending?.list.length ?? 0} kontrakt(ów). Ci zawodnicy zostaną
-              automatycznie zwolnieni do wolnych agentów, a transfer trafi do historii.
+              spowoduje wygaśnięcie {pending?.list.length ?? 0} kontrakt(ów). Zaznacz kontrakty,
+              które mają wygasnąć — zawodnicy trafią do wolnych agentów, a transfer do historii.
+              Odznaczone zostaną automatycznie przedłużone o {extendMonths} mies. na tych samych warunkach.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelected(new Set(pending?.list.map(c => c.id)))}
+                className="px-2 py-1 rounded border border-border bg-secondary/40 hover:bg-secondary"
+              >
+                Zaznacz wszystkie
+              </button>
+              <button
+                onClick={() => setSelected(new Set())}
+                className="px-2 py-1 rounded border border-border bg-secondary/40 hover:bg-secondary"
+              >
+                Odznacz wszystkie
+              </button>
+            </div>
+            <label className="flex items-center gap-1 font-mono text-muted-foreground">
+              Przedłuż o
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={extendMonths}
+                onChange={e => setExtendMonths(Math.min(60, Math.max(1, Number(e.target.value) || 1)))}
+                className="w-14 h-7 px-1 rounded border border-border bg-background text-foreground"
+              />
+              mies.
+            </label>
+          </div>
+
           <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-            {pending?.list.map(c => (
-              <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
-                <div className="min-w-0">
-                  <div className="font-bold text-foreground truncate">{c.player}</div>
-                  <div className="text-muted-foreground truncate">{c.team}</div>
-                </div>
-                <div className="text-right shrink-0 font-mono">
-                  <div className="text-destructive">{formatDatePl(c.endDate)}</div>
-                  <div className="text-muted-foreground">{formatSalary(c.salary)}/mies.</div>
-                </div>
-              </div>
-            ))}
+            {pending?.list.map(c => {
+              const checked = selected.has(c.id);
+              return (
+                <label
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2 text-xs cursor-pointer hover:bg-secondary/30"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleSelected(c.id)}
+                      className="accent-destructive w-4 h-4 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="font-bold text-foreground truncate">{c.player}</div>
+                      <div className="text-muted-foreground truncate">{c.team}</div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 font-mono">
+                    <div className={checked ? "text-destructive" : "text-primary"}>
+                      {checked ? formatDatePl(c.endDate) : `+${extendMonths} mies.`}
+                    </div>
+                    <div className="text-muted-foreground">{formatSalary(c.salary)}/mies.</div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Aby tego uniknąć, odnów kontrakty w zakładce „Kontrakty" w profilu drużyny i spróbuj ponownie.
+            Możesz też odnowić kontrakty ręcznie w zakładce „Kontrakty" w profilu drużyny.
           </p>
 
           <AlertDialogFooter>
             <AlertDialogCancel>Anuluj (zostań)</AlertDialogCancel>
             <AlertDialogAction onClick={confirmPending} className="bg-destructive hover:bg-destructive/90">
-              Potwierdzam wygaśnięcie
+              {selected.size === 0
+                ? "Przedłuż wszystkie i przejdź"
+                : `Potwierdź wygaśnięcie (${selected.size})`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
