@@ -95,9 +95,13 @@ const SettingsTab = ({
       setTimeout(() => setConfirmReset(false), 3000);
       return;
     }
-    onReset();
     setConfirmReset(false);
+    resetSeason({ resetRanking: resetRankingPoints, resetClock: resetClockToo });
+    onReset();
+    // Przeładowanie gwarantuje, że wszystkie panele czytają czysty stan.
+    setTimeout(() => window.location.reload(), 150);
   };
+
 
   return (
     <section className="py-12">
