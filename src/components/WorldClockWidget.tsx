@@ -52,6 +52,16 @@ const WorldClockWidget = () => {
   };
 
   const [pending, setPending] = useState<{ delta: number; list: PlayerContract[] } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [extendMonths, setExtendMonths] = useState(12);
+
+  const toggleSelected = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   /** Krok zegara z walidacją wygasających kontraktów (tylko do przodu). */
   const step = (delta: number) => {
@@ -62,6 +72,7 @@ const WorldClockWidget = () => {
       const list = contractsExpiringBetween(fromMs, target.getTime());
       if (list.length > 0) {
         setPending({ delta, list });
+        setSelected(new Set(list.map(c => c.id)));
         return;
       }
     }
@@ -70,8 +81,13 @@ const WorldClockWidget = () => {
 
   const confirmPending = () => {
     if (!pending) return;
+    // Odznaczone kontrakty przedłużamy, żeby nie wygasły przy skoku daty.
+    pending.list
+      .filter(c => !selected.has(c.id))
+      .forEach(c => extendContract(c.player, extendMonths));
     shiftWorldDays(pending.delta);
     setPending(null);
+    setSelected(new Set());
   };
 
   const label = formatWorldDate();
