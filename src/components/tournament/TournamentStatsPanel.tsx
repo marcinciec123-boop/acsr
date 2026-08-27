@@ -114,7 +114,9 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
           ma.rounds += totalRounds;
           ma.teamPlays.set(m.team1, (ma.teamPlays.get(m.team1) || 0) + 1);
           ma.teamPlays.set(m.team2, (ma.teamPlays.get(m.team2) || 0) + 1);
-          if (totalRounds > 24) ma.overtimes++;
+          // MR12: regulamin = max 24 rundy (13:11). Dogrywka startuje przy 12:12.
+          const isOT = totalRounds > 24 || Math.max(map.score1 || 0, map.score2 || 0) > 13;
+          if (isOT) ma.overtimes++;
           const diff = Math.abs((map.score1 || 0) - (map.score2 || 0));
           ma.closest = Math.min(ma.closest, diff);
           ma.biggest = Math.max(ma.biggest, diff);
@@ -122,19 +124,25 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
             .reduce((s, p) => s + (p.kills || 0), 0);
           ma.kills += mapKills;
           totalKills += mapKills;
-          // Side split (only when half data exists and no overtime distortion)
-          if (map.team1StartSide && map.half1Score1 != null && map.half1Score2 != null && totalRounds <= 24) {
+          // Podział na strony — liczymy tylko część regulaminową (2 x 12 rund).
+          // Przy dogrywce regulamin zawsze kończy się 12:12, więc druga połowa
+          // to 12 - wynik pierwszej połowy dla każdej z drużyn.
+          if (map.team1StartSide && map.half1Score1 != null && map.half1Score2 != null) {
             const h1a = map.half1Score1, h1b = map.half1Score2;
-            const h2a = (map.score1 || 0) - h1a, h2b = (map.score2 || 0) - h1b;
-            if (map.team1StartSide === "T") {
-              ma.tRounds += h1a + h2b;
-              ma.ctRounds += h1b + h2a;
-            } else {
-              ma.ctRounds += h1a + h2b;
-              ma.tRounds += h1b + h2a;
+            const h2a = isOT ? 12 - h1a : (map.score1 || 0) - h1a;
+            const h2b = isOT ? 12 - h1b : (map.score2 || 0) - h1b;
+            if (h2a >= 0 && h2b >= 0) {
+              if (map.team1StartSide === "T") {
+                ma.tRounds += h1a + h2b;
+                ma.ctRounds += h1b + h2a;
+              } else {
+                ma.ctRounds += h1a + h2b;
+                ma.tRounds += h1b + h2a;
+              }
+              ma.sidedRounds += h1a + h1b + h2a + h2b;
             }
-            ma.sidedRounds += totalRounds;
           }
+
         }
         if (totalRounds <= 0) continue;
 
