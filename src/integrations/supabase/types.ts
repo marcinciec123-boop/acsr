@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ranking_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          points: Json
+          ranks: Json
+          rosters: Json
+          snapshot_date: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points?: Json
+          ranks?: Json
+          rosters?: Json
+          snapshot_date: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: Json
+          ranks?: Json
+          rosters?: Json
+          snapshot_date?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
