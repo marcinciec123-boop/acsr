@@ -49,6 +49,13 @@ export function resetSeason(options: SeasonResetOptions = {}): void {
     try { localStorage.removeItem(key); } catch { /* ignore */ }
   });
 
+  // Flagi seederów – bez ich wyczyszczenia bazowe turnieje nie wróciłyby.
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith("csgo_hub_seed"))
+      .forEach(k => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+
   if (resetRanking) {
     // Punkty wracają do bazowych, ale aktualne składy/nazwy zostają nietknięte.
     const base = new Map(teamDatabase.map(t => [t.name, t]));
