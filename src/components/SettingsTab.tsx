@@ -35,6 +35,8 @@ const SettingsTab = ({
   onLoadState = () => undefined,
 }: SettingsTabProps) => {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetRankingPoints, setResetRankingPoints] = useState(true);
+  const [resetClockToo, setResetClockToo] = useState(true);
 
   const getSlot = (key: string): SaveSlot | null => {
     try {
@@ -159,9 +161,31 @@ const SettingsTab = ({
             <RotateCcw className="w-4 h-4 text-destructive" />
             Reset sezonu
           </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Przywróć sezon do stanu początkowego. Wszystkie wyniki symulacji zostaną usunięte.
+          <p className="text-sm text-muted-foreground mb-3">
+            Przywróć sezon do stanu początkowego: turnieje, wyniki symulacji, historia rankingu,
+            aktualności, nagrody roku i pick'emy zostaną usunięte. Składy, transfery i kontrakty
+            zostają nienaruszone.
           </p>
+          <div className="flex flex-col gap-2 mb-4 text-xs font-mono text-muted-foreground">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={resetRankingPoints}
+                onChange={e => setResetRankingPoints(e.target.checked)}
+                className="accent-destructive w-4 h-4"
+              />
+              Wyzeruj punkty rankingowe do wartości bazowych
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={resetClockToo}
+                onChange={e => setResetClockToo(e.target.checked)}
+                className="accent-destructive w-4 h-4"
+              />
+              Cofnij datę w grze do {WORLD_CLOCK_DEFAULT}
+            </label>
+          </div>
           <button
             onClick={handleReset}
             className={cn(
