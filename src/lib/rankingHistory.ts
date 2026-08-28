@@ -4,7 +4,9 @@
 // transfers chronologically from the current club roster.
 
 import { loadFromStorage, saveToStorageAsync } from "@/lib/storage";
+import { installDailyRankingDbSync, loadRemoteSnapshotCache, fetchRemoteSnapshots } from "@/lib/rankingSnapshotsDb";
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
+
 import { splitRoster } from "@/lib/benchedPlayers";
 import type { MatchResult, RankingAdjustment, TournamentData } from "@/lib/types";
 
@@ -222,8 +224,13 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
-  const real = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
-  const firstRealDate = real[0]?.date;
+  const remote: RankingSnapshot[] = loadRemoteSnapshotCache()
+    .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
+    .filter(s => Object.keys(s.points).length > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const local = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
+  const real = [...remote, ...local];
+  const firstRealDate = [remote[0]?.date, local[0]?.date].filter(Boolean).sort()[0];
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
   // exact saved states with an approximation derived from today's ranking.
@@ -234,6 +241,7 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
     const points = canonicalizeSnapshotMap(s.points, s.date);
     merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
   });
+
 
   const carry: Record<string, number> = {};
   return [...merged.values()]
@@ -399,4 +407,43 @@ export function installMonthEndSnapshots(): void {
   const run = () => { void ensureMonthEndSnapshots(); };
   window.addEventListener(WORLD_CLOCK_EVENT, run);
   run();
+}
+
+// ===== Dzienne migawki w bazie danych =====
+// Przy przejściu do kolejnego dnia zapisujemy pełny ranking dnia w bazie
+// (i lokalnie), dzięki czemu historia nigdy się nie rozjeżdża.
+
+/** Migawka rankingu obowiązującego danego dnia — gotowa do zapisu w bazie. */
+function buildDailySnapshot(date: string): { date: string; points: Record<string, number>; ranks: Record<string, number>; rosters: Record<string, string[]> } | null {
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
+  if (clubs.length === 0) return null;
+  const points: Record<string, number> = {};
+  const ranks: Record<string, number> = {};
+  const rosters: Record<string, string[]> = {};
+  clubs.forEach((team, index) => {
+    const identity = canonicalTeamName(team.name);
+    points[identity] = team.points || 0;
+    ranks[identity] = index + 1;
+    const active = splitRoster(team).active.slice(0, 5);
+    if (active.length) rosters[identity] = active;
+  });
+  return { date, points, ranks, rosters };
+}
+
+let dailySyncInstalled = false;
+
+/**
+ * Uruchamia dzienny zapis rankingu do bazy oraz jednorazowe pobranie
+ * historycznych rankingów z bazy (uwzględnianych w wykresach).
+ */
+export function installDailyRankingSnapshots(): void {
+  if (dailySyncInstalled || typeof window === "undefined") return;
+  dailySyncInstalled = true;
+  void fetchRemoteSnapshots().catch(error => console.error("Pobranie historii rankingu z bazy nie powiodło się:", error));
+  installDailyRankingDbSync(date => {
+    const snapshot = buildDailySnapshot(date);
+    if (snapshot) void recordRankingSnapshot("day-change", date);
+    return snapshot ? { ...snapshot, source: "daily" } : null;
+  });
 }

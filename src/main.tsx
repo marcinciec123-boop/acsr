@@ -7,7 +7,7 @@ import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
 import { initFont } from "./lib/font";
-import { installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
+import { installDailyRankingSnapshots, installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
 import { seedMissingContracts } from "./lib/contracts";
@@ -28,6 +28,8 @@ const startApp = async () => {
   bootstrapPersistedState();
   installRankingHistoryAutoSync();
   installMonthEndSnapshots();
+  installDailyRankingSnapshots();
+
   try { fixHistoricalMatchDates(); } catch (e) { console.error("Historical match date fix failed:", e); }
   try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
   // Kontrakty: uzupełnij brakujące i zamknij te, które wygasły w świecie gry.
