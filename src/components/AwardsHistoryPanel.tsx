@@ -1,45 +1,108 @@
 // History of year-end ceremonies with a season (year) filter.
 
 import { useMemo, useState } from "react";
-import { Trophy, Crown, Star, Zap, Flame, Award, Users, Target, ArrowRightLeft, Play, Sparkles } from "lucide-react";
+import { Trophy, Crown, Star, Zap, Flame, Award, Users, Target, ArrowRightLeft, Play, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import PanelHeader from "@/components/PanelHeader";
 import YearAwardsCeremony from "@/components/YearAwardsCeremony";
-import { loadYearAwardsHistory, type YearAwards } from "@/lib/yearAwards";
+import TeamLogo from "@/components/TeamLogo";
+import { loadYearAwardsHistory, type YearAwards, type PlayerAward, type TeamAward } from "@/lib/yearAwards";
 
-const Row = ({ icon, label, name, sub, value }: {
-  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string;
+const Row = ({ icon, label, name, sub, value, children }: {
+  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string; children?: React.ReactNode;
 }) => (
-  <div className="flex items-center gap-3 py-2 border-b border-border/60 last:border-0">
-    <div className="w-8 h-8 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shrink-0">
-      {icon}
+  <div className="border-b border-border/60 last:border-0">
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-8 h-8 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-mono uppercase text-muted-foreground">{label}</div>
+        <div className="text-sm font-heading font-bold text-foreground truncate">{name || "—"}</div>
+        {sub && <div className="text-xs font-mono text-muted-foreground truncate">{sub}</div>}
+      </div>
+      {value && (
+        <div className="text-lg font-heading font-black text-primary tabular-nums shrink-0">{value}</div>
+      )}
     </div>
-    <div className="min-w-0 flex-1">
-      <div className="text-xs font-mono uppercase text-muted-foreground">{label}</div>
-      <div className="text-sm font-heading font-bold text-foreground truncate">{name || "—"}</div>
-      {sub && <div className="text-xs font-mono text-muted-foreground truncate">{sub}</div>}
-    </div>
-    {value && (
-      <div className="text-lg font-heading font-black text-primary tabular-nums shrink-0">{value}</div>
+    {children}
+  </div>
+);
+
+const ExpandableRow = ({ icon, label, name, sub, value, expanded, onToggle, children }: {
+  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string;
+  expanded: boolean; onToggle: () => void; children: React.ReactNode;
+}) => (
+  <div className="border-b border-border/60 last:border-0">
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center gap-3 py-2 text-left group"
+      aria-expanded={expanded}
+    >
+      <div className="w-8 h-8 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-mono uppercase text-muted-foreground">{label}</div>
+        <div className="text-sm font-heading font-bold text-foreground truncate">{name || "—"}</div>
+        {sub && <div className="text-xs font-mono text-muted-foreground truncate">{sub}</div>}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {value && (
+          <div className="text-lg font-heading font-black text-primary tabular-nums">{value}</div>
+        )}
+        <div className={"p-1 rounded-md transition-colors " + (expanded ? "bg-primary/20 text-primary" : "text-muted-foreground group-hover:text-foreground")}>
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </div>
+    </button>
+    {expanded && (
+      <div className="pb-3 pl-11 pr-2">
+        {children}
+      </div>
     )}
   </div>
 );
 
-const AwardsHistoryPanel = () => {
-  const history = loadYearAwardsHistory();
-  const years = useMemo(
-    () => Object.keys(history).map(Number).sort((a, b) => b - a),
-    [history],
-  );
-  const [selectedYear, setSelectedYear] = useState<number | "all">(years[0] ?? "all");
-  const [replayYear, setReplayYear] = useState<number | null>(null);
-
-  const visible: YearAwards[] = useMemo(() => {
-    if (selectedYear === "all") return years.map(y => history[String(y)]);
-    const a = history[String(selectedYear)];
-    return a ? [a] : [];
-  }, [selectedYear, years, history]);
-
+const TeamTopList = ({ teams }: { teams?: TeamAward[] }) => {
+  const list = teams || [];
+  if (list.length === 0) return <div className="text-xs font-mono text-muted-foreground">Brak danych rankingu drużyn.</div>;
   return (
+    <div className="rounded-lg border border-border/60 bg-secondary/20 overflow-hidden">
+      {list.map((t, i) => (
+        <div key={t.team} className="flex items-center gap-3 px-3 py-2 border-b border-border/40 last:border-0 hover:bg-primary/5">
+          <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
+          <TeamLogo teamName={t.team} size={22} />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-heading font-bold text-foreground truncate">{t.team}</div>
+            <div className="text-xs font-mono text-muted-foreground">{t.trophies}🏆 · {t.finals} finałów · {t.top3} top3</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PlayerTopList = ({ players }: { players?: PlayerAward[] }) => {
+  const list = players || [];
+  if (list.length === 0) return <div className="text-xs font-mono text-muted-foreground">Brak danych rankingu graczy.</div>;
+  return (
+    <div className="rounded-lg border border-border/60 bg-secondary/20 overflow-hidden max-h-[260px] overflow-y-auto">
+      {list.map((p, i) => (
+        <div key={p.player} className="flex items-center gap-3 px-3 py-2 border-b border-border/40 last:border-0 hover:bg-primary/5">
+          <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-heading font-bold text-foreground truncate">{p.player}</div>
+            <div className="text-xs font-mono text-muted-foreground truncate">{p.team}</div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-sm font-heading font-black text-primary tabular-nums">{p.rating.toFixed(2)}</div>
+            <div className="text-[10px] font-mono uppercase text-muted-foreground">{p.matches} mecz.</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
     <div className="container mx-auto px-4 py-6">
       <PanelHeader
         icon={Trophy}
