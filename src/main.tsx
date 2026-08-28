@@ -28,6 +28,8 @@ const startApp = async () => {
   bootstrapPersistedState();
   installRankingHistoryAutoSync();
   installMonthEndSnapshots();
+  installDailyRankingSnapshots();
+
   try { fixHistoricalMatchDates(); } catch (e) { console.error("Historical match date fix failed:", e); }
   try { cleanupSwissSkeletons(); } catch (e) { console.error("Swiss skeleton cleanup failed:", e); }
   // Kontrakty: uzupełnij brakujące i zamknij te, które wygasły w świecie gry.
