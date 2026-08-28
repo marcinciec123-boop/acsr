@@ -1,4 +1,4 @@
-// Year-end ceremony ("Złota Piłka CS") — auto-triggers when the world
+// Year-end ceremony ("Ceremonia Nagród ACSR") — auto-triggers when the world
 // clock reaches Dec 31 of any year that hasn't had a ceremony yet.
 // Admin mode allows manual override / approval of winners per category.
 
@@ -141,7 +141,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
           <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent flex items-center gap-2 pr-24 sm:pr-28">
             <Sparkles className="w-4 h-4 text-primary shrink-0" />
             <span className="text-xs font-mono uppercase tracking-widest text-primary font-black truncate">
-              Złota Piłka CS · {awards.year}
+              Ceremonia Nagród ACSR · {awards.year}
             </span>
             <span className="ml-auto text-xs font-mono text-muted-foreground shrink-0">
               {step + 1}/{slides.length}

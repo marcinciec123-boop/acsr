@@ -1,4 +1,4 @@
-// ===== Year-end awards ("Złota Piłka CS") =====
+// ===== Year-end awards ("Ceremonia Nagród ACSR") =====
 //
 // Computes annual awards from tournaments_data + transfers + ranking_data
 // snapshots for a given fictional-calendar year. Triggered when the world

@@ -43,7 +43,7 @@ const AwardsHistoryPanel = () => {
     <div className="container mx-auto px-4 py-6">
       <PanelHeader
         icon={Trophy}
-        title="Historia ceremonii Złotej Piłki CS"
+        title="Historia Ceremonii Nagród ACSR"
         meta={`${years.length} ${years.length === 1 ? "sezon" : "sezonów"} w archiwum`}
         actions={
           <div className="flex items-center gap-2">
