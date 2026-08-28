@@ -408,3 +408,42 @@ export function installMonthEndSnapshots(): void {
   window.addEventListener(WORLD_CLOCK_EVENT, run);
   run();
 }
+
+// ===== Dzienne migawki w bazie danych =====
+// Przy przejściu do kolejnego dnia zapisujemy pełny ranking dnia w bazie
+// (i lokalnie), dzięki czemu historia nigdy się nie rozjeżdża.
+
+/** Migawka rankingu obowiązującego danego dnia — gotowa do zapisu w bazie. */
+function buildDailySnapshot(date: string): { date: string; points: Record<string, number>; ranks: Record<string, number>; rosters: Record<string, string[]> } | null {
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
+  if (clubs.length === 0) return null;
+  const points: Record<string, number> = {};
+  const ranks: Record<string, number> = {};
+  const rosters: Record<string, string[]> = {};
+  clubs.forEach((team, index) => {
+    const identity = canonicalTeamName(team.name);
+    points[identity] = team.points || 0;
+    ranks[identity] = index + 1;
+    const active = splitRoster(team).active.slice(0, 5);
+    if (active.length) rosters[identity] = active;
+  });
+  return { date, points, ranks, rosters };
+}
+
+let dailySyncInstalled = false;
+
+/**
+ * Uruchamia dzienny zapis rankingu do bazy oraz jednorazowe pobranie
+ * historycznych rankingów z bazy (uwzględnianych w wykresach).
+ */
+export function installDailyRankingSnapshots(): void {
+  if (dailySyncInstalled || typeof window === "undefined") return;
+  dailySyncInstalled = true;
+  void fetchRemoteSnapshots().catch(error => console.error("Pobranie historii rankingu z bazy nie powiodło się:", error));
+  installDailyRankingDbSync(date => {
+    const snapshot = buildDailySnapshot(date);
+    if (snapshot) void recordRankingSnapshot("day-change", date);
+    return snapshot ? { ...snapshot, source: "daily" } : null;
+  });
+}
