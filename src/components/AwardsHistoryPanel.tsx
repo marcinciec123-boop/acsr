@@ -71,6 +71,15 @@ const AwardsHistoryPanel = () => {
   );
   const [selectedYear, setSelectedYear] = useState<number | "all">(years[0] ?? "all");
   const [replayYear, setReplayYear] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggle = (year: number, key: "team" | "player") => {
+    const id = `${year}-${key}`;
+    const next = new Set(expanded);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExpanded(next);
+  };
 
   const visible: YearAwards[] = useMemo(() => {
     if (selectedYear === "all") return years.map(y => history[String(y)]);
