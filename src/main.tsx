@@ -7,7 +7,7 @@ import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
 import { initFont } from "./lib/font";
-import { installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
+import { installDailyRankingSnapshots, installMonthEndSnapshots, installRankingHistoryAutoSync, synchronizeRankingHistory } from "./lib/rankingHistory";
 import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
 import { seedMissingContracts } from "./lib/contracts";
