@@ -222,8 +222,13 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
-  const real = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
-  const firstRealDate = real[0]?.date;
+  const remote: RankingSnapshot[] = loadRemoteSnapshotCache()
+    .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
+    .filter(s => Object.keys(s.points).length > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const local = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
+  const real = [...remote, ...local];
+  const firstRealDate = [remote[0]?.date, local[0]?.date].filter(Boolean).sort()[0];
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
   // exact saved states with an approximation derived from today's ranking.
@@ -234,6 +239,7 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
     const points = canonicalizeSnapshotMap(s.points, s.date);
     merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
   });
+
 
   const carry: Record<string, number> = {};
   return [...merged.values()]
