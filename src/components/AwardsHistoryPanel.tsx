@@ -103,6 +103,32 @@ const PlayerTopList = ({ players }: { players?: PlayerAward[] }) => {
     </div>
   );
 };
+
+const AwardsHistoryPanel = () => {
+  const history = loadYearAwardsHistory();
+  const years = useMemo(
+    () => Object.keys(history).map(Number).sort((a, b) => b - a),
+    [history],
+  );
+  const [selectedYear, setSelectedYear] = useState<number | "all">(years[0] ?? "all");
+  const [replayYear, setReplayYear] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggle = (year: number, key: "team" | "player") => {
+    const id = `${year}-${key}`;
+    const next = new Set(expanded);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExpanded(next);
+  };
+
+  const visible: YearAwards[] = useMemo(() => {
+    if (selectedYear === "all") return years.map(y => history[String(y)]);
+    const a = history[String(selectedYear)];
+    return a ? [a] : [];
+  }, [selectedYear, years, history]);
+
+  return (
     <div className="container mx-auto px-4 py-6">
       <PanelHeader
         icon={Trophy}
@@ -156,10 +182,27 @@ const PlayerTopList = ({ players }: { players?: PlayerAward[] }) => {
               </div>
 
               <div className="p-4">
-                <Row icon={<Crown className="w-4 h-4" />} label="Drużyna Roku" name={a.teamOfYear?.team}
-                  sub={a.teamOfYear ? `${a.teamOfYear.trophies} trofeów · ${a.teamOfYear.top3} podium` : ""} />
-                <Row icon={<Star className="w-4 h-4" />} label="Gracz Roku" name={a.playerOfYear?.player}
-                  sub={a.playerOfYear?.team} value={a.playerOfYear ? a.playerOfYear.rating.toFixed(2) : undefined} />
+                <ExpandableRow
+                  icon={<Crown className="w-4 h-4" />}
+                  label="Drużyna Roku"
+                  name={a.teamOfYear?.team}
+                  sub={a.teamOfYear ? `${a.teamOfYear.trophies} trofeów · ${a.teamOfYear.top3} podium` : ""}
+                  expanded={expanded.has(`${a.year}-team`)}
+                  onToggle={() => toggle(a.year, "team")}
+                >
+                  <TeamTopList teams={a.teamTop5?.length ? a.teamTop5 : a.teamTop3} />
+                </ExpandableRow>
+                <ExpandableRow
+                  icon={<Star className="w-4 h-4" />}
+                  label="Gracz Roku"
+                  name={a.playerOfYear?.player}
+                  sub={a.playerOfYear?.team}
+                  value={a.playerOfYear ? a.playerOfYear.rating.toFixed(2) : undefined}
+                  expanded={expanded.has(`${a.year}-player`)}
+                  onToggle={() => toggle(a.year, "player")}
+                >
+                  <PlayerTopList players={a.playerTop20?.length ? a.playerTop20 : a.playerTop5} />
+                </ExpandableRow>
                 <Row icon={<Zap className="w-4 h-4" />} label="Odkrycie Roku" name={a.rookieOfYear?.player}
                   sub={a.rookieOfYear?.team} value={a.rookieOfYear ? a.rookieOfYear.rating.toFixed(2) : undefined} />
                 <Row icon={<Flame className="w-4 h-4" />} label="Top Fragger" name={a.topFragger?.player}
