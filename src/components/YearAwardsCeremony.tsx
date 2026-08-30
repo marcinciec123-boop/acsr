@@ -16,8 +16,6 @@ import {
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { cn } from "@/lib/utils";
 import { useProfileNav } from "@/lib/profileNav";
-import TeamLogo from "@/components/TeamLogo";
-import PlayerAvatar from "@/components/PlayerAvatar";
 
 interface Props {
   /** Manual re-open — pass a year to view its cached ceremony. */
@@ -590,7 +588,7 @@ const TopTeamsReveal = ({ awards, admin, update, go }: {
                     />
                   ) : (
                     <div className={cn("truncate font-heading font-black", isTop1 ? "text-2xl text-foreground" : "text-lg text-foreground")}>
-                      {team.team}
+                      <NameLink name={team.team} kind="team" onNavigate={go} />
                     </div>
                   )}
                   <div className="text-xs font-mono text-muted-foreground">
