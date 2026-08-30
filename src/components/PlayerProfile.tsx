@@ -27,6 +27,8 @@ import PlayerStatsOverview from "@/components/player/PlayerStatsOverview";
 import { getPlayerEarnings } from "@/lib/statsPortal";
 import { getMatchDateTime } from "@/lib/matchTime";
 import PlayerContractCard from "@/components/contracts/PlayerContractCard";
+import AccoladeBadges from "@/components/AccoladeBadges";
+import { getPlayerAccolades } from "@/lib/awardAccolades";
 
 
 const fmtDate = (iso: string | null): string =>
@@ -285,6 +287,7 @@ const PlayerProfile = ({
                     <h2 className="text-sm font-heading font-bold text-foreground mb-3 flex items-center gap-2">
                       <Award className="w-4 h-4 text-[hsl(var(--gold))]" /> Osiągnięcia ({career.trophies.length})
                     </h2>
+                    <AccoladeBadges accolades={getPlayerAccolades(playerName)} className="mb-3" />
                     <div className="flex flex-wrap gap-2">
                       {historicMajorsForPlayer(playerName).map(hm => (
                         <div

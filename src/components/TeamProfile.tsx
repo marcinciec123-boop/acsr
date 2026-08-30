@@ -10,6 +10,8 @@ import {
 import { summarizeTeamContracts } from "@/lib/contracts";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
+import AccoladeBadges from "@/components/AccoladeBadges";
+import { getTeamAccolades } from "@/lib/awardAccolades";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
@@ -696,6 +698,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
           {activeTab === "trophies" && (
             <Card title={`Trofea i osiągnięcia (${totals.events})`} icon={<Trophy className="w-4 h-4 text-accent" />}>
+              <AccoladeBadges accolades={getTeamAccolades(teamName)} className="mb-3" />
               {trophies.length === 0 && historicMajorsForTeam(teamName).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Brak trofeów.</p>
               ) : (
