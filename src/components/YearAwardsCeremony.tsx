@@ -15,6 +15,9 @@ import {
 } from "@/lib/yearAwards";
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { cn } from "@/lib/utils";
+import { useProfileNav } from "@/lib/profileNav";
+import TeamLogo from "@/components/TeamLogo";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 interface Props {
   /** Manual re-open — pass a year to view its cached ceremony. */
@@ -70,7 +73,7 @@ const YearAwardsCeremony = ({ forceYear, onClose }: Props) => {
 
   const update = (patch: Partial<YearAwards>) => setAwards(a => (a ? { ...a, ...patch } : a));
 
-  const slides = buildSlides(awards, adminMode, update);
+  const slides = buildSlides(awards, adminMode, update, () => { if (awards) saveYearAwards(awards); setDismissed(true); onClose?.(); });
   const current = slides[step];
   const isLast = step === slides.length - 1;
 
@@ -194,9 +197,36 @@ const bigNumber = (n: number | string) => (
   <div className="text-3xl sm:text-4xl font-heading font-black text-primary tabular-nums">{n}</div>
 );
 
-const AwardHead = ({ icon, kicker, title, admin, onTitleChange }: {
+// Clickable team/player name — opens the profile and closes the ceremony.
+const NameLink = ({ name, kind, onNavigate, className }: {
+  name?: string; kind: "team" | "player"; onNavigate?: () => void; className?: string;
+}) => {
+  const nav = useProfileNav();
+  const clickable = !!nav && !!name && name !== "—";
+  if (!clickable) return <span className={className}>{name || "—"}</span>;
+  const activate = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    onNavigate?.();
+    if (kind === "team") nav!.openTeam(name!);
+    else nav!.openPlayer(name!);
+  };
+  return (
+    <span
+      role="link"
+      tabIndex={0}
+      onClick={activate}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(e); } }}
+      className={cn(className, "cursor-pointer hover:text-primary hover:underline underline-offset-4 transition-colors")}
+    >
+      {name}
+    </span>
+  );
+};
+
+const AwardHead = ({ icon, kicker, title, admin, onTitleChange, linkKind, onNavigate }: {
   icon: React.ReactNode; kicker: string; title: string;
   admin?: boolean; onTitleChange?: (v: string) => void;
+  linkKind?: "team" | "player"; onNavigate?: () => void;
 }) => (
   <div className="mb-6 text-center">
     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-mono uppercase tracking-widest text-primary mb-3">
@@ -210,7 +240,9 @@ const AwardHead = ({ icon, kicker, title, admin, onTitleChange }: {
         className="text-2xl font-heading font-black text-foreground text-center bg-secondary/50 border border-primary/40 rounded-md px-3 py-1 w-full max-w-md mx-auto focus:outline-none focus:border-primary"
       />
     ) : (
-      <h2 className="text-2xl font-heading font-black text-foreground">{title}</h2>
+      <h2 className="text-2xl font-heading font-black text-foreground">
+        {linkKind ? <NameLink name={title} kind={linkKind} onNavigate={onNavigate} /> : title}
+      </h2>
     )}
   </div>
 );
@@ -241,7 +273,7 @@ const AdminNumberField = ({ label, value, onChange }: { label: string; value: nu
   </label>
 );
 
-function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<YearAwards>) => void): React.ReactNode[] {
+function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<YearAwards>) => void, go: () => void): React.ReactNode[] {
   const slides: React.ReactNode[] = [];
 
   slides.push(
@@ -273,11 +305,11 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
   );
 
   if (a.teamTop5 && a.teamTop5.length > 0) {
-    slides.push(<TopTeamsReveal awards={a} admin={admin} update={update} />);
+    slides.push(<TopTeamsReveal awards={a} admin={admin} update={update} go={go} />);
   }
 
   if (a.playerTop20 && a.playerTop20.length > 0) {
-    slides.push(<TopPlayersReveal awards={a} admin={admin} update={update} />);
+    slides.push(<TopPlayersReveal awards={a} admin={admin} update={update} go={go} />);
   }
 
   const simpleSlide = (
@@ -299,6 +331,8 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
           title={displayName}
           admin={admin}
           onTitleChange={(v) => update({ [key]: { ...obj, [playerKey]: v } } as Partial<YearAwards>)}
+          linkKind="player"
+          onNavigate={go}
         />
         {admin ? (
           <input
@@ -307,7 +341,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
             className="mb-6 bg-secondary/50 border border-border rounded px-2 py-0.5 text-xs font-mono text-center focus:outline-none focus:border-primary"
           />
         ) : (
-          <div className="text-xs font-mono text-muted-foreground mb-6">{obj.team}</div>
+          <div className="text-xs font-mono text-muted-foreground mb-6"><NameLink name={obj.team} kind="team" onNavigate={go} /></div>
         )}
         {bigNumber(valueText)}
         <div className="text-xs font-mono uppercase text-muted-foreground mt-1">{valueLabel}</div>
@@ -348,7 +382,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
             className="mt-1 text-2xl font-heading font-black text-primary text-center bg-secondary/50 border border-primary/40 rounded-md px-3 py-1 max-w-sm focus:outline-none focus:border-primary"
           />
         ) : (
-          <div className="text-2xl font-heading font-black text-primary mt-1">{t.winner}</div>
+          <div className="text-2xl font-heading font-black text-primary mt-1"><NameLink name={t.winner} kind="team" onNavigate={go} /></div>
         )}
       </div>,
     );
@@ -364,6 +398,8 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
           title={t.player}
           admin={admin}
           onTitleChange={(v) => update({ transferOfYear: { ...t, player: v } })}
+          linkKind="player"
+          onNavigate={go}
         />
         {admin ? (
           <div className="grid grid-cols-2 gap-2 mb-6 max-w-md mx-auto w-full">
@@ -372,9 +408,9 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
           </div>
         ) : (
           <div className="flex items-center justify-center gap-3 text-sm font-mono text-muted-foreground mb-6">
-            <span>{t.oldTeam || "—"}</span>
+            <NameLink name={t.oldTeam || "—"} kind="team" onNavigate={go} />
             <ChevronRight className="w-4 h-4 text-primary" />
-            <span className="text-foreground font-black">{t.newTeam}</span>
+            <NameLink name={t.newTeam} kind="team" onNavigate={go} className="text-foreground font-black" />
           </div>
         )}
         {bigNumber(t.postRating.toFixed(2))}
@@ -392,7 +428,7 @@ function buildSlides(a: YearAwards, admin: boolean, update: (patch: Partial<Year
       <p className="text-sm text-muted-foreground max-w-md">
         {admin
           ? "Kliknij Zatwierdź, żeby zapisać wyniki edycji dla tego sezonu."
-          : "Kolejny rok już się rozpoczyna. Nowe transfery, nowe składy, kolejna walka o Złotą Piłkę CS."}
+          : "Kolejny rok już się rozpoczyna. Nowe transfery, nowe składy, kolejna walka o Nagrody ACSR."}
       </p>
     </div>,
   );
@@ -408,8 +444,8 @@ const StatBox = ({ label, value }: { label: string; value: number | string }) =>
 );
 
 // ===== HLTV-style Top 20 players reveal =====
-const TopPlayersReveal = ({ awards, admin, update }: {
-  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void;
+const TopPlayersReveal = ({ awards, admin, update, go }: {
+  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void; go?: () => void;
 }) => {
   const list = awards.playerTop20 || [];
   const total = list.length;
@@ -461,10 +497,12 @@ const TopPlayersReveal = ({ awards, admin, update }: {
                     />
                   ) : (
                     <div className={cn("truncate", isTop1 ? "text-lg font-heading font-black text-foreground" : "text-sm font-heading font-bold text-foreground")}>
-                      {player.player}
+                      <NameLink name={player.player} kind="player" onNavigate={go} />
                     </div>
                   )}
-                  <div className="text-xs font-mono text-muted-foreground truncate">{player.team}</div>
+                  <div className="text-xs font-mono text-muted-foreground truncate">
+                    <NameLink name={player.team} kind="team" onNavigate={go} />
+                  </div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className={cn("font-heading font-black tabular-nums", isTop1 ? "text-2xl text-yellow-400" : "text-base text-primary")}>
@@ -500,8 +538,8 @@ const TopPlayersReveal = ({ awards, admin, update }: {
 };
 
 // ===== HLTV-style Top 5 teams reveal =====
-const TopTeamsReveal = ({ awards, admin, update }: {
-  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void;
+const TopTeamsReveal = ({ awards, admin, update, go }: {
+  awards: YearAwards; admin: boolean; update: (p: Partial<YearAwards>) => void; go?: () => void;
 }) => {
   const list = awards.teamTop5 || [];
   const total = list.length;
