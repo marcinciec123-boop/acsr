@@ -25,8 +25,7 @@ const matchesFor = (rank: number): number => 68 - Math.floor((rank - 1) * 1.2);
 
 function findPlayerTeam(player: string, teams: TeamData[]): string {
   for (const t of teams) {
-    const roster = [t.players, t.bench].flat().filter(Boolean) as { name?: string }[];
-    if (roster.some(p => p?.name === player)) return t.name;
+    if ((t.roster || []).includes(player)) return t.name;
     if (t.coach === player) return t.name;
   }
   return "";
