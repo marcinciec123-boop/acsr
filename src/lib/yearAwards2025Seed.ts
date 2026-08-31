@@ -33,7 +33,19 @@ function findPlayerTeam(player: string, teams: TeamData[]): string {
 
 export function seedYearAwards2025(): void {
   const history = loadYearAwardsHistory();
-  if (history["2025"]) return;
+  if (history["2025"]) {
+    const existing = history["2025"];
+    const patchPlayer = (p?: PlayerAward) => {
+      if (p && p.player === "iDISBALANCE") p.kills = 1547;
+    };
+    existing.playerTop20.forEach(patchPlayer);
+    existing.playerTop5.forEach(patchPlayer);
+    patchPlayer(existing.playerOfYear);
+    patchPlayer(existing.rookieOfYear);
+    patchPlayer(existing.topFragger);
+    saveYearAwards(existing);
+    return;
+  }
 
   const teams = loadFromStorage<TeamData[]>("ranking_data", []);
   const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
@@ -53,7 +65,7 @@ export function seedYearAwards2025(): void {
       rating,
       matches: matchesFor(i + 1),
       kdr: Math.round((1.05 + rating * 0.15) * 100) / 100,
-      kills: 0,
+      kills: name === "iDISBALANCE" ? 1547 : 0,
       adr: Math.round(72 + rating * 12),
       kast: Math.round((70 + rating * 4) * 10) / 10,
       achievementScore: (20 - i) * 12,
