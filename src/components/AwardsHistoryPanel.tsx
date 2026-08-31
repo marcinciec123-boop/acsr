@@ -6,9 +6,10 @@ import PanelHeader from "@/components/PanelHeader";
 import YearAwardsCeremony from "@/components/YearAwardsCeremony";
 import TeamLogo from "@/components/TeamLogo";
 import { loadYearAwardsHistory, type YearAwards, type PlayerAward, type TeamAward } from "@/lib/yearAwards";
+import { TeamLink, PlayerLink } from "@/lib/profileNav";
 
 const Row = ({ icon, label, name, sub, value, children }: {
-  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string; children?: React.ReactNode;
+  icon: React.ReactNode; label: string; name?: React.ReactNode; sub?: React.ReactNode; value?: string; children?: React.ReactNode;
 }) => (
   <div className="border-b border-border/60 last:border-0">
     <div className="flex items-center gap-3 py-2">
@@ -29,7 +30,7 @@ const Row = ({ icon, label, name, sub, value, children }: {
 );
 
 const ExpandableRow = ({ icon, label, name, sub, value, expanded, onToggle, children }: {
-  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string;
+  icon: React.ReactNode; label: string; name?: React.ReactNode; sub?: React.ReactNode; value?: string;
   expanded: boolean; onToggle: () => void; children: React.ReactNode;
 }) => (
   <div className="border-b border-border/60 last:border-0">
@@ -73,7 +74,9 @@ const TeamTopList = ({ teams }: { teams?: TeamAward[] }) => {
           <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
           <TeamLogo teamName={t.team} size={22} />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-heading font-bold text-foreground truncate">{t.team}</div>
+            <div className="text-sm font-heading font-bold text-foreground truncate">
+              <TeamLink name={t.team} />
+            </div>
             <div className="text-xs font-mono text-muted-foreground">{t.trophies}🏆 · {t.finals} finałów · {t.top3} top3</div>
           </div>
         </div>
@@ -91,8 +94,12 @@ const PlayerTopList = ({ players }: { players?: PlayerAward[] }) => {
         <div key={p.player} className="flex items-center gap-3 px-3 py-2 border-b border-border/40 last:border-0 hover:bg-primary/5">
           <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-heading font-bold text-foreground truncate">{p.player}</div>
-            <div className="text-xs font-mono text-muted-foreground truncate">{p.team}</div>
+            <div className="text-sm font-heading font-bold text-foreground truncate">
+              <PlayerLink name={p.player} avatar={false} />
+            </div>
+            <div className="text-xs font-mono text-muted-foreground truncate">
+              <TeamLink name={p.team} />
+            </div>
           </div>
           <div className="text-right shrink-0">
             <div className="text-sm font-heading font-black text-primary tabular-nums">{p.rating.toFixed(2)}</div>
@@ -185,7 +192,7 @@ const AwardsHistoryPanel = () => {
                 <ExpandableRow
                   icon={<Crown className="w-4 h-4" />}
                   label="Drużyna Roku"
-                  name={a.teamOfYear?.team}
+                  name={a.teamOfYear?.team ? <TeamLink name={a.teamOfYear.team} /> : undefined}
                   sub={a.teamOfYear ? `${a.teamOfYear.trophies} trofeów · ${a.teamOfYear.top3} podium` : ""}
                   expanded={expanded.has(`${a.year}-team`)}
                   onToggle={() => toggle(a.year, "team")}
@@ -195,26 +202,42 @@ const AwardsHistoryPanel = () => {
                 <ExpandableRow
                   icon={<Star className="w-4 h-4" />}
                   label="Gracz Roku"
-                  name={a.playerOfYear?.player}
-                  sub={a.playerOfYear?.team}
+                  name={a.playerOfYear?.player ? <PlayerLink name={a.playerOfYear.player} avatar={false} /> : undefined}
+                  sub={a.playerOfYear?.team ? <TeamLink name={a.playerOfYear.team} /> : undefined}
                   value={a.playerOfYear ? a.playerOfYear.rating.toFixed(2) : undefined}
                   expanded={expanded.has(`${a.year}-player`)}
                   onToggle={() => toggle(a.year, "player")}
                 >
                   <PlayerTopList players={a.playerTop20?.length ? a.playerTop20 : a.playerTop5} />
                 </ExpandableRow>
-                <Row icon={<Zap className="w-4 h-4" />} label="Odkrycie Roku" name={a.rookieOfYear?.player}
-                  sub={a.rookieOfYear?.team} value={a.rookieOfYear ? a.rookieOfYear.rating.toFixed(2) : undefined} />
-                <Row icon={<Flame className="w-4 h-4" />} label="Top Fragger" name={a.topFragger?.player}
-                  sub={a.topFragger?.team} value={a.topFragger ? a.topFragger.kills.toLocaleString() : undefined} />
-                <Row icon={<Award className="w-4 h-4" />} label="Król MVP" name={a.mvpKing?.player}
-                  sub={a.mvpKing?.team} value={a.mvpKing ? String(a.mvpKing.mvps) : undefined} />
+                <Row icon={<Zap className="w-4 h-4" />} label="Odkrycie Roku"
+                  name={a.rookieOfYear?.player ? <PlayerLink name={a.rookieOfYear.player} avatar={false} /> : undefined}
+                  sub={a.rookieOfYear?.team ? <TeamLink name={a.rookieOfYear.team} /> : undefined}
+                  value={a.rookieOfYear ? a.rookieOfYear.rating.toFixed(2) : undefined} />
+                <Row icon={<Flame className="w-4 h-4" />} label="Top Fragger"
+                  name={a.topFragger?.player ? <PlayerLink name={a.topFragger.player} avatar={false} /> : undefined}
+                  sub={a.topFragger?.team ? <TeamLink name={a.topFragger.team} /> : undefined}
+                  value={a.topFragger ? a.topFragger.kills.toLocaleString() : undefined} />
+                <Row icon={<Award className="w-4 h-4" />} label="Król MVP"
+                  name={a.mvpKing?.player ? <PlayerLink name={a.mvpKing.player} avatar={false} /> : undefined}
+                  sub={a.mvpKing?.team ? <TeamLink name={a.mvpKing.team} /> : undefined}
+                  value={a.mvpKing ? String(a.mvpKing.mvps) : undefined} />
                 <Row icon={<Users className="w-4 h-4" />} label="Trener Roku" name={a.coachOfYear?.coach}
-                  sub={a.coachOfYear?.team} value={a.coachOfYear ? String(a.coachOfYear.trophies) : undefined} />
+                  sub={a.coachOfYear?.team ? <TeamLink name={a.coachOfYear.team} /> : undefined}
+                  value={a.coachOfYear ? String(a.coachOfYear.trophies) : undefined} />
                 <Row icon={<Target className="w-4 h-4" />} label="Turniej Roku" name={a.tournamentOfYear?.name}
-                  sub={a.tournamentOfYear ? `Tier ${a.tournamentOfYear.tier} · zw. ${a.tournamentOfYear.winner}` : ""} />
-                <Row icon={<ArrowRightLeft className="w-4 h-4" />} label="Transfer Roku" name={a.transferOfYear?.player}
-                  sub={a.transferOfYear ? `${a.transferOfYear.oldTeam || "—"} → ${a.transferOfYear.newTeam}` : ""}
+                  sub={a.tournamentOfYear ? (
+                    <>
+                      Tier {a.tournamentOfYear.tier} · zw. <TeamLink name={a.tournamentOfYear.winner} />
+                    </>
+                  ) : ""} />
+                <Row icon={<ArrowRightLeft className="w-4 h-4" />} label="Transfer Roku"
+                  name={a.transferOfYear?.player ? <PlayerLink name={a.transferOfYear.player} avatar={false} /> : undefined}
+                  sub={a.transferOfYear ? (
+                    <>
+                      <TeamLink name={a.transferOfYear.oldTeam} /> → <TeamLink name={a.transferOfYear.newTeam} />
+                    </>
+                  ) : undefined}
                   value={a.transferOfYear ? a.transferOfYear.postRating.toFixed(2) : undefined} />
               </div>
             </div>
