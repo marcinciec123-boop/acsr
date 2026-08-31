@@ -53,7 +53,7 @@ export function seedYearAwards2025(): void {
       rating,
       matches: matchesFor(i + 1),
       kdr: Math.round((1.05 + rating * 0.15) * 100) / 100,
-      kills: 0,
+      kills: name === "iDISBALANCE" ? 1547 : 0,
       adr: Math.round(72 + rating * 12),
       kast: Math.round((70 + rating * 4) * 10) / 10,
       achievementScore: (20 - i) * 12,
