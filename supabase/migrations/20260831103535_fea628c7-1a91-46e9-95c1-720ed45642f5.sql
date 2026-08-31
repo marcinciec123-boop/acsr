@@ -1,0 +1,1 @@
+DELETE FROM public.ranking_snapshots WHERE snapshot_date = '2031-01-01' AND source = 'daily';
