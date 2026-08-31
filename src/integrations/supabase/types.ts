@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_rate_limits: {
+        Row: {
+          caller: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          caller: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          caller?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       ranking_snapshots: {
         Row: {
           created_at: string
