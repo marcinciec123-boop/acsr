@@ -74,7 +74,9 @@ const TeamTopList = ({ teams }: { teams?: TeamAward[] }) => {
           <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
           <TeamLogo teamName={t.team} size={22} />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-heading font-bold text-foreground truncate">{t.team}</div>
+            <div className="text-sm font-heading font-bold text-foreground truncate">
+              <TeamLink name={t.team} />
+            </div>
             <div className="text-xs font-mono text-muted-foreground">{t.trophies}🏆 · {t.finals} finałów · {t.top3} top3</div>
           </div>
         </div>
@@ -92,8 +94,12 @@ const PlayerTopList = ({ players }: { players?: PlayerAward[] }) => {
         <div key={p.player} className="flex items-center gap-3 px-3 py-2 border-b border-border/40 last:border-0 hover:bg-primary/5">
           <div className="w-6 text-center text-xs font-heading font-black text-muted-foreground tabular-nums">#{i + 1}</div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-heading font-bold text-foreground truncate">{p.player}</div>
-            <div className="text-xs font-mono text-muted-foreground truncate">{p.team}</div>
+            <div className="text-sm font-heading font-bold text-foreground truncate">
+              <PlayerLink name={p.player} avatar={false} />
+            </div>
+            <div className="text-xs font-mono text-muted-foreground truncate">
+              <TeamLink name={p.team} />
+            </div>
           </div>
           <div className="text-right shrink-0">
             <div className="text-sm font-heading font-black text-primary tabular-nums">{p.rating.toFixed(2)}</div>
