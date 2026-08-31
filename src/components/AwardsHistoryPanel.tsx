@@ -226,7 +226,11 @@ const AwardsHistoryPanel = () => {
                   sub={a.coachOfYear?.team ? <TeamLink name={a.coachOfYear.team} /> : undefined}
                   value={a.coachOfYear ? String(a.coachOfYear.trophies) : undefined} />
                 <Row icon={<Target className="w-4 h-4" />} label="Turniej Roku" name={a.tournamentOfYear?.name}
-                  sub={a.tournamentOfYear ? `Tier ${a.tournamentOfYear.tier} · zw. ${a.tournamentOfYear.winner}` : ""} />
+                  sub={a.tournamentOfYear ? (
+                    <>
+                      Tier {a.tournamentOfYear.tier} · zw. <TeamLink name={a.tournamentOfYear.winner} />
+                    </>
+                  ) : ""} />
                 <Row icon={<ArrowRightLeft className="w-4 h-4" />} label="Transfer Roku"
                   name={a.transferOfYear?.player ? <PlayerLink name={a.transferOfYear.player} avatar={false} /> : undefined}
                   sub={a.transferOfYear ? (
