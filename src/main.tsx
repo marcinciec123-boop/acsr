@@ -12,6 +12,7 @@ import { cleanupSwissSkeletons } from "./lib/swissSkeletonCleanup";
 import { fixHistoricalMatchDates } from "./lib/historicalMatchDates";
 import { seedMissingContracts } from "./lib/contracts";
 import { installContractExpiryWatcher, releaseExpiredContracts } from "./lib/contractExpiry";
+import { seedYearAwards2025 } from "./lib/yearAwards2025Seed";
 
 initTheme();
 initFont();
