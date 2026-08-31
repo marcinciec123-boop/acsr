@@ -33,7 +33,19 @@ function findPlayerTeam(player: string, teams: TeamData[]): string {
 
 export function seedYearAwards2025(): void {
   const history = loadYearAwardsHistory();
-  if (history["2025"]) return;
+  if (history["2025"]) {
+    const existing = history["2025"];
+    const patchPlayer = (p?: PlayerAward) => {
+      if (p && p.player === "iDISBALANCE") p.kills = 1547;
+    };
+    existing.playerTop20.forEach(patchPlayer);
+    existing.playerTop5.forEach(patchPlayer);
+    patchPlayer(existing.playerOfYear);
+    patchPlayer(existing.rookieOfYear);
+    patchPlayer(existing.topFragger);
+    saveYearAwards(existing);
+    return;
+  }
 
   const teams = loadFromStorage<TeamData[]>("ranking_data", []);
   const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
