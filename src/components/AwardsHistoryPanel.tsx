@@ -6,6 +6,7 @@ import PanelHeader from "@/components/PanelHeader";
 import YearAwardsCeremony from "@/components/YearAwardsCeremony";
 import TeamLogo from "@/components/TeamLogo";
 import { loadYearAwardsHistory, type YearAwards, type PlayerAward, type TeamAward } from "@/lib/yearAwards";
+import { TeamLink, PlayerLink } from "@/lib/profileNav";
 
 const Row = ({ icon, label, name, sub, value, children }: {
   icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string; children?: React.ReactNode;
