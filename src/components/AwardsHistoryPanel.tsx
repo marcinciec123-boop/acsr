@@ -9,7 +9,7 @@ import { loadYearAwardsHistory, type YearAwards, type PlayerAward, type TeamAwar
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 
 const Row = ({ icon, label, name, sub, value, children }: {
-  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string; children?: React.ReactNode;
+  icon: React.ReactNode; label: string; name?: React.ReactNode; sub?: React.ReactNode; value?: string; children?: React.ReactNode;
 }) => (
   <div className="border-b border-border/60 last:border-0">
     <div className="flex items-center gap-3 py-2">
@@ -30,7 +30,7 @@ const Row = ({ icon, label, name, sub, value, children }: {
 );
 
 const ExpandableRow = ({ icon, label, name, sub, value, expanded, onToggle, children }: {
-  icon: React.ReactNode; label: string; name?: string; sub?: string; value?: string;
+  icon: React.ReactNode; label: string; name?: React.ReactNode; sub?: React.ReactNode; value?: string;
   expanded: boolean; onToggle: () => void; children: React.ReactNode;
 }) => (
   <div className="border-b border-border/60 last:border-0">
