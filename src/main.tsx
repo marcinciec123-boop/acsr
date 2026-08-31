@@ -37,6 +37,7 @@ const startApp = async () => {
   try { seedMissingContracts(); } catch (e) { console.error("Contract seeding failed:", e); }
   try { releaseExpiredContracts(); } catch (e) { console.error("Contract expiry failed:", e); }
   installContractExpiryWatcher();
+  try { seedYearAwards2025(); } catch (e) { console.error("Year awards 2025 seed failed:", e); }
   const root = document.getElementById("root");
   if (!root) return;
   createRoot(root).render(<App />);
