@@ -55,18 +55,18 @@ export async function fetchRemoteSnapshots(): Promise<RemoteSnapshot[]> {
   return list;
 }
 
-/** Zapisuje (upsert) migawkę danego dnia w bazie i w cache. */
+/** Zapisuje (upsert) migawkę danego dnia w bazie i w cache. Zapis idzie przez funkcję backendową — tabela nie jest publicznie zapisywalna. */
 export async function pushSnapshotToDb(snapshot: RemoteSnapshot): Promise<boolean> {
   const payload = {
     snapshot_date: snapshot.date,
     points: snapshot.points,
     ranks: snapshot.ranks || {},
     rosters: snapshot.rosters || {},
-    source: snapshot.source || "daily",
+    source: snapshot.source === "historical" ? "historical" : "daily",
   };
-  const { error } = await supabase
-    .from("ranking_snapshots")
-    .upsert(payload, { onConflict: "snapshot_date" });
+  const { error } = await supabase.functions.invoke("save-ranking-snapshot", {
+    body: payload,
+  });
   if (error) {
     console.error("Zapis migawki rankingu nie powiódł się:", error.message);
     return false;
