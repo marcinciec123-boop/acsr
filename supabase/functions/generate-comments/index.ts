@@ -2,6 +2,8 @@
 // Generuje 5-15 fikcyjnych komentarzy społeczności pod konkretnym artykułem.
 // Komentarze muszą reagować na treść tekstu (nie generyczne wypełniacze).
 
+import { checkAiRateLimit } from "../_shared/rateLimit.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -94,6 +96,14 @@ ZASADY WĄTKU:
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const rate = await checkAiRateLimit(req, "generate-comments");
+  if (!rate.allowed) {
+    return new Response(JSON.stringify({ error: rate.message }), {
+      status: rate.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = (await req.json()) as Payload;
