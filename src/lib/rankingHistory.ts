@@ -229,13 +229,14 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
     .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const local = loadRankingHistory()
+  const localFallback = loadRankingHistory()
     .filter(s => !s.synthetic && s.date <= today)
     .sort((a, b) => a.date.localeCompare(b.date));
-  // The database is authoritative. Local history is only an offline fallback,
-  // therefore a remote snapshot must win when both stores contain the same day.
-  const real = [...local, ...remote];
-  const firstRealDate = [remote[0]?.date, local[0]?.date].filter(Boolean).sort()[0];
+  // Once database history is available, never mix it with legacy device-only
+  // snapshots. Old month-end/backfill code saved today's values under past and
+  // future dates, which caused the repeating sawtooth visible on the chart.
+  const real = remote.length > 0 ? remote : localFallback;
+  const firstRealDate = real[0]?.date;
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
   // exact saved states with an approximation derived from today's ranking.
