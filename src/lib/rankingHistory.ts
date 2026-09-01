@@ -224,12 +224,17 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
+  const today = getWorldDate().slice(0, 10);
   const remote: RankingSnapshot[] = loadRemoteSnapshotCache()
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
-    .filter(s => Object.keys(s.points).length > 0)
+    .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const local = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
-  const real = [...remote, ...local];
+  const local = loadRankingHistory()
+    .filter(s => !s.synthetic && s.date <= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  // The database is authoritative. Local history is only an offline fallback,
+  // therefore a remote snapshot must win when both stores contain the same day.
+  const real = [...local, ...remote];
   const firstRealDate = [remote[0]?.date, local[0]?.date].filter(Boolean).sort()[0];
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
@@ -443,7 +448,6 @@ export function installDailyRankingSnapshots(): void {
   void fetchRemoteSnapshots().catch(error => console.error("Pobranie historii rankingu z bazy nie powiodło się:", error));
   installDailyRankingDbSync(date => {
     const snapshot = buildDailySnapshot(date);
-    if (snapshot) void recordRankingSnapshot("day-change", date);
     return snapshot ? { ...snapshot, source: "daily" } : null;
   });
 }

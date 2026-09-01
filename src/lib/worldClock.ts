@@ -35,8 +35,11 @@ export function getWorldDate(): string {
 export function setWorldDate(iso: string): void {
   if (!isValidIso(iso)) return;
   try {
+    const previousDate = getWorldDate();
     localStorage.setItem(KEY, iso);
-    window.dispatchEvent(new Event(WORLD_CLOCK_EVENT));
+    window.dispatchEvent(new CustomEvent(WORLD_CLOCK_EVENT, {
+      detail: { previousDate, currentDate: iso },
+    }));
   } catch { /* ignore */ }
 }
 

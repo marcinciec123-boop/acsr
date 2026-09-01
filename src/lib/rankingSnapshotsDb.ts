@@ -90,17 +90,29 @@ export function installDailyRankingDbSync(
   if (dailyInstalled || typeof window === "undefined") return;
   dailyInstalled = true;
 
-  const run = () => {
+  const saveDay = async (date: string) => {
+    const day = date.slice(0, 10);
+    if (!day) return;
     const today = getWorldDate().slice(0, 10);
     let mark = "";
     try { mark = localStorage.getItem(DAY_MARK_KEY) || ""; } catch { /* ignore */ }
-    if (mark === today) return;
-    const snapshot = buildSnapshot(today);
+    if (mark === day) return;
+    const snapshot = buildSnapshot(day);
     if (!snapshot || Object.keys(snapshot.points).length === 0) return;
-    try { localStorage.setItem(DAY_MARK_KEY, today); } catch { /* ignore */ }
-    void pushSnapshotToDb(snapshot);
+    const saved = await pushSnapshotToDb(snapshot);
+    if (!saved) return;
+    try { localStorage.setItem(DAY_MARK_KEY, day); } catch { /* ignore */ }
+    window.dispatchEvent(new Event("ranking-history:update"));
+    // Keep today's marker independent from a previously saved departure day.
+    if (day !== today) try { localStorage.removeItem(DAY_MARK_KEY); } catch { /* ignore */ }
   };
 
-  window.addEventListener(WORLD_CLOCK_EVENT, run);
-  run();
+  const onClockChange = (event: Event) => {
+    const detail = (event as CustomEvent<{ previousDate?: string }>).detail;
+    const departedDay = detail?.previousDate?.slice(0, 10);
+    void saveDay(departedDay || getWorldDate());
+  };
+
+  window.addEventListener(WORLD_CLOCK_EVENT, onClockChange);
+  void saveDay(getWorldDate());
 }
