@@ -224,13 +224,19 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
  */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
+  const today = getWorldDate().slice(0, 10);
   const remote: RankingSnapshot[] = loadRemoteSnapshotCache()
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
-    .filter(s => Object.keys(s.points).length > 0)
+    .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const local = loadRankingHistory().filter(s => !s.synthetic).sort((a, b) => a.date.localeCompare(b.date));
-  const real = [...remote, ...local];
-  const firstRealDate = [remote[0]?.date, local[0]?.date].filter(Boolean).sort()[0];
+  const localFallback = loadRankingHistory()
+    .filter(s => !s.synthetic && s.date <= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  // Once database history is available, never mix it with legacy device-only
+  // snapshots. Old month-end/backfill code saved today's values under past and
+  // future dates, which caused the repeating sawtooth visible on the chart.
+  const real = remote.length > 0 ? remote : localFallback;
+  const firstRealDate = real[0]?.date;
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
   // exact saved states with an approximation derived from today's ranking.
@@ -443,7 +449,6 @@ export function installDailyRankingSnapshots(): void {
   void fetchRemoteSnapshots().catch(error => console.error("Pobranie historii rankingu z bazy nie powiodło się:", error));
   installDailyRankingDbSync(date => {
     const snapshot = buildDailySnapshot(date);
-    if (snapshot) void recordRankingSnapshot("day-change", date);
     return snapshot ? { ...snapshot, source: "daily" } : null;
   });
 }

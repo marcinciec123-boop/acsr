@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { getTeamRankingSeries, getTeamRosterAt } from "@/lib/rankingHistory";
-import { getWorldDate } from "@/lib/worldClock";
+import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,13 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
   useEffect(() => {
     const refresh = () => setHistoryVersion(value => value + 1);
     window.addEventListener("ranking-history:update", refresh);
-    return () => window.removeEventListener("ranking-history:update", refresh);
+    window.addEventListener("ranking:update", refresh);
+    window.addEventListener(WORLD_CLOCK_EVENT, refresh);
+    return () => {
+      window.removeEventListener("ranking-history:update", refresh);
+      window.removeEventListener("ranking:update", refresh);
+      window.removeEventListener(WORLD_CLOCK_EVENT, refresh);
+    };
   }, []);
 
   const data = useMemo(() => {

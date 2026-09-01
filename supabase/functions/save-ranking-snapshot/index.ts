@@ -91,6 +91,19 @@ Deno.serve(async req => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  const { data: existing } = await supabase
+    .from("ranking_snapshots")
+    .select("source")
+    .eq("snapshot_date", snapshot_date)
+    .maybeSingle();
+
+  if (existing?.source === "historical" && safeSource !== "historical") {
+    return new Response(JSON.stringify({ error: "Historical snapshot is immutable" }), {
+      status: 409,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const { error } = await supabase
     .from("ranking_snapshots")
     .upsert(
