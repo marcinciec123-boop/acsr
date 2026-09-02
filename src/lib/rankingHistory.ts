@@ -229,28 +229,32 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
   const today = getWorldDate().slice(0, 10);
-  const remote: RankingSnapshot[] = loadRemoteSnapshotCache()
+  // Z bazy bierzemy WYŁĄCZNIE rankingi historyczne (import z arkuszy).
+  // Codzienna historia jest prywatna dla zapisu użytkownika, więc żadne cudze
+  // (ani przyszłe) migawki nie mogą trafić na wykres.
+  const historical: RankingSnapshot[] = loadRemoteSnapshotCache()
+    .filter(s => s.source === "historical")
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
     .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const localFallback = loadRankingHistory()
+  const local = loadRankingHistory()
     .filter(s => !s.synthetic && s.date <= today)
     .sort((a, b) => a.date.localeCompare(b.date));
-  // Once database history is available, never mix it with legacy device-only
-  // snapshots. Old month-end/backfill code saved today's values under past and
-  // future dates, which caused the repeating sawtooth visible on the chart.
-  const real = remote.length > 0 ? remote : localFallback;
-  const firstRealDate = real[0]?.date;
+  // Zapis użytkownika jest nadrzędny — historyczne rankingi tylko uzupełniają dni,
+  // których w zapisie nie ma.
+  const real = [...historical, ...local];
+  const firstRealDate = real.map(s => s.date).sort()[0];
   // A real snapshot is a complete checkpoint. Synthetic replay is only useful
   // before the first checkpoint; mixing it between real snapshots overwrote
   // exact saved states with an approximation derived from today's ranking.
   buildHistoricalRankingSnapshots()
-    .filter(s => !firstRealDate || s.date < firstRealDate)
+    .filter(s => s.date <= today && (!firstRealDate || s.date < firstRealDate))
     .forEach(s => merged.set(s.date, s));
   real.forEach(s => {
     const points = canonicalizeSnapshotMap(s.points, s.date);
     merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
   });
+
 
 
   const carry: Record<string, number> = {};
