@@ -171,6 +171,10 @@ export async function recordRankingSnapshot(reason?: string, dateOverride?: stri
   const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
     || (teamDatabase as TeamData[]);
   const date = (dateOverride || getWorldDate()).slice(0, 10);
+  const today = getWorldDate().slice(0, 10);
+  // A tournament may be scheduled far ahead. Never let changing its status
+  // inject that future end date into the historical ranking timeline.
+  if (!date || date > today) return false;
   const points: Record<string, number> = {};
   const ranks: Record<string, number> = {};
   const rosters: Record<string, string[]> = {};

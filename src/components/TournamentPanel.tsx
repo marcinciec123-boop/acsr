@@ -904,7 +904,7 @@ const TournamentPanel = () => {
           if (status === "completed") {
             try {
               const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
-              const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`, t.endDate);
+              const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`);
               if (!historySaved) throw new Error("Ranking history save failed");
             } catch (error) {
               console.error("Nie udało się zapisać historii rankingu:", error);

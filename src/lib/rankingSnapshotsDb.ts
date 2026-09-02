@@ -114,5 +114,4 @@ export function installDailyRankingDbSync(
   };
 
   window.addEventListener(WORLD_CLOCK_EVENT, onClockChange);
-  void saveDay(getWorldDate());
 }
