@@ -5,7 +5,6 @@
 // we wszystkich wykresach historii punktów/miejsc.
 
 import { supabase } from "@/integrations/supabase/client";
-import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 
 export interface RemoteSnapshot {
   date: string;
@@ -38,6 +37,7 @@ export async function fetchRemoteSnapshots(): Promise<RemoteSnapshot[]> {
   const { data, error } = await supabase
     .from("ranking_snapshots")
     .select("snapshot_date, points, ranks, rosters, source")
+    .eq("source", "historical")
     .order("snapshot_date", { ascending: true });
   if (error || !data) {
     if (error) console.error("Nie udało się pobrać migawek rankingu:", error.message);
@@ -76,42 +76,4 @@ export async function pushSnapshotToDb(snapshot: RemoteSnapshot): Promise<boolea
   cache.sort((a, b) => a.date.localeCompare(b.date));
   saveRemoteSnapshotCache(cache);
   return true;
-}
-
-let dailyInstalled = false;
-
-/**
- * Nasłuchuje zegara świata: przy każdej zmianie dnia zapisuje ranking
- * z bieżącego dnia w bazie (i lokalnie), żeby historia była pełna.
- */
-export function installDailyRankingDbSync(
-  buildSnapshot: (date: string) => RemoteSnapshot | null,
-): void {
-  if (dailyInstalled || typeof window === "undefined") return;
-  dailyInstalled = true;
-
-  const saveDay = async (date: string) => {
-    const day = date.slice(0, 10);
-    if (!day) return;
-    const today = getWorldDate().slice(0, 10);
-    let mark = "";
-    try { mark = localStorage.getItem(DAY_MARK_KEY) || ""; } catch { /* ignore */ }
-    if (mark === day) return;
-    const snapshot = buildSnapshot(day);
-    if (!snapshot || Object.keys(snapshot.points).length === 0) return;
-    const saved = await pushSnapshotToDb(snapshot);
-    if (!saved) return;
-    try { localStorage.setItem(DAY_MARK_KEY, day); } catch { /* ignore */ }
-    window.dispatchEvent(new Event("ranking-history:update"));
-    // Keep today's marker independent from a previously saved departure day.
-    if (day !== today) try { localStorage.removeItem(DAY_MARK_KEY); } catch { /* ignore */ }
-  };
-
-  const onClockChange = (event: Event) => {
-    const detail = (event as CustomEvent<{ previousDate?: string }>).detail;
-    const departedDay = detail?.previousDate?.slice(0, 10);
-    void saveDay(departedDay || getWorldDate());
-  };
-
-  window.addEventListener(WORLD_CLOCK_EVENT, onClockChange);
 }
