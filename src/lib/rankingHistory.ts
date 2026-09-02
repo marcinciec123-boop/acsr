@@ -444,15 +444,22 @@ function buildDailySnapshot(date: string): { date: string; points: Record<string
 let dailySyncInstalled = false;
 
 /**
- * Uruchamia dzienny zapis rankingu do bazy oraz jednorazowe pobranie
- * historycznych rankingów z bazy (uwzględnianych w wykresach).
+ * Historia rankingu jest LOKALNA (zapis użytkownika). Przy przejściu na kolejny
+ * dzień zapisujemy ranking dnia, który się właśnie skończył, wyłącznie w zapisie
+ * użytkownika. Z bazy pobieramy tylko rankingi historyczne (import z arkuszy),
+ * które są wspólnym punktem odniesienia sprzed początku zapisu.
  */
 export function installDailyRankingSnapshots(): void {
   if (dailySyncInstalled || typeof window === "undefined") return;
   dailySyncInstalled = true;
-  void fetchRemoteSnapshots().catch(error => console.error("Pobranie historii rankingu z bazy nie powiodło się:", error));
-  installDailyRankingDbSync(date => {
-    const snapshot = buildDailySnapshot(date);
-    return snapshot ? { ...snapshot, source: "daily" } : null;
+  void fetchRemoteSnapshots().catch(error => console.error("Pobranie historycznych rankingów nie powiodło się:", error));
+  window.addEventListener(WORLD_CLOCK_EVENT, (event: Event) => {
+    const detail = (event as CustomEvent<{ previousDate?: string }>).detail;
+    const day = (detail?.previousDate || "").slice(0, 10);
+    if (!day) return;
+    void recordRankingSnapshot("day-change", day)
+      .then(ok => { if (ok) window.dispatchEvent(new Event("ranking-history:update")); })
+      .catch(error => console.error("Zapis rankingu dnia nie powiódł się:", error));
   });
 }
+
