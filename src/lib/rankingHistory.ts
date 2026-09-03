@@ -352,67 +352,46 @@ export function getTeamRosterAt(rawTeamName: string, dateIso: string): string[] 
 
 // ===== Automatyczne migawki na koniec miesiąca =====
 // Gdy fikcyjny kalendarz przekroczy koniec miesiąca, zapisujemy migawkę
-// datowaną na jego ostatni dzień (o ile nie ma jeszcze realnego zapisu).
+// datowaną na jego ostatni dzień — WYŁĄCZONE.
+// Te migawki były wyliczane z rekonstrukcji, więc nie pochodziły z zapisu
+// użytkownika. Zostają usunięte jednorazowo i nie są już generowane.
 
 const MONTH_MARK_KEY = "ranking_history_month_mark";
+const PURGE_KEY = "ranking_history_purge_v1";
 
-const lastDayOfMonth = (year: number, month: number): string => {
-  const d = new Date(Date.UTC(year, month + 1, 0));
-  return d.toISOString().slice(0, 10);
+const isMonthEnd = (iso: string): boolean => {
+  const d = new Date(iso + "T12:00:00Z");
+  const next = new Date(d);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.getUTCDate() === 1;
 };
 
-/** Zapisuje brakujące migawki końca miesiąca aż do bieżącej daty świata. */
-export async function ensureMonthEndSnapshots(): Promise<void> {
-  const today = getWorldDate().slice(0, 10);
-  let mark = "";
-  try { mark = localStorage.getItem(MONTH_MARK_KEY) || ""; } catch { /* ignore */ }
-  if (mark >= today) return;
-
-  const existing = new Set(loadRankingHistory().filter(s => !s.synthetic).map(s => s.date));
-  const [y, m] = today.split("-").map(Number);
-  const targets: string[] = [];
-  // Sprawdź ostatnie 24 miesiące wstecz — wystarczająco na całą oś czasu sezonu.
-  for (let back = 1; back <= 24; back++) {
-    const date = new Date(Date.UTC(y, m - 1 - back, 1));
-    const iso = lastDayOfMonth(date.getUTCFullYear(), date.getUTCMonth());
-    if (iso >= today) continue;
-    if (!existing.has(iso)) targets.push(iso);
-  }
-  targets.sort();
-
-  if (targets.length === 0) return;
-
-  const history = loadRankingHistory().filter(s => !s.synthetic);
-  targets.forEach(iso => {
-    // Stan rankingu obowiązujący tego dnia (rekonstrukcja + realne migawki).
-    const standings = getRankingAt(iso);
-    if (standings.length === 0) return;
-    const points: Record<string, number> = {};
-    const ranks: Record<string, number> = {};
-    const rosters: Record<string, string[]> = {};
-    standings.forEach(entry => {
-      points[entry.currentTeam] = entry.points;
-      ranks[entry.currentTeam] = entry.rank;
-      const roster = getTeamRosterAt(entry.currentTeam, iso);
-      if (roster.length) rosters[entry.currentTeam] = roster.slice(0, 5);
-    });
-    history.push({ date: iso, points, ranks, rosters });
-  });
-  history.sort((a, b) => a.date.localeCompare(b.date));
+/** Jednorazowo usuwa migawki wygenerowane automatycznie (końce miesięcy). */
+export async function purgeFabricatedRankingHistory(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try { if (localStorage.getItem(PURGE_KEY)) return; } catch { /* ignore */ }
+  const history = loadRankingHistory().filter(s => !s.synthetic && !isMonthEnd(s.date));
   await saveToStorageAsync(KEY, history);
+  try {
+    localStorage.removeItem(MONTH_MARK_KEY);
+    localStorage.setItem(PURGE_KEY, "1");
+  } catch { /* ignore */ }
+  window.dispatchEvent(new Event("ranking-history:update"));
+}
 
-  try { localStorage.setItem(MONTH_MARK_KEY, today); } catch { /* ignore */ }
+/** @deprecated Automatyczne migawki końca miesiąca zostały wyłączone. */
+export async function ensureMonthEndSnapshots(): Promise<void> {
+  await purgeFabricatedRankingHistory();
 }
 
 let monthEndInstalled = false;
-/** Nasłuchuje zmian zegara świata i dopisuje migawki końca miesiąca. */
+/** Utrzymane dla zgodności — wykonuje tylko jednorazowe czyszczenie. */
 export function installMonthEndSnapshots(): void {
   if (monthEndInstalled || typeof window === "undefined") return;
   monthEndInstalled = true;
-  const run = () => { void ensureMonthEndSnapshots(); };
-  window.addEventListener(WORLD_CLOCK_EVENT, run);
-  run();
+  void purgeFabricatedRankingHistory();
 }
+
 
 // ===== Dzienne migawki w bazie danych =====
 // Przy przejściu do kolejnego dnia zapisujemy pełny ranking dnia w bazie
