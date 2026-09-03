@@ -8,7 +8,7 @@ import { loadRemoteSnapshotCache, fetchRemoteSnapshots } from "@/lib/rankingSnap
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 
 import { splitRoster } from "@/lib/benchedPlayers";
-import type { MatchResult, RankingAdjustment, TournamentData } from "@/lib/types";
+import type { MatchResult, TournamentData } from "@/lib/types";
 
 interface StoredTransfer {
   player: string;
@@ -63,83 +63,9 @@ const buildRanks = (points: Record<string, number>): Record<string, number> => O
     .map(([team], index) => [team, index + 1]),
 );
 
-/**
- * Rebuild snapshots for tournaments played before ranking history existed.
- * The present ranking remains the source of truth: known historical deltas are
- * reversed to derive the baseline, then replayed chronologically. This keeps
- * the final point totals exact while restoring every historical event date.
- *
- * These snapshots are SYNTHETIC — they are recomputed on demand and never
- * written to storage, so a later manual point edit can't freeze a wrong value.
- */
-export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
-  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
-    || (teamDatabase as TeamData[]);
-  const clubs = ranking.filter(isClub);
-  const clubNames = new Set(clubs.map(team => team.name));
-  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", [])
-    .filter(tournament => tournament.status === "completed" && tournament.kind !== "worlds" && !!tournament.endDate)
-    .sort((a, b) => a.endDate.localeCompare(b.endDate));
+// Syntetyczna rekonstrukcja historii rankingu została usunięta —
+// wykres pokazuje wyłącznie realne migawki z zapisu użytkownika i jego bazy.
 
-  const deltasByDate = new Map<string, Map<string, number>>();
-  const addDelta = (date: string, rawTeam: string, delta: number) => {
-    const team = canonicalTeamName(rawTeam);
-    if (!clubNames.has(team) || !delta) return;
-    const daily = deltasByDate.get(date) || new Map<string, number>();
-    daily.set(team, (daily.get(team) || 0) + delta);
-    deltasByDate.set(date, daily);
-  };
-
-  tournaments.forEach(tournament => {
-    const date = tournament.endDate.slice(0, 10);
-    // Older completed tournaments predate `resultsConfirmed`, but their saved
-    // placements are still authoritative historical ranking events.
-    tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
-    // The application awards ranking points from final placements. Match
-    // points are predictions/UI metadata and were never added to ranking_data;
-    // replaying them here used to corrupt every old ranking.
-    // Preserve a point on the timeline even for old tournaments without saved deltas.
-    if (!deltasByDate.has(date)) deltasByDate.set(date, new Map());
-  });
-
-  // Manual edits are genuine dated ranking events as well. Omitting them made
-  // today's correction leak backwards into the baseline of every older day.
-  loadFromStorage<RankingAdjustment[]>("ranking_adjustments", []).forEach(adjustment => {
-    const date = (adjustment.date || "").slice(0, 10);
-    if (date) addDelta(date, adjustment.team, adjustment.points || 0);
-  });
-
-  const knownTotals = new Map<string, number>();
-  deltasByDate.forEach(daily => daily.forEach((delta, team) => {
-    knownTotals.set(team, (knownTotals.get(team) || 0) + delta);
-  }));
-  // No clamping here: clamping the baseline breaks the invariant
-  // baseline + all deltas === current points, which is what produced the
-  // wildly wrong historical charts.
-  const running: Record<string, number> = Object.fromEntries(clubs.map(team => [
-    team.name,
-    (team.points || 0) - (knownTotals.get(team.name) || 0),
-  ]));
-
-  const dates = [...deltasByDate.entries()].sort(([a], [b]) => a.localeCompare(b));
-  const snapshots: RankingSnapshot[] = [];
-
-  // Opening snapshot (day before the first event) so charts start at the baseline.
-  if (dates.length > 0) {
-    const first = new Date(dates[0][0] + "T12:00:00");
-    first.setDate(first.getDate() - 1);
-    const openIso = first.toISOString().slice(0, 10);
-    const openPoints = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
-    snapshots.push({ date: openIso, points: openPoints, ranks: buildRanks(openPoints), synthetic: true });
-  }
-
-  dates.forEach(([date, daily]) => {
-    daily.forEach((delta, team) => { running[team] = (running[team] || 0) + delta; });
-    const points = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
-    snapshots.push({ date, points, ranks: buildRanks(points), synthetic: true });
-  });
-  return snapshots;
-}
 
 /**
  * Persist history. Only REAL recorded snapshots are stored — synthetic
@@ -229,9 +155,8 @@ export interface TeamRankingPoint { date: string; points: number; rank?: number 
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const merged = new Map<string, RankingSnapshot>();
   const today = getWorldDate().slice(0, 10);
-  // Z bazy bierzemy WYŁĄCZNIE rankingi historyczne (import z arkuszy).
-  // Codzienna historia jest prywatna dla zapisu użytkownika, więc żadne cudze
-  // (ani przyszłe) migawki nie mogą trafić na wykres.
+  // Tylko realne migawki: zapis użytkownika + jego historyczne rankingi z bazy.
+  // Żadnych syntetycznych rekonstrukcji — one fałszowały wykres.
   const historical: RankingSnapshot[] = loadRemoteSnapshotCache()
     .filter(s => s.source === "historical")
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
@@ -240,20 +165,12 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
   const local = loadRankingHistory()
     .filter(s => !s.synthetic && s.date <= today)
     .sort((a, b) => a.date.localeCompare(b.date));
-  // Zapis użytkownika jest nadrzędny — historyczne rankingi tylko uzupełniają dni,
-  // których w zapisie nie ma.
   const real = [...historical, ...local];
-  const firstRealDate = real.map(s => s.date).sort()[0];
-  // A real snapshot is a complete checkpoint. Synthetic replay is only useful
-  // before the first checkpoint; mixing it between real snapshots overwrote
-  // exact saved states with an approximation derived from today's ranking.
-  buildHistoricalRankingSnapshots()
-    .filter(s => s.date <= today && (!firstRealDate || s.date < firstRealDate))
-    .forEach(s => merged.set(s.date, s));
   real.forEach(s => {
     const points = canonicalizeSnapshotMap(s.points, s.date);
     merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
   });
+
 
 
 
@@ -361,67 +278,46 @@ export function getTeamRosterAt(rawTeamName: string, dateIso: string): string[] 
 
 // ===== Automatyczne migawki na koniec miesiąca =====
 // Gdy fikcyjny kalendarz przekroczy koniec miesiąca, zapisujemy migawkę
-// datowaną na jego ostatni dzień (o ile nie ma jeszcze realnego zapisu).
+// datowaną na jego ostatni dzień — WYŁĄCZONE.
+// Te migawki były wyliczane z rekonstrukcji, więc nie pochodziły z zapisu
+// użytkownika. Zostają usunięte jednorazowo i nie są już generowane.
 
 const MONTH_MARK_KEY = "ranking_history_month_mark";
+const PURGE_KEY = "ranking_history_purge_v1";
 
-const lastDayOfMonth = (year: number, month: number): string => {
-  const d = new Date(Date.UTC(year, month + 1, 0));
-  return d.toISOString().slice(0, 10);
+const isMonthEnd = (iso: string): boolean => {
+  const d = new Date(iso + "T12:00:00Z");
+  const next = new Date(d);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.getUTCDate() === 1;
 };
 
-/** Zapisuje brakujące migawki końca miesiąca aż do bieżącej daty świata. */
-export async function ensureMonthEndSnapshots(): Promise<void> {
-  const today = getWorldDate().slice(0, 10);
-  let mark = "";
-  try { mark = localStorage.getItem(MONTH_MARK_KEY) || ""; } catch { /* ignore */ }
-  if (mark >= today) return;
-
-  const existing = new Set(loadRankingHistory().filter(s => !s.synthetic).map(s => s.date));
-  const [y, m] = today.split("-").map(Number);
-  const targets: string[] = [];
-  // Sprawdź ostatnie 24 miesiące wstecz — wystarczająco na całą oś czasu sezonu.
-  for (let back = 1; back <= 24; back++) {
-    const date = new Date(Date.UTC(y, m - 1 - back, 1));
-    const iso = lastDayOfMonth(date.getUTCFullYear(), date.getUTCMonth());
-    if (iso >= today) continue;
-    if (!existing.has(iso)) targets.push(iso);
-  }
-  targets.sort();
-
-  if (targets.length === 0) return;
-
-  const history = loadRankingHistory().filter(s => !s.synthetic);
-  targets.forEach(iso => {
-    // Stan rankingu obowiązujący tego dnia (rekonstrukcja + realne migawki).
-    const standings = getRankingAt(iso);
-    if (standings.length === 0) return;
-    const points: Record<string, number> = {};
-    const ranks: Record<string, number> = {};
-    const rosters: Record<string, string[]> = {};
-    standings.forEach(entry => {
-      points[entry.currentTeam] = entry.points;
-      ranks[entry.currentTeam] = entry.rank;
-      const roster = getTeamRosterAt(entry.currentTeam, iso);
-      if (roster.length) rosters[entry.currentTeam] = roster.slice(0, 5);
-    });
-    history.push({ date: iso, points, ranks, rosters });
-  });
-  history.sort((a, b) => a.date.localeCompare(b.date));
+/** Jednorazowo usuwa migawki wygenerowane automatycznie (końce miesięcy). */
+export async function purgeFabricatedRankingHistory(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try { if (localStorage.getItem(PURGE_KEY)) return; } catch { /* ignore */ }
+  const history = loadRankingHistory().filter(s => !s.synthetic && !isMonthEnd(s.date));
   await saveToStorageAsync(KEY, history);
+  try {
+    localStorage.removeItem(MONTH_MARK_KEY);
+    localStorage.setItem(PURGE_KEY, "1");
+  } catch { /* ignore */ }
+  window.dispatchEvent(new Event("ranking-history:update"));
+}
 
-  try { localStorage.setItem(MONTH_MARK_KEY, today); } catch { /* ignore */ }
+/** @deprecated Automatyczne migawki końca miesiąca zostały wyłączone. */
+export async function ensureMonthEndSnapshots(): Promise<void> {
+  await purgeFabricatedRankingHistory();
 }
 
 let monthEndInstalled = false;
-/** Nasłuchuje zmian zegara świata i dopisuje migawki końca miesiąca. */
+/** Utrzymane dla zgodności — wykonuje tylko jednorazowe czyszczenie. */
 export function installMonthEndSnapshots(): void {
   if (monthEndInstalled || typeof window === "undefined") return;
   monthEndInstalled = true;
-  const run = () => { void ensureMonthEndSnapshots(); };
-  window.addEventListener(WORLD_CLOCK_EVENT, run);
-  run();
+  void purgeFabricatedRankingHistory();
 }
+
 
 // ===== Dzienne migawki w bazie danych =====
 // Przy przejściu do kolejnego dnia zapisujemy pełny ranking dnia w bazie
