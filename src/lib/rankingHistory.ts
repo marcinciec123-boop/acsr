@@ -8,7 +8,7 @@ import { loadRemoteSnapshotCache, fetchRemoteSnapshots } from "@/lib/rankingSnap
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 
 import { splitRoster } from "@/lib/benchedPlayers";
-import type { MatchResult, RankingAdjustment, TournamentData } from "@/lib/types";
+import type { MatchResult, TournamentData } from "@/lib/types";
 
 interface StoredTransfer {
   player: string;
