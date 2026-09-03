@@ -63,83 +63,9 @@ const buildRanks = (points: Record<string, number>): Record<string, number> => O
     .map(([team], index) => [team, index + 1]),
 );
 
-/**
- * Rebuild snapshots for tournaments played before ranking history existed.
- * The present ranking remains the source of truth: known historical deltas are
- * reversed to derive the baseline, then replayed chronologically. This keeps
- * the final point totals exact while restoring every historical event date.
- *
- * These snapshots are SYNTHETIC — they are recomputed on demand and never
- * written to storage, so a later manual point edit can't freeze a wrong value.
- */
-export function buildHistoricalRankingSnapshots(): RankingSnapshot[] {
-  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
-    || (teamDatabase as TeamData[]);
-  const clubs = ranking.filter(isClub);
-  const clubNames = new Set(clubs.map(team => team.name));
-  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", [])
-    .filter(tournament => tournament.status === "completed" && tournament.kind !== "worlds" && !!tournament.endDate)
-    .sort((a, b) => a.endDate.localeCompare(b.endDate));
+// Syntetyczna rekonstrukcja historii rankingu została usunięta —
+// wykres pokazuje wyłącznie realne migawki z zapisu użytkownika i jego bazy.
 
-  const deltasByDate = new Map<string, Map<string, number>>();
-  const addDelta = (date: string, rawTeam: string, delta: number) => {
-    const team = canonicalTeamName(rawTeam);
-    if (!clubNames.has(team) || !delta) return;
-    const daily = deltasByDate.get(date) || new Map<string, number>();
-    daily.set(team, (daily.get(team) || 0) + delta);
-    deltasByDate.set(date, daily);
-  };
-
-  tournaments.forEach(tournament => {
-    const date = tournament.endDate.slice(0, 10);
-    // Older completed tournaments predate `resultsConfirmed`, but their saved
-    // placements are still authoritative historical ranking events.
-    tournament.placements?.forEach(placement => addDelta(date, placement.team, placement.points || 0));
-    // The application awards ranking points from final placements. Match
-    // points are predictions/UI metadata and were never added to ranking_data;
-    // replaying them here used to corrupt every old ranking.
-    // Preserve a point on the timeline even for old tournaments without saved deltas.
-    if (!deltasByDate.has(date)) deltasByDate.set(date, new Map());
-  });
-
-  // Manual edits are genuine dated ranking events as well. Omitting them made
-  // today's correction leak backwards into the baseline of every older day.
-  loadFromStorage<RankingAdjustment[]>("ranking_adjustments", []).forEach(adjustment => {
-    const date = (adjustment.date || "").slice(0, 10);
-    if (date) addDelta(date, adjustment.team, adjustment.points || 0);
-  });
-
-  const knownTotals = new Map<string, number>();
-  deltasByDate.forEach(daily => daily.forEach((delta, team) => {
-    knownTotals.set(team, (knownTotals.get(team) || 0) + delta);
-  }));
-  // No clamping here: clamping the baseline breaks the invariant
-  // baseline + all deltas === current points, which is what produced the
-  // wildly wrong historical charts.
-  const running: Record<string, number> = Object.fromEntries(clubs.map(team => [
-    team.name,
-    (team.points || 0) - (knownTotals.get(team.name) || 0),
-  ]));
-
-  const dates = [...deltasByDate.entries()].sort(([a], [b]) => a.localeCompare(b));
-  const snapshots: RankingSnapshot[] = [];
-
-  // Opening snapshot (day before the first event) so charts start at the baseline.
-  if (dates.length > 0) {
-    const first = new Date(dates[0][0] + "T12:00:00");
-    first.setDate(first.getDate() - 1);
-    const openIso = first.toISOString().slice(0, 10);
-    const openPoints = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
-    snapshots.push({ date: openIso, points: openPoints, ranks: buildRanks(openPoints), synthetic: true });
-  }
-
-  dates.forEach(([date, daily]) => {
-    daily.forEach((delta, team) => { running[team] = (running[team] || 0) + delta; });
-    const points = Object.fromEntries(Object.entries(running).map(([t, p]) => [t, Math.round(Math.max(0, p))]));
-    snapshots.push({ date, points, ranks: buildRanks(points), synthetic: true });
-  });
-  return snapshots;
-}
 
 /**
  * Persist history. Only REAL recorded snapshots are stored — synthetic
