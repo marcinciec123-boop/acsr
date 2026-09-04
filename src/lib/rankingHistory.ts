@@ -363,7 +363,9 @@ let dailySyncInstalled = false;
 export function installDailyRankingSnapshots(): void {
   if (dailySyncInstalled || typeof window === "undefined") return;
   dailySyncInstalled = true;
+  void purgeFabricatedRankingHistory().catch(error => console.error("Czyszczenie historii rankingu nie powiodło się:", error));
   void fetchRemoteSnapshots().catch(error => console.error("Pobranie historycznych rankingów nie powiodło się:", error));
+
   window.addEventListener(WORLD_CLOCK_EVENT, (event: Event) => {
     const detail = (event as CustomEvent<{ previousDate?: string }>).detail;
     const day = (detail?.previousDate || "").slice(0, 10);
