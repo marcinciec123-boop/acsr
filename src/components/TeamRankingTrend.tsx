@@ -160,10 +160,10 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
             />
             <Tooltip content={<CustomTooltip teamName={teamName} />} />
             {metrics.includes("points") && (
-              <Line yAxisId="points" type="monotone" dataKey="points" name="Punkty" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} connectNulls />
+              <Line yAxisId="points" type="stepAfter" dataKey="points" name="Punkty" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} connectNulls />
             )}
             {metrics.includes("rank") && (
-              <Line yAxisId="rank" type="monotone" dataKey="rank" name="Miejsce" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} connectNulls />
+              <Line yAxisId="rank" type="stepAfter" dataKey="rank" name="Miejsce" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} connectNulls />
             )}
           </LineChart>
         </ResponsiveContainer>
