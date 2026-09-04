@@ -283,7 +283,7 @@ export function getTeamRosterAt(rawTeamName: string, dateIso: string): string[] 
 // użytkownika. Zostają usunięte jednorazowo i nie są już generowane.
 
 const MONTH_MARK_KEY = "ranking_history_month_mark";
-const PURGE_KEY = "ranking_history_purge_v1";
+const PURGE_KEY = "ranking_history_purge_v2";
 
 const isMonthEnd = (iso: string): boolean => {
   const d = new Date(iso + "T12:00:00Z");
@@ -292,18 +292,29 @@ const isMonthEnd = (iso: string): boolean => {
   return next.getUTCDate() === 1;
 };
 
-/** Jednorazowo usuwa migawki wygenerowane automatycznie (końce miesięcy). */
+/**
+ * Jednorazowo usuwa migawki, których użytkownik nigdy nie zapisał:
+ * - rekonstrukcje (`synthetic`),
+ * - stare automatyczne migawki końca miesiąca bez składów,
+ * - wszystkie wpisy bez zapisanych składów (tak wyglądały wyłącznie
+ *   wpisy fabrykowane — realny zapis dnia zawsze zawiera skład drużyn).
+ */
 export async function purgeFabricatedRankingHistory(): Promise<void> {
   if (typeof window === "undefined") return;
   try { if (localStorage.getItem(PURGE_KEY)) return; } catch { /* ignore */ }
-  const history = loadRankingHistory().filter(s => !s.synthetic && !isMonthEnd(s.date));
+  const history = loadRankingHistory().filter(s =>
+    !s.synthetic
+    && Object.keys(s.rosters || {}).length > 0
+    && !(isMonthEnd(s.date) && Object.keys(s.rosters || {}).length === 0));
   await saveToStorageAsync(KEY, history);
   try {
     localStorage.removeItem(MONTH_MARK_KEY);
+    localStorage.removeItem("ranking_history_purge_v1");
     localStorage.setItem(PURGE_KEY, "1");
   } catch { /* ignore */ }
   window.dispatchEvent(new Event("ranking-history:update"));
 }
+
 
 /** @deprecated Automatyczne migawki końca miesiąca zostały wyłączone. */
 export async function ensureMonthEndSnapshots(): Promise<void> {
