@@ -146,17 +146,61 @@ export function installRankingHistoryAutoSync(): void {
 export interface TeamRankingPoint { date: string; points: number; rank?: number }
 
 /**
- * Pełna historia: rekonstrukcja z turniejów (syntetyczna) + zapisane migawki.
- * Zapisana migawka ZAWSZE wygrywa dla swojej daty — rekonstrukcja tylko
- * wypełnia dni, dla których nie ma realnego zapisu. Braki są przenoszone
- * z ostatniego znanego stanu, więc ranking każdego dnia jest kompletny
- * i pozycje są dokładne co do miejsca.
+ * Łączy realne migawki w oś czasu. Każda zapisana wartość obowiązuje aż do
+ * kolejnej migawki, która jawnie aktualizuje daną drużynę. Dotyczy to osobno
+ * punktów i pozycji — pozycji przesłanych w arkuszu nie wolno wyliczać ponownie
+ * z niepełnej listy drużyn.
  */
+export function mergeRankingSnapshots(snapshots: RankingSnapshot[]): RankingSnapshot[] {
+  const byDate = new Map<string, RankingSnapshot>();
+  snapshots.forEach(snapshot => {
+    const previous = byDate.get(snapshot.date);
+    byDate.set(snapshot.date, {
+      date: snapshot.date,
+      points: {
+        ...(previous?.points || {}),
+        ...canonicalizeSnapshotMap(snapshot.points, snapshot.date),
+      },
+      ranks: {
+        ...(previous?.ranks || {}),
+        ...canonicalizeSnapshotMap(snapshot.ranks, snapshot.date),
+      },
+      rosters: {
+        ...(previous?.rosters || {}),
+        ...canonicalizeSnapshotMap(snapshot.rosters, snapshot.date),
+      },
+    });
+  });
+
+  const carriedPoints: Record<string, number> = {};
+  const carriedRanks: Record<string, number> = {};
+  const carriedRosters: Record<string, string[]> = {};
+
+  return [...byDate.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(snapshot => {
+      Object.assign(carriedPoints, snapshot.points);
+      Object.assign(carriedRosters, snapshot.rosters);
+
+      const explicitRanks = snapshot.ranks || {};
+      Object.assign(carriedRanks, explicitRanks);
+      const calculatedRanks = buildRanks(carriedPoints);
+      Object.keys(carriedPoints).forEach(team => {
+        if (carriedRanks[team] === undefined) carriedRanks[team] = calculatedRanks[team];
+      });
+
+      return {
+        date: snapshot.date,
+        points: { ...carriedPoints },
+        ranks: { ...carriedRanks },
+        rosters: { ...carriedRosters },
+      };
+    });
+}
+
+/** Pełna historia z arkuszy użytkownika i lokalnego zapisu gry. */
 export function getMergedRankingHistory(): RankingSnapshot[] {
-  const merged = new Map<string, RankingSnapshot>();
   const today = getWorldDate().slice(0, 10);
-  // Tylko realne migawki: zapis użytkownika + jego historyczne rankingi z bazy.
-  // Żadnych syntetycznych rekonstrukcji — one fałszowały wykres.
   const historical: RankingSnapshot[] = loadRemoteSnapshotCache()
     .filter(s => s.source === "historical")
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
@@ -165,23 +209,8 @@ export function getMergedRankingHistory(): RankingSnapshot[] {
   const local = loadRankingHistory()
     .filter(s => !s.synthetic && s.date <= today)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const real = [...historical, ...local];
-  real.forEach(s => {
-    const points = canonicalizeSnapshotMap(s.points, s.date);
-    merged.set(s.date, { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) });
-  });
 
-
-
-
-  const carry: Record<string, number> = {};
-  return [...merged.values()]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(s => {
-      Object.entries(canonicalizeSnapshotMap(s.points, s.date)).forEach(([team, pts]) => { carry[team] = pts; });
-      const points = { ...carry };
-      return { date: s.date, points, ranks: buildRanks(points), rosters: canonicalizeSnapshotMap(s.rosters, s.date) };
-    });
+  return mergeRankingSnapshots([...historical, ...local]);
 }
 
 
