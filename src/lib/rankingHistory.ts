@@ -41,6 +41,15 @@ export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, d
 
 const KEY = "ranking_history_v1";
 
+let historyWriteChain: Promise<void> = Promise.resolve();
+
+/** Serializuje pełne operacje odczyt–modyfikacja–zapis historii. */
+function withHistoryWriteLock<T>(operation: () => Promise<T>): Promise<T> {
+  const run = historyWriteChain.then(operation, operation);
+  historyWriteChain = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 export interface RankingSnapshot {
   date: string;                          // YYYY-MM-DD (world clock)
   points: Record<string, number>;        // teamName -> points
@@ -73,54 +82,56 @@ const buildRanks = (points: Record<string, number>): Record<string, number> => O
  * save file (which previously caused stale, contradictory historical points).
  */
 export async function synchronizeRankingHistory(): Promise<boolean> {
-  // Legacy saves baked reconstructions into storage; those entries never carry
-  // rosters, so they can be identified and dropped safely.
-  const real = loadRankingHistory().filter(s => !s.synthetic);
-  const merged = new Map<string, RankingSnapshot>();
-  real.forEach(s => {
-    const prev = merged.get(s.date);
-    const points = canonicalizeSnapshotMap(s.points, s.date);
-    const rosters = canonicalizeSnapshotMap(s.rosters, s.date);
-    merged.set(s.date, {
-      date: s.date,
-      points: { ...(prev?.points || {}), ...points },
-      ranks: buildRanks({ ...(prev?.points || {}), ...points }),
-      rosters: { ...(prev?.rosters || {}), ...rosters },
+  return withHistoryWriteLock(async () => {
+    // Legacy saves baked reconstructions into storage; those entries never carry
+    // rosters, so they can be identified and dropped safely.
+    const real = loadRankingHistory().filter(s => !s.synthetic);
+    const merged = new Map<string, RankingSnapshot>();
+    real.forEach(s => {
+      const prev = merged.get(s.date);
+      const points = canonicalizeSnapshotMap(s.points, s.date);
+      const rosters = canonicalizeSnapshotMap(s.rosters, s.date);
+      merged.set(s.date, {
+        date: s.date,
+        points: { ...(prev?.points || {}), ...points },
+        ranks: buildRanks({ ...(prev?.points || {}), ...points }),
+        rosters: { ...(prev?.rosters || {}), ...rosters },
+      });
     });
+    const history = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
+    return saveToStorageAsync(KEY, history);
   });
-  const history = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
-  return saveToStorageAsync(KEY, history);
 }
 
 /** Save a complete snapshot for a date; merges with same-day entry. */
 export async function recordRankingSnapshot(reason?: string, dateOverride?: string): Promise<boolean> {
-  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
-    || (teamDatabase as TeamData[]);
-  const date = (dateOverride || getWorldDate()).slice(0, 10);
-  const today = getWorldDate().slice(0, 10);
-  // A tournament may be scheduled far ahead. Never let changing its status
-  // inject that future end date into the historical ranking timeline.
-  if (!date || date > today) return false;
-  const points: Record<string, number> = {};
-  const ranks: Record<string, number> = {};
-  const rosters: Record<string, string[]> = {};
-  const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
-  clubs.forEach((t, index) => {
-    const identity = canonicalTeamName(t.name);
-    points[identity] = t.points || 0;
-    ranks[identity] = index + 1;
-    rosters[identity] = splitRoster(t).active.slice(0, 5);
-  });
+  return withHistoryWriteLock(async () => {
+    const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null)
+      || (teamDatabase as TeamData[]);
+    const date = (dateOverride || getWorldDate()).slice(0, 10);
+    const today = getWorldDate().slice(0, 10);
+    // A tournament may be scheduled far ahead. Never let changing its status
+    // inject that future end date into the historical ranking timeline.
+    if (!date || date > today) return false;
+    const points: Record<string, number> = {};
+    const ranks: Record<string, number> = {};
+    const rosters: Record<string, string[]> = {};
+    const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name));
+    clubs.forEach((t, index) => {
+      const identity = canonicalTeamName(t.name);
+      points[identity] = t.points || 0;
+      ranks[identity] = index + 1;
+      rosters[identity] = splitRoster(t).active.slice(0, 5);
+    });
 
-  const history = loadRankingHistory().filter(s => !s.synthetic);
-  const existing = history.findIndex(h => h.date === date);
-  if (existing >= 0) history[existing] = { date, points, ranks, rosters };
-  else history.push({ date, points, ranks, rosters });
-  history.sort((a, b) => a.date.localeCompare(b.date));
-  void reason;
-  const saved = await saveToStorageAsync(KEY, history);
-  if (!saved) return false;
-  return synchronizeRankingHistory();
+    const history = loadRankingHistory().filter(s => !s.synthetic);
+    const existing = history.findIndex(h => h.date === date);
+    if (existing >= 0) history[existing] = { date, points, ranks, rosters };
+    else history.push({ date, points, ranks, rosters });
+    history.sort((a, b) => a.date.localeCompare(b.date));
+    void reason;
+    return saveToStorageAsync(KEY, history);
+  });
 }
 
 /**
@@ -331,11 +342,13 @@ const isMonthEnd = (iso: string): boolean => {
 export async function purgeFabricatedRankingHistory(): Promise<void> {
   if (typeof window === "undefined") return;
   try { if (localStorage.getItem(PURGE_KEY)) return; } catch { /* ignore */ }
-  const history = loadRankingHistory().filter(s =>
-    !s.synthetic
-    && Object.keys(s.rosters || {}).length > 0
-    && !(isMonthEnd(s.date) && Object.keys(s.rosters || {}).length === 0));
-  await saveToStorageAsync(KEY, history);
+  await withHistoryWriteLock(async () => {
+    const history = loadRankingHistory().filter(s =>
+      !s.synthetic
+      && Object.keys(s.rosters || {}).length > 0
+      && !(isMonthEnd(s.date) && Object.keys(s.rosters || {}).length === 0));
+    await saveToStorageAsync(KEY, history);
+  });
   try {
     localStorage.removeItem(MONTH_MARK_KEY);
     localStorage.removeItem("ranking_history_purge_v1");
