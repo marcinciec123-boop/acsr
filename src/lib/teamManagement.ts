@@ -18,6 +18,7 @@ import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
 import { recordRename } from "./teamRenames";
+import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
@@ -117,6 +118,7 @@ export function createTeam(input: CreateTeamInput): { ok: boolean; error?: strin
     roster: (input.roster || []).map(r => r.trim()).filter(Boolean),
   };
   saveTeams([...teams, fresh]);
+  recordOrgCreate(name, getWorldDate(), "Powstanie organizacji");
   // Jeśli nazwa była wcześniej zarchiwizowana — odarchiwizuj.
   saveArchivedTeams(loadArchivedTeams().filter(n => n !== name));
   return { ok: true };
@@ -168,6 +170,7 @@ export function propagateRename(oldName: string, newName: string): void {
   // 0a) Zapisz zdarzenie zmiany nazwy (historia rankingu pokazuje starą nazwę
   // do dnia zmiany włącznie z okresem sprzed niej).
   recordRename(oldName, newName, getWorldDate());
+  recordOrgRename(oldName, newName, getWorldDate());
 
   // 0b) Persist name override so rename survives page reload (teamDatabase is
   // re-imported fresh each load with hardcoded names).
@@ -325,6 +328,8 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
       region: team.region,
     },
   ]);
+
+  recordOrgDisband(name, getWorldDate(), input.reason?.trim() || "Rozwiązanie drużyny");
 
   // 5) usuń z bieżących, niezakończonych turniejów (uczestnicy + faza 1)
   const tournaments = loadFromStorage<TournamentData[]>(TOURNAMENTS_KEY, []);
