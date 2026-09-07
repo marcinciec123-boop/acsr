@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon } from "lucide-react";
+import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon, Building2 } from "lucide-react";
 import {
   getFreeAgents,
   removeManualFreeAgent,
@@ -38,9 +38,10 @@ import {
   suggestDurationMonths, suggestSalary, terminateContract,
 } from "@/lib/contracts";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
+import { loadOrgEvents, removeOrgEvent, ORG_EVENTS_UPDATE_EVENT, type OrgEvent } from "@/lib/orgEvents";
 
 type TransferType = "all" | "join" | "leave" | "move";
-type Section = "transfers" | "freeAgents" | "changes";
+type Section = "transfers" | "freeAgents" | "changes" | "org";
 
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
@@ -163,6 +164,27 @@ const TransferPanel = () => {
   const [reversed, setReversed] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TransferType>("all");
   const [dataVersion, setDataVersion] = useState(0);
+  const [orgEvents, setOrgEvents] = useState<OrgEvent[]>(() => loadOrgEvents());
+  const [orgKindFilter, setOrgKindFilter] = useState<"all" | OrgEvent["kind"]>("all");
+  const [orgSearch, setOrgSearch] = useState("");
+
+  useEffect(() => {
+    const refresh = () => setOrgEvents(loadOrgEvents());
+    window.addEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+    window.addEventListener("teams:update", refresh);
+    return () => {
+      window.removeEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+      window.removeEventListener("teams:update", refresh);
+    };
+  }, []);
+
+  const filteredOrgEvents = useMemo(() => {
+    const q = orgSearch.trim().toLowerCase();
+    return orgEvents.filter(e =>
+      (orgKindFilter === "all" || e.kind === orgKindFilter)
+      && (!q || e.team.toLowerCase().includes(q) || (e.previousName || "").toLowerCase().includes(q)));
+  }, [orgEvents, orgKindFilter, orgSearch]);
+
 
   const [showDialog, setShowDialog] = useState(false);
   const [transferPlayer, setTransferPlayer] = useState("");
@@ -765,6 +787,16 @@ const TransferPanel = () => {
             <History className="w-3.5 h-3.5" /> Historia zmian
             <span className="font-mono text-xs opacity-70">({changeLog.length})</span>
           </button>
+          <button
+            onClick={() => { setOrgEvents(loadOrgEvents()); setSection("org"); }}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md font-heading font-semibold text-sm border transition-colors",
+              section === "org" ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            <Building2 className="w-3.5 h-3.5" /> Historia organizacji
+            <span className="font-mono text-xs opacity-70">({orgEvents.length})</span>
+          </button>
         </div>
 
         {section === "transfers" && (
@@ -933,6 +965,77 @@ const TransferPanel = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {section === "org" && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground font-mono">
+              Stały rejestr zmian nazw, rozwiązań i powstań organizacji. Wpisy z bazy startowej są niezmienne, nowe zdarzenia dopisują się automatycznie.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Szukaj organizacji..." value={orgSearch} onChange={e => setOrgSearch(e.target.value)} className="pl-9 bg-card border-border" />
+              </div>
+              <select
+                value={orgKindFilter}
+                onChange={e => setOrgKindFilter(e.target.value as "all" | OrgEvent["kind"])}
+                className="px-3 py-2 rounded-md bg-card border border-border text-foreground text-sm font-mono"
+              >
+                <option value="all">Wszystkie zdarzenia</option>
+                <option value="rename">Zmiany nazw</option>
+                <option value="disband">Rozwiązania</option>
+                <option value="create">Powstania</option>
+              </select>
+            </div>
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-secondary/50 text-xs font-mono text-muted-foreground uppercase">
+                <div className="col-span-2">Data</div>
+                <div className="col-span-2">Typ</div>
+                <div className="col-span-5">Organizacja</div>
+                <div className="col-span-3">Szczegóły</div>
+              </div>
+              {filteredOrgEvents.length === 0 && (
+                <div className="px-4 py-8 text-center text-muted-foreground text-sm font-mono">Brak zdarzeń</div>
+              )}
+              {filteredOrgEvents.map(event => (
+                <div key={event.id} className="grid grid-cols-12 gap-2 px-4 py-2.5 border-t border-border/50 items-center text-sm hover:bg-secondary/30">
+                  <div className="col-span-2 font-mono text-xs text-muted-foreground">{event.date}</div>
+                  <div className="col-span-2">
+                    <span className={cn(
+                      "text-xs font-mono uppercase px-2 py-0.5 rounded border",
+                      event.kind === "rename" && "border-primary/30 text-primary bg-primary/10",
+                      event.kind === "disband" && "border-destructive/40 text-destructive bg-destructive/10",
+                      event.kind === "create" && "border-emerald-500/40 text-emerald-400 bg-emerald-500/10",
+                    )}>
+                      {event.kind === "rename" ? "Zmiana nazwy" : event.kind === "disband" ? "Rozwiązanie" : "Powstanie"}
+                    </span>
+                  </div>
+                  <div className="col-span-5 text-foreground flex items-center gap-2">
+                    {event.previousName && (
+                      <>
+                        <span className="text-muted-foreground line-through">{event.previousName}</span>
+                        <ArrowRightLeft className="w-3 h-3 text-muted-foreground" />
+                      </>
+                    )}
+                    <span className="font-medium">{event.team}</span>
+                  </div>
+                  <div className="col-span-3 flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground text-xs font-mono truncate">{event.note || "—"}</span>
+                    {!event.seeded && (
+                      <button
+                        onClick={() => { removeOrgEvent(event.id); setOrgEvents(loadOrgEvents()); }}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        aria-label="Usuń wpis"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
