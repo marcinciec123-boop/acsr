@@ -718,6 +718,64 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
   );
 };
 
+const RESULTS_PAGE = 30;
+const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
+  const [limit, setLimit] = useState(RESULTS_PAGE);
+  const sorted = useMemo(
+    () => [...tournaments].sort((a, b) =>
+      (b.endDate || b.startDate || "").localeCompare(a.endDate || a.startDate || "")
+      || (b.startDate || "").localeCompare(a.startDate || "")),
+    [tournaments],
+  );
+  const placeOf = (t: TournamentData, n: number) => t.placements?.find(p => p.placement === n)?.team;
+  return (
+    <div className="mt-6 bg-card border border-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/40">
+        <List className="w-4 h-4 text-primary" />
+        <h3 className="font-heading font-bold text-foreground">Lista turniejów</h3>
+        <span className="text-xs font-mono text-muted-foreground">({sorted.length}) • najnowsze na górze</span>
+      </div>
+      <div className="hidden md:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_110px_70px] gap-3 px-4 py-2 text-xs font-mono uppercase text-muted-foreground border-b border-border/60">
+        <span>Turniej</span><span>Zwycięzca</span><span>2. miejsce</span><span className="text-right">Pula</span><span className="text-right">Drużyny</span>
+      </div>
+      <div className="divide-y divide-border/40">
+        {sorted.slice(0, limit).map(t => {
+          const w = placeOf(t, 1), r = placeOf(t, 2);
+          const count = t.participants?.length || t.teams || 0;
+          return (
+            <button key={t.id} type="button" onClick={() => onSelect(t.id)}
+              className="w-full text-left grid grid-cols-1 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_110px_70px] gap-1 md:gap-3 items-center px-4 py-2.5 hover:bg-secondary/30 transition-colors">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
+                <div className="min-w-0">
+                  <div className="font-heading font-bold text-sm text-foreground truncate">{t.name}</div>
+                  <div className="text-xs font-mono text-muted-foreground truncate">{formatDate(t.startDate)} – {formatDate(t.endDate)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 min-w-0 text-sm">
+                <Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />
+                <span className={cn("truncate", w ? "font-bold text-foreground" : "text-muted-foreground")}>{w || (t.status === "completed" ? "—" : "TBD")}</span>
+              </div>
+              <div className="flex items-center gap-1.5 min-w-0 text-sm">
+                <span className="text-xs font-mono text-[hsl(var(--silver))] shrink-0">2.</span>
+                <span className={cn("truncate", r ? "text-foreground" : "text-muted-foreground")}>{r || "TBD"}</span>
+              </div>
+              <span className="text-sm font-mono text-[hsl(var(--win))] md:text-right">{t.prizePool || "—"}</span>
+              <span className="text-sm font-mono text-muted-foreground md:text-right">{count} drużyn</span>
+            </button>
+          );
+        })}
+      </div>
+      {sorted.length > limit && (
+        <button type="button" onClick={() => setLimit(l => l + RESULTS_PAGE)}
+          className="w-full py-2.5 text-xs font-mono font-bold text-primary hover:bg-secondary/30 border-t border-border">
+          Pokaż więcej ({sorted.length - limit})
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorlds }: Props) => {
   const [viewMode, setViewMode] = usePersistedState<ViewMode>("portal_view", "month");
   const [statusFilter, setStatusFilter] = usePersistedState<StatusFilter>("portal_status", "ALL");
@@ -782,7 +840,6 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
   const viewModes: { key: ViewMode; label: string; icon: typeof CalendarDays }[] = [
     { key: "month", label: "Kalendarz", icon: LayoutGrid },
     { key: "year", label: "Rok", icon: CalendarDays },
-    { key: "list", label: "Lista", icon: List },
   ];
 
   return (
@@ -813,7 +870,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
 
         {/* Calendar controls */}
         <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
-          <div className="grid grid-cols-3 gap-1 p-1 rounded-md bg-secondary/40 border border-border/60">
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-md bg-secondary/40 border border-border/60">
             {viewModes.map(mode => {
               const Icon = mode.icon;
               const active = viewMode === mode.key;
@@ -934,7 +991,8 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
 
         {filtered.length > 0 && viewMode === "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
         {filtered.length > 0 && viewMode === "year" && <TournamentYearTimeline tournaments={filtered} onSelect={onSelect} />}
-        {filtered.length > 0 && viewMode === "list" && <TournamentChronologicalList tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && viewMode !== "year" && viewMode !== "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
+        {filtered.length > 0 && <TournamentResultsList tournaments={filtered} onSelect={onSelect} />}
       </div>
     </section>
   );
