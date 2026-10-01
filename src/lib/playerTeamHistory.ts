@@ -10,6 +10,7 @@ import { loadBenchLog, getBenchedFor } from "./benchedPlayers";
 import { getWorldNowIso } from "./worldClock";
 import { playerRoles } from "@/data/playerRoles";
 import type { TeamData, Transfer } from "./types";
+import { canonicalTeamName, sameName } from "./teamRenames";
 
 export interface HistorySegment {
   from: string | null;
@@ -33,7 +34,7 @@ function datedTransfers(player: string): Transfer[] {
     ? stored
     : getAllTransfers().map((t, i) => ({ id: String(i), date: "", ...t } as Transfer));
   return list
-    .filter(t => t.player === player)
+    .filter(t => sameName(t.player, player))
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 }
 
@@ -51,13 +52,13 @@ function benchSegments(
   to: string | null,
 ): HistorySegment[] {
   const events = loadBenchLog()
-    .filter(e => e.player === player && e.team === team)
+    .filter(e => sameName(e.player, player) && sameName(e.team, team))
     .filter(e => (!from || e.date >= from) && (!to || e.date <= to))
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
   // Currently benched with no log entry at all → whole (open) stint inactive
   if (events.length === 0) {
-    const benchedNow = !to && getBenchedFor(team).includes(player);
+    const benchedNow = !to && getBenchedFor(team).some(p => sameName(p, player));
     return [{ from, to, inactive: benchedNow }];
   }
 
@@ -80,7 +81,7 @@ function benchSegments(
 export function buildPlayerTeamHistory(player: string, ranking?: TeamData[]): TeamStint[] {
   const source = ranking && ranking.length > 0 ? ranking : teamDatabase;
   const currentTeam = source.find(
-    t => !t.isNational && (t.roster.includes(player) || t.coach === player),
+    t => !t.isNational && (t.roster.some(r => sameName(r, player)) || sameName(t.coach, player)),
   );
 
   const transfers = datedTransfers(player);
@@ -89,37 +90,40 @@ export function buildPlayerTeamHistory(player: string, ranking?: TeamData[]): Te
 
   for (const t of transfers) {
     const date = t.date || null;
-    if (t.oldTeam && t.oldTeam !== "-") {
-      if (open && open.team === t.oldTeam) {
+    const oldTeamName = t.oldTeam ? canonicalTeamName(t.oldTeam) : t.oldTeam;
+    const newTeamName = t.newTeam ? canonicalTeamName(t.newTeam) : t.newTeam;
+    if (oldTeamName && oldTeamName !== "-") {
+      if (open && sameName(open.team, oldTeamName)) {
         raw.push({ team: open.team, from: open.from, to: date });
         open = null;
       } else {
-        raw.push({ team: t.oldTeam, from: open?.from ?? null, to: date });
+        raw.push({ team: oldTeamName, from: open?.from ?? null, to: date });
         open = null;
       }
     }
-    if (t.newTeam && t.newTeam !== "-") {
+    if (newTeamName && newTeamName !== "-") {
       if (open) raw.push({ team: open.team, from: open.from, to: date });
-      open = { team: t.newTeam, from: date };
+      open = { team: newTeamName, from: date };
     }
   }
   if (open) raw.push({ team: open.team, from: open.from, to: null });
 
   // Fall back / reconcile with the live roster
-  if (currentTeam && !raw.some(s => s.team === currentTeam.name && s.to === null)) {
+  if (currentTeam && !raw.some(s => sameName(s.team, currentTeam.name) && s.to === null)) {
     raw.push({ team: currentTeam.name, from: null, to: null });
   }
 
   const now = getWorldNowIso();
   // Trener: albo drużyna ma go zapisanego jako coacha, albo jego rola to "Coach".
-  const isCoachRole = (playerRoles as Record<string, string>)[player] === "Coach";
+  const roleEntry = Object.entries(playerRoles as Record<string, string>).find(([nick]) => sameName(nick, player));
+  const isCoachRole = roleEntry?.[1] === "Coach";
   const coachTeams = new Set(
-    source.filter(t => t.coach === player).map(t => t.name),
+    source.filter(t => sameName(t.coach, player)).map(t => canonicalTeamName(t.name)),
   );
   return raw
     .map(s => ({
       ...s,
-      current: s.to === null && currentTeam?.name === s.team,
+      current: s.to === null && sameName(currentTeam?.name, s.team),
       coach: isCoachRole || coachTeams.has(s.team),
       segments: benchSegments(player, s.team, s.from, s.to),
     }))
