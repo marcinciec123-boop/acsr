@@ -73,19 +73,27 @@ export async function saveToStorageAsync<T>(key: string, data: T): Promise<boole
   }
 }
 
+// Parsed-value cache: the same raw string is parsed only once. Big saves were
+// re-parsed (hundreds of KB) on every render/panel open, which made it crawl.
+const parseCache = new Map<string, { raw: string; value: unknown }>();
+
+function parseCached<T>(key: string, storageKey: string, raw: string): T {
+  const hit = parseCache.get(storageKey);
+  if (hit && hit.raw === raw) return hit.value as T;
+  const value = normalizeStoredData(key, JSON.parse(raw) as T);
+  parseCache.set(storageKey, { raw, value });
+  return value;
+}
+
 export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const storageKey = STORAGE_PREFIX + key;
     const raw = localStorage.getItem(storageKey);
-    if (!raw) {
+    if (!raw || raw === DEVICE_STORE_REF) {
       const cached = getCachedDeviceValue(storageKey);
-      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
+      return cached ? parseCached<T>(key, storageKey, cached) : fallback;
     }
-    if (raw === DEVICE_STORE_REF) {
-      const cached = getCachedDeviceValue(storageKey);
-      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
-    }
-    return normalizeStoredData(key, JSON.parse(raw) as T);
+    return parseCached<T>(key, storageKey, raw);
   } catch {
     return fallback;
   }
