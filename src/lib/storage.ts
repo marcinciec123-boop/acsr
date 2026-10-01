@@ -5,6 +5,7 @@ import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceVal
 // localStorage for text data, IndexedDB for images
 
 const STORAGE_PREFIX = "csgo_hub_";
+const parseCache = new Map<string, { raw: string; value: unknown }>();
 
 function notifyStorageUpdate(key: string): void {
   if (typeof window === "undefined") return;
@@ -34,6 +35,7 @@ function normalizeStoredData<T>(key: string, data: T): T {
 // --- localStorage helpers ---
 export function saveToStorage<T>(key: string, data: T): boolean {
   const storageKey = STORAGE_PREFIX + key;
+  parseCache.delete(storageKey);
   try {
     const serialized = JSON.stringify(data);
     void setDeviceValue(storageKey, serialized).catch(error => {
@@ -59,6 +61,7 @@ export function saveToStorage<T>(key: string, data: T): boolean {
 
 export async function saveToStorageAsync<T>(key: string, data: T): Promise<boolean> {
   const storageKey = STORAGE_PREFIX + key;
+  parseCache.delete(storageKey);
   try {
     const serialized = JSON.stringify(data);
     await setDeviceValue(storageKey, serialized);
@@ -73,19 +76,26 @@ export async function saveToStorageAsync<T>(key: string, data: T): Promise<boole
   }
 }
 
+// Parsed-value cache: the same raw string is parsed only once. Big saves were
+// re-parsed (hundreds of KB) on every render/panel open, which made it crawl.
+
+function parseCached<T>(key: string, storageKey: string, raw: string): T {
+  const hit = parseCache.get(storageKey);
+  if (hit && hit.raw === raw) return hit.value as T;
+  const value = normalizeStoredData(key, JSON.parse(raw) as T);
+  parseCache.set(storageKey, { raw, value });
+  return value;
+}
+
 export function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const storageKey = STORAGE_PREFIX + key;
     const raw = localStorage.getItem(storageKey);
-    if (!raw) {
+    if (!raw || raw === DEVICE_STORE_REF) {
       const cached = getCachedDeviceValue(storageKey);
-      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
+      return cached ? parseCached<T>(key, storageKey, cached) : fallback;
     }
-    if (raw === DEVICE_STORE_REF) {
-      const cached = getCachedDeviceValue(storageKey);
-      return cached ? normalizeStoredData(key, JSON.parse(cached) as T) : fallback;
-    }
-    return normalizeStoredData(key, JSON.parse(raw) as T);
+    return parseCached<T>(key, storageKey, raw);
   } catch {
     return fallback;
   }
@@ -134,6 +144,7 @@ export async function migrateHeavyLocalStorageToDeviceStore(): Promise<number> {
 }
 
 export function removeFromStorage(key: string): void {
+  parseCache.delete(STORAGE_PREFIX + key);
   localStorage.removeItem(STORAGE_PREFIX + key);
   void removeDeviceValue(STORAGE_PREFIX + key).catch(() => undefined);
   scheduleDeviceBackup();
