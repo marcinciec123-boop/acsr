@@ -17,7 +17,7 @@ import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
-import { recordRename } from "./teamRenames";
+import { recordRename, sameName } from "./teamRenames";
 import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
 
 const RANKING_KEY = "ranking_data";
@@ -107,7 +107,7 @@ export function createTeam(input: CreateTeamInput): { ok: boolean; error?: strin
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Nazwa jest wymagana" };
   const teams = loadTeamsRaw();
-  if (teams.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+  if (teams.some(t => sameName(t.name, name))) {
     return { ok: false, error: "Drużyna o takiej nazwie już istnieje" };
   }
   const fresh: TeamData = {
@@ -135,12 +135,12 @@ export interface UpdateTeamPatch {
 
 export function updateTeam(oldName: string, patch: UpdateTeamPatch): { ok: boolean; error?: string } {
   const teams = loadTeamsRaw();
-  const idx = teams.findIndex(t => t.name === oldName);
+  const idx = teams.findIndex(t => sameName(t.name, oldName));
   if (idx === -1) return { ok: false, error: "Nie znaleziono drużyny" };
 
   const newName = patch.name?.trim();
-  if (newName && newName !== oldName) {
-    if (teams.some(t => t.name.toLowerCase() === newName.toLowerCase())) {
+  if (newName && !sameName(newName, oldName)) {
+    if (teams.some(t => sameName(t.name, newName))) {
       return { ok: false, error: "Drużyna o takiej nazwie już istnieje" };
     }
   }
@@ -156,15 +156,15 @@ export function updateTeam(oldName: string, patch: UpdateTeamPatch): { ok: boole
   saveTeams(next);
 
   // Propagacja zmiany nazwy do bieżących danych
-  if (newName && newName !== oldName) {
-    propagateRename(oldName, newName);
+  if (newName && !sameName(newName, oldName)) {
+    propagateRename(teams[idx].name, newName);
   }
   return { ok: true };
 }
 
 export function propagateRename(oldName: string, newName: string): void {
   // 0) In-memory teamDatabase — inne komponenty czytają wprost stąd.
-  const memTeam = teamDatabase.find(t => t.name === oldName);
+  const memTeam = teamDatabase.find(t => sameName(t.name, oldName));
   if (memTeam) memTeam.name = newName;
 
   // 0a) Zapisz zdarzenie zmiany nazwy (historia rankingu pokazuje starą nazwę
@@ -296,7 +296,7 @@ export interface DisbandInput {
  */
 export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boolean; error?: string } {
   const teams = loadTeamsRaw();
-  const team = teams.find(t => t.name === name);
+  const team = teams.find(t => sameName(t.name, name));
   if (!team) return { ok: false, error: "Nie znaleziono drużyny" };
 
   // 1) gracze → wolni agenci
