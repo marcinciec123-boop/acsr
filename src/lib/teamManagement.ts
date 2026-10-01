@@ -19,6 +19,21 @@ import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
 import { recordRename, sameName } from "./teamRenames";
 import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
+import { loadTeamLogo, saveTeamLogo, deleteTeamLogo } from "./teamLogos";
+
+/** Zmiana nazwy nie zmienia organizacji — logo przenosi się na nową nazwę. */
+function migrateTeamLogo(oldName: string, newName: string): void {
+  void (async () => {
+    try {
+      const logo = await loadTeamLogo(oldName);
+      if (!logo) return;
+      await saveTeamLogo(newName, logo);
+      await deleteTeamLogo(oldName);
+    } catch {
+      /* logo migration is best-effort */
+    }
+  })();
+}
 
 const RANKING_KEY = "ranking_data";
 const TOURNAMENTS_KEY = "tournaments_data";
@@ -182,6 +197,9 @@ export function propagateRename(oldName: string, newName: string): void {
   }
   nameOv[originalKey] = newName;
   saveToStorage(TEAM_NAME_OVERRIDE_KEY, nameOv);
+
+  // 0c) Logo i identyfikacja wizualna pozostają przy organizacji.
+  migrateTeamLogo(oldName, newName);
 
   // 1) Bench map
   const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});
