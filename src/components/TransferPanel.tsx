@@ -182,7 +182,10 @@ const TransferPanel = () => {
     const q = orgSearch.trim().toLowerCase();
     return orgEvents.filter(e =>
       (orgKindFilter === "all" || e.kind === orgKindFilter)
-      && (!q || e.team.toLowerCase().includes(q) || (e.previousName || "").toLowerCase().includes(q)));
+      && (!q
+        || e.team.toLowerCase().includes(q)
+        || (e.previousName || "").toLowerCase().includes(q)
+        || (e.org || "").toLowerCase().includes(q)));
   }, [orgEvents, orgKindFilter, orgSearch]);
 
 
@@ -1020,6 +1023,11 @@ const TransferPanel = () => {
                       </>
                     )}
                     <span className="font-medium">{event.team}</span>
+                    {event.org && event.org.toLowerCase() !== event.team.toLowerCase() && (
+                      <span className="text-2xs font-mono text-muted-foreground px-1.5 py-0.5 rounded border border-border/60">
+                        obecnie: {event.org}
+                      </span>
+                    )}
                   </div>
                   <div className="col-span-3 flex items-center justify-between gap-2">
                     <span className="text-muted-foreground text-xs font-mono truncate">{event.note || "—"}</span>
