@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData } from "@/lib/types";
+import TeamLogo from "@/components/TeamLogo";
 import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 import { getWorldNow, useWorldDate } from "@/lib/worldClock";
 import { usePersistedState } from "@/lib/uiPrefs";
@@ -754,10 +755,12 @@ const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: Tournam
               </div>
               <div className="flex items-center gap-1.5 min-w-0 text-sm">
                 <Trophy className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />
+                {w && <TeamLogo teamName={w} size={20} rounded="md" className="shrink-0" />}
                 <span className={cn("truncate", w ? "font-bold text-foreground" : "text-muted-foreground")}>{w || (t.status === "completed" ? "—" : "TBD")}</span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0 text-sm">
                 <span className="text-xs font-mono text-[hsl(var(--silver))] shrink-0">2.</span>
+                {r && <TeamLogo teamName={r} size={20} rounded="md" className="shrink-0" />}
                 <span className={cn("truncate", r ? "text-foreground" : "text-muted-foreground")}>{r || "TBD"}</span>
               </div>
               <span className="text-sm font-mono text-[hsl(var(--win))] md:text-right">{t.prizePool || "—"}</span>
