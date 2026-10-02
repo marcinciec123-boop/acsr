@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import TeamLogo from "@/components/TeamLogo";
 import { predictBothOutcomes, predictMatch, predictRankDelta, predictRankDeltaPair, getRankingSnapshot } from "@/lib/vrsFormula";
 import { MatchComparePanel } from "./MatchComparePanel";
+import { PreMatchReport } from "./PreMatchReport";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
@@ -598,6 +599,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
           <TabsContent value="compare">
             {match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && match.team2 !== "BYE" ? (
+              <div className="space-y-4">
+              <PreMatchReport team1={match.team1} team2={match.team2} bo={bo} matchId={match.id} />
               <MatchComparePanel
                 team1={match.team1}
                 team2={match.team2}
@@ -609,6 +612,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 score2={match.score2}
 
               />
+              </div>
             ) : (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">
                 <p className="text-sm text-muted-foreground font-mono">
