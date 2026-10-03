@@ -242,7 +242,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
       : { dir: "down" as const, diff: currentRank - prev };
   };
 
-  const top3 = sorted.slice(0, 3);
 
   return (
     <section className="py-6 relative overflow-hidden">
@@ -342,64 +341,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
         <WeeklyRankingReport />
 
 
-        {/* === PODIUM TOP 3 === */}
-        {top3.length === 3 && (
-          <div className="grid grid-cols-3 gap-3 items-end mb-6 pt-2 max-w-xl mx-auto">
-            {[1, 0, 2].map((idx, displayIdx) => {
-              const team = top3[idx];
-              if (!team) return null;
-              const rank = idx + 1;
-              const isChamp = rank === 1;
-              const barColor = rank === 1 ? "bg-[hsl(var(--gold))]" : rank === 2 ? "bg-[hsl(var(--silver))]" : "bg-[hsl(var(--bronze))]";
-              const label = rank === 1 ? "Champion" : `Rank_0${rank}`;
-              return (
-                <motion.button
-                  key={team.name}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: displayIdx * 0.08 }}
-                  onClick={() => onSelectTeam?.(team.name)}
-                  className={cn(
-                    "group flex flex-col items-center gap-2",
-                    rank === 1 ? "order-2 z-10 scale-105" : rank === 2 ? "order-1 translate-y-2" : "order-3 translate-y-2",
-                  )}
-                >
-                  <div className={cn(
-                    "relative w-full aspect-square bg-card border flex items-center justify-center overflow-hidden transition-all",
-                    isChamp
-                      ? "border-[hsl(var(--gold)/0.45)] shadow-[0_0_25px_hsl(var(--gold)/0.15)]"
-                      : "border-border group-hover:border-primary/50",
-                  )}>
-                    <div className="absolute inset-0 opacity-[0.05] bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,currentColor_5px,currentColor_6px)] text-foreground" />
-                    {isChamp && (
-                      <>
-                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[hsl(var(--gold))]" />
-                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[hsl(var(--gold))]" />
-                        <div className="absolute inset-0" style={{ background: "radial-gradient(circle at center, hsl(var(--gold)/0.12) 0%, transparent 70%)" }} />
-                      </>
-                    )}
-                    <TeamLogo teamName={team.name} size={isChamp ? 56 : 44} rounded="md" />
-                    <div className={cn("absolute bottom-0 w-full", isChamp ? "h-1.5" : "h-1", barColor)} />
-                  </div>
-                  <div className="text-center min-w-0 w-full">
-                    <p className={cn(
-                      "text-xs font-mono uppercase tracking-widest",
-                      isChamp ? "text-[hsl(var(--gold))] font-bold" : "text-muted-foreground",
-                    )}>{label}</p>
-                    <p className="text-xs md:text-sm font-heading font-black uppercase truncate group-hover:text-primary transition-colors">{team.name}</p>
-                    <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                      <Sparkline team={team.name} width={isChamp ? 30 : 24} height={10} />
-                      <span className="text-xs font-mono text-primary tabular-nums">{team.points.toLocaleString()}</span>
-                    </div>
-                    <div className="text-xs font-mono text-muted-foreground mt-0.5">
-                      {countryFlag(team.country)} {team.country}
-                    </div>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        )}
 
 
         {/* === FILTERS === */}
