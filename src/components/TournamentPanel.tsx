@@ -52,6 +52,7 @@ const PHASE_FORMATS: { value: PhaseFormat; label: string; icon: typeof GitBranch
   { value: "round-robin", label: "Round Robin (Groups)", icon: Grid3x3 },
   { value: "gsl-groups", label: "GSL Groups (4 teams)", icon: Grid3x3 },
   { value: "gsl-de-groups", label: "IEM-style Groups (8 teams, DE)", icon: Grid3x3 },
+  { value: "league", label: "Liga (8/12/16/20/24)", icon: Grid3x3 },
   { value: "showmatch", label: "Showmatch", icon: Trophy },
 ];
 
@@ -90,6 +91,8 @@ interface PhaseDraft {
   teamCount: number;
   /** How to assign teams to groups: random snake-seed (default) or manual after creation. */
   groupAssignment?: "random" | "manual";
+  /** Liga: liczba drużyn spadających */
+  relegateCount?: number;
 }
 
 const TournamentPanel = () => {
@@ -365,6 +368,7 @@ const TournamentPanel = () => {
         groupCount: draft.groupCount,
         advanceCount: effectiveAdvance,
         groupAssignment: draft.groupAssignment ?? "random",
+        relegateCount: draft.relegateCount ?? 0,
       });
       phases.push(phase);
       if (idx < phaseDrafts.length - 1) {
@@ -378,6 +382,18 @@ const TournamentPanel = () => {
   const handleCreate = () => {
     if (!newName.trim() || phaseDrafts.length === 0) return;
     if (isQualifier ? selectedTeams.length < 2 : slotCount < 2) return;
+    {
+      let size = isQualifier ? selectedTeams.length : slotCount;
+      for (let i = 0; i < phaseDrafts.length; i++) {
+        const d = phaseDrafts[i];
+        const ps = d.teamCount > 0 ? d.teamCount : size;
+        if (d.format === "league" && !LEAGUE_SIZES[ps]) {
+          toast({ title: "Nieprawidłowa liczba drużyn w lidze", description: `Faza ${i + 1}: liga musi mieć 8, 12, 16, 20 lub 24 drużyny (teraz ${ps}).`, variant: "destructive" });
+          return;
+        }
+        size = d.advanceCount || ps;
+      }
+    }
 
     // ===== Regional qualifier → build ONE TOURNAMENT PER REGION =====
     if (isQualifier && qualScope === "regional" && qualRegions.length > 0) {
@@ -1561,7 +1577,8 @@ const TournamentPanel = () => {
                 <div className="space-y-3">
                   {phaseDrafts.map((draft, idx) => {
                     const showGroups = draft.format === "round-robin" || draft.format === "gsl-groups" || draft.format === "gsl-de-groups";
-                    const showAdvance = idx < phaseDrafts.length - 1;
+                    const isLeague = draft.format === "league";
+                    const showAdvance = idx < phaseDrafts.length - 1 || isLeague;
                     const isGSL4 = draft.format === "gsl-groups";
                     const isGSL8 = draft.format === "gsl-de-groups";
                     const teamsPerGroup = isGSL4 ? 4 : isGSL8 ? 8 : null;
@@ -1684,6 +1701,36 @@ const TournamentPanel = () => {
                               : "Łączna liczba slotów (puste = liczba uczestników)"}
                           </p>
                         </div>
+
+                        {isLeague && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/40">
+                            <div className="space-y-1">
+                              <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">Liczba drużyn w lidze</label>
+                              <select
+                                value={LEAGUE_SIZES[draft.teamCount] ? draft.teamCount : 0}
+                                onChange={e => updatePhaseDraft(idx, { teamCount: parseInt(e.target.value) || 0 })}
+                                className="w-full px-2 py-1.5 rounded bg-card border border-border text-xs font-mono h-8"
+                              >
+                                <option value={0}>Auto (wg liczby miejsc)</option>
+                                {Object.entries(LEAGUE_SIZES).map(([n, k]) => (
+                                  <option key={n} value={n}>{n} drużyn — {k} kolejek</option>
+                                ))}
+                              </select>
+                              <p className="text-xs font-mono text-muted-foreground">Każdy gra z innym rywalem w każdej kolejce, bez powtórek.</p>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block">Spadek (ostatnie miejsca)</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={draft.relegateCount ?? 0}
+                                onChange={e => updatePhaseDraft(idx, { relegateCount: Math.max(0, parseInt(e.target.value) || 0) })}
+                                className="h-8 text-xs"
+                              />
+                              <p className="text-xs font-mono text-muted-foreground">0 = bez spadków</p>
+                            </div>
+                          </div>
+                        )}
 
                         {showGroups && (
                           <div className="space-y-1 pt-1 border-t border-border/40">
