@@ -192,6 +192,12 @@ export interface NewsPost {
   tags?: string[];
   /** Źródło / link */
   source?: string;
+  /** Sonda społeczności */
+  poll?: { question: string; options: string[]; votes: number[] };
+  /** Załączone karty meczu / gracza */
+  embeds?: ({ kind: "match"; tournamentId: string; matchId: string } | { kind: "player"; name: string })[];
+  /** Generowany baner okładki */
+  cover?: { teamA: string; teamB?: string; label?: string };
 }
 
 
