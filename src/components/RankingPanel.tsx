@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Users, Plus, Edit3, Check, X, Search, ChevronUp, ChevronDown, Globe, User,
-  Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, BarChart3, Activity, Sparkles,
+  Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, BarChart3, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import PanelHeader from "@/components/PanelHeader";
 import WeeklyRankingReport from "@/components/WeeklyRankingReport";
+import { WEEKLY_REPORT_EVENT } from "@/lib/weeklyRankingReport";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { canonicalTeamName } from "@/lib/teamRenames";
