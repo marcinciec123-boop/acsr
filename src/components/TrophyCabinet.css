@@ -1,0 +1,22 @@
+.trophy-cabinet .trophy-tile { border-radius: 6px; transition: border-color .2s, background-color .2s, transform .2s; }
+.trophy-cabinet .trophy-tile:hover { transform: translateY(-2px); }
+.trophy-stage { display: block; width: 100%; height: 124px; overflow: hidden; background: hsl(var(--background)); }
+.trophy-stage-large { height: 205px; margin: -4px -4px 8px; width: calc(100% + 8px); }
+.trophy-art { display: block; height: 100%; width: 100%; background-image: url('../assets/trophy-atlas.png'); background-size: 400% 400%; background-repeat: no-repeat; }
+.trophy-art-0 { background-position: 0% 0%; }
+.trophy-art-1 { background-position: 33.333% 0%; }
+.trophy-art-2 { background-position: 66.667% 0%; }
+.trophy-art-3 { background-position: 100% 0%; }
+.trophy-art-4 { background-position: 0% 33.333%; }
+.trophy-art-5 { background-position: 33.333% 33.333%; }
+.trophy-art-6 { background-position: 66.667% 33.333%; }
+.trophy-art-7 { background-position: 100% 33.333%; }
+.trophy-art-8 { background-position: 0% 66.667%; }
+.trophy-art-9 { background-position: 33.333% 66.667%; }
+.trophy-art-10 { background-position: 66.667% 66.667%; }
+.trophy-art-11 { background-position: 100% 66.667%; }
+.trophy-art-12 { background-position: 0% 100%; }
+.trophy-art-13 { background-position: 33.333% 100%; }
+.trophy-art-14 { background-position: 66.667% 100%; }
+.trophy-art-15 { background-position: 100% 100%; }
+@media (prefers-reduced-motion: reduce) { .trophy-cabinet .trophy-tile { transition: none; } .trophy-cabinet .trophy-tile:hover { transform: none; } }
