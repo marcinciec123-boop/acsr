@@ -55,25 +55,6 @@ export async function fetchRemoteSnapshots(): Promise<RemoteSnapshot[]> {
   return list;
 }
 
-/** Zapisuje (upsert) migawkę danego dnia w bazie i w cache. Zapis idzie przez funkcję backendową — tabela nie jest publicznie zapisywalna. */
-export async function pushSnapshotToDb(snapshot: RemoteSnapshot): Promise<boolean> {
-  const payload = {
-    snapshot_date: snapshot.date,
-    points: snapshot.points,
-    ranks: snapshot.ranks || {},
-    rosters: snapshot.rosters || {},
-    source: snapshot.source === "historical" ? "historical" : "daily",
-  };
-  const { error } = await supabase.functions.invoke("save-ranking-snapshot", {
-    body: payload,
-  });
-  if (error) {
-    console.error("Zapis migawki rankingu nie powiódł się:", error.message);
-    return false;
-  }
-  const cache = loadRemoteSnapshotCache().filter(s => s.date !== snapshot.date);
-  cache.push({ ...snapshot, source: payload.source });
-  cache.sort((a, b) => a.date.localeCompare(b.date));
-  saveRemoteSnapshotCache(cache);
-  return true;
-}
+// Zapis migawek do bazy jest możliwy wyłącznie ręcznie (import historycznych
+// arkuszy) przez funkcję backendową zabezpieczoną kluczem administratorskim.
+// Aplikacja nigdy nie zapisuje — lokalny zapis użytkownika jest nadrzędny.
