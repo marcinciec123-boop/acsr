@@ -17,6 +17,7 @@ import TeamLogo from "@/components/TeamLogo";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import PanelHeader from "@/components/PanelHeader";
+import WeeklyRankingReport from "@/components/WeeklyRankingReport";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { canonicalTeamName } from "@/lib/teamRenames";
@@ -327,6 +328,9 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
             </>
           }
         />
+
+        <WeeklyRankingReport />
+
 
         {/* === PODIUM TOP 3 === */}
         {top3.length === 3 && (
