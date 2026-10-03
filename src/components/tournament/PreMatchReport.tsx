@@ -131,13 +131,12 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
 
       {/* Tabela map — dwa bloki obok siebie, żeby nie scrollować w pionie */}
       {(() => {
-        const split = Math.ceil(maps.length / 2);
-        const halves = [maps.slice(0, split), maps.slice(split)];
+        const halves = [maps];
         return (
           <div>
             <div className="grid grid-cols-1">
               {halves.map((group, gi) => (
-                <div key={gi} className={cn(gi === 1 && "sm:border-l sm:border-border/40 sm:pl-6")}>
+                <div key={gi} className={cn(false)}>
                   <MapTableHalf
                     team1={team1} team2={team2}
                     maps={group} all={maps}
