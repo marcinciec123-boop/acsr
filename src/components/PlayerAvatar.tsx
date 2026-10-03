@@ -18,9 +18,11 @@ interface PlayerAvatarProps {
   teamName?: string;
   size?: number;
   className?: string;
-  rounded?: "lg" | "xl" | "2xl" | "full";
+  rounded?: "none" | "lg" | "xl" | "2xl" | "full";
   /** Shows upload / remove controls on hover. */
   editable?: boolean;
+  /** Fills the parent container (full width/height) instead of a fixed square. */
+  fill?: boolean;
 }
 
 const initialsOf = (name: string): string => {
@@ -35,7 +37,7 @@ const initialsOf = (name: string): string => {
  * deterministic colours. Can be replaced by a custom uploaded photo.
  */
 const PlayerAvatar = ({
-  playerName, teamName: teamNameProp, size = 48, className, rounded = "xl", editable = false,
+  playerName, teamName: teamNameProp, size = 48, className, rounded = "xl", editable = false, fill = false,
 }: PlayerAvatarProps) => {
   // Resolve the player's club when not supplied, so the jersey shows the crest.
   const teamName = useMemo(() => {
@@ -87,7 +89,8 @@ const PlayerAvatar = ({
   const radius =
     rounded === "full" ? "rounded-full" :
     rounded === "2xl" ? "rounded-2xl" :
-    rounded === "xl" ? "rounded-xl" : "rounded-lg";
+    rounded === "xl" ? "rounded-xl" :
+    rounded === "lg" ? "rounded-lg" : "";
 
   const colors = jerseyColors(teamName || playerName);
   const uid = `${playerName}-${teamName || ""}`.replace(/[^a-zA-Z0-9]/g, "");
@@ -95,8 +98,8 @@ const PlayerAvatar = ({
 
   return (
     <div
-      style={{ width: size, height: size }}
-      className={cn("relative overflow-hidden shrink-0 bg-secondary/40 group", radius, className)}
+      style={fill ? undefined : { width: size, height: size }}
+      className={cn(fill && "w-full h-full", "relative overflow-hidden shrink-0 bg-secondary/40 group", radius, className)}
     >
       {photo ? (
         <img src={photo} alt={`${playerName}`} className="w-full h-full object-cover" />

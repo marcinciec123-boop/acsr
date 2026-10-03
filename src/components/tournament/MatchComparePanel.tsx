@@ -369,27 +369,56 @@ const PlayerHero = ({
 
   return (
     <div className={cn(
-      "relative overflow-hidden p-4 flex items-center gap-3",
-      align === "right" ? "flex-row-reverse text-right" : "text-left",
+      "relative overflow-hidden min-h-[140px] flex items-center",
+      align === "right" && "flex-row-reverse",
     )}>
-      {/* Gradient backdrop */}
+      {/* Gradient backdrop (visible mainly behind the procedural fallback) */}
       <div className={cn(
-        "absolute inset-0 bg-gradient-to-br opacity-70",
+        "absolute inset-0 bg-gradient-to-br opacity-50",
         heroGradient(name),
         align === "right" ? "bg-gradient-to-bl" : "bg-gradient-to-br",
       )} />
-      <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent" />
 
-      {/* Jersey-style initial */}
-      <div className="relative shrink-0 w-16 h-16">
-        <PlayerAvatar playerName={name} teamName={team} size={64} rounded="xl" className="border border-border/60" />
-        <TeamLogo teamName={team} size={18} rounded="md" className="absolute -bottom-1.5 -right-1.5 border-2 border-background rounded-md" />
+      {/* Big photo filling the panel edge, softly blended toward the stats side */}
+      <div className={cn(
+        "absolute inset-y-0 w-[46%] pointer-events-none",
+        align === "right" ? "right-0" : "left-0",
+      )}>
+        <div className={cn(
+          "absolute inset-0",
+          align === "right"
+            ? "[mask-image:linear-gradient(to_left,black_50%,transparent_98%)]"
+            : "[mask-image:linear-gradient(to_right,black_50%,transparent_98%)]",
+        )}>
+          <PlayerAvatar playerName={name} teamName={team} fill rounded="none" className="opacity-95" />
+        </div>
+        {/* Soft vertical blend so the photo melts into the panel */}
+        <div className={cn(
+          "absolute inset-0",
+          align === "right"
+            ? "bg-gradient-to-l from-transparent via-transparent to-background/60"
+            : "bg-gradient-to-r from-transparent via-transparent to-background/60",
+        )} />
       </div>
 
-      <div className={cn("relative min-w-0 flex-1 space-y-1", align === "right" && "items-end flex flex-col")}>
-        <div className={cn("flex items-center gap-1.5", align === "right" && "flex-row-reverse")}>
-          {flag && <span className="text-sm leading-none">{flag}</span>}
-          <PlayerLink name={name} className="text-base font-heading font-bold text-foreground truncate">
+      {/* Team crest pinned over the photo edge */}
+      <TeamLogo
+        teamName={team} size={28} rounded="md"
+        className={cn(
+          "absolute z-10 bottom-2 border-2 border-background rounded-md",
+          align === "right" ? "right-2" : "left-2",
+        )}
+      />
+
+      {/* Content beside the photo */}
+      <div className={cn(
+        "relative z-10 flex-1 p-4 space-y-1.5 min-w-0",
+        align === "right" ? "text-right" : "text-left",
+      )}>
+        <div className={cn("flex items-center gap-2", align === "right" && "flex-row-reverse")}>
+          {flag && <span className="text-lg leading-none">{flag}</span>}
+          <PlayerLink name={name} className="text-xl font-heading font-bold text-foreground truncate">
             {name}
           </PlayerLink>
         </div>
@@ -406,12 +435,12 @@ const PlayerHero = ({
             <span className="text-xs font-mono text-muted-foreground/70 uppercase tracking-wider">Rola nieznana</span>
           )}
           <span className={cn(
-            "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60",
+            "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60 backdrop-blur-sm",
             ratingColor,
           )}>
             {stats.careerRating.toFixed(2)} rtg
           </span>
-          <span className="text-xs font-mono text-muted-foreground">
+          <span className="text-xs font-mono text-muted-foreground bg-background/60 backdrop-blur-sm px-1.5 py-0.5 rounded border border-border/50">
             {stats.matchesPlayed}m • {winPct}% W
           </span>
         </div>
