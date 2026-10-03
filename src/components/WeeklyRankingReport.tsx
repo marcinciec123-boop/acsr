@@ -23,9 +23,9 @@ const lastMondayIso = () => {
 const Row = ({ e, delta }: { e: WeeklyEntry; delta: number }) => (
   <div className="flex items-center gap-2 py-1 text-xs">
     <span className="w-7 text-right font-mono text-muted-foreground">#{e.rank}</span>
-    <TeamLogo team={e.team} size="sm" />
+    <TeamLogo teamName={e.team} size={18} />
     <TeamLink name={e.team} className="flex-1 truncate font-bold text-foreground hover:text-primary cursor-pointer" />
-    <span className={cn("font-mono font-black", delta > 0 ? "text-success" : "text-destructive")}>
+    <span className={cn("font-mono font-black", delta > 0 ? "text-win" : "text-destructive")}>
       {delta > 0 ? `+${delta}` : delta}
     </span>
   </div>
@@ -104,7 +104,7 @@ const WeeklyRankingReport = () => {
           ) : (
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <div className="flex items-center gap-1.5 mb-1 text-xs font-mono uppercase font-black text-success">
+                <div className="flex items-center gap-1.5 mb-1 text-xs font-mono uppercase font-black text-win">
                   <TrendingUp className="w-3.5 h-3.5" /> Największe awanse
                 </div>
                 {h.risers.length ? h.risers.map(e => <Row key={e.team} e={e} delta={e.delta} />)
@@ -128,7 +128,7 @@ const WeeklyRankingReport = () => {
                       {list.map(e => (
                         <div key={e.team} className="flex items-center gap-2 py-0.5 text-xs">
                           <span className="w-7 text-right font-mono text-muted-foreground">#{e.rank}</span>
-                          <TeamLogo team={e.team} size="sm" />
+                          <TeamLogo teamName={e.team} size={18} />
                           <TeamLink name={e.team} className="flex-1 truncate font-bold text-foreground hover:text-primary cursor-pointer" />
                           <span className="font-mono text-muted-foreground">{e.prevRank ? `z #${e.prevRank}` : "nowa"}</span>
                         </div>
@@ -150,10 +150,10 @@ const WeeklyRankingReport = () => {
                   return (
                     <div key={e.team} className="flex items-center gap-2 py-0.5">
                       <span className="w-7 text-right font-mono text-muted-foreground">#{e.rank}</span>
-                      <TeamLogo team={e.team} size="sm" />
+                      <TeamLogo teamName={e.team} size={18} />
                       <TeamLink name={e.team} className="flex-1 truncate text-foreground hover:text-primary cursor-pointer" />
                       <span className="font-mono text-muted-foreground">{e.points}</span>
-                      <span className={cn("w-8 text-right font-mono", d === null ? "text-primary" : d > 0 ? "text-success" : d < 0 ? "text-destructive" : "text-muted-foreground")}>
+                      <span className={cn("w-8 text-right font-mono", d === null ? "text-primary" : d > 0 ? "text-win" : d < 0 ? "text-destructive" : "text-muted-foreground")}>
                         {d === null ? "new" : d > 0 ? `+${d}` : d < 0 ? d : "–"}
                       </span>
                     </div>
