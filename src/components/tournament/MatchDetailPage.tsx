@@ -1168,7 +1168,7 @@ const MatchPlayerTotals = ({
             <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border bg-secondary/20">
               <th scope="col" className="text-left px-4 py-3 min-w-[160px]">Gracz</th>
               <th className="text-center px-2 py-2">Mapy</th>
-              <th className="text-center px-2 py-2 text-foreground">K</th>
+              <th className="text-center px-2 py-2">K</th>
               <th className="text-center px-2 py-2">A</th>
               <th className="text-center px-2 py-2">D</th>
               <th className="text-center px-2 py-2">+/−</th>
@@ -1195,16 +1195,16 @@ const MatchPlayerTotals = ({
                       )}
                     </span>
                   </th>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.mapsPlayed}</td>
-                  <td className="text-center px-2 py-3 font-bold text-foreground">{r.kills}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.assists}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.deaths}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.mapsPlayed}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.kills}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.assists}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.deaths}</td>
                   <td className={cn("text-center px-2 py-3 font-semibold", r.kills - r.deaths > 0 ? "text-win" : r.kills - r.deaths < 0 ? "text-loss" : "text-muted-foreground")}>
                     {r.kills - r.deaths > 0 ? "+" : ""}{r.kills - r.deaths}
                   </td>
                   <td className="text-center px-2 py-3 text-foreground">{r.adr.toFixed(1)}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.ud}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.ef}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.ud}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.ef}</td>
                   <td className="text-center px-2 py-3 text-foreground">{r.kast.toFixed(0)}%</td>
                   <td className="text-center px-3 py-3 bg-primary/5">
                     <span className={cn("inline-flex min-w-12 justify-center rounded-sm border px-2 py-1 font-bold", r.rating >= 1.16 ? "border-win/30 bg-win/10 text-win" : r.rating >= 1.05 ? "border-primary/30 bg-primary/10 text-primary" : r.rating >= 0.96 ? "border-border bg-secondary text-foreground" : "border-loss/30 bg-loss/10 text-loss")}>
