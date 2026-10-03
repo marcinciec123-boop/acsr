@@ -97,8 +97,8 @@ const PlayerAvatar = ({
 
   return (
     <div
-      style={{ width: size, height: size }}
-      className={cn("relative overflow-hidden shrink-0 bg-secondary/40 group", radius, className)}
+      style={fill ? undefined : { width: size, height: size }}
+      className={cn(fill && "w-full h-full", "relative overflow-hidden shrink-0 bg-secondary/40 group", radius, className)}
     >
       {photo ? (
         <img src={photo} alt={`${playerName}`} className="w-full h-full object-cover" />
