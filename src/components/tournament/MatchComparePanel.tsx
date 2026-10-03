@@ -54,7 +54,8 @@ const oddsFromProb = (p: number, opts?: { floor?: number }) => {
 };
 
 // Shrink match-winner probability toward 0.5 (markets are far less confident than pure Elo).
-const shrinkProb = (p: number, factor = 0.6) => 0.5 + (p - 0.5) * factor;
+// VRS probability is already realistic — no extra shrinking needed.
+const shrinkProb = (p: number) => p;
 
 const fmtOdds = (o: number) => o.toFixed(2);
 
