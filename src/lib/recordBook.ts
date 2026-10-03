@@ -42,6 +42,16 @@ const TOP = 5;
 const MIN_MAPS_CAREER = 20;
 const MIN_MAPS_TEAM_MAP = 10;
 
+// Rekordy ratingowe sprzed aktualizacji systemu ratingowego (do 2026-10-03 włącznie)
+// z wartościami poza zakresem 0.45–2.00 są pomijane; nowe mecze liczą się normalnie.
+const RATING_FIX_CUTOFF = new Date(2026, 9, 4).getTime(); // 2026-10-04 00:00 lokalnie
+const RATING_MIN = 0.45;
+const RATING_MAX = 2.0;
+function ratingCounts(rating: number, ts: number): boolean {
+  if (ts < RATING_FIX_CUTOFF && (rating > RATING_MAX || rating < RATING_MIN)) return false;
+  return true;
+}
+
 interface FlatMatch { m: MatchResult; t: TournamentData; ts: number }
 
 function collect(list: TournamentData[], skip: Set<string>): FlatMatch[] {
