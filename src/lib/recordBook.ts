@@ -42,6 +42,16 @@ const TOP = 5;
 const MIN_MAPS_CAREER = 20;
 const MIN_MAPS_TEAM_MAP = 10;
 
+// Rekordy ratingowe sprzed aktualizacji systemu ratingowego (do 2026-10-03 włącznie)
+// z wartościami poza zakresem 0.45–2.00 są pomijane; nowe mecze liczą się normalnie.
+const RATING_FIX_CUTOFF = new Date(2026, 9, 4).getTime(); // 2026-10-04 00:00 lokalnie
+const RATING_MIN = 0.45;
+const RATING_MAX = 2.0;
+function ratingCounts(rating: number, ts: number): boolean {
+  if (ts < RATING_FIX_CUTOFF && (rating > RATING_MAX || rating < RATING_MIN)) return false;
+  return true;
+}
+
 interface FlatMatch { m: MatchResult; t: TournamentData; ts: number }
 
 function collect(list: TournamentData[], skip: Set<string>): FlatMatch[] {
@@ -223,8 +233,10 @@ export function computeRecordBook(): RecordDef[] {
           pMap.deaths.push({ ...e, value: p.deaths, display: `${p.deaths}` });
           pMap.assists.push({ ...e, value: p.assists, display: `${p.assists}` });
           pMap.adr.push({ ...e, value: p.adr, display: f1(p.adr) });
-          pMap.rating.push({ ...e, value: rating, display: f2(rating) });
-          pMap.lowRating.push({ ...e, value: rating, display: f2(rating) });
+          if (ratingCounts(rating, ts)) {
+            pMap.rating.push({ ...e, value: rating, display: f2(rating) });
+            pMap.lowRating.push({ ...e, value: rating, display: f2(rating) });
+          }
           pMap.kd.push({ ...e, value: p.kills - p.deaths, display: `+${p.kills - p.deaths} (${p.kills}-${p.deaths})` });
           if (p.kast) pMap.kast.push({ ...e, value: p.kast, display: pct(p.kast) });
           if (p.ud) pMap.ud.push({ ...e, value: p.ud, display: `${p.ud}` });
@@ -260,7 +272,7 @@ export function computeRecordBook(): RecordDef[] {
         pSeries.kills.push({ ...e, value: s.k, display: `${s.k}` });
         pSeries.deaths.push({ ...e, value: s.d, display: `${s.d}` });
         if (s.rr) {
-          pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
+          if (ratingCounts(s.ratingW / s.rr, ts)) pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
           pSeries.adr.push({ ...e, value: s.dmg / s.rr, display: f1(s.dmg / s.rr) });
         }
       }
