@@ -6,6 +6,8 @@ import { loadAllTeams, loadArchivedTeams, loadExtraDisbands } from "./teamManage
 import { playerRoles } from "@/data/playerRoles";
 import { getMatchTimestamp } from "./matchTime";
 import { getWorldNowIso } from "./worldClock";
+import { normalizeCountry } from "./flags";
+import { playerNationalities } from "@/data/playerNationalities";
 
 // ---------- Typy ----------
 
@@ -58,17 +60,34 @@ export function activeClubTeams() {
 
 // ---------- Tożsamość komentującego (flaga + ulubiona drużyna) ----------
 
-const COUNTRY_POOL: [string, number][] = [
-  ["🇵🇱", 46], ["🇩🇪", 5], ["🇺🇦", 5], ["🇨🇿", 4], ["🇬🇧", 4], ["🇩🇰", 3], ["🇸🇪", 3],
-  ["🇫🇷", 3], ["🇧🇷", 3], ["🇺🇸", 3], ["🇳🇴", 2], ["🇫🇮", 2], ["🇱🇹", 2], ["🇸🇰", 2],
-  ["🇳🇱", 2], ["🇪🇸", 2], ["🇷🇴", 1], ["🇭🇺", 1], ["🇧🇬", 1], ["🇰🇿", 1], ["🇲🇳", 1],
-  ["🇦🇺", 1], ["🇵🇹", 1], ["🇮🇩", 1],
-];
-const COUNTRY_TOTAL = COUNTRY_POOL.reduce((n, [, w]) => n + w, 0);
+// Cały świat — każdy kraj ma bazową szansę, a kraje z drużynami/graczami w zapisie dostają więcej.
+const WORLD_ISO = "AD AE AF AG AL AM AO AR AT AU AZ BA BB BD BE BF BG BH BI BJ BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FM FR GA GB GD GE GH GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IN IQ IR IS IT JM JO JP KE KG KH KI KM KN KR KW KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MH MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NR NZ OM PA PE PG PH PK PL PS PT PW PY QA RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SS ST SV SY SZ TD TG TH TJ TL TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VN VU WS XK YE ZA ZM ZW".split(" ");
+const isoFlag = (iso: string) => String.fromCodePoint(...[...iso].map(c => 0x1f1e6 + c.charCodeAt(0) - 65));
+
+let countryPoolCache: { pool: [string, number][]; total: number } | null = null;
+function countryPool() {
+  if (countryPoolCache) return countryPoolCache;
+  const w = new Map<string, number>(WORLD_ISO.map(i => [i, 0.15]));
+  try {
+    activeClubTeams().forEach(t => {
+      const iso = normalizeCountry(t.country);
+      if (iso && iso !== "EU") w.set(iso, (w.get(iso) || 0.15) + 3 + (t.points || 0) / 400);
+    });
+    Object.values(playerNationalities).forEach(c => {
+      const iso = normalizeCountry(c);
+      if (iso && iso !== "EU") w.set(iso, (w.get(iso) || 0.15) + 0.6);
+    });
+  } catch { /* brak danych */ }
+  w.set("PL", (w.get("PL") || 0) + 40); // polski portal
+  const pool = [...w.entries()].map(([i, n]) => [isoFlag(i), n] as [string, number]);
+  countryPoolCache = { pool, total: pool.reduce((s, [, n]) => s + n, 0) };
+  return countryPoolCache;
+}
 
 export function commenterFlag(nick: string): string {
-  let r = hashStr("flag:" + nick.toLowerCase()) % COUNTRY_TOTAL;
-  for (const [f, w] of COUNTRY_POOL) {
+  const { pool, total } = countryPool();
+  let r = (hashStr("flag:" + nick.toLowerCase()) / 4294967296) * total;
+  for (const [f, w] of pool) {
     if (r < w) return f;
     r -= w;
   }
