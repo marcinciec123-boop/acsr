@@ -11,6 +11,7 @@ import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
+import { isOpenSlot } from "@/lib/openSlots";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 
 interface TournamentPlayProps {
@@ -700,6 +701,11 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
 
 const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
+  const openSlotCount = tournament.participants.filter(isOpenSlot).length;
+  const startBlocked = openSlotCount > 0;
+  const startBlockedTitle = startBlocked
+    ? `Najpierw zapełnij wszystkie miejsca (wolne: ${openSlotCount})`
+    : undefined;
   const format = tournament.format;
 
   // Load saved progress
@@ -1032,9 +1038,14 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
         <h3 className="font-heading text-xl font-bold text-foreground">{phaseLabel}</h3>
         <div className="flex gap-2">
           {!swiss.started && (
-            <button onClick={swiss.start} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+            <button
+              onClick={swiss.start}
+              disabled={startBlocked}
+              title={startBlockedTitle}
+              className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Play className="w-4 h-4" />
-              Rozpocznij
+              Rozpocznij{startBlocked ? ` (wolne miejsca: ${openSlotCount})` : ""}
             </button>
           )}
           {swiss.started && !swiss.finished && swiss.currentMatches.length > 0 && (
@@ -1147,9 +1158,14 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
         </h3>
         <div className="flex gap-2">
           {!knockout.started && knockoutTeams.length > 0 && (
-            <button onClick={knockout.start} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+            <button
+              onClick={knockout.start}
+              disabled={startBlocked}
+              title={startBlockedTitle}
+              className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Play className="w-4 h-4" />
-              Rozpocznij Playoffs
+              Rozpocznij Playoffs{startBlocked ? ` (wolne miejsca: ${openSlotCount})` : ""}
             </button>
           )}
           {knockout.started && !knockout.finished && knockout.currentMatches.length > 0 && (
