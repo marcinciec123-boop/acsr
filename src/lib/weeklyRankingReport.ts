@@ -60,11 +60,24 @@ export function buildWeeklyReport(monday: string): WeeklyReport {
   return { date: monday, compareDate, entries, dropped };
 }
 
+/** Klucz migawki punktów używanej przez trendy w panelu rankingu. */
+export const RANKING_SNAPSHOT_KEY = "ranking_snapshot_prev";
+
+/** Zapisuje bieżący ranking (punkty) jako migawkę trendów — wołane po każdym raporcie. */
+function captureRankingSnapshot(): void {
+  const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+  const snap: Record<string, number> = {};
+  ranking.filter(t => !t.isNational).forEach(t => { snap[canonicalTeamName(t.name)] = t.points || 0; });
+  saveToStorage(RANKING_SNAPSHOT_KEY, snap);
+}
+
 export function saveWeeklyReport(report: WeeklyReport): void {
   const list = loadWeeklyReports().filter(r => r.date !== report.date);
   list.push(report);
   list.sort((a, b) => b.date.localeCompare(a.date));
   saveToStorage(KEY, list);
+  // Migawka trendów odświeża się automatycznie razem z raportem.
+  captureRankingSnapshot();
   window.dispatchEvent(new Event(WEEKLY_REPORT_EVENT));
 }
 
