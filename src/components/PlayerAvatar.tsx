@@ -21,6 +21,8 @@ interface PlayerAvatarProps {
   rounded?: "lg" | "xl" | "2xl" | "full";
   /** Shows upload / remove controls on hover. */
   editable?: boolean;
+  /** Fills the parent container (full width/height) instead of a fixed square. */
+  fill?: boolean;
 }
 
 const initialsOf = (name: string): string => {
@@ -35,7 +37,7 @@ const initialsOf = (name: string): string => {
  * deterministic colours. Can be replaced by a custom uploaded photo.
  */
 const PlayerAvatar = ({
-  playerName, teamName: teamNameProp, size = 48, className, rounded = "xl", editable = false,
+  playerName, teamName: teamNameProp, size = 48, className, rounded = "xl", editable = false, fill = false,
 }: PlayerAvatarProps) => {
   // Resolve the player's club when not supplied, so the jersey shows the crest.
   const teamName = useMemo(() => {
