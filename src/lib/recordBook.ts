@@ -233,8 +233,10 @@ export function computeRecordBook(): RecordDef[] {
           pMap.deaths.push({ ...e, value: p.deaths, display: `${p.deaths}` });
           pMap.assists.push({ ...e, value: p.assists, display: `${p.assists}` });
           pMap.adr.push({ ...e, value: p.adr, display: f1(p.adr) });
-          pMap.rating.push({ ...e, value: rating, display: f2(rating) });
-          pMap.lowRating.push({ ...e, value: rating, display: f2(rating) });
+          if (ratingCounts(rating, ts)) {
+            pMap.rating.push({ ...e, value: rating, display: f2(rating) });
+            pMap.lowRating.push({ ...e, value: rating, display: f2(rating) });
+          }
           pMap.kd.push({ ...e, value: p.kills - p.deaths, display: `+${p.kills - p.deaths} (${p.kills}-${p.deaths})` });
           if (p.kast) pMap.kast.push({ ...e, value: p.kast, display: pct(p.kast) });
           if (p.ud) pMap.ud.push({ ...e, value: p.ud, display: `${p.ud}` });
@@ -270,7 +272,7 @@ export function computeRecordBook(): RecordDef[] {
         pSeries.kills.push({ ...e, value: s.k, display: `${s.k}` });
         pSeries.deaths.push({ ...e, value: s.d, display: `${s.d}` });
         if (s.rr) {
-          pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
+          if (ratingCounts(s.ratingW / s.rr, ts)) pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
           pSeries.adr.push({ ...e, value: s.dmg / s.rr, display: f1(s.dmg / s.rr) });
         }
       }
