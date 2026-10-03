@@ -702,7 +702,7 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
 const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
   const openSlotCount = tournament.participants.filter(isOpenSlot).length;
-  const startBlocked = openSlotCount > 0 && tournament.kind !== "qualifier";
+  const startBlocked = openSlotCount > 0;
   const startBlockedTitle = startBlocked
     ? `Najpierw zapełnij wszystkie miejsca (wolne: ${openSlotCount})`
     : undefined;
