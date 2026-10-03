@@ -358,6 +358,33 @@ export const buildSwissRound1 = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResul
 };
 
 
+/** Liga: dozwolone liczby uczestników i liczba kolejek (meczów na drużynę). */
+export const LEAGUE_SIZES: Record<number, number> = { 8: 3, 12: 4, 16: 5, 20: 6, 24: 7 };
+export const leagueRounds = (n: number) => LEAGUE_SIZES[n] ?? 0;
+
+/** Liga: losowy terminarz metodą kołową — w kolejce każda drużyna gra raz,
+ *  żadna para nie powtarza się w całej lidze. */
+export const buildLeagueSchedule = (teams: string[], bo: 1 | 3 | 5 = 1): MatchResult[] => {
+  const n = teams.length;
+  const rounds = leagueRounds(n);
+  if (!rounds) return [];
+  const t = shuffle(teams);
+  const fixed = t[0];
+  const rest = t.slice(1);
+  const matches: MatchResult[] = [];
+  for (let r = 0; r < rounds; r++) {
+    const circle = [fixed, ...rest];
+    const pairs: [string, string][] = [];
+    for (let i = 0; i < n / 2; i++) pairs.push([circle[i], circle[n - 1 - i]]);
+    shuffle(pairs).forEach(([a, b]) => {
+      const [t1, t2] = Math.random() < 0.5 ? [a, b] : [b, a];
+      matches.push({ id: uid(), team1: t1, team2: t2, score1: 0, score2: 0, round: `Kolejka ${r + 1}`, bo });
+    });
+    rest.unshift(rest.pop()!);
+  }
+  return matches;
+};
+
 /** Distribute teams into N groups using snake seeding */
 export const distributeIntoGroups = (teams: string[], groupCount: number): string[][] => {
   const groups: string[][] = Array.from({ length: groupCount }, () => []);
@@ -378,6 +405,7 @@ export const rebuildGroupMatches = (
   advancePerGroup: number = 2,
 ): MatchResult[] => {
   if (format === "round-robin") return buildRoundRobin(teams, bo);
+  if (format === "league") return buildLeagueSchedule(teams, bo);
   if (format === "gsl-groups") return buildGSLGroup(teams, bo);
   if (format === "gsl-de-groups") return buildGSLDoubleElimGroup(teams, bo, advancePerGroup);
   return [];
@@ -394,6 +422,7 @@ export const buildPhase = (
     advanceCount?: number;
     /** "manual" leaves groups empty so user can drag/select teams in detail page. */
     groupAssignment?: "random" | "manual";
+    relegateCount?: number;
   } = {}
 ): TournamentPhase => {
   const bo = opts.bo ?? 3;
@@ -413,6 +442,10 @@ export const buildPhase = (
     phase.bracket = buildSingleElim(teams, bo);
   } else if (format === "double-elim") {
     phase.bracket = buildDoubleElim(teams, bo);
+  } else if (format === "league") {
+    phase.relegateCount = opts.relegateCount ?? 0;
+    phase.groupCount = 1;
+    phase.groups = [{ id: uid(), name: "Tabela ligowa", teams: [...teams], matches: buildLeagueSchedule(teams, bo) }];
   } else if (format === "round-robin") {
     const groupCount = opts.groupCount ?? 1;
     const distributed = manual
@@ -620,6 +653,7 @@ export const formatLabel = (f: PhaseFormat): string => ({
   "gsl-groups": "GSL Groups",
   "gsl-de-groups": "IEM-style Groups (DE)",
   "showmatch": "Showmatch",
+  "league": "Liga",
 }[f]);
 
 // ===== Stats aggregation =====
