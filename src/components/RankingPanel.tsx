@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Users, Plus, Edit3, Check, X, Search, ChevronUp, ChevronDown, Globe, User,
-  Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, BarChart3, Activity, Sparkles,
+  Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, BarChart3, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import PanelHeader from "@/components/PanelHeader";
 import WeeklyRankingReport from "@/components/WeeklyRankingReport";
+import { WEEKLY_REPORT_EVENT } from "@/lib/weeklyRankingReport";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { canonicalTeamName } from "@/lib/teamRenames";
@@ -111,6 +112,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     };
     window.addEventListener("teams:update", refresh);
     return () => window.removeEventListener("teams:update", refresh);
+  }, []);
+
+  // Migawka trendów zapisuje się automatycznie przy każdym raporcie tygodniowym.
+  useEffect(() => {
+    const sync = () => setPrevSnapshot(loadFromStorage<Record<string, number>>(SNAPSHOT_KEY, {}));
+    window.addEventListener(WEEKLY_REPORT_EVENT, sync);
+    return () => window.removeEventListener(WEEKLY_REPORT_EVENT, sync);
   }, []);
 
   const sorted = useMemo(() => [...teams].filter(t => !t.isNational).sort((a, b) => b.points - a.points), [teams]);
@@ -212,13 +220,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     setEditingTeam(null);
   };
 
-  const captureSnapshot = () => {
-    const snap: Record<string, number> = {};
-    sorted.forEach(t => { snap[t.name] = t.points; });
-    saveToStorage(SNAPSHOT_KEY, snap);
-    setPrevSnapshot(snap);
-  };
-
   const trendFor = (teamName: string, currentRank: number) => {
     const prev = prevRanks[teamName];
     if (!prev) return { dir: "new" as const, diff: 0 };
@@ -252,10 +253,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           meta={`${sorted.length} drużyn · aktualizowany na bieżąco`}
           actions={
             <>
-              <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
-                <Activity className="w-3.5 h-3.5" />
-                Zapisz migawkę
-              </Button>
               <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
                 <Sparkles className="w-3.5 h-3.5" />
                 Podziel punkty ÷2
