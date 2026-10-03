@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
 import { teamDatabase } from "@/data/tournaments";
+import { playerRoles } from "@/data/playerRoles";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { simulateMatch } from "@/lib/matchSimulator";
 import { toast } from "@/hooks/use-toast";
@@ -656,8 +657,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
             {maps.length > 0 && (
               <>
-                <MatchPlayerTotals match={match} maps={maps} side="team1Players" teamName={match.team1} />
-                <MatchPlayerTotals match={match} maps={maps} side="team2Players" teamName={match.team2} />
+                <MatchPlayerTotals maps={maps} side="team1Players" teamName={match.team1} />
+                <MatchPlayerTotals maps={maps} side="team2Players" teamName={match.team2} />
               </>
             )}
 
@@ -1105,9 +1106,8 @@ interface AggRow {
 }
 
 const MatchPlayerTotals = ({
-  match, maps, side, teamName,
+  maps, side, teamName,
 }: {
-  match: MatchResult;
   maps: MatchMap[];
   side: "team1Players" | "team2Players";
   teamName: string;
@@ -1149,13 +1149,13 @@ const MatchPlayerTotals = ({
   if (rows.length === 0 || !teamName || teamName === "TBD") return null;
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-3 bg-secondary/40 border-b border-border/50 flex items-center justify-between">
+    <div className="bg-card border border-border rounded-md overflow-hidden">
+      <div className="px-4 py-3 bg-secondary/40 border-b border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <TeamLogo teamName={teamName} size={28} rounded="md" />
           <TeamLink name={teamName} className="text-sm font-heading font-bold text-foreground truncate">{teamName}</TeamLink>
-          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-            • Statystyki łączne ({maps.length} {maps.length === 1 ? "mapa" : "map"})
+          <span className="text-xs font-mono text-muted-foreground shrink-0">
+            · {maps.length} {maps.length === 1 ? "mapa" : "mapy"}
           </span>
         </div>
         <span className="text-xs font-mono text-muted-foreground">
@@ -1163,12 +1163,12 @@ const MatchPlayerTotals = ({
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">
+        <table className="w-full min-w-[790px] text-xs tabular-nums">
           <thead>
-            <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border/50 bg-secondary/20">
-              <th className="text-left px-3 py-2">Gracz</th>
+            <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border bg-secondary/20">
+              <th scope="col" className="text-left px-4 py-3 min-w-[160px]">Gracz</th>
               <th className="text-center px-2 py-2">Mapy</th>
-              <th className="text-center px-2 py-2">K</th>
+              <th className="text-center px-2 py-2 text-foreground">K</th>
               <th className="text-center px-2 py-2">A</th>
               <th className="text-center px-2 py-2">D</th>
               <th className="text-center px-2 py-2">+/−</th>
@@ -1176,34 +1176,44 @@ const MatchPlayerTotals = ({
               <th className="text-center px-2 py-2">UD</th>
               <th className="text-center px-2 py-2">EF</th>
               <th className="text-center px-2 py-2">KAST%</th>
-              <th className="text-center px-2 py-2">Rating</th>
+              <th className="text-center px-3 py-2 bg-primary/5">Rating</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
-              <tr key={r.name} className="border-b border-border/20 hover:bg-secondary/20 font-mono">
-                <td className="px-3 py-2 text-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(r.name)))}</span>
-                    <PlayerLink name={r.name} avatar avatarSize={18} />
-                  </span>
-                </td>
-                <td className="text-center px-2 py-2 text-muted-foreground">{r.mapsPlayed}</td>
-                <td className="text-center px-2 py-2 text-foreground">{r.kills}</td>
-                <td className="text-center px-2 py-2 text-foreground">{r.assists}</td>
-                <td className="text-center px-2 py-2 text-foreground">{r.deaths}</td>
-                <td className={cn("text-center px-2 py-2", r.kills - r.deaths > 0 ? "text-[hsl(var(--win))]" : r.kills - r.deaths < 0 ? "text-[hsl(var(--loss))]" : "text-muted-foreground")}>
-                  {r.kills - r.deaths > 0 ? "+" : ""}{r.kills - r.deaths}
-                </td>
-                <td className="text-center px-2 py-2 text-muted-foreground">{r.adr.toFixed(1)}</td>
-                <td className="text-center px-2 py-2 text-foreground">{r.ud}</td>
-                <td className="text-center px-2 py-2 text-foreground">{r.ef}</td>
-                <td className="text-center px-2 py-2 text-muted-foreground">{r.kast.toFixed(0)}%</td>
-                <td className={cn("text-center px-2 py-2 font-bold tabular-nums", getRatingColor(r.rating))}>
-                  {r.rating.toFixed(2)}
-                </td>
-              </tr>
-            ))}
+            {rows.map(r => {
+              const role = playerRoles[r.name];
+              return (
+                <tr key={r.name} className="border-b border-border/40 last:border-0 odd:bg-background/30 hover:bg-secondary/40 transition-colors font-mono">
+                  <th scope="row" className="px-4 py-3 text-left font-medium text-foreground">
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="text-sm leading-none">{countryFlag(normalizeCountry(resolvePlayerCountry(r.name)))}</span>
+                      <PlayerLink name={r.name} avatar avatarSize={20} />
+                      {(role === "IGL" || role === "AWPer") && (
+                        <span className={cn("text-xs leading-none font-semibold px-1.5 py-1 rounded-sm border", role === "IGL" ? "text-primary border-primary/30 bg-primary/10" : "text-accent border-accent/30 bg-accent/10")} title={role === "AWPer" ? "Snajper" : "Prowadzący"}>
+                          {role === "AWPer" ? "AWP" : "IGL"}
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                  <td className="text-center px-2 py-3 text-muted-foreground">{r.mapsPlayed}</td>
+                  <td className="text-center px-2 py-3 font-bold text-foreground">{r.kills}</td>
+                  <td className="text-center px-2 py-3 text-muted-foreground">{r.assists}</td>
+                  <td className="text-center px-2 py-3 text-muted-foreground">{r.deaths}</td>
+                  <td className={cn("text-center px-2 py-3 font-semibold", r.kills - r.deaths > 0 ? "text-win" : r.kills - r.deaths < 0 ? "text-loss" : "text-muted-foreground")}>
+                    {r.kills - r.deaths > 0 ? "+" : ""}{r.kills - r.deaths}
+                  </td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.adr.toFixed(1)}</td>
+                  <td className="text-center px-2 py-3 text-muted-foreground">{r.ud}</td>
+                  <td className="text-center px-2 py-3 text-muted-foreground">{r.ef}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.kast.toFixed(0)}%</td>
+                  <td className="text-center px-3 py-3 bg-primary/5">
+                    <span className={cn("inline-flex min-w-12 justify-center rounded-sm border px-2 py-1 font-bold", r.rating >= 1.16 ? "border-win/30 bg-win/10 text-win" : r.rating >= 1.05 ? "border-primary/30 bg-primary/10 text-primary" : r.rating >= 0.96 ? "border-border bg-secondary text-foreground" : "border-loss/30 bg-loss/10 text-loss")}>
+                      {r.rating.toFixed(2)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
