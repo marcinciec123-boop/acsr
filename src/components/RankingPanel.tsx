@@ -329,6 +329,9 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           }
         />
 
+        <WeeklyRankingReport />
+
+
         {/* === PODIUM TOP 3 === */}
         {top3.length === 3 && (
           <div className="grid grid-cols-3 gap-3 items-end mb-6 pt-2 max-w-xl mx-auto">
