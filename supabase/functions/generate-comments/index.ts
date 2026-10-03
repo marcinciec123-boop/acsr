@@ -42,16 +42,19 @@ const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
 - BAZA DANYCH zawiera WSZYSTKIE drużyny i graczy, nie tylko czołówkę. Korzystaj też z zespołów ze środka i dołu tabeli, jeśli artykuł ich dotyczy — nie sprowadzaj dyskusji do topowych drużyn, gdy tekst mówi o innych.
 - Zanim napiszesz komentarz, przeczytaj dokładnie, czego artykuł dotyczy (kto, co, jaki turniej, jaki wynik) i odnoś się właśnie do tego, a nie do ogólnych tematów sceny.`;
 
-const NICK_RULES = `NICKI (mają wyglądać jak prawdziwi ludzie z polskiego forum esportowego, MOCNO różnorodne — mieszaj poniższe style, nie trzymaj się jednego):
-- ksywka + liczba: "marcin97", "kubaa21", "Pawel_88", "damian2137"
-- imię/nazwisko-podobne: "MateuszWojcik", "j.kowalski", "adrian_nowak"
+const NICK_RULES = `NICKI (to MIĘDZYNARODOWA społeczność jak na HLTV — komentują ludzie z całego świata: PL, BR, DK, UA, FR, DE, TR, SE, US, CZ, ES, FI, KZ, MN itd. MOCNO różnorodne — mieszaj poniższe style, nie trzymaj się jednego; polskie nicki to tylko CZĘŚĆ, nie większość):
+- polskie ksywki: "marcin97", "kubaa21", "JanuszTaktyki", "Tomek Ż.", "kanapka_z_serem"
+- brazylijskie: "felps_fan123", "BR_CS_god", "Lucaszin", "gaules_watcher", "tatica_br"
+- skandynawskie: "dansk_viking", "s1mple_fan_dk", "Nordavind4", "svensken_99", "finsk_lurker"
+- ukraińskie/wschodnie: "b1t_hater_ua", "kyiv_clutcher", "navi_zavzhdy", "cossack_awp"
+- niemieckie/francuskie/hiszpańskie: "tabseN_bro", "KriegSpieler", "zywoo_enjoyer", "fr_kennyS_era", "mixwell_fan_es"
+- tureckie/kazachskie/azjatyckie: "turkish_delight_5", "XANTARES_peek", "steppe_sniper_kz", "mongolz_hype"
+- amerykańskie/angielskie: "NA_COPium", "elige_my_goat", "uk_cs_lul", "yankee_frag"
 - fanowskie: "vitalityFAN", "NAVI_do_grobu", "falcons4life", "awp_enjoyer"
 - growe/nostalgiczne: "xXNoScopeXx", "smokecriminal", "eco_frag", "clutchOrKick", "deagle1v5"
-- skrótowe/leniwe: "kk", "mrw", "zwykly_gracz", "randomek", "typek z bloku"
-- lekko absurdalne/memiczne: "JanuszTaktyki", "PrezesFragów", "kanapka_z_serem", "dziadek_na_LAN"
-- z polskimi znakami i spacjami: "Tomek Ż.", "Pan Rafał", "Grzesiek 1996"
+- skrótowe/leniwe: "kk", "mrw", "randomek", "typek z bloku", "just_a_guy"
 - inspirowane graczami/rolami: "IGL_wannabe", "lurker69", "anchor_b", "entry_diff"
-Zasady: bez emoji w nicku, max 20 znaków, unikaj powtarzania tego samego wzorca dwa razy pod rząd i nie używaj nicków już obecnych w wątku.`;
+Zasady: bez emoji w nicku, max 20 znaków, unikaj powtarzania tego samego wzorca dwa razy pod rząd i nie używaj nicków już obecnych w wątku. Flagi przy nickach są przypisywane osobno — nie dodawaj kodów krajów typu "[PL]" do nicku.`;
 
 const STYLE_RULES = `STYL (ma brzmieć jak prawdziwi ludzie, nie jak AI):
 - Różna długość: od 2 słów ("kox", "no i dobrze") po 3 zdania. Większość krótkich, kilka dłuższych analitycznych.
