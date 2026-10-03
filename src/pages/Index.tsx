@@ -8,19 +8,50 @@ import { teamDatabase } from "@/data/tournaments";
 import { ProfileNavProvider } from "@/lib/profileNav";
 import { readUiPref, writeUiPref } from "@/lib/uiPrefs";
 
-const NewsFeed = lazy(() => import("@/components/NewsFeed"));
-const RankingPanel = lazy(() => import("@/components/RankingPanel"));
-const TournamentPanel = lazy(() => import("@/components/TournamentPanel"));
-const TransferPanel = lazy(() => import("@/components/TransferPanel"));
-const TeamProfile = lazy(() => import("@/components/TeamProfile"));
-const PlayerProfile = lazy(() => import("@/components/PlayerProfile"));
-const PlayersPanel = lazy(() => import("@/components/PlayersPanel"));
-const MatchesPanel = lazy(() => import("@/components/MatchesPanel"));
-const DeviceBackupPanel = lazy(() => import("@/components/DeviceBackupPanel"));
-const SettingsTab = lazy(() => import("@/components/SettingsTab"));
-const YearAwardsCeremony = lazy(() => import("@/components/YearAwardsCeremony"));
-const AwardsHistoryPanel = lazy(() => import("@/components/AwardsHistoryPanel"));
-const StatisticsPanel = lazy(() => import("@/components/StatisticsPanel"));
+const imports = {
+  news: () => import("@/components/NewsFeed"),
+  rankings: () => import("@/components/RankingPanel"),
+  tournaments: () => import("@/components/TournamentPanel"),
+  transfers: () => import("@/components/TransferPanel"),
+  team: () => import("@/components/TeamProfile"),
+  player: () => import("@/components/PlayerProfile"),
+  players: () => import("@/components/PlayersPanel"),
+  matches: () => import("@/components/MatchesPanel"),
+  backup: () => import("@/components/DeviceBackupPanel"),
+  settings: () => import("@/components/SettingsTab"),
+  ceremony: () => import("@/components/YearAwardsCeremony"),
+  awards: () => import("@/components/AwardsHistoryPanel"),
+  stats: () => import("@/components/StatisticsPanel"),
+};
+const PANEL_IMPORTS = Object.values(imports);
+
+const NewsFeed = lazy(imports.news);
+const RankingPanel = lazy(imports.rankings);
+const TournamentPanel = lazy(imports.tournaments);
+const TransferPanel = lazy(imports.transfers);
+const TeamProfile = lazy(imports.team);
+const PlayerProfile = lazy(imports.player);
+const PlayersPanel = lazy(imports.players);
+const MatchesPanel = lazy(imports.matches);
+const DeviceBackupPanel = lazy(imports.backup);
+const SettingsTab = lazy(imports.settings);
+const YearAwardsCeremony = lazy(imports.ceremony);
+const AwardsHistoryPanel = lazy(imports.awards);
+const StatisticsPanel = lazy(imports.stats);
+
+type NavHandlers = { onSelectTeam: (n: string) => void; onSelectPlayer: (n: string) => void };
+const PANELS: Partial<Record<Tab, (h: NavHandlers) => JSX.Element>> = {
+  news: () => <NewsFeed />,
+  rankings: h => <RankingPanel onSelectTeam={h.onSelectTeam} onSelectPlayer={h.onSelectPlayer} />,
+  players: h => <PlayersPanel onSelectPlayer={h.onSelectPlayer} onSelectTeam={h.onSelectTeam} />,
+  matches: () => <MatchesPanel />,
+  tournaments: () => <TournamentPanel />,
+  transfers: () => <TransferPanel />,
+  awards: () => <AwardsHistoryPanel />,
+  stats: () => <StatisticsPanel />,
+  backup: () => <DeviceBackupPanel />,
+  settings: () => <SettingsTab />,
+};
 
 const PanelFallback = () => (
   <div className="container mx-auto px-4 py-10 text-sm font-mono text-muted-foreground">
@@ -89,6 +120,16 @@ const Index = () => {
   };
 
   const [teams, setTeams] = useState<TeamData[]>(loadRankingTeams);
+  const [visited, setVisited] = useState<Set<Tab>>(() => new Set<Tab>(["news"]));
+  useEffect(() => {
+    setVisited(v => (v.has(activeTab) ? v : new Set(v).add(activeTab)));
+  }, [activeTab]);
+
+  // Preload every panel's code in idle time so the first open is instant too.
+  useEffect(() => {
+    const idle = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1500));
+    idle(() => { PANEL_IMPORTS.forEach(load => { void load(); }); });
+  }, []);
 
   useEffect(() => {
     let refreshFrame = 0;
@@ -144,27 +185,18 @@ const Index = () => {
           onSelectPlayer={handleSelectPlayer}
         />
 
-        {/* Tab contents stay mounted so state (e.g. selected tournament / match) is
-            preserved when the user opens a profile and clicks back. */}
+        {/* Keep-alive: every visited panel stays mounted (hidden) so switching
+            tabs is instant — no remount, no recomputation. */}
         <Suspense fallback={<PanelFallback />}>
         <div style={profileOpen ? { display: "none" } : undefined}>
-          {activeTab === "news" && <NewsFeed />}
-          {activeTab === "rankings" && (
-            <RankingPanel
-              onSelectTeam={handleSelectTeam}
-              onSelectPlayer={handleSelectPlayer}
-            />
-          )}
-          {activeTab === "players" && (
-            <PlayersPanel onSelectPlayer={handleSelectPlayer} onSelectTeam={handleSelectTeam} />
-          )}
-          {activeTab === "matches" && <MatchesPanel />}
-          {activeTab === "tournaments" && <TournamentPanel />}
-          {activeTab === "transfers" && <TransferPanel />}
-          {activeTab === "awards" && <AwardsHistoryPanel />}
-          {activeTab === "stats" && <StatisticsPanel />}
-          {activeTab === "backup" && <DeviceBackupPanel />}
-          {activeTab === "settings" && <SettingsTab />}
+          {(Object.keys(PANELS) as Tab[]).map(tab => {
+            if (!visited.has(tab) || !PANELS[tab]) return null;
+            return (
+              <div key={tab} style={tab === activeTab ? undefined : { display: "none" }}>
+                {PANELS[tab]!({ onSelectTeam: handleSelectTeam, onSelectPlayer: handleSelectPlayer })}
+              </div>
+            );
+          })}
         </div>
 
         {top?.kind === "player" && (
