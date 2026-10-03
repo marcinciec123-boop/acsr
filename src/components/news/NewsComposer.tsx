@@ -9,6 +9,8 @@ import {
   listPlayedMatches,
   matchReportTemplate,
   rankingTemplate,
+  listRecentRounds,
+  roundReportTemplate,
   transferTemplate,
 } from "@/lib/newsExtras";
 import { CoverBanner } from "@/components/news/NewsExtras";
@@ -38,7 +40,7 @@ interface Props {
   onCancel: () => void;
 }
 
-type TplKind = "" | "match" | "transfer" | "bench" | "ranking";
+type TplKind = "" | "match" | "round" | "transfer" | "bench" | "ranking";
 
 const fieldCls = "h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground";
 
@@ -62,7 +64,9 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
   const [embedMatch, setEmbedMatch] = useState("");
 
   const teams = useMemo(() => activeClubTeams(), []);
-  const matches = useMemo(() => listPlayedMatches(80), []);
+  const matches = useMemo(() => listPlayedMatches(3), [])
+  const rounds = useMemo(() => listRecentRounds(3), []);
+  const [tRound, setTRound] = useState("");
   const players = useMemo(
     () => [...new Set(teams.flatMap(t => t.roster.filter(Boolean)))].sort((a, b) => a.localeCompare(b)),
     [teams],
@@ -84,7 +88,10 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
   };
 
   const runTemplate = () => {
-    if (tpl === "match") {
+    if (tpl === "round") {
+      const g = rounds.find(r => r.key === tRound);
+      if (g) applyTemplate(roundReportTemplate(g));
+    } else if (tpl === "match") {
       const ref = matches.find(m => `${m.tournamentId}|${m.match.id}` === tMatch);
       if (ref) applyTemplate(matchReportTemplate(ref));
     } else if (tpl === "transfer" && tPlayer && tTo) {
@@ -126,6 +133,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           <span className="text-xs font-mono font-bold text-primary">Szablony</span>
           {([
             ["match", "Raport z meczu"],
+            ["round", "Raport z kolejki / fazy"],
             ["transfer", "Transfer"],
             ["bench", "Ławka"],
             ["ranking", "Ranking"],
@@ -144,9 +152,17 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           <div className="flex flex-wrap gap-2 items-center">
             {tpl === "match" && (
               <select value={tMatch} onChange={e => setTMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-[240px]`}>
-                <option value="">Wybierz rozegrany mecz…</option>
+                <option value="">{matches.length ? "Wybierz mecz (ostatnie 3 dni)…" : "Brak meczów w ostatnich 3 dniach"}</option>
                 {matches.map(m => (
                   <option key={`${m.tournamentId}|${m.match.id}`} value={`${m.tournamentId}|${m.match.id}`}>{matchLabel(m)}</option>
+                ))}
+              </select>
+            )}
+            {tpl === "round" && (
+              <select value={tRound} onChange={e => setTRound(e.target.value)} className={`${fieldCls} flex-1 min-w-[240px]`}>
+                <option value="">{rounds.length ? "Wybierz kolejkę / fazę (ostatnie 3 dni)…" : "Brak rozegranych etapów w ostatnich 3 dniach"}</option>
+                {rounds.map(r => (
+                  <option key={r.key} value={r.key}>{r.tournamentName} — {r.phaseName && r.phaseName !== r.label ? `${r.phaseName} · ` : ""}{r.label} ({r.matches.length})</option>
                 ))}
               </select>
             )}
@@ -246,7 +262,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
         </div>
         <div className="flex flex-wrap gap-2">
           <select value={embedMatch} onChange={e => setEmbedMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-[200px]`}>
-            <option value="">Mecz…</option>
+            <option value="">Mecz (ostatnie 3 dni)…</option>
             {matches.map(m => (
               <option key={`${m.tournamentId}|${m.match.id}`} value={`${m.tournamentId}|${m.match.id}`}>{matchLabel(m)}</option>
             ))}
