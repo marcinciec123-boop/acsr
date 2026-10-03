@@ -1,3 +1,4 @@
+import { memoOnSave } from "./dataMemo";
 // ===== Statistics Portal =====
 // Liquipedia-style aggregate statistics computed from the local tournament
 // database: prize money totals, earnings per organization/player, medal
@@ -77,7 +78,9 @@ export function loadStatsTournaments(): TournamentData[] {
 }
 
 
-export function computePortalStats(year: string | "total"): PortalStats {
+export const computePortalStats = memoOnSave<string, PortalStats>(computePortalStatsRaw);
+
+function computePortalStatsRaw(year: string | "total"): PortalStats {
   const all = loadStatsTournaments().filter(t => t.kind !== "qualifier");
   const years = Array.from(new Set(all.map(yearOf).filter(Boolean))).sort().reverse();
   const list = year === "total" ? all : all.filter(t => yearOf(t) === year);
