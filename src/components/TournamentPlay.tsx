@@ -11,6 +11,7 @@ import MapVeto from "@/components/MapVeto";
 import GroupDrawCeremony from "@/components/GroupDrawCeremony";
 import PlayoffBracket from "@/components/PlayoffBracket";
 import { scheduleDeviceBackup } from "@/lib/deviceBackup";
+import { isOpenSlot } from "@/lib/openSlots";
 import { DEVICE_STORE_REF, getCachedDeviceValue, removeDeviceValue, setDeviceValue } from "@/lib/deviceStore";
 
 interface TournamentPlayProps {
@@ -700,6 +701,11 @@ function useKnockoutPlay(initialTeams: string[], startBo = 3, initial?: Tourname
 
 const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: TournamentPlayProps) => {
   const teams = tournament.participants.slice(0, tournament.teams);
+  const openSlotCount = tournament.participants.filter(isOpenSlot).length;
+  const startBlocked = openSlotCount > 0 && tournament.kind !== "qualifier";
+  const startBlockedTitle = startBlocked
+    ? `Najpierw zapełnij wszystkie miejsca (wolne: ${openSlotCount})`
+    : undefined;
   const format = tournament.format;
 
   // Load saved progress
