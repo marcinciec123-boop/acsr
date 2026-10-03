@@ -27,6 +27,7 @@ import {
   splitRoster, benchPlayer, activatePlayer,
 } from "@/lib/benchedPlayers";
 import TeamLogo from "@/components/TeamLogo";
+import { TrophyCabinet, type CabinetEntry } from "@/components/TrophyCabinet";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { TeamLink, TournamentLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
@@ -36,11 +37,11 @@ import { useToast } from "@/hooks/use-toast";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { getRatingColor } from "@/lib/playerStats";
 import { isPlaceholder } from "@/lib/teamHelpers";
-import MajorBadge from "@/components/MajorBadge";
-import { isMajorName, historicMajorsForTeam } from "@/lib/majors";
+import { historicMajorsForTeam } from "@/lib/majors";
 import { getTeamEarnings } from "@/lib/statsPortal";
 import { formatMoney } from "@/lib/prizeDistribution";
 import { compareMatchesNewestFirst } from "@/lib/matchTime";
+import { canonicalTeamName } from "@/lib/teamRenames";
 
 
 interface TeamProfileProps {
@@ -99,7 +100,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   // Tournaments / matches / trophies aggregated from saved data
   const { trophies, recentMatches, totals, upcomingMatches, mapEvents, sideEvents } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
-    const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
+    const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string; team: string }[] = [];
     const matches: {
       id: string; tournamentId: string; tournamentName: string; date: string;
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
@@ -116,12 +117,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
 
     for (const t of tournaments) {
-      const placement = t.placements?.find(p => p.team === teamName);
+      const placement = t.placements?.find(p => canonicalTeamName(p.team) === canonicalTeamName(teamName));
       if (placement) {
         trophies.push({
           id: t.id, name: t.name,
           placement: placement.placement, points: placement.points,
-          endDate: t.endDate, tier: t.tier,
+          endDate: t.endDate, tier: t.tier, team: placement.team,
         });
       }
       const all: MatchResult[] = [];
@@ -237,6 +238,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   }, [teamName]);
 
   // Zarobki organizacji (bez reprezentacji narodowych).
+  const cabinetEntries = useMemo<CabinetEntry[]>(() => [
+    ...historicMajorsForTeam(teamName).map(h => ({ tournamentId: h.id, name: h.name, team: h.team, placement: 1, date: String(h.year), tier: "S", historic: true })),
+    ...trophies.map(t => ({ tournamentId: t.id, name: t.name, team: t.team, placement: t.placement, date: t.endDate, tier: t.tier })),
+  ], [teamName, trophies]);
   const earnings = useMemo(() => getTeamEarnings(teamName), [teamName]);
 
 
@@ -697,49 +702,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           )}
 
           {activeTab === "trophies" && (
-            <Card title={`Trofea i osiągnięcia (${totals.events})`} icon={<Trophy className="w-4 h-4 text-accent" />}>
+            <div className="space-y-4">
               <AccoladeBadges accolades={getTeamAccolades(teamName)} className="mb-3" />
-              {trophies.length === 0 && historicMajorsForTeam(teamName).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Brak trofeów.</p>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {historicMajorsForTeam(teamName).map(hm => (
-                    <div key={hm.id} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--gold))]/60 bg-gradient-to-r from-[hsl(var(--gold))]/15 to-transparent shadow-[0_0_20px_hsl(var(--gold)/0.25)]">
-                      <span className="text-xl leading-none">🏆</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-heading font-black text-foreground text-sm truncate">{hm.name}</span>
-                          <MajorBadge compact />
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono truncate">
-                          Mistrz {hm.year} · jako {hm.team} · {hm.roster.join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {trophies.map(tr => (
-                    <div key={tr.id} className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border transition-colors",
-                      isMajorName(tr.name) && tr.placement === 1
-                        ? "border-[hsl(var(--gold))]/60 bg-gradient-to-r from-[hsl(var(--gold))]/15 to-transparent shadow-[0_0_20px_hsl(var(--gold)/0.25)]"
-                        : "bg-secondary/30 border-border/50 hover:border-primary/40",
-                    )}>
-                      <span className={cn("text-xs font-heading font-bold px-2.5 py-1 rounded border shrink-0", placementColor(tr.placement))}>
-                        {placementLabel(tr.placement)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <TournamentLink tournamentId={tr.id} title={tr.name} className="block font-heading text-foreground text-sm truncate">{tr.name}</TournamentLink>
-                        <p className="text-xs text-muted-foreground font-mono flex items-center gap-2">
-                          <Calendar className="w-3 h-3" />{tr.endDate || "—"}
-                          {isMajorName(tr.name) ? <MajorBadge compact /> : tr.tier && <span className="px-1 rounded bg-muted">Tier {tr.tier}</span>}
-                        </p>
-                      </div>
-                      <span className="text-sm font-mono font-bold text-primary shrink-0">+{tr.points}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+              <TrophyCabinet entries={cabinetEntries} />
+            </div>
           )}
 
           {activeTab === "transfers" && (
