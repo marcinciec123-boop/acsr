@@ -18,7 +18,7 @@ interface PlayerAvatarProps {
   teamName?: string;
   size?: number;
   className?: string;
-  rounded?: "lg" | "xl" | "2xl" | "full";
+  rounded?: "none" | "lg" | "xl" | "2xl" | "full";
   /** Shows upload / remove controls on hover. */
   editable?: boolean;
   /** Fills the parent container (full width/height) instead of a fixed square. */
@@ -89,7 +89,8 @@ const PlayerAvatar = ({
   const radius =
     rounded === "full" ? "rounded-full" :
     rounded === "2xl" ? "rounded-2xl" :
-    rounded === "xl" ? "rounded-xl" : "rounded-lg";
+    rounded === "xl" ? "rounded-xl" :
+    rounded === "lg" ? "rounded-lg" : "";
 
   const colors = jerseyColors(teamName || playerName);
   const uid = `${playerName}-${teamName || ""}`.replace(/[^a-zA-Z0-9]/g, "");
