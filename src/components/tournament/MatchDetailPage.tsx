@@ -599,9 +599,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
           <TabsContent value="compare">
             {match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && match.team2 !== "BYE" ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 xl:grid-cols-[minmax(340px,420px)_1fr] gap-4 items-start">
               <PreMatchReport team1={match.team1} team2={match.team2} bo={bo} matchId={match.id} />
-              <MatchComparePanel
+              <div className="min-w-0"><MatchComparePanel
                 team1={match.team1}
                 team2={match.team2}
                 tier={tier}
@@ -611,7 +611,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 score1={match.score1}
                 score2={match.score2}
 
-              />
+              /></div>
               </div>
             ) : (
               <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center">

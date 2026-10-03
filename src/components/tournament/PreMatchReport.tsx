@@ -135,7 +135,7 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
         const halves = [maps.slice(0, split), maps.slice(split)];
         return (
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            <div className="grid grid-cols-1">
               {halves.map((group, gi) => (
                 <div key={gi} className={cn(gi === 1 && "sm:border-l sm:border-border/40 sm:pl-6")}>
                   <MapTableHalf
