@@ -242,7 +242,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
       : { dir: "down" as const, diff: currentRank - prev };
   };
 
-  const top3 = sorted.slice(0, 3);
 
   return (
     <section className="py-6 relative overflow-hidden">
