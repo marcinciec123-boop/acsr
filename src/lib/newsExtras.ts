@@ -4,6 +4,8 @@ import type { MatchResult, TournamentData } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { loadAllTeams, loadArchivedTeams, loadExtraDisbands } from "./teamManagement";
 import { playerRoles } from "@/data/playerRoles";
+import { getMatchTimestamp } from "./matchTime";
+import { getWorldNowIso } from "./worldClock";
 
 // ---------- Typy ----------
 
@@ -165,17 +167,59 @@ export function allMatchesOf(t: TournamentData): MatchResult[] {
   return out;
 }
 
-export function listPlayedMatches(limit = 60): MatchRef[] {
-  const refs: MatchRef[] = [];
+const DAY = 86400000;
+
+/** Mecze rozegrane w ostatnich `days` dniach zegara gry (domyślnie 3). */
+function recentPlayed(days: number): (MatchRef & { phaseName: string; phaseId: string; ts: number })[] {
+  const now = Date.parse(getWorldNowIso()) || Date.now();
+  const from = now - days * DAY;
+  const out: (MatchRef & { phaseName: string; phaseId: string; ts: number })[] = [];
   loadTournaments().forEach(t => {
-    allMatchesOf(t).filter(isPlayed).forEach(m => {
-      const date = (m as MatchResult & { date?: string; scheduledAt?: string }).date
-        || (m as MatchResult & { scheduledAt?: string }).scheduledAt
-        || t.endDate || t.startDate || "";
-      refs.push({ tournamentId: t.id, tournamentName: t.name, tier: t.tier, date, match: m });
+    const seen = new Set<string>();
+    const add = (m: MatchResult, phaseId: string, phaseName: string) => {
+      if (!m || seen.has(m.id) || !isPlayed(m)) return;
+      seen.add(m.id);
+      const ts = getMatchTimestamp({ scheduledAt: m.scheduledAt, playedAt: m.playedAt, fallbackDate: t.endDate || t.startDate });
+      if (!ts || ts < from || ts > now + DAY) return;
+      out.push({ tournamentId: t.id, tournamentName: t.name, tier: t.tier, date: new Date(ts).toISOString(), match: m, phaseId, phaseName, ts });
+    };
+    (t.phases || []).forEach(p => {
+      (p.groups || []).forEach(g => (g.matches || []).forEach(m => add(m, p.id, p.name)));
+      (p.bracket || []).forEach(m => add(m, p.id, p.name));
     });
+    (t.matches || []).forEach(m => add(m, "legacy", ""));
   });
-  return refs.sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, limit);
+  return out.sort((a, b) => b.ts - a.ts);
+}
+
+export function listPlayedMatches(days = 3): MatchRef[] {
+  return recentPlayed(days);
+}
+
+export interface RoundRef {
+  key: string;
+  tournamentId: string;
+  tournamentName: string;
+  tier: string;
+  phaseName: string;
+  label: string;
+  matches: MatchRef[];
+}
+
+/** Kolejki / rundy / fazy z ostatnich dni — grupowane po turnieju, fazie i nazwie rundy. */
+export function listRecentRounds(days = 3): RoundRef[] {
+  const map = new Map<string, RoundRef>();
+  const order: string[] = [];
+  recentPlayed(days).forEach(r => {
+    const label = r.match.round || r.phaseName || "Mecze";
+    const key = `${r.tournamentId}|${r.phaseId}|${label}`;
+    if (!map.has(key)) {
+      map.set(key, { key, tournamentId: r.tournamentId, tournamentName: r.tournamentName, tier: r.tier, phaseName: r.phaseName, label, matches: [] });
+      order.push(key);
+    }
+    map.get(key)!.matches.push(r);
+  });
+  return order.map(k => map.get(k)!);
 }
 
 export function findMatch(tournamentId: string, matchId: string): MatchRef | null {
@@ -304,5 +348,36 @@ export function rankingTemplate(team: string, rank: number, points: number): Tem
     tags: [team, "ranking"],
     cover: { teamA: team, label: `#${rank} ACSR` },
     poll: { question: `Gdzie ${team} będzie za miesiąc?`, options: ["Wyżej", "Tak samo", "Niżej"] },
+  };
+}
+
+export function roundReportTemplate(g: RoundRef): TemplateResult {
+  const phase = g.phaseName && g.phaseName !== g.label ? `${g.phaseName} — ${g.label}` : g.label;
+  const lines = g.matches.map(r => {
+    const m = r.match;
+    const w = m.score1 > m.score2 ? m.team1 : m.team2;
+    const l = w === m.team1 ? m.team2 : m.team1;
+    const maps = (m.maps || []).map(mp => `${mp.map} ${mp.score1}:${mp.score2}`).join(", ");
+    return `• ${w} ${Math.max(m.score1, m.score2)}:${Math.min(m.score1, m.score2)} ${l}${maps ? ` (${maps})` : ""}`;
+  });
+  const mvps = g.matches.map(r => matchMvp(r.match)).filter(Boolean) as NonNullable<ReturnType<typeof matchMvp>>[];
+  const star = mvps.sort((a, b) => b.rating - a.rating)[0];
+  const winners = [...new Set(g.matches.map(r => r.match.score1 > r.match.score2 ? r.match.team1 : r.match.team2))];
+  return {
+    title: `${g.tournamentName}: podsumowanie — ${g.label}`,
+    content: [
+      `Za nami ${phase} w ${g.tournamentName} [Tier ${g.tier}]. Rozegrano ${g.matches.length} ${g.matches.length === 1 ? "mecz" : "meczów"}.`,
+      lines.join("\n"),
+      star ? `Najlepszy zawodnik etapu: ${star.name} (${star.team}) — rating ${star.rating.toFixed(2)}, ${star.kills}-${star.deaths}, ADR ${star.adr.toFixed(1)}.` : "",
+      `Zwycięzcy: ${winners.join(", ")}. Czas na kolejny etap rywalizacji.`,
+    ].filter(Boolean).join("\n\n"),
+    category: "recap",
+    tags: [g.tournamentName, g.label, ...winners.slice(0, 6), ...(star ? [star.name] : [])],
+    embeds: [
+      ...g.matches.slice(0, 8).map(r => ({ kind: "match" as const, tournamentId: r.tournamentId, matchId: r.match.id })),
+      ...(star ? [{ kind: "player" as const, name: star.name }] : []),
+    ],
+    cover: winners.length >= 2 ? { teamA: winners[0], teamB: winners[1], label: g.label } : { teamA: winners[0] || g.matches[0].match.team1, label: g.label },
+    poll: { question: `Kto zrobił największe wrażenie — ${g.label}?`, options: winners.slice(0, 6).length >= 2 ? winners.slice(0, 6) : ["Faworyci", "Czarne konie"] },
   };
 }
