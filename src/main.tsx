@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { bootstrapPersistedState } from "./lib/changeLog";
-import { createDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from "./lib/deviceBackup";
+import { scheduleDeviceBackup, restoreLatestDeviceBackupIfLocalStateMissing } from "./lib/deviceBackup";
 import { initializeDeviceStoreCache } from "./lib/deviceStore";
 import { migrateHeavyLocalStorageToDeviceStore } from "./lib/storage";
 import { initTheme } from "./lib/theme";
@@ -49,7 +49,7 @@ const startApp = async () => {
   const runDeferredMaintenance = () => {
     void migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
     void synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
-    void createDeviceBackup("auto", "Start aplikacji");
+    scheduleDeviceBackup("auto");
   };
   if ("requestIdleCallback" in window) {
     window.requestIdleCallback(runDeferredMaintenance, { timeout: 2500 });
