@@ -41,6 +41,7 @@ import { historicMajorsForTeam } from "@/lib/majors";
 import { getTeamEarnings } from "@/lib/statsPortal";
 import { formatMoney } from "@/lib/prizeDistribution";
 import { compareMatchesNewestFirst } from "@/lib/matchTime";
+import { canonicalTeamName } from "@/lib/teamRenames";
 
 
 interface TeamProfileProps {
@@ -99,7 +100,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   // Tournaments / matches / trophies aggregated from saved data
   const { trophies, recentMatches, totals, upcomingMatches, mapEvents, sideEvents } = useMemo(() => {
     const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
-    const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string }[] = [];
+    const trophies: { id: string; name: string; placement: number; points: number; endDate: string; tier?: string; team: string }[] = [];
     const matches: {
       id: string; tournamentId: string; tournamentName: string; date: string;
       opponent: string; ownScore: number; oppScore: number; won: boolean; bo?: number; round?: string;
@@ -116,12 +117,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
 
     for (const t of tournaments) {
-      const placement = t.placements?.find(p => p.team === teamName);
+      const placement = t.placements?.find(p => canonicalTeamName(p.team) === canonicalTeamName(teamName));
       if (placement) {
         trophies.push({
           id: t.id, name: t.name,
           placement: placement.placement, points: placement.points,
-          endDate: t.endDate, tier: t.tier,
+          endDate: t.endDate, tier: t.tier, team: placement.team,
         });
       }
       const all: MatchResult[] = [];
@@ -239,7 +240,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   // Zarobki organizacji (bez reprezentacji narodowych).
   const cabinetEntries = useMemo<CabinetEntry[]>(() => [
     ...historicMajorsForTeam(teamName).map(h => ({ tournamentId: h.id, name: h.name, team: h.team, placement: 1, date: String(h.year), tier: "S", historic: true })),
-    ...trophies.map(t => ({ tournamentId: t.id, name: t.name, team: teamName, placement: t.placement, date: t.endDate, tier: t.tier })),
+    ...trophies.map(t => ({ tournamentId: t.id, name: t.name, team: t.team, placement: t.placement, date: t.endDate, tier: t.tier })),
   ], [teamName, trophies]);
   const earnings = useMemo(() => getTeamEarnings(teamName), [teamName]);
 
