@@ -1038,9 +1038,14 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
         <h3 className="font-heading text-xl font-bold text-foreground">{phaseLabel}</h3>
         <div className="flex gap-2">
           {!swiss.started && (
-            <button onClick={swiss.start} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+            <button
+              onClick={swiss.start}
+              disabled={startBlocked}
+              title={startBlockedTitle}
+              className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Play className="w-4 h-4" />
-              Rozpocznij
+              Rozpocznij{startBlocked ? ` (wolne miejsca: ${openSlotCount})` : ""}
             </button>
           )}
           {swiss.started && !swiss.finished && swiss.currentMatches.length > 0 && (
@@ -1153,9 +1158,14 @@ const TournamentPlay = ({ tournament, onComplete, onBack, onLiveUpdate }: Tourna
         </h3>
         <div className="flex gap-2">
           {!knockout.started && knockoutTeams.length > 0 && (
-            <button onClick={knockout.start} className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90">
+            <button
+              onClick={knockout.start}
+              disabled={startBlocked}
+              title={startBlockedTitle}
+              className="flex items-center gap-2 px-4 py-2 rounded-md font-heading font-semibold text-sm gradient-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Play className="w-4 h-4" />
-              Rozpocznij Playoffs
+              Rozpocznij Playoffs{startBlocked ? ` (wolne miejsca: ${openSlotCount})` : ""}
             </button>
           )}
           {knockout.started && !knockout.finished && knockout.currentMatches.length > 0 && (
