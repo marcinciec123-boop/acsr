@@ -29,6 +29,8 @@ import { ScheduleBulkPanel } from "./ScheduleBulkPanel";
 import TeamLogo from "@/components/TeamLogo";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
+import { loadAllTeams, loadArchivedTeams } from "@/lib/teamManagement";
+import { canonicalTeamName, nameKey } from "@/lib/teamRenames";
 import type { TeamData } from "@/lib/types";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 import { useProfileNav } from "@/lib/profileNav";
@@ -490,7 +492,8 @@ export const TournamentDetailPage = ({
 
         {/* Participants — with flags and current ranking position */}
         {t.participants.length > 0 && (() => {
-          const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+          const archivedKeys = new Set(loadArchivedTeams().map(nameKey));
+          const ranking = loadAllTeams().filter(tm => !archivedKeys.has(nameKey(tm.name)) && canonicalTeamName(tm.name) === tm.name);
           const sorted = [...ranking].filter(tm => !tm.isNational).sort((a, b) => (b.points || 0) - (a.points || 0));
           const rankMap = new Map(sorted.map((tm, i) => [tm.name, i + 1]));
           // Sposób dostania się na turniej: kwalifikacja (jeśli drużyna została z niej
