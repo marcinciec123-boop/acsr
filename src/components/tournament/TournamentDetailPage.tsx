@@ -1110,11 +1110,21 @@ export const TournamentDetailPage = ({
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border/50">
-          {t.status !== "live" && (
-            <Button size="sm" variant="outline" onClick={() => onSetStatus("live")}>
-              Rozpocznij
-            </Button>
-          )}
+          {t.status !== "live" && (() => {
+            const openCount = t.participants.filter(isOpenSlot).length;
+            const blocked = openCount > 0 && t.kind !== "qualifier";
+            return (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={blocked}
+                title={blocked ? `Najpierw zapełnij wszystkie miejsca (wolne: ${openCount})` : undefined}
+                onClick={() => onSetStatus("live")}
+              >
+                Rozpocznij{blocked ? ` (wolne miejsca: ${openCount})` : ""}
+              </Button>
+            );
+          })()}
           {t.status !== "completed" && (
             <Button size="sm" variant="outline" onClick={() => onSetStatus("completed")}>
               Zakończ
