@@ -1168,7 +1168,7 @@ const MatchPlayerTotals = ({
             <tr className="text-xs font-mono uppercase text-muted-foreground border-b border-border bg-secondary/20">
               <th scope="col" className="text-left px-4 py-3 min-w-[160px]">Gracz</th>
               <th className="text-center px-2 py-2">Mapy</th>
-              <th className="text-center px-2 py-2 text-foreground">K</th>
+              <th className="text-center px-2 py-2">K</th>
               <th className="text-center px-2 py-2">A</th>
               <th className="text-center px-2 py-2">D</th>
               <th className="text-center px-2 py-2">+/−</th>
@@ -1195,10 +1195,10 @@ const MatchPlayerTotals = ({
                       )}
                     </span>
                   </th>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.mapsPlayed}</td>
-                  <td className="text-center px-2 py-3 font-bold text-foreground">{r.kills}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.assists}</td>
-                  <td className="text-center px-2 py-3 text-muted-foreground">{r.deaths}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.mapsPlayed}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.kills}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.assists}</td>
+                  <td className="text-center px-2 py-3 text-foreground">{r.deaths}</td>
                   <td className={cn("text-center px-2 py-3 font-semibold", r.kills - r.deaths > 0 ? "text-win" : r.kills - r.deaths < 0 ? "text-loss" : "text-muted-foreground")}>
                     {r.kills - r.deaths > 0 ? "+" : ""}{r.kills - r.deaths}
                   </td>
