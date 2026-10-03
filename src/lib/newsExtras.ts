@@ -238,7 +238,37 @@ export function listRecentRounds(days = 3): RoundRef[] {
     }
     map.get(key)!.matches.push(r);
   });
-  return order.map(k => map.get(k)!);
+  const rounds = order.map(k => map.get(k)!);
+
+  // Całe fazy i całe turnieje (brackety) z aktywnością w ostatnich dniach — wszystkie rozegrane mecze
+  const extra: RoundRef[] = [];
+  const touched = new Map<string, Set<string>>();
+  recentPlayed(days).forEach(r => {
+    if (!touched.has(r.tournamentId)) touched.set(r.tournamentId, new Set());
+    touched.get(r.tournamentId)!.add(r.phaseId);
+  });
+  const tours = loadTournaments();
+  touched.forEach((phaseIds, tid) => {
+    const t = tours.find(x => x.id === tid);
+    if (!t) return;
+    const ref = (m: MatchResult): MatchRef => ({ tournamentId: t.id, tournamentName: t.name, tier: t.tier, date: m.playedAt || m.scheduledAt || t.endDate || t.startDate, match: m });
+    const all: MatchRef[] = [];
+    const seen = new Set<string>();
+    (t.phases || []).forEach(p => {
+      const ms: MatchRef[] = [];
+      [...(p.groups || []).flatMap(g => g.matches || []), ...(p.bracket || [])].forEach(m => {
+        if (!m || seen.has(m.id) || !isPlayed(m)) return;
+        seen.add(m.id);
+        ms.push(ref(m)); all.push(ref(m));
+      });
+      if (phaseIds.has(p.id) && ms.length) {
+        extra.push({ key: `phase|${t.id}|${p.id}`, tournamentId: t.id, tournamentName: t.name, tier: t.tier, phaseName: "", label: `Cała faza: ${p.name}`, matches: ms });
+      }
+    });
+    (t.matches || []).forEach(m => { if (m && !seen.has(m.id) && isPlayed(m)) { seen.add(m.id); all.push(ref(m)); } });
+    if (all.length) extra.push({ key: `tour|${t.id}`, tournamentId: t.id, tournamentName: t.name, tier: t.tier, phaseName: "", label: "Cały turniej (wszystkie fazy)", matches: all });
+  });
+  return [...rounds, ...extra];
 }
 
 export function findMatch(tournamentId: string, matchId: string): MatchRef | null {
