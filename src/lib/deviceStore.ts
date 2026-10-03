@@ -88,3 +88,5 @@ export const initializeDeviceStoreCache = async (): Promise<void> => {
 export const getCachedDeviceValue = (key: string): string | null => (
   deviceStoreCache && key in deviceStoreCache ? deviceStoreCache[key] : null
 );
+
+export const getAllCachedDeviceValues = (): Record<string, string> | null => deviceStoreCache;

@@ -1,5 +1,5 @@
 import { WORLD_CLOCK_EVENT } from "./worldClock";
-import { DEVICE_STORE_REF, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
+import { DEVICE_STORE_REF, getAllCachedDeviceValues, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
 const BACKUP_DB_VERSION = 1;
@@ -68,7 +68,7 @@ const collectLocalState = (): Record<string, string> => {
 };
 
 const collectDeviceState = async (): Promise<Record<string, string>> => {
-  const values = await getAllDeviceValues();
+  const values = getAllCachedDeviceValues() ?? await getAllDeviceValues();
   return Object.fromEntries(
     Object.entries(values)
       .filter(([key]) => isManagedKey(key))
@@ -76,7 +76,18 @@ const collectDeviceState = async (): Promise<Record<string, string>> => {
   );
 };
 
-const stateSignature = (keys: Record<string, string>) => JSON.stringify(keys);
+// Cheap, allocation-free hash of the whole state (FNV-1a). Replaces a full
+// JSON.stringify comparison of the save, which froze the UI on big saves.
+const stateSignature = (keys: Record<string, string>) => {
+  let h = 0x811c9dc5;
+  for (const [k, v] of Object.entries(keys)) {
+    const s = k + "\u0000" + v.length + "\u0000";
+    for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    for (let i = 0; i < v.length; i += 1) { h ^= v.charCodeAt(i); h = Math.imul(h, 16777619); }
+  }
+  return (h >>> 0).toString(36);
+};
+let lastSignature: string | null = null;
 
 export const listDeviceBackups = async (): Promise<DeviceBackupSnapshot[]> => {
   const db = await openBackupDb();
@@ -84,6 +95,17 @@ export const listDeviceBackups = async (): Promise<DeviceBackupSnapshot[]> => {
     const tx = db.transaction(BACKUP_STORE, "readonly");
     const req = tx.objectStore(BACKUP_STORE).getAll();
     req.onsuccess = () => resolve((req.result as DeviceBackupSnapshot[]).sort((a, b) => b.createdAt - a.createdAt));
+    req.onerror = () => reject(req.error);
+  });
+};
+
+/** Reads only the newest backup (ids start with a fixed-width timestamp). */
+const getLatestBackup = async (): Promise<DeviceBackupSnapshot | null> => {
+  const db = await openBackupDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BACKUP_STORE, "readonly");
+    const req = tx.objectStore(BACKUP_STORE).openCursor(null, "prev");
+    req.onsuccess = () => resolve((req.result?.value as DeviceBackupSnapshot | undefined) ?? null);
     req.onerror = () => reject(req.error);
   });
 };
@@ -99,13 +121,18 @@ const getBackup = async (id: string): Promise<DeviceBackupSnapshot | null> => {
 };
 
 const trimBackups = async () => {
-  const backups = await listDeviceBackups();
-  const stale = backups.slice(MAX_BACKUPS);
-  if (stale.length === 0) return;
   const db = await openBackupDb();
-  await Promise.all(stale.map(s => new Promise<void>((resolve, reject) => {
+  const ids = await new Promise<string[]>((resolve, reject) => {
+    const tx = db.transaction(BACKUP_STORE, "readonly");
+    const req = tx.objectStore(BACKUP_STORE).getAllKeys();
+    req.onsuccess = () => resolve((req.result as IDBValidKey[]).map(String));
+    req.onerror = () => reject(req.error);
+  });
+  const stale = ids.sort((a, b) => b.localeCompare(a)).slice(MAX_BACKUPS);
+  if (stale.length === 0) return;
+  await Promise.all(stale.map(id => new Promise<void>((resolve, reject) => {
     const tx = db.transaction(BACKUP_STORE, "readwrite");
-    const req = tx.objectStore(BACKUP_STORE).delete(s.id);
+    const req = tx.objectStore(BACKUP_STORE).delete(id);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   })));
@@ -120,8 +147,13 @@ export const createDeviceBackup = async (
   if (Object.keys(keys).length === 0) return null;
 
   const signature = stateSignature(keys);
-  const latest = (await listDeviceBackups())[0];
-  if (reason === "auto" && latest && stateSignature(latest.keys) === signature) return latest;
+  if (reason === "auto") {
+    if (lastSignature === null) {
+      const latest = await getLatestBackup();
+      lastSignature = latest ? stateSignature(latest.keys) : "";
+    }
+    if (lastSignature === signature) return null;
+  }
 
   const createdAt = Date.now();
   const snapshot: DeviceBackupSnapshot = {
@@ -131,7 +163,7 @@ export const createDeviceBackup = async (
     reason,
     schemaVersion: 1,
     keys,
-    size: new Blob(Object.values(keys)).size,
+    size: Object.values(keys).reduce((n, v) => n + v.length, 0),
   };
 
   const db = await openBackupDb();
@@ -141,6 +173,7 @@ export const createDeviceBackup = async (
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
+  lastSignature = signature;
   await trimBackups();
   window.dispatchEvent(new CustomEvent("csgo-hub-device-backup"));
   return snapshot;
@@ -152,9 +185,12 @@ export const scheduleDeviceBackup = (reason: DeviceBackupSnapshot["reason"] = "a
   // Skip auto-saves entirely when the user disabled them. Manual/import always pass through.
   if (reason === "auto" && !isAutoBackupEnabled()) return;
   window.clearTimeout(backupTimer);
+  // Batch bursts of edits into one backup, taken when the app is idle.
   backupTimer = window.setTimeout(() => {
-    void createDeviceBackup(reason).catch(error => console.error("Device backup failed:", error));
-  }, 1000);
+    const run = () => { void createDeviceBackup(reason).catch(error => console.error("Device backup failed:", error)); };
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+    if (idle) idle(run, { timeout: 10_000 }); else run();
+  }, 15_000);
 };
 
 export const deleteDeviceBackup = async (id: string): Promise<void> => {
