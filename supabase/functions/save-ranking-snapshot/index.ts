@@ -48,6 +48,18 @@ Deno.serve(async req => {
     });
   }
 
+  // Writes are admin-only: the app itself never writes snapshots (local saves
+  // are authoritative; the DB only holds imported historical records). The
+  // import key lives only in the edge function secrets — never in the client.
+  const importKey = Deno.env.get("SNAPSHOT_IMPORT_KEY");
+  const providedKey = req.headers.get("x-snapshot-import-key") || "";
+  if (!importKey || providedKey !== importKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
