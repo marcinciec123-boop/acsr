@@ -58,7 +58,14 @@ const STYLE_RULES = `STYL (ma brzmieć jak prawdziwi ludzie, nie jak AI):
 - Potoczny polski: skróty ("nwm", "imo", "kc", "xd", "wgl", "np", "btw"), brak polskich znaków u części userów, brak kropki na końcu, czasem literówka, czasem małe litery na starcie.
 - Zero korporacyjnego/redakcyjnego tonu, zero idealnej interpunkcji u wszystkich, zero jednakowej struktury zdań.
 - Emotki oszczędnie i tekstowe ("xd", ":D", ">.<"), max w co trzecim komentarzu; unikaj emoji-spamu.
-- Charaktery: hejter, fanboy, analityk ze statystykami, żartowniś, świeżak z pytaniem, marudzący weteran ("za moich czasów..."), typ off-topic, ktoś kto tylko rzuca "^^ to", betiarz narzekający na kupon.
+- ARCHETYPY (mieszaj je w każdej sekcji, każdy ma swój rozpoznawalny głos):
+  * analityk taktyczny — role, IGL, utility, ekonomia, pule map, konkretne liczby z bazy;
+  * fanatyk klubowy — broni swojej ekipy za wszelką cenę, "jeszcze pokażą";
+  * HLTV memiarz — krótkie docinki w stylu "-player +trofeum", "tier 3 era", "kto to jest", "gg wp ez";
+  * doomer/hejter — "disband incoming", "szkoda kasy na tę organizację";
+  * lokalny patriota — kibicuje graczom ze swojego kraju (PL, CZ, UA, DK itd.);
+  * obrońca młodych talentów — ślini się do rising stars z niższych tierów.
+- Pozostałe charaktery: hejter, fanboy, analityk ze statystykami, żartowniś, świeżak z pytaniem, marudzący weteran ("za moich czasów..."), typ off-topic, ktoś kto tylko rzuca "^^ to", betiarz narzekający na kupon.
 - Ludzie piszą też o pobocznych rzeczach: kursy, oglądalność, godzina meczu, transmisja, ich własne typy.
 - Zero powtarzania tej samej myśli, zero pustego "dobry artykuł", zero podsumowań artykułu.
 - Każdy komentarz ma być ADEKWATNY do konkretnej treści: nawiązuj do faktów z tekstu (nazwiska, wyniki, daty, decyzje), a nie do przypadkowych topowych drużyn.
@@ -148,7 +155,7 @@ Deno.serve(async (req) => {
           `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
           body.category ? `KATEGORIA: ${body.category}` : "",
           body.tags?.length ? `TAGI: ${body.tags.join(", ")}` : "",
-          `\nNapisz dokładnie ${count} WĄTKÓW (komentarzy głównych z replyToIndex = -1) pod tym artykułem. Do tego dodaj odpowiedzi wewnątrz wątków (replyToIndex >= 0) — odpowiedzi NIE liczą się do limitu ${count}, więc łącznie tablica ma mieć więcej pozycji (zwykle ${count + 3}-${count * 2}). Ustal też "postLikes" — liczbę polubień samego artykułu (0-4000, zależnie od tego jak nośny/kontrowersyjny jest temat). Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
+          `\nNapisz dokładnie ${count} WĄTKÓW (komentarzy głównych z replyToIndex = -1) pod tym artykułem. Do tego dodaj odpowiedzi wewnątrz wątków (replyToIndex >= 0) — odpowiedzi NIE liczą się do limitu ${count}, więc łącznie tablica ma mieć więcej pozycji (zwykle ${count + 3}-${count * 2}). Ustal "hype" (0-100: jaki procent społeczności reaguje entuzjazmem, a nie sceptycyzmem) oraz "postLikes" — liczbę polubień samego artykułu (0-4000, zależnie od tego jak nośny/kontrowersyjny jest temat). Uporządkuj je tak, jakby toczyła się luźna dyskusja — kilka pierwszych najbardziej "na temat". Zanim napiszesz o graczu i jego drużynie, zweryfikuj to w BAZIE DANYCH — błędne przypisanie gracza do drużyny jest niedopuszczalne.`,
         ].filter(Boolean).join("\n\n");
 
 
@@ -194,6 +201,7 @@ Deno.serve(async (req) => {
 
                   },
                   postLikes: { type: "integer", description: "Liczba polubień samego artykułu (0-4000)" },
+                  hype: { type: "integer", description: "Procent entuzjastycznych reakcji społeczności (0-100)" },
                 },
                 required: ["comments", "postLikes"],
                 additionalProperties: false,
@@ -231,7 +239,7 @@ Deno.serve(async (req) => {
       });
     }
     const args = JSON.parse(toolCall.function.arguments);
-    return new Response(JSON.stringify({ comments: args.comments || [], postLikes: args.postLikes ?? 0 }), {
+    return new Response(JSON.stringify({ comments: args.comments || [], postLikes: args.postLikes ?? 0, hype: typeof args.hype === "number" ? args.hype : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
