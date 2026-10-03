@@ -114,6 +114,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     return () => window.removeEventListener("teams:update", refresh);
   }, []);
 
+  // Migawka trendów zapisuje się automatycznie przy każdym raporcie tygodniowym.
+  useEffect(() => {
+    const sync = () => setPrevSnapshot(loadFromStorage<Record<string, number>>(SNAPSHOT_KEY, {}));
+    window.addEventListener(WEEKLY_REPORT_EVENT, sync);
+    return () => window.removeEventListener(WEEKLY_REPORT_EVENT, sync);
+  }, []);
+
   const sorted = useMemo(() => [...teams].filter(t => !t.isNational).sort((a, b) => b.points - a.points), [teams]);
 
   // Poprzednie pozycje (z migawki)
@@ -211,13 +218,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     setTeams(prev => prev.map(t => t.name === teamName ? { ...t, points: pts } : t));
     setAdjustments(prev => [adj, ...prev]);
     setEditingTeam(null);
-  };
-
-  const captureSnapshot = () => {
-    const snap: Record<string, number> = {};
-    sorted.forEach(t => { snap[t.name] = t.points; });
-    saveToStorage(SNAPSHOT_KEY, snap);
-    setPrevSnapshot(snap);
   };
 
   const trendFor = (teamName: string, currentRank: number) => {
