@@ -1,3 +1,5 @@
+import { loadArchivedTeams } from "@/lib/teamManagement";
+import { canonicalTeamName } from "@/lib/teamRenames";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
@@ -121,7 +123,19 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     return () => window.removeEventListener(WEEKLY_REPORT_EVENT, sync);
   }, []);
 
-  const sorted = useMemo(() => [...teams].filter(t => !t.isNational).sort((a, b) => b.points - a.points), [teams]);
+  const sorted = useMemo(() => {
+    // Ukryj drużyny rozwiązane oraz stare nazwy po zmianie nazwy (dane zostają w zapisie).
+    const key = (n: string) => n.trim().toLowerCase();
+    const archived = new Set(loadArchivedTeams().map(key));
+    const present = new Set(teams.map(t => key(t.name)));
+    return [...teams]
+      .filter(t => !t.isNational && !archived.has(key(t.name)))
+      .filter(t => {
+        const canon = canonicalTeamName(t.name);
+        return key(canon) === key(t.name) || !present.has(key(canon));
+      })
+      .sort((a, b) => b.points - a.points);
+  }, [teams]);
 
   // Poprzednie pozycje (z migawki)
   const prevRanks = useMemo(() => {
