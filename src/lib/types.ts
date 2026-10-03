@@ -76,7 +76,8 @@ export type PhaseFormat =
   | "round-robin"
   | "gsl-groups"
   | "gsl-de-groups"
-  | "showmatch";
+  | "showmatch"
+  | "league";
 
 export interface PhaseGroup {
   id: string;
@@ -98,6 +99,8 @@ export interface TournamentPhase {
   bracket?: MatchResult[];
   /** How many teams advance from this phase */
   advanceCount?: number;
+  /** Liga: ile drużyn spada (ostatnie miejsca tabeli) */
+  relegateCount?: number;
   /** Number of groups for groups format */
   groupCount?: number;
   /** Swiss rounds (computed from teams length if absent) */

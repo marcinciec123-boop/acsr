@@ -1020,10 +1020,11 @@ export const TournamentDetailPage = ({
                         ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
                         : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);
                       return (
-                        <div className="grid md:grid-cols-2 gap-4">
+                        <div className={phase.format === "league" ? "grid gap-4" : "grid md:grid-cols-2 gap-4"}>
                           {phase.groups.map(g => (
                             <GroupTable
                               format={phase.format}
+                              relegateCount={phase.relegateCount}
                               advancePerGroup={perGroup}
                               key={g.id}
                               group={g}
