@@ -9,7 +9,7 @@ import { findMatch, getMyVote, getPostHype, matchMvp, setMyVote } from "@/lib/ne
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { playerRoles } from "@/data/playerRoles";
 import { loadAllTeams } from "@/lib/teamManagement";
-import { openPlayerProfile, openTeamProfile } from "@/lib/profileNav";
+import { useProfileNav } from "@/lib/profileNav";
 
 export const CoverBanner = ({ cover }: { cover: NewsCover }) => (
   <div className="relative overflow-hidden rounded-md border border-border mb-3 h-36 sm:h-44 bg-gradient-to-br from-primary/25 via-card to-accent/20">
@@ -39,6 +39,9 @@ export const CoverBanner = ({ cover }: { cover: NewsCover }) => (
 
 const MatchCard = ({ tournamentId, matchId }: { tournamentId: string; matchId: string }) => {
   const ref = useMemo(() => findMatch(tournamentId, matchId), [tournamentId, matchId]);
+  const nav = useProfileNav();
+  const openTeamProfile = (n: string) => nav?.openTeam(n);
+  const openPlayerProfile = (n: string) => nav?.openPlayer(n);
   if (!ref) return null;
   const m = ref.match;
   const mvp = matchMvp(m);
@@ -92,6 +95,8 @@ const PlayerCard = ({ name }: { name: string }) => {
     return { rating, maps, adr, team };
   }, [name]);
   const role = playerRoles[name];
+  const nav = useProfileNav();
+  const openPlayerProfile = (n: string) => nav?.openPlayer(n);
   return (
     <button
       onClick={() => openPlayerProfile(name)}

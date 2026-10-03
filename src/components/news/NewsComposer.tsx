@@ -62,7 +62,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
   const [embedMatch, setEmbedMatch] = useState("");
 
   const teams = useMemo(() => activeClubTeams(), []);
-  const matches = useMemo(() => (tpl === "match" || d.embeds !== undefined ? listPlayedMatches(80) : []), [tpl, d.embeds]);
+  const matches = useMemo(() => listPlayedMatches(80), []);
   const players = useMemo(
     () => [...new Set(teams.flatMap(t => t.roster.filter(Boolean)))].sort((a, b) => a.localeCompare(b)),
     [teams],
@@ -118,6 +118,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+      <datalist id="composer-players">{players.map(p => <option key={p} value={p} />)}</datalist>
       {/* Szablony */}
       <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -152,7 +153,6 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
             {(tpl === "transfer" || tpl === "bench") && (
               <>
                 <input list="composer-players" value={tPlayer} onChange={e => setTPlayer(e.target.value)} placeholder="Gracz" className={fieldCls} />
-                <datalist id="composer-players">{players.map(p => <option key={p} value={p} />)}</datalist>
               </>
             )}
             {tpl === "transfer" && (
@@ -257,7 +257,6 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
             setEmbedMatch("");
           }}>+ Mecz</Button>
           <input list="composer-players" value={embedPlayer} onChange={e => setEmbedPlayer(e.target.value)} placeholder="Gracz…" className={fieldCls} />
-          <datalist id="composer-players">{players.map(p => <option key={p} value={p} />)}</datalist>
           <Button size="sm" variant="outline" className="h-9 text-xs" disabled={!embedPlayer.trim()} onClick={() => {
             addEmbed({ kind: "player", name: embedPlayer.trim() });
             setEmbedPlayer("");
