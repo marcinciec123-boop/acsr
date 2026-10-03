@@ -253,10 +253,6 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           meta={`${sorted.length} drużyn · aktualizowany na bieżąco`}
           actions={
             <>
-              <Button size="sm" variant="outline" onClick={captureSnapshot} className="gap-1.5">
-                <Activity className="w-3.5 h-3.5" />
-                Zapisz migawkę
-              </Button>
               <Button size="sm" variant="outline" onClick={handleHalveAll} className="gap-1.5" title="Dzieli punkty wszystkich drużyn klubowych na pół (zaokrąglenie w górę)">
                 <Sparkles className="w-3.5 h-3.5" />
                 Podziel punkty ÷2
