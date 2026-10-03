@@ -16,7 +16,7 @@ import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
 import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
-import { buildPhase, buildSwissRound1, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup } from "@/lib/tournamentBuilder";
+import { buildPhase, buildSwissRound1, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup, LEAGUE_SIZES } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { normalizeAllTournamentByes, normalizeTournamentByes, stampPlayedAt } from "@/lib/normalizeMatches";

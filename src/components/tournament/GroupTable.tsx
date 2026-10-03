@@ -15,6 +15,8 @@ interface Props {
   group: PhaseGroup;
   format?: PhaseFormat;
   advancePerGroup?: number;
+  /** Liga: liczba miejsc spadkowych */
+  relegateCount?: number;
   onMatchUpdate: (matchId: string, patch: Partial<MatchResult>) => void;
   onOpenMatch?: (matchId: string) => void;
   allTeams?: string[];
@@ -94,7 +96,7 @@ const renderMatchRow = (
   );
 };
 
-export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOpenMatch, allTeams = [], onAddMatch, onDeleteMatch }: Props) => {
+export const GroupTable = ({ group, format, advancePerGroup, relegateCount = 0, onMatchUpdate, onOpenMatch, allTeams = [], onAddMatch, onDeleteMatch }: Props) => {
   const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
   const isGSL4 = format === "gsl-groups";
@@ -116,7 +118,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
       {/* Group header */}
       <div className="bg-secondary/60 px-3 py-2 flex items-center justify-between border-b border-border">
         <h5 className="text-xs font-heading font-bold text-foreground uppercase tracking-wider">{group.name}</h5>
-        <span className="text-xs font-mono text-muted-foreground">{group.teams.length} drużyn</span>
+        <span className="text-xs font-mono text-muted-foreground">{group.teams.length} drużyn{format === "league" ? ` · ${new Set(group.matches.map(m => m.round)).size} kolejek` : ""}</span>
       </div>
 
       <div className="p-3 space-y-3">
@@ -137,7 +139,8 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
             <tbody>
               {standings.map((s, i) => {
                 const advances = i < advN;
-                const eliminated = isGSLDE && i >= advN; // GSL-DE: bottom 2 eliminated
+                const relegated = format === "league" && relegateCount > 0 && i >= standings.length - relegateCount;
+                const eliminated = (isGSLDE && i >= advN) || relegated;
                 return (
                   <tr
                     key={s.team}
@@ -188,7 +191,7 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
                       )}
                       {eliminated && (
                         <span className="text-xs font-mono font-bold text-destructive bg-destructive/15 border border-destructive/30 rounded px-1 py-0.5">
-                          ELI
+                          {relegated ? "SPA" : "ELI"}
                         </span>
                       )}
                     </td>
@@ -202,9 +205,9 @@ export const GroupTable = ({ group, format, advancePerGroup, onMatchUpdate, onOp
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 bg-[hsl(var(--win))] rounded-sm" /> awansuje
             </span>
-            {isGSLDE && (
+            {(isGSLDE || (format === "league" && relegateCount > 0)) && (
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-destructive rounded-sm" /> eliminacja
+                <span className="w-2 h-2 bg-destructive rounded-sm" /> {format === "league" ? "spadek" : "eliminacja"}
               </span>
             )}
           </div>
