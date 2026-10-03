@@ -318,13 +318,6 @@ const PlayerProfile = ({
               </div>
             )}
 
-            {(cabinetEntries.length > 0 || getPlayerAccolades(playerName).length > 0) && (
-              <div className="mb-6 space-y-3">
-                <AccoladeBadges accolades={getPlayerAccolades(playerName)} />
-                <TrophyCabinet entries={cabinetEntries} />
-              </div>
-            )}
-
             {/* === Form chart (last N matches rating) === */}
             {career.recentMatches.length >= 2 && (
               <motion.div
@@ -606,6 +599,13 @@ const PlayerProfile = ({
             <p className="text-xs font-mono text-muted-foreground/60 mt-1">
               Wpisz wyniki i statystyki w panelu meczu, aby zobaczyć profil HLTV-style.
             </p>
+          </div>
+        )}
+
+        {(cabinetEntries.length > 0 || getPlayerAccolades(playerName).length > 0) && (
+          <div className="mb-6 space-y-3">
+            <AccoladeBadges accolades={getPlayerAccolades(playerName)} />
+            <TrophyCabinet entries={cabinetEntries} />
           </div>
         )}
 
