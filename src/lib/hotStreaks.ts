@@ -4,6 +4,7 @@
 
 import type { TournamentData, MatchResult } from "./types";
 import { loadFromStorage } from "./storage";
+import { memoOnSave } from "./dataMemo";
 import { calculateRating } from "./playerStats";
 import { nationalTeamNames } from "./statsPortal";
 
@@ -70,7 +71,9 @@ function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] 
 }
 
 
-export function computeStreaks(): StreakData {
+export const computeStreaks = memoOnSave<undefined, StreakData>(computeStreaksRaw);
+
+function computeStreaksRaw(): StreakData {
   const all = loadFromStorage<TournamentData[]>("tournaments_data", []) || [];
   const national = nationalTeamNames();
   const matches = collectMatches(all, national);

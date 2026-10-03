@@ -1,3 +1,4 @@
+import { memoOnSave } from "./dataMemo";
 // ===== Księga Rekordów ACSR =====
 // Rekordy all-time liczone na bieżąco z meczów zapisanych w lokalnym zapisie
 // użytkownika (każdy zapis ma własne rekordy, łącznie z wcześniej rozegranymi).
@@ -98,7 +99,9 @@ function topUnique(entries: RecordEntry[], key: (e: RecordEntry) => string, asc 
   return top([...best.values()], asc);
 }
 
-export function computeRecordBook(): RecordDef[] {
+export const computeRecordBook = memoOnSave<undefined, RecordDef[]>(computeRecordBookRaw);
+
+function computeRecordBookRaw(): RecordDef[] {
   const tournaments = loadStatsTournaments();
   const national = nationalTeamNames();
   const matches = collect(tournaments, national);
