@@ -63,8 +63,8 @@ export const predictMatch = (
   // Points depend ONLY on who won and opponent rank (score is irrelevant).
   // Even match: +15 / −13. Expected favourite win: small. Upset: big but capped.
   const surprise = Math.pow(1 - expectedWinner, 1.5);
-  const winPoints = clamp(Math.round(42.4 * surprise * mult), 3, 50);
-  const lossPoints = clamp(Math.round(36.8 * surprise * mult), 3, 45);
+  const winPoints = clamp(Math.round(45.5 * surprise * mult), 5, 50);
+  const lossPoints = clamp(Math.round(33.2 * surprise * mult), 5, 45);
 
   return {
     winPoints,
