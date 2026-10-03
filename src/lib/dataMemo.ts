@@ -9,18 +9,18 @@ const deps = () => [
   loadFromStorage<unknown>("ranking_data", null),
 ];
 
-export function memoOnSave<A extends string | number | undefined, R>(fn: (arg: A) => R): (arg: A) => R {
+export function memoOnSave<A extends string | number | undefined, R>(fn: (arg: A) => R): (arg?: A) => R {
   let lastDeps: unknown[] = [];
   const cache = new Map<A, R>();
-  return (arg: A) => {
+  return (arg?: A) => {
     const d = deps();
     if (d.length !== lastDeps.length || d.some((v, i) => v !== lastDeps[i])) {
       cache.clear();
       lastDeps = d;
     }
-    if (cache.has(arg)) return cache.get(arg) as R;
-    const r = fn(arg);
-    cache.set(arg, r);
+    if (cache.has(arg as A)) return cache.get(arg as A) as R;
+    const r = fn(arg as A);
+    cache.set(arg as A, r);
     return r;
   };
 }
