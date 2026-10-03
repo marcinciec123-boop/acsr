@@ -10,6 +10,7 @@ import { formatMoney } from "@/lib/prizeDistribution";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
+import RecordBookPanel from "@/components/RecordBookPanel";
 
 const tierColor: Record<Tier, string> = {
   S: "text-primary border-primary/40 bg-primary/10",
@@ -40,6 +41,7 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: typeof 
 
 const StatisticsPanel = () => {
   const [year, setYear] = useState<string | "total">("total");
+  const [view, setView] = useState<"portal" | "records">("portal");
   const [orgLimit, setOrgLimit] = useState(15);
   const [playerLimit, setPlayerLimit] = useState(15);
   const nav = useProfileNav();
@@ -65,6 +67,16 @@ const StatisticsPanel = () => {
         }
       />
 
+      <div className="flex gap-1.5 mb-4">
+        {([["portal", "Portal statystyk"], ["records", "Księga Rekordów"]] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setView(v)}
+            className={cn("px-4 py-1.5 rounded-md text-sm font-heading font-semibold border transition-colors",
+              view === v ? "border-primary/50 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground")}>
+            {l}
+          </button>
+        ))}
+      </div>
+      {view === "records" ? <RecordBookPanel /> : <>
       {/* Year tabs */}
       <div className="flex flex-wrap gap-1.5 mb-6">
         {tabs.map(t => (
@@ -259,6 +271,7 @@ const StatisticsPanel = () => {
           </table>
         </div>
       </Section>
+      </>}
     </div>
   );
 };
