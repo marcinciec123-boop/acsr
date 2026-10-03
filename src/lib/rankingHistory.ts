@@ -190,6 +190,13 @@ export function mergeRankingSnapshots(snapshots: RankingSnapshot[]): RankingSnap
   return [...byDate.values()]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(snapshot => {
+      // Pełny ranking dnia (arkusz lub zapis dnia) jest autorytatywny: drużyny,
+      // których w nim nie ma, nie dziedziczą starych punktów ani miejsc.
+      const isFull = Object.keys(snapshot.points).length >= 50;
+      if (isFull) {
+        Object.keys(carriedPoints).forEach(k => { if (!(k in snapshot.points)) delete carriedPoints[k]; });
+        Object.keys(carriedRanks).forEach(k => { if (!(k in snapshot.points)) delete carriedRanks[k]; });
+      }
       Object.assign(carriedPoints, snapshot.points);
       Object.assign(carriedRosters, snapshot.rosters);
 
@@ -197,7 +204,9 @@ export function mergeRankingSnapshots(snapshots: RankingSnapshot[]): RankingSnap
       Object.assign(carriedRanks, explicitRanks);
       const calculatedRanks = buildRanks(carriedPoints);
       Object.keys(carriedPoints).forEach(team => {
-        if (carriedRanks[team] === undefined) carriedRanks[team] = calculatedRanks[team];
+        if (explicitRanks[team] === undefined && (isFull || carriedRanks[team] === undefined)) {
+          carriedRanks[team] = calculatedRanks[team];
+        }
       });
 
       return {
@@ -236,10 +245,13 @@ export function getRankingAt(dateIso: string): { team: string; currentTeam: stri
       .sort((a, b) => (b.points || 0) - (a.points || 0) || a.name.localeCompare(b.name))
       .map((t, i) => ({ team: t.name, currentTeam: t.name, points: t.points || 0, rank: i + 1 }));
   }
+  // Zapisane miejsca (z arkusza / zapisu dnia) mają pierwszeństwo — nie
+  // przeliczamy ich ponownie z punktów.
+  const ranks = snapshot.ranks || {};
   return Object.entries(snapshot.points)
-    .map(([team, points]) => ({ team: teamNameAt(team, day), currentTeam: team, points: Number(points) || 0 }))
-    .sort((a, b) => (b.points - a.points) || a.team.localeCompare(b.team))
-    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    .map(([team, points]) => ({ team: teamNameAt(team, day), currentTeam: team, points: Number(points) || 0, stored: ranks[team] }))
+    .sort((a, b) => ((a.stored ?? 9999) - (b.stored ?? 9999)) || (b.points - a.points) || a.team.localeCompare(b.team))
+    .map(({ stored, ...entry }, index) => ({ ...entry, rank: stored ?? index + 1 }));
 }
 
 
@@ -257,6 +269,10 @@ export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
     const idx = clubs.findIndex(t => t.name === teamName);
     return [{ date: getWorldDate(), points: cur, rank: idx >= 0 ? idx + 1 : undefined }];
   }
+  // Ostatnia znana wartość obowiązuje aż do dziś — linia nie urywa się ani nie wraca.
+  const today = getWorldDate().slice(0, 10);
+  const last = series[series.length - 1];
+  if (last.date < today) series.push({ ...last, date: today });
   return series;
 }
 
