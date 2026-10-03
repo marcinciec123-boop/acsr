@@ -78,7 +78,7 @@ export function loadStatsTournaments(): TournamentData[] {
 
 
 export function computePortalStats(year: string | "total"): PortalStats {
-  const all = loadStatsTournaments();
+  const all = loadStatsTournaments().filter(t => t.kind !== "qualifier");
   const years = Array.from(new Set(all.map(yearOf).filter(Boolean))).sort().reverse();
   const list = year === "total" ? all : all.filter(t => yearOf(t) === year);
 

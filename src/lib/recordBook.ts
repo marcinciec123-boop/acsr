@@ -370,7 +370,6 @@ export function computeRecordBook(): RecordDef[] {
   add("tr-pool", "tournament", "Największa pula nagród", top(real.filter(t => parsePrizePool(t.prizePool) > 0).map(t => ({ value: parsePrizePool(t.prizePool), display: `$${parsePrizePool(t.prizePool).toLocaleString("pl-PL")}`, context: t.name, team: winner(t), tournamentId: t.id, date: t.startDate }))));
   add("tr-teams", "tournament", "Najwięcej drużyn w turnieju", top(real.map(t => ({ value: t.participants?.length || t.teams || 0, display: `${t.participants?.length || t.teams || 0}`, context: t.name, tournamentId: t.id, date: t.startDate })).filter(e => e.value > 0)));
   add("tr-matches", "tournament", "Najwięcej meczów w turnieju", top(real.map(t => ({ value: tCount(t), display: `${tCount(t)}`, context: t.name, tournamentId: t.id, date: t.startDate })).filter(e => e.value > 0)));
-  add("tr-q", "tournament", "Największe kwalifikacje", top(tournaments.filter(t => t.kind === "qualifier").map(t => ({ value: t.participants?.length || 0, display: `${t.participants?.length || 0} drużyn`, context: t.name, tournamentId: t.id, date: t.startDate })).filter(e => e.value > 0)));
 
   void topUnique;
   return defs;

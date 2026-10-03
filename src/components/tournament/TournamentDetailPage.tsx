@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { TournamentData, MatchResult } from "@/lib/types";
 import { formatLabel, computeGroupStandings } from "@/lib/tournamentBuilder";
 import { isPlaceholder } from "@/lib/teamHelpers";
+import { fillOpenSlot, freeSlot, isOpenSlot } from "@/lib/openSlots";
 
 import { BracketView } from "./BracketView";
 import { GroupTable } from "./GroupTable";
@@ -457,12 +458,21 @@ export const TournamentDetailPage = ({
                 </div>
                 <p className="text-sm font-mono text-foreground">{t.location || "—"}</p>
               </div>
+              {t.kind === "qualifier" ? (
+                <div className="bg-card/40 border border-border/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                    <DollarSign className="w-3 h-3" /> Pula nagród
+                  </div>
+                  <p className="text-xs font-mono text-muted-foreground">Brak — etap turnieju głównego</p>
+                </div>
+              ) : (
               <div className="bg-[hsl(var(--gold))]/5 border border-[hsl(var(--gold))]/30 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-[hsl(var(--gold))]/80 mb-1">
                   <DollarSign className="w-3 h-3" /> Pula nagród
                 </div>
                 <p className="text-base font-heading font-bold text-[hsl(var(--gold))]">{t.prizePool}</p>
               </div>
+              )}
               <div className="bg-card/40 border border-border/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   <UsersIcon className="w-3 h-3" /> Drużyny
@@ -493,14 +503,45 @@ export const TournamentDetailPage = ({
               if (!entryMap.has(team)) entryMap.set(team, q.name);
             }
           }
+          const editable = t.status === "upcoming" && !!onUpdateTournament && t.kind !== "qualifier";
+          const openCount = t.participants.filter(isOpenSlot).length;
+          const confirmedCount = t.participants.length - openCount;
+          const candidates = sorted.map(tm => tm.name).filter(n => !t.participants.includes(n));
           return (
             <div className="bg-card border border-border rounded-lg p-4 mb-6">
-              <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3 flex items-center gap-2">
-                <UsersIcon className="w-3.5 h-3.5" />
-                Uczestnicy ({t.participants.length})
-              </h3>
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
+                  <UsersIcon className="w-3.5 h-3.5" />
+                  Uczestnicy ({confirmedCount}/{t.participants.length})
+                  {openCount > 0 && (
+                    <span className="normal-case font-mono text-muted-foreground tracking-normal">
+                      · {openCount} {openCount === 1 ? "wolne miejsce" : "wolnych miejsc"}
+                    </span>
+                  )}
+                </h3>
+                {editable && openCount > 0 && (
+                  <select
+                    value=""
+                    onChange={e => { if (e.target.value) onUpdateTournament!(fillOpenSlot(t, e.target.value)); }}
+                    className="text-xs font-mono bg-background border border-primary/40 rounded px-2 h-7 text-foreground"
+                    title="Drużyna dodana ręcznie = zaproszenie z rankingu ACSR"
+                  >
+                    <option value="">+ Dodaj drużynę (zaproszenie z rankingu)</option>
+                    {candidates.map(n => (
+                      <option key={n} value={n}>#{rankMap.get(n)} {n}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {t.participants.map((p, i) => {
+                  if (isOpenSlot(p)) {
+                    return (
+                      <span key={p} className="text-xs font-mono px-2 py-1 rounded border border-dashed border-border text-muted-foreground flex items-center gap-1.5">
+                        <span>#{i + 1}</span> Wolne miejsce
+                      </span>
+                    );
+                  }
                   const rank = rankMap.get(p);
                   const clickable = !isPlaceholder(p);
                   return (
@@ -539,6 +580,16 @@ export const TournamentDetailPage = ({
                           title="Aktualne miejsce w rankingu"
                         >
                           WR #{rank}
+                        </span>
+                      )}
+                      {editable && clickable && (
+                        <span
+                          role="button"
+                          title="Usuń z obsady (zwolnij miejsce)"
+                          onClick={e => { e.stopPropagation(); onUpdateTournament!(freeSlot(t, p)); }}
+                          className="text-muted-foreground hover:text-destructive px-0.5"
+                        >
+                          ×
                         </span>
                       )}
                     </button>

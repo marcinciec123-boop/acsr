@@ -30,6 +30,7 @@ import { toast } from "@/hooks/use-toast";
 import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
 import { WorldsBuilder } from "@/components/WorldsBuilder";
+import { fillOpenSlot, openSlotName } from "@/lib/openSlots";
 
 interface SelectedMatchRef {
   phaseId: string;
@@ -375,15 +376,13 @@ const TournamentPanel = () => {
   };
 
   const handleCreate = () => {
-    if (!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0) return;
+    if (!newName.trim() || phaseDrafts.length === 0) return;
+    if (isQualifier ? selectedTeams.length < 2 : slotCount < 2) return;
 
     // ===== Regional qualifier → build ONE TOURNAMENT PER REGION =====
     if (isQualifier && qualScope === "regional" && qualRegions.length > 0) {
       const created: TournamentData[] = [];
       // Kwalifikacje mają WŁASNĄ pulę nagród — dzieloną równo między regiony.
-      const qualTotal = parsePrizePool(newPrize);
-      const perRegion = qualRegions.length > 0 ? Math.round(qualTotal / qualRegions.length) : 0;
-      const qualPoolPerRegion = perRegion > 0 ? formatMoney(perRegion) : "$0";
       const skipped: string[] = [];
       qualRegions.forEach(region => {
         const regionTeams = selectedTeams.filter(name => {
@@ -401,7 +400,7 @@ const TournamentPanel = () => {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + "-" + region.toLowerCase(),
           name: `${newName.trim()} — ${regionLabel}`,
           organizer: newOrg.trim(),
-          prizePool: qualPoolPerRegion,
+          prizePool: "—",
           startDate: newStart,
           endDate: newEnd,
           location: newLocation.trim(),
@@ -420,8 +419,6 @@ const TournamentPanel = () => {
             linkedTournamentId: qualLinkedTo || undefined,
             promotedTeams: [],
           },
-          customPoints: customPointsEnabled ? customPoints : undefined,
-          customPrizes: customPrizesEnabled ? customPrizes : undefined,
         };
         created.push(t);
       });
@@ -440,7 +437,11 @@ const TournamentPanel = () => {
     }
 
     // ===== Standard single tournament =====
-    const phases = buildPhasesFor(selectedTeams);
+    // Turniej główny może mieć nieznaną jeszcze obsadę — wolne miejsca to sloty TBD-S.
+    const seeded = isQualifier
+      ? selectedTeams
+      : [...selectedTeams, ...Array.from({ length: Math.max(0, slotCount - selectedTeams.length) }, (_, i) => openSlotName(i + 1))];
+    const phases = buildPhasesFor(seeded);
 
     let qualifierConfig: QualifierConfig | undefined;
     if (isQualifier) {
@@ -460,7 +461,7 @@ const TournamentPanel = () => {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name: newName.trim(),
       organizer: newOrg.trim(),
-      prizePool: newPrize.trim() || "$0",
+      prizePool: isQualifier ? "—" : (newPrize.trim() || "$0"),
       startDate: newStart,
       endDate: newEnd,
       location: newLocation.trim(),
@@ -468,13 +469,13 @@ const TournamentPanel = () => {
       teams: Math.max(totalSlots || 0, selectedTeams.length),
       format: phaseDrafts.map(p => formatLabel(p.format)).join(" → "),
       status: "upcoming",
-      participants: selectedTeams,
+      participants: seeded,
       phases,
       placements: [],
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
-      customPoints: customPointsEnabled ? customPoints : undefined,
-      customPrizes: customPrizesEnabled ? customPrizes : undefined,
+      customPoints: !isQualifier && customPointsEnabled ? customPoints : undefined,
+      customPrizes: !isQualifier && customPrizesEnabled ? customPrizes : undefined,
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
@@ -982,9 +983,7 @@ const TournamentPanel = () => {
         };
       }
       if (t.id === targetId) {
-        const newParticipants = [...t.participants];
-        winners.forEach(w => { if (!newParticipants.includes(w)) newParticipants.push(w); });
-        return { ...t, participants: newParticipants, teams: newParticipants.length };
+        return winners.reduce((acc, w) => fillOpenSlot(acc, w), t);
       }
       return t;
     }));
@@ -1142,7 +1141,11 @@ const TournamentPanel = () => {
                 <Input placeholder="Nazwa turnieju..." value={newName} onChange={e => setNewName(e.target.value)} />
                 <div className="grid grid-cols-2 gap-3">
                   <Input placeholder="Organizator..." value={newOrg} onChange={e => setNewOrg(e.target.value)} />
-                  <Input placeholder="Pula nagród (np. $500,000)..." value={newPrize} onChange={e => setNewPrize(e.target.value)} />
+                  {isQualifier ? (
+                    <div className="text-xs font-mono text-muted-foreground flex items-center px-2 border border-dashed border-border rounded-md">Kwalifikacje nie mają puli — to etap turnieju głównego</div>
+                  ) : (
+                    <Input placeholder="Pula nagród (np. $500,000)..." value={newPrize} onChange={e => setNewPrize(e.target.value)} />
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} />
@@ -1303,8 +1306,9 @@ const TournamentPanel = () => {
                     className="w-24 h-7 text-center text-xs"
                   />
                   <span className="text-xs font-mono text-muted-foreground">
-                    Puste = liczba wybranych drużyn. Zostaw większą liczbę, jeśli część miejsc uzupełnią kwalifikacje
-                    (punkty i nagrody rozpiszesz na wszystkie {slotCount} miejsc).
+                    Puste = liczba wybranych drużyn. Ustaw więcej, jeśli obsada nie jest jeszcze znana — wolne
+                    miejsca ({Math.max(0, slotCount - selectedTeams.length)}) uzupełnisz później na stronie turnieju
+                    albo wypełnią je zwycięzcy kwalifikacji. Możesz też nie wybierać teraz żadnej drużyny.
                   </span>
                 </div>
                 {selectedTeams.length > 0 && (
@@ -1733,7 +1737,7 @@ const TournamentPanel = () => {
               <Button variant="ghost" onClick={() => { setShowCreate(false); resetForm(); }}>Anuluj</Button>
               <Button
                 onClick={handleCreate}
-                disabled={!newName.trim() || selectedTeams.length < 2 || phaseDrafts.length === 0}
+                disabled={!newName.trim() || phaseDrafts.length === 0 || (isQualifier ? selectedTeams.length < 2 : slotCount < 2)}
               >
                 Utwórz turniej
               </Button>
