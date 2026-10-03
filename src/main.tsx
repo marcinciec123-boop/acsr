@@ -50,6 +50,7 @@ const startApp = async () => {
     void migrateHeavyLocalStorageToDeviceStore().catch(error => console.error("Storage migration failed:", error));
     void synchronizeRankingHistory().catch(error => console.error("Ranking history synchronization failed:", error));
     scheduleDeviceBackup("auto");
+    void import("./lib/desktopUpdater").then(m => m.installDesktopUpdater());
   };
   if ("requestIdleCallback" in window) {
     window.requestIdleCallback(runDeferredMaintenance, { timeout: 2500 });
