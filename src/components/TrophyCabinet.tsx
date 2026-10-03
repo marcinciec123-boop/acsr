@@ -93,8 +93,8 @@ export function TrophyCabinet({ entries, title = "Gablota trofeów" }: { entries
               <DialogDescription>{selected.date?.slice(0, 10) || "—"} · {isMajorName(selected.name) ? "Major" : selected.tier ? `Tier ${selected.tier}` : "Turniej"} · 1. miejsce</DialogDescription>
             </DialogHeader>
             <div className="space-y-3 text-sm border-t border-border pt-4">
-              <p className="text-muted-foreground">Mistrz: <TeamLink name={selected.team} className="font-bold text-foreground" /></p>
-              {opponent && <p className="text-muted-foreground">Finał: <strong className="text-foreground font-mono">{score}</strong> vs <TeamLink name={opponent} className="font-bold text-foreground" /></p>}
+              <p className="text-muted-foreground">Mistrz: <TeamLink name={canonicalTeamName(selected.team)} className="font-bold text-foreground">{selected.team}</TeamLink></p>
+              {opponent && <p className="text-muted-foreground">Finał: <strong className="text-foreground font-mono">{score}</strong> vs <TeamLink name={canonicalTeamName(opponent)} className="font-bold text-foreground">{opponent}</TeamLink></p>}
               {lineup.length > 0 && <div><p className="text-xs uppercase font-mono text-muted-foreground mb-2">Skład finałowy</p><div className="flex flex-wrap gap-2">{lineup.map(p => <PlayerLink key={p} name={p} className="text-foreground text-xs" />)}</div></div>}
               {tournament?.awards?.mvp && <p className="text-muted-foreground">MVP: <PlayerLink name={tournament.awards.mvp} className="font-bold text-accent" /></p>}
               {!selected.historic && <p className="pt-2"><TournamentLink tournamentId={selected.tournamentId} className="text-primary font-semibold">Otwórz turniej →</TournamentLink></p>}
