@@ -7,6 +7,7 @@ import { loadAllTeams, loadArchivedTeams, loadExtraDisbands } from "./teamManage
 import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
 import { nameChanges } from "@/data/history";
+import { setPostHype } from "./newsExtras";
 
 const KEY = "news_comments";
 const LIKES_KEY = "news_post_likes";
@@ -21,6 +22,8 @@ export interface NewsComment {
   replyTo?: string;
   /** true = wpis redakcji (Twoja odpowiedź), a nie użytkownika */
   editor?: boolean;
+  /** Komentarz przypięty przez redakcję */
+  pinned?: boolean;
 }
 
 export type CommentStore = Record<string, NewsComment[]>;
@@ -178,6 +181,7 @@ export async function generateComments(
     if (typeof data?.postLikes === "number") {
       setPostLikes(post.id, Math.max(0, Math.min(9999, Math.round(data.postLikes))));
     }
+    if (typeof data?.hype === "number") setPostHype(post.id, data.hype);
     // Komentarze zawsze PO godzinie publikacji posta
     const postTs = post.date ? Date.parse(post.date) : NaN;
     const nowTs = Date.parse(getWorldNowIso());

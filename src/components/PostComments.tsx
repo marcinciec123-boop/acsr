@@ -18,6 +18,9 @@ import {
   type NewsComment,
 } from "@/lib/newsComments";
 import { toast } from "sonner";
+import { Pin } from "lucide-react";
+import TeamLogo from "@/components/TeamLogo";
+import { activeClubTeams, commenterFavTeam, commenterFlag } from "@/lib/newsExtras";
 
 interface Props {
   post: NewsPost;
@@ -46,6 +49,13 @@ const PostComments = ({ post, pending }: Props) => {
   const [replying, setReplying] = useState<string | null>(null);
   const [postLikeCount, setPostLikeCount] = useState(() => getPostLikes(post.id));
   const [postLiked, setPostLiked] = useState(false);
+  const [sortMode, setSortMode] = useState<"top" | "new">("top");
+  const [clubTeams] = useState(() => activeClubTeams());
+  const togglePin = (id: string) => {
+    const next = comments.map(c => c.id === id ? { ...c, pinned: !c.pinned } : c);
+    setLocal(next);
+    setComments(post.id, next);
+  };
   // Zwinięte wątki — zapamiętywane w localStorage; domyślnie wszystkie zwinięte.
   const storeKey = `news:collapsed:${post.id}`;
   const parentsOf = (list: NewsComment[]) =>
@@ -147,10 +157,24 @@ const PostComments = ({ post, pending }: Props) => {
           <ThumbsUp className="w-3.5 h-3.5" /> {postLikeCount}
         </button>
         {open && count > 0 && (
+          <div className="ml-auto flex rounded border border-border overflow-hidden">
+            {(["top", "new"] as const).map(m => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setSortMode(m)}
+                className={cn("px-2 h-6 text-xs font-mono", sortMode === m ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-primary")}
+              >
+                {m === "top" ? "Top" : "Najnowsze"}
+              </button>
+            ))}
+          </div>
+        )}
+        {open && count > 0 && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 ml-auto text-xs font-mono text-muted-foreground"
+            className="h-6 px-2 text-xs font-mono text-muted-foreground"
             onClick={() => persistCollapsed(collapsed.length ? [] : parentsOf(comments))}
           >
             {collapsed.length ? "Rozwiń wszystkie" : "Zwiń wszystkie"}
@@ -213,6 +237,9 @@ const PostComments = ({ post, pending }: Props) => {
                   if (collapsed.includes(c.id)) return;
                   (children.get(c.id) || []).forEach(walk);
                 };
+                roots.sort((a, b) =>
+                  (Number(!!b.pinned) - Number(!!a.pinned)) ||
+                  (sortMode === "top" ? b.likes - a.likes : b.date.localeCompare(a.date)));
                 roots.forEach(walk);
 
                 return ordered.map(c => {
@@ -257,7 +284,17 @@ const PostComments = ({ post, pending }: Props) => {
                         )}
                       >
                         <div className="flex items-center gap-2 flex-wrap">
+                          {!c.editor && <span className="text-sm leading-none" title="Kraj">{commenterFlag(c.author)}</span>}
                           <span className="text-xs font-mono font-bold text-foreground">{c.author}</span>
+                          {!c.editor && (() => {
+                            const fav = commenterFavTeam(c.author, clubTeams);
+                            return fav ? <span title={`Kibic: ${fav}`} className="inline-flex"><TeamLogo teamName={fav} size={14} rounded="md" /></span> : null;
+                          })()}
+                          {c.pinned && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono bg-primary/15 text-primary">
+                              <Pin className="w-3 h-3" /> PRZYPIĘTY
+                            </span>
+                          )}
                           {c.editor && (
                             <span className="px-1.5 py-0.5 rounded text-xs font-mono bg-primary/20 text-primary">
                               REDAKCJA
@@ -299,6 +336,15 @@ const PostComments = ({ post, pending }: Props) => {
                           >
                             <Reply className="w-3 h-3" /> Odpowiedz jako redakcja
                           </button>
+                          {!c.replyTo && (
+                            <button
+                              type="button"
+                              onClick={() => togglePin(c.id)}
+                              className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Pin className="w-3 h-3" /> {c.pinned ? "Odepnij" : "Przypnij"}
+                            </button>
+                          )}
                           {replying === c.id && (
                             <span className="inline-flex items-center gap-1 text-xs font-mono text-primary">
                               <Loader2 className="w-3 h-3 animate-spin" /> reakcje…

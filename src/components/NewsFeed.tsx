@@ -26,6 +26,8 @@ import { computeCareerStats } from "@/lib/playerCareerStats";
 import { toast } from "sonner";
 import PostComments from "@/components/PostComments";
 import { deleteComments, generateComments } from "@/lib/newsComments";
+import { CoverBanner, EmbedCards, PollBox, SentimentBar } from "@/components/news/NewsExtras";
+import { seedPollVotes } from "@/lib/newsExtras";
 
 const STORAGE_KEY = "news_posts";
 
@@ -170,6 +172,7 @@ const emptyDraft = (): ComposerDraft => {
     date: getWorldNowIso().slice(0, 10),
     time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
     author: "", source: "", tags: "", pinned: false, image: null,
+    poll: null, embeds: [], cover: null,
   };
 };
 
@@ -270,6 +273,9 @@ const NewsFeed = () => {
       tags: (post.tags || []).join(", "),
       pinned: !!post.pinned,
       image: post.imageId ? imageCache[post.imageId] || null : null,
+      poll: post.poll ? { question: post.poll.question, options: post.poll.options.join("\n") } : null,
+      embeds: post.embeds || [],
+      cover: post.cover || null,
     });
     setComposerKey(k => k + 1);
     setShowNew(true);
@@ -300,6 +306,16 @@ const NewsFeed = () => {
       imageId,
       date: isoDate,
     };
+    if (d.poll) {
+      const options = d.poll.options.split("\n").map(o => o.trim()).filter(Boolean).slice(0, 6);
+      if (d.poll.question.trim() && options.length >= 2) {
+        const prev = editingId ? posts.find(p => p.id === editingId)?.poll : undefined;
+        const same = prev && prev.options.join("|") === options.join("|");
+        post.poll = { question: d.poll.question.trim(), options, votes: same ? prev!.votes : seedPollVotes(id, options) };
+      }
+    }
+    if (d.embeds.length) post.embeds = d.embeds;
+    if (d.cover?.teamA) post.cover = d.cover;
     setPosts(prev => editingId ? prev.map(p => p.id === editingId ? post : p) : [post, ...prev]);
     toast.success(editingId ? "Zaktualizowano post" : "Opublikowano post");
     const wasNew = !editingId;
@@ -768,9 +784,13 @@ const NewsFeed = () => {
                 {post.title && (
                   <h3 className="font-heading font-bold text-foreground text-lg mb-1.5 leading-snug">{post.title}</h3>
                 )}
+                {post.cover && !(post.imageId && imageCache[post.imageId]) && <CoverBanner cover={post.cover} />}
                 {post.content && (
                   <p className="text-foreground text-sm whitespace-pre-wrap mb-3 leading-relaxed">{post.content}</p>
                 )}
+                {post.embeds && post.embeds.length > 0 && <EmbedCards embeds={post.embeds} />}
+                {post.poll && <PollBox postId={post.id} poll={post.poll} />}
+                <SentimentBar postId={post.id} category={post.category} version={commentPending === post.id ? 1 : 0} />
                 {post.tags && post.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {post.tags.map(tag => (
