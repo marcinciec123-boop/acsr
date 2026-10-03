@@ -269,6 +269,10 @@ export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
     const idx = clubs.findIndex(t => t.name === teamName);
     return [{ date: getWorldDate(), points: cur, rank: idx >= 0 ? idx + 1 : undefined }];
   }
+  // Ostatnia znana wartość obowiązuje aż do dziś — linia nie urywa się ani nie wraca.
+  const today = getWorldDate().slice(0, 10);
+  const last = series[series.length - 1];
+  if (last.date < today) series.push({ ...last, date: today });
   return series;
 }
 
