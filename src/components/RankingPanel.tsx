@@ -1,5 +1,4 @@
 import { loadArchivedTeams } from "@/lib/teamManagement";
-import { canonicalTeamName } from "@/lib/teamRenames";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
