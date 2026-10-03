@@ -62,7 +62,7 @@ const HallOfFamePanel = () => {
                 <PlayerLink name={p.name} className="text-xl font-heading font-bold text-foreground" />
               </div>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                {p.stints.length ? `${yr(p.stints[p.stints.length - 1]?.from ?? null)} – ${yr(p.stints[0]?.to ?? null)}` : "Legenda ACSR"}
+                {p.stints.length ? `${yr(p.stints.map(s => s.from).filter(Boolean).sort()[0] ?? null)} – ${yr(p.stints.map(s => s.to).filter(Boolean).sort().pop() ?? null)}` : "Legenda ACSR"}
                 {p.bestTop && ` · najlepiej #${p.bestTop.rank} gracz roku`}
               </p>
               <div className="grid grid-cols-4 gap-2 mt-3 text-center">
