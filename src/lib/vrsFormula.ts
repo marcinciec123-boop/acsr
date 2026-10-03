@@ -18,17 +18,6 @@ const TIER_MULT: Record<string, number> = {
 
 // Linear rank-diff curve (matches user spec):
 // adjacent (~1) → ~10, 10 apart → ~15, 20 apart → ~20, 30 apart → ~25 ...
-const WIN_BASE = 10;
-const WIN_PER_RANK = 0.42;  // upset slope (worse beats better) — łagodniejszy spread
-const WIN_FAV_SLOPE = 0.2;  // favorite-win decay — mniej stromy: bicie słabszych daje więcej
-const LOSS_BASE = 6;
-const LOSS_UPSET_SLOPE = 0.24;  // łagodniejsza kara dla faworyta który przegrał
-const LOSS_EXPECTED_SLOPE = 0.28; // wolniejszy zanik kary dla underdoga
-
-const WIN_MIN = 5;
-const WIN_MAX = 70;
-const LOSS_MIN = 5;
-const LOSS_MAX = 40;
 
 export interface VrsPrediction {
   winPoints: number;
@@ -69,30 +58,19 @@ export const predictMatch = (
   // Signed rank difference: positive = upset (winner is worse-ranked).
   const diff = rW - rL;
 
-  let rawWin: number;
-  let rawLoss: number;
-  if (diff >= 0) {
-    // Upset: worse beats better. Both winner reward & loser penalty grow with diff.
-    rawWin = WIN_BASE + WIN_PER_RANK * diff;
-    rawLoss = LOSS_BASE + LOSS_UPSET_SLOPE * diff;
-  } else {
-    // Favorite win: rewards decay with how expected it was.
-    const gap = -diff;
-    rawWin = WIN_BASE - WIN_FAV_SLOPE * gap;
-    rawLoss = LOSS_BASE - LOSS_EXPECTED_SLOPE * gap;
-  }
-
-  const winPoints = clamp(Math.round(rawWin * mult), WIN_MIN, WIN_MAX);
-  const lossPoints = clamp(Math.round(rawLoss * mult), LOSS_MIN, LOSS_MAX);
-
-  // Rough win-probability proxy for "upset" flag (logistic over rank diff).
-  const expectedWinner = 1 / (1 + Math.pow(10, diff / 30));
+  // Realistic CS win probability: 20 ranks apart ≈ 65/35, 50 apart ≈ 82/18.
+  const expectedWinner = 1 / (1 + Math.pow(10, diff / 75));
+  // Points depend ONLY on who won and opponent rank (score is irrelevant).
+  // Even match: +15 / −13. Expected favourite win: small. Upset: big but capped.
+  const surprise = Math.pow(1 - expectedWinner, 1.5);
+  const winPoints = clamp(Math.round(42.4 * surprise * mult), 3, 50);
+  const lossPoints = clamp(Math.round(36.8 * surprise * mult), 3, 45);
 
   return {
     winPoints,
     lossPoints,
     expectedWinner,
-    upset: diff > 8,
+    upset: expectedWinner < 0.4,
   };
 };
 
