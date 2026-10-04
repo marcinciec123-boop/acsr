@@ -2,11 +2,23 @@
 // Pamiątkowe tablice zawodników na sportowej emeryturze — wszystko liczone
 // z zapisu: trofea, wyróżnienia z Ceremonii Nagród ACSR, mecze, kluby, zarobki.
 import { useEffect, useMemo, useState } from "react";
-import { Landmark, Trophy, Crown, Star } from "lucide-react";
+import { Landmark, Trophy, Crown, Star, UserMinus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import AccoladeBadges from "@/components/AccoladeBadges";
 import { PlayerLink, TeamLink } from "@/lib/profileNav";
-import { loadRetiredPlayers } from "@/lib/retiredPlayers";
+import { loadRetiredPlayers, unretirePlayer } from "@/lib/retiredPlayers";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
 import { getPlayerAccolades } from "@/lib/awardAccolades";
