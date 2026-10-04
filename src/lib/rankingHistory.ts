@@ -218,19 +218,46 @@ export function mergeRankingSnapshots(snapshots: RankingSnapshot[]): RankingSnap
     });
 }
 
+/**
+ * Czy lokalny wpis może pochodzić z rozgrywki w tym zapisie?
+ * Zapis gry zaczyna się w dniu startu świata (WORLD_CLOCK_DEFAULT). Wszystko
+ * wcześniej — a także wszystko do dnia ostatniego arkusza z rankingiem — to
+ * epoka arkuszy. Lokalne wpisy z tego okresu powstały w starych wersjach
+ * aplikacji (miesięczne "migawki" liczone z bieżącego rankingu, wsteczne daty
+ * turniejów) i nie są prawdziwym rankingiem z tamtych dni. Nie są kasowane,
+ * tylko pomijane przy budowie historii.
+ */
+export function isPlayableLocalDate(date: string, latestHistoricalDate: string, today: string): boolean {
+  return date <= today && date >= WORLD_CLOCK_DEFAULT && date > latestHistoricalDate;
+}
+
+let mergedCache: { key: string; value: RankingSnapshot[] } | null = null;
+let mergedVersion = 0;
+if (typeof window !== "undefined") {
+  const bump = () => { mergedVersion += 1; mergedCache = null; };
+  ["ranking-history:update", "ranking:update", "teams:update", WORLD_CLOCK_EVENT].forEach(evt =>
+    window.addEventListener(evt, bump));
+}
+
 /** Pełna historia z arkuszy użytkownika i lokalnego zapisu gry. */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const today = getWorldDate().slice(0, 10);
+  const cacheKey = `${today}|${mergedVersion}`;
+  if (mergedCache?.key === cacheKey) return mergedCache.value;
+
   const historical: RankingSnapshot[] = loadRemoteSnapshotCache()
     .filter(s => s.source === "historical")
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
     .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
+  const latestHistorical = historical.at(-1)?.date ?? "";
   const local = loadRankingHistory()
-    .filter(s => !s.synthetic && s.date <= today)
+    .filter(s => !s.synthetic && isPlayableLocalDate(s.date, latestHistorical, today))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  return mergeRankingSnapshots([...historical, ...local]);
+  const value = mergeRankingSnapshots([...historical, ...local]);
+  mergedCache = { key: cacheKey, value };
+  return value;
 }
 
 
