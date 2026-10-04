@@ -30,11 +30,13 @@ const yr = (d: string | null) => (d ? d.slice(0, 4) : "?");
 
 const HallOfFamePanel = () => {
   const [retired, setRetired] = useState<string[]>(() => loadRetiredPlayers());
+  const [toRemove, setToRemove] = useState<string | null>(null);
   useEffect(() => {
     const sync = () => setRetired(loadRetiredPlayers());
     window.addEventListener("teams:update", sync);
     return () => window.removeEventListener("teams:update", sync);
   }, []);
+
 
   const plaques = useMemo(() => retired.map(name => {
     const career = computeCareerStats(name);
