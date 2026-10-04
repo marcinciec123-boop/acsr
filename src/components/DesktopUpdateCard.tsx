@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { checkForDesktopUpdate, isDesktop } from "@/lib/desktopUpdater";
+import { checkForDesktopUpdate, isDesktop, lastUpdateError } from "@/lib/desktopUpdater";
 
 const MESSAGES = {
   "up-to-date": "Masz najnowszą wersję.",
@@ -18,7 +18,15 @@ const DesktopUpdateCard = () => {
     setBusy(true);
     setStatus("");
     const result = await checkForDesktopUpdate();
-    setStatus(MESSAGES[result]);
+    if (result === "error") {
+      const e = lastUpdateError.toLowerCase();
+      const hint = e.includes("404") || e.includes("not found") || e.includes("status")
+        ? "Nie znaleziono pliku aktualizacji na GitHubie (repozytorium prywatne lub brak wydania)."
+        : e.includes("signature")
+        ? "Błędny podpis aktualizacji (klucz nie pasuje)."
+        : "Nie udało się sprawdzić aktualizacji.";
+      setStatus(`${hint} Szczegóły: ${lastUpdateError || "brak"}`);
+    } else setStatus(MESSAGES[result]);
     setBusy(false);
   };
 
