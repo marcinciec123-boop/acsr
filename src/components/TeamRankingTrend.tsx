@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { getTeamRankingSeries, getTeamRosterAt } from "@/lib/rankingHistory";
+import { buildTrendSeries, getTeamRankingSeries, getTeamRosterAt } from "@/lib/rankingHistory";
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,8 @@ const cutoffFor = (range: Range): string => {
 
 type Metric = "points" | "rank";
 
-const CustomTooltip = ({ active, payload, label, teamName }: { active?: boolean; payload?: { value: number; dataKey?: string; color?: string }[]; label?: string; teamName: string }) => {
+const CustomTooltip = ({ active, payload, teamName }: { active?: boolean; payload?: { value: number; dataKey?: string; color?: string; payload?: { date?: string } }[]; teamName: string }) => {
+  const label = payload?.[0]?.payload?.date;
   if (!active || !payload?.length || !label) return null;
   const roster = getTeamRosterAt(teamName, label);
   const points = payload.find(p => p.dataKey === "points")?.value;
@@ -75,10 +76,11 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
     };
   }, []);
 
-  const data = useMemo(() => {
-    const cutoff = cutoffFor(range);
-    return getTeamRankingSeries(teamName).filter(p => p.date >= cutoff);
-  }, [teamName, range, historyVersion]);
+  const data = useMemo(
+    () => buildTrendSeries(getTeamRankingSeries(teamName), cutoffFor(range)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [teamName, range, historyVersion],
+  );
 
   const toggleMetric = (metric: Metric) => {
     setMetrics(current => current.includes(metric)
@@ -138,7 +140,15 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+            <XAxis
+              dataKey="t"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={(t: number) => new Date(t).toISOString().slice(0, 10)}
+              minTickGap={24}
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+            />
             <YAxis
               yAxisId="points"
               hide={!metrics.includes("points")}
