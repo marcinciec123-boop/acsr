@@ -6,6 +6,7 @@ export const isDesktop = () =>
 export type UpdateCheckResult = "not-desktop" | "up-to-date" | "ready" | "error";
 
 let pendingVersion: string | null = null;
+export let lastUpdateError = "";
 
 /** Desktop only: downloads a new release in the background, then offers a restart. */
 export const checkForDesktopUpdate = async (): Promise<UpdateCheckResult> => {
@@ -32,6 +33,7 @@ export const checkForDesktopUpdate = async (): Promise<UpdateCheckResult> => {
     return "ready";
   } catch (error) {
     console.error("Desktop update check failed:", error);
+    lastUpdateError = error instanceof Error ? error.message : String(error);
     return "error";
   }
 };
