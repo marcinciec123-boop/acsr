@@ -18,9 +18,10 @@ export default {
         "2xs": ["0.6875rem", { lineHeight: "1rem" }],
       },
       fontFamily: {
-        heading: ["var(--font-heading)", "sans-serif"],
-        body: ["var(--font-body)", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        heading: ['"Twemoji Country Flags"', "var(--font-heading)", "sans-serif"],
+        body: ['"Twemoji Country Flags"', "var(--font-body)", "sans-serif"],
+        mono: ['"Twemoji Country Flags"', "var(--font-mono)", "monospace"],
+        sans: ['"Twemoji Country Flags"', "var(--font-body)", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
