@@ -17,7 +17,28 @@ interface StoredTransfer {
   date?: string;
 }
 import { teamDatabase, type TeamData } from "@/data/tournaments";
-import { canonicalTeamName, teamNameAt } from "@/lib/teamRenames";
+import { canonicalTeamName, teamNameAt, nameKey } from "@/lib/teamRenames";
+import { WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
+
+let identityIndex: Map<string, string> | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("teams:update", () => { identityIndex = null; });
+}
+
+/**
+ * Aktualna tożsamość drużyny: podąża łańcuchem zmian nazw, a następnie
+ * dopasowuje pisownię do drużyny z bieżącego rankingu (wielkość liter
+ * i spacje w arkuszach nie mogą tworzyć osobnej drużyny).
+ */
+export function resolveTeamIdentity(name: string): string {
+  const canonical = canonicalTeamName(name);
+  if (!identityIndex) {
+    identityIndex = new Map();
+    const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+    ranking.forEach(team => identityIndex!.set(nameKey(team.name), team.name));
+  }
+  return identityIndex.get(nameKey(canonical)) ?? canonical;
+}
 
 /**
  * Scala aliasy do jednej tożsamości. Przy starym, uszkodzonym snapshotcie nie
@@ -28,9 +49,9 @@ export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, d
   const out: Record<string, T> = {};
   const priority: Record<string, number> = {};
   Object.entries(map).forEach(([team, value]) => {
-    const key = canonicalTeamName(team);
+    const key = resolveTeamIdentity(team);
     const historicalName = teamNameAt(key, date);
-    const score = team === historicalName ? 3 : team === key ? 2 : 1;
+    const score = nameKey(team) === nameKey(historicalName) ? 3 : nameKey(team) === nameKey(key) ? 2 : 1;
     if (out[key] === undefined || score > (priority[key] ?? -1)) {
       out[key] = value;
       priority[key] = score;
