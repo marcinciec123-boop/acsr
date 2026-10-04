@@ -11,6 +11,7 @@ import TeamsManagementPanel from "./TeamsManagementPanel";
 import MapPoolPanel from "./MapPoolPanel";
 import ThemeSwitcher from "./ThemeSwitcher";
 import FontSwitcher from "./FontSwitcher";
+import DesktopUpdateCard from "./DesktopUpdateCard";
 
 interface SaveSlot {
   label: string;
@@ -119,6 +120,8 @@ const SettingsTab = ({
 
         {/* Font picker */}
         <FontSwitcher />
+
+        <DesktopUpdateCard />
 
         {/* Fictional world clock */}
         <WorldClockCard />
