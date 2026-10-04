@@ -19,13 +19,12 @@ export interface DeviceBackupSnapshot {
 
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
-// Keys outside the `csgo_hub_`/`tournament_progress_` namespaces that still
-// belong to the saved world (e.g. the fictional calendar date).
-const EXTRA_MANAGED_KEYS = new Set(["world_clock_date"]);
-
+// A save is 1:1: every app key belongs to it (transfers, rename/disband history,
+// awards, scheduled matches, ranking history, reports, date, preferences...).
+// Only auth/session and platform keys are excluded.
+const EXCLUDED_PREFIXES = ["sb-", "supabase", "lovable", "__", "debug", "vite"];
 const isManagedKey = (key: string) =>
-  (key.startsWith("csgo_hub_") || key.startsWith("tournament_progress_") || EXTRA_MANAGED_KEYS.has(key))
-    && key !== AUTO_BACKUP_FLAG_KEY;
+  key !== AUTO_BACKUP_FLAG_KEY && !EXCLUDED_PREFIXES.some(p => key.toLowerCase().startsWith(p));
 
 // ===== Autozapis on/off =====
 const AUTO_BACKUP_FLAG_KEY = "csgo_hub_auto_backup_disabled";
