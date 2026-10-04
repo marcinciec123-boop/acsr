@@ -6,13 +6,15 @@ import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { cn } from "@/lib/utils";
 
-type Range = "1Y" | "5Y" | "ALL";
+type Range = "1M" | "3M" | "6M" | "1Y" | "5Y" | "ALL";
 
 const cutoffFor = (range: Range): string => {
   if (range === "ALL") return "0000-01-01";
   const [y, m, d] = getWorldDate().split("-").map(Number);
   const dt = new Date(y, (m || 1) - 1, d || 1);
-  dt.setFullYear(dt.getFullYear() - (range === "1Y" ? 1 : 5));
+  if (range === "1Y") dt.setFullYear(dt.getFullYear() - 1);
+  else if (range === "5Y") dt.setFullYear(dt.getFullYear() - 5);
+  else dt.setMonth(dt.getMonth() - (range === "1M" ? 1 : range === "3M" ? 3 : 6));
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 };
@@ -96,7 +98,7 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
           <h4 className="text-sm font-heading font-black uppercase tracking-wider">Rozwój w rankingu</h4>
         </div>
         <div className="flex items-center gap-1 self-end sm:self-auto">
-          {(["1Y", "5Y", "ALL"] as Range[]).map(r => (
+          {(["1M", "3M", "6M", "1Y", "5Y", "ALL"] as Range[]).map(r => (
             <button
               key={r}
               onClick={() => setRange(r)}
