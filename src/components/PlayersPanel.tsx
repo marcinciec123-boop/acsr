@@ -603,7 +603,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             <p className="text-sm font-mono text-muted-foreground">Brak graczy spełniających filtry.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {filtered.map((p) => {
               const isEditingThis = editingFA === p.name;
               return (
@@ -648,57 +648,59 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                     </div>
                   )}
 
-                  {/* Header: avatar + flag, nick on its own full-width line */}
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <PlayerAvatar playerName={p.name} teamName={p.team?.name} size={48} rounded="lg" />
-                    {p.country
-                      ? <span className="text-lg shrink-0">{countryFlag(p.country)}</span>
-                      : <span className="text-lg shrink-0 text-muted-foreground/40">🏳️</span>}
-                  </div>
-                  <p className="font-heading font-bold text-foreground text-base leading-tight truncate group-hover:text-primary transition-colors">
-                    {p.name}
-                  </p>
-
-                  {/* Badges row: FA status + role */}
-                  <div className="flex items-center gap-1.5 mt-1 mb-1.5 min-h-[22px]" onClick={(e) => e.stopPropagation()}>
-                    {p.isFA && (
-                      <span className="text-[11px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
-                        FA
-                      </span>
-                    )}
-                    {roleEditFor === p.name ? (
-                      <select
-                        autoFocus
-                        value={p.role || ""}
-                        onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
-                        onBlur={() => setRoleEditFor(null)}
-                        className="text-xs font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
-                      >
-                        <option value="">—</option>
-                        {ROLE_OPTIONS.map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                    ) : p.role ? (
-                      <button
-                        onClick={() => setRoleEditFor(p.name)}
-                        title="Kliknij aby zmienić rolę"
-                        className={cn(
-                          "text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
-                          roleColors[p.role] || "border-border text-muted-foreground",
+                  {/* Header: avatar, nick with inline flag, badges stacked under nick */}
+                  <div className="flex items-start gap-2.5 mb-1.5">
+                    <PlayerAvatar playerName={p.name} teamName={p.team?.name} size={44} rounded="lg" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-heading font-bold text-foreground text-sm leading-tight truncate group-hover:text-primary transition-colors">
+                          {p.name}
+                        </p>
+                        {p.country
+                          ? <span className="text-[13px] leading-none shrink-0">{countryFlag(p.country)}</span>
+                          : <span className="text-[13px] leading-none shrink-0 text-muted-foreground/40">🏳️</span>}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                        {p.isFA && (
+                          <span className="text-[10px] font-mono font-bold uppercase px-1 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                            FA
+                          </span>
                         )}
-                      >
-                        {roleIcons[p.role]} {p.role}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setRoleEditFor(p.name)}
-                        title="Dodaj rolę"
-                        className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
-                      >
-                        + rola
-                      </button>
-                    )}
+                        {roleEditFor === p.name ? (
+                          <select
+                            autoFocus
+                            value={p.role || ""}
+                            onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
+                            onBlur={() => setRoleEditFor(null)}
+                            className="text-[10px] font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
+                          >
+                            <option value="">—</option>
+                            {ROLE_OPTIONS.map(r => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        ) : p.role ? (
+                          <button
+                            onClick={() => setRoleEditFor(p.name)}
+                            title="Kliknij aby zmienić rolę"
+                            className={cn(
+                              "text-[10px] font-mono font-bold px-1 py-0.5 rounded border hover:opacity-80",
+                              roleColors[p.role] || "border-border text-muted-foreground",
+                            )}
+                          >
+                            {roleIcons[p.role]} {p.role}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setRoleEditFor(p.name)}
+                            title="Dodaj rolę"
+                            className="text-[10px] font-mono px-1 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                          >
+                            + rola
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {p.realName && (
