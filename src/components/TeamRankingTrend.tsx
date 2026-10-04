@@ -62,7 +62,7 @@ const CustomTooltip = ({ active, payload, teamName }: { active?: boolean; payloa
 };
 
 const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
-  const [range, setRange] = useState<Range>("1Y");
+  const [range, setRange] = useState<Range>("1M");
   const [metrics, setMetrics] = useState<Metric[]>(["points", "rank"]);
   const [historyVersion, setHistoryVersion] = useState(0);
 
