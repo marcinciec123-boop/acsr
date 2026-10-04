@@ -92,7 +92,6 @@ const HallOfFamePanel = () => {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              </div>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
                 {p.stints.length ? `${yr(p.stints.map(s => s.from).filter(Boolean).sort()[0] ?? null)} – ${yr(p.stints.map(s => s.to).filter(Boolean).sort().pop() ?? null)}` : "Legenda ACSR"}
                 {p.bestTop && ` · najlepiej #${p.bestTop.rank} gracz roku`}
