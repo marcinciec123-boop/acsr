@@ -304,16 +304,16 @@ export function getRankingAt(dateIso: string): { team: string; currentTeam: stri
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
 export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
-  const teamName = canonicalTeamName(rawTeamName);
+  const teamName = resolveTeamIdentity(rawTeamName);
   const series: TeamRankingPoint[] = getMergedRankingHistory()
     .filter(s => s.points[teamName] !== undefined)
     .map(s => ({ date: s.date, points: s.points[teamName], rank: s.ranks?.[teamName] }));
 
   if (series.length === 0) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
-    const cur = ranking.find(t => t.name === teamName)?.points ?? 0;
+    const cur = ranking.find(t => nameKey(t.name) === nameKey(teamName))?.points ?? 0;
     const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0));
-    const idx = clubs.findIndex(t => t.name === teamName);
+    const idx = clubs.findIndex(t => nameKey(t.name) === nameKey(teamName));
     return [{ date: getWorldDate(), points: cur, rank: idx >= 0 ? idx + 1 : undefined }];
   }
   // Ostatnia znana wartość obowiązuje aż do dziś — linia nie urywa się ani nie wraca.
@@ -321,6 +321,39 @@ export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
   const last = series[series.length - 1];
   if (last.date < today) series.push({ ...last, date: today });
   return series;
+}
+
+const shiftIsoDay = (iso: string, days: number): string => {
+  const dt = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
+export interface TrendPoint extends TeamRankingPoint { t: number }
+
+/**
+ * Seria do wykresu. Wartość z migawki obowiązuje do dnia poprzedzającego
+ * kolejną migawkę (punkt "przytrzymania"), więc gładka linia nie zaczyna
+ * zmieniać się przed faktyczną aktualizacją rankingu. Dla zawężonego zakresu
+ * wartość obowiązująca w dniu startu zakresu trafia na jego początek.
+ */
+export function buildTrendSeries(series: TeamRankingPoint[], fromDate = "0000-01-01"): TrendPoint[] {
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
+  const before = sorted.filter(p => p.date < fromDate).at(-1);
+  const inRange = sorted.filter(p => p.date >= fromDate);
+  if (before && (!inRange.length || inRange[0].date > fromDate)) inRange.unshift({ ...before, date: fromDate });
+
+  const out: TeamRankingPoint[] = [];
+  inRange.forEach((point, index) => {
+    const prev = inRange[index - 1];
+    if (prev) {
+      const holdDate = shiftIsoDay(point.date, -1);
+      const changed = prev.points !== point.points || prev.rank !== point.rank;
+      if (changed && holdDate > prev.date) out.push({ ...prev, date: holdDate });
+    }
+    out.push(point);
+  });
+  return out.map(p => ({ ...p, t: Date.parse(`${p.date}T12:00:00Z`) }));
 }
 
 
