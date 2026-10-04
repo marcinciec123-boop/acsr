@@ -2,11 +2,23 @@
 // Pamiątkowe tablice zawodników na sportowej emeryturze — wszystko liczone
 // z zapisu: trofea, wyróżnienia z Ceremonii Nagród ACSR, mecze, kluby, zarobki.
 import { useEffect, useMemo, useState } from "react";
-import { Landmark, Trophy, Crown, Star } from "lucide-react";
+import { Landmark, Trophy, Crown, Star, UserMinus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import AccoladeBadges from "@/components/AccoladeBadges";
 import { PlayerLink, TeamLink } from "@/lib/profileNav";
-import { loadRetiredPlayers } from "@/lib/retiredPlayers";
+import { loadRetiredPlayers, unretirePlayer } from "@/lib/retiredPlayers";
 import { computeCareerStats } from "@/lib/playerCareerStats";
 import { buildPlayerTeamHistory } from "@/lib/playerTeamHistory";
 import { getPlayerAccolades } from "@/lib/awardAccolades";
@@ -18,11 +30,13 @@ const yr = (d: string | null) => (d ? d.slice(0, 4) : "?");
 
 const HallOfFamePanel = () => {
   const [retired, setRetired] = useState<string[]>(() => loadRetiredPlayers());
+  const [toRemove, setToRemove] = useState<string | null>(null);
   useEffect(() => {
     const sync = () => setRetired(loadRetiredPlayers());
     window.addEventListener("teams:update", sync);
     return () => window.removeEventListener("teams:update", sync);
   }, []);
+
 
   const plaques = useMemo(() => retired.map(name => {
     const career = computeCareerStats(name);
@@ -50,7 +64,7 @@ const HallOfFamePanel = () => {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {plaques.map(p => (
-        <div key={p.name} className="relative overflow-hidden rounded-xl border border-[hsl(var(--gold))]/40 bg-gradient-to-br from-[hsl(var(--gold))]/10 via-card/70 to-card/40">
+        <div key={p.name} className="group relative overflow-hidden rounded-xl border border-[hsl(var(--gold))]/40 bg-gradient-to-br from-[hsl(var(--gold))]/10 via-card/70 to-card/40">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-[hsl(var(--gold))]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative flex gap-4 p-4">
             <div className="w-24 h-28 shrink-0 rounded-lg overflow-hidden border border-[hsl(var(--gold))]/40">
@@ -59,7 +73,24 @@ const HallOfFamePanel = () => {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-[hsl(var(--gold))]" />
-                <PlayerLink name={p.name} className="text-xl font-heading font-bold text-foreground" />
+                <PlayerLink name={p.name} className="text-xl font-heading font-bold text-foreground min-w-0 truncate" />
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setToRemove(p.name)}
+                        aria-label={`Usuń ${p.name} z Galerii Sław`}
+                        className="ml-auto h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Usuń z Galerii Sław</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
                 {p.stints.length ? `${yr(p.stints.map(s => s.from).filter(Boolean).sort()[0] ?? null)} – ${yr(p.stints.map(s => s.to).filter(Boolean).sort().pop() ?? null)}` : "Legenda ACSR"}
@@ -112,6 +143,29 @@ const HallOfFamePanel = () => {
           </div>
         </div>
       ))}
+
+      <AlertDialog open={!!toRemove} onOpenChange={open => { if (!open) setToRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-foreground">Usunąć z Galerii Sław?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tabliczka <span className="font-semibold text-foreground">{toRemove}</span> zostanie usunięta z Galerii Sław. Gracz wróci jako zwykły zawodnik — wszystkie jego statystyki, trofea i historia pozostają nietknięte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (toRemove) unretirePlayer(toRemove);
+                setToRemove(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń z Galerii Sław
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
