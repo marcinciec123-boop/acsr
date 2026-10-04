@@ -58,17 +58,24 @@ const RecordCard = ({ r }: { r: RecordDef }) => {
             Top {r.entries.length}
           </button>
           {open && (
-            <ol className="mt-1.5 space-y-1">
+            <ol className="mt-2 divide-y divide-border/40 border-t border-border/40">
               {rest.map((e, i) => (
-                <li key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className="w-4 text-xs font-mono text-muted-foreground">{i + 2}</span>
-                    <Holder e={e} />
+                <li key={i} className="flex items-start gap-2 py-1.5 text-sm">
+                  <span className="w-4 pt-1 text-xs font-mono text-muted-foreground shrink-0">{i + 2}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 flex-1"><Holder e={e} /></span>
+                      <span className="font-mono font-semibold text-foreground shrink-0 tabular-nums">{e.display}</span>
+                    </div>
                     {(e.player || e.team) && e.context && (
-                      <span className="text-xs text-muted-foreground truncate hidden sm:inline">· {e.context}</span>
+                      <div className="mt-0.5 text-xs text-muted-foreground leading-snug break-words">
+                        {e.tournamentId ? (
+                          <TournamentLink tournamentId={e.tournamentId} matchId={e.matchId}>{e.context}</TournamentLink>
+                        ) : e.context}
+                        {e.date && <span className="font-mono"> · {e.date}</span>}
+                      </div>
                     )}
-                  </span>
-                  <span className="font-mono text-foreground shrink-0">{e.display}</span>
+                  </div>
                 </li>
               ))}
             </ol>
