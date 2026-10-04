@@ -603,7 +603,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
             <p className="text-sm font-mono text-muted-foreground">Brak graczy spełniających filtry.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
             {filtered.map((p) => {
               const isEditingThis = editingFA === p.name;
               return (
@@ -611,62 +611,96 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   key={`${p.team?.name || "FA"}-${p.name}`}
                   onClick={() => { if (!isEditingThis) onSelectPlayer(p.name); }}
                   className={cn(
-                    "group bg-card border rounded-lg p-2.5 text-left hover:border-primary/50 hover:bg-secondary/40 hover:-translate-y-0.5 transition-all cursor-pointer",
+                    "group relative bg-card border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 hover:-translate-y-0.5 transition-all cursor-pointer",
                     p.isFA ? "border-amber-500/30" : "border-border",
                     p.role === "Coach" && "border-sky-500/40 bg-sky-500/[0.03]",
                   )}
                 >
-                  <div className="flex items-start justify-between mb-2 gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <PlayerAvatar playerName={p.name} teamName={p.team?.name} size={48} rounded="lg" />
-                      {p.country
-                        ? <span className="text-base shrink-0">{countryFlag(p.country)}</span>
-                        : <span className="text-base shrink-0 text-muted-foreground/40">🏳️</span>}
-                      <span className="font-heading font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                        {p.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Hover action strip (FA / coach management) */}
+                  {(p.isFA || p.role === "Coach") && (
+                    <div
+                      className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => (p.isFA ? openEditFA(p.name) : openEditCoach(p.name))}
+                        className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-colors"
+                        title="Edytuj profil"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => retireHandler(p.name, !!p.isManualFA)}
+                        className="p-1 rounded text-muted-foreground hover:text-amber-400 hover:bg-secondary/60 transition-colors"
+                        title="Emerytura sportowa"
+                      >
+                        🏖
+                      </button>
                       {p.isFA && (
-                        <span className="text-xs font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
-                          FA
-                        </span>
-                      )}
-                      {roleEditFor === p.name ? (
-                        <select
-                          autoFocus
-                          value={p.role || ""}
-                          onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
-                          onBlur={() => setRoleEditFor(null)}
-                          className="text-xs font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
-                        >
-                          <option value="">—</option>
-                          {ROLE_OPTIONS.map(r => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </select>
-                      ) : p.role ? (
                         <button
-                          onClick={() => setRoleEditFor(p.name)}
-                          title="Kliknij aby zmienić rolę"
-                          className={cn(
-                            "text-xs font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
-                            roleColors[p.role] || "border-border text-muted-foreground",
-                          )}
+                          onClick={() => removeAnyFA(p.name, !!p.isManualFA)}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-secondary/60 transition-colors"
+                          title="Usuń z bazy"
                         >
-                          {roleIcons[p.role]}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setRoleEditFor(p.name)}
-                          title="Dodaj rolę"
-                          className="text-xs font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
-                        >
-                          + rola
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
+                  )}
+
+                  {/* Header: avatar + flag, nick on its own full-width line */}
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <PlayerAvatar playerName={p.name} teamName={p.team?.name} size={48} rounded="lg" />
+                    {p.country
+                      ? <span className="text-lg shrink-0">{countryFlag(p.country)}</span>
+                      : <span className="text-lg shrink-0 text-muted-foreground/40">🏳️</span>}
                   </div>
+                  <p className="font-heading font-bold text-foreground text-base leading-tight truncate group-hover:text-primary transition-colors">
+                    {p.name}
+                  </p>
+
+                  {/* Badges row: FA status + role */}
+                  <div className="flex items-center gap-1.5 mt-1 mb-1.5 min-h-[22px]" onClick={(e) => e.stopPropagation()}>
+                    {p.isFA && (
+                      <span className="text-[11px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                        FA
+                      </span>
+                    )}
+                    {roleEditFor === p.name ? (
+                      <select
+                        autoFocus
+                        value={p.role || ""}
+                        onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
+                        onBlur={() => setRoleEditFor(null)}
+                        className="text-xs font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
+                      >
+                        <option value="">—</option>
+                        {ROLE_OPTIONS.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    ) : p.role ? (
+                      <button
+                        onClick={() => setRoleEditFor(p.name)}
+                        title="Kliknij aby zmienić rolę"
+                        className={cn(
+                          "text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border hover:opacity-80",
+                          roleColors[p.role] || "border-border text-muted-foreground",
+                        )}
+                      >
+                        {roleIcons[p.role]} {p.role}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setRoleEditFor(p.name)}
+                        title="Dodaj rolę"
+                        className="text-[11px] font-mono px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                      >
+                        + rola
+                      </button>
+                    )}
+                  </div>
+
                   {p.realName && (
                     <p className="text-xs text-muted-foreground font-mono truncate mb-1">
                       {p.realName.firstName} {p.realName.lastName}
@@ -730,30 +764,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           </Button>
                         </div>
                       )}
-                      {/* Edit / retire / delete (always available for FAs) */}
-                      <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => openEditFA(p.name)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
-                          title="Edytuj profil"
-                        >
-                          <Pencil className="w-2.5 h-2.5" /> edytuj
-                        </button>
-                        <button
-                          onClick={() => retireHandler(p.name, !!p.isManualFA)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
-                          title="Emerytura sportowa"
-                        >
-                          🏖 emerytura
-                        </button>
-                        <button
-                          onClick={() => removeAnyFA(p.name, !!p.isManualFA)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors"
-                          title="Usuń z bazy"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" /> usuń
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <div className="mb-2">
@@ -764,24 +774,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       >
                         {countryFlag(p.team!.country)} {p.team!.name}
                       </button>
-                      {p.role === "Coach" && (
-                        <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => openEditCoach(p.name)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
-                            title="Edytuj profil trenera"
-                          >
-                            <Pencil className="w-2.5 h-2.5" /> edytuj
-                          </button>
-                          <button
-                            onClick={() => retireHandler(p.name, false)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
-                            title="Emerytura sportowa (usuwa też z trenera drużyny)"
-                          >
-                            🏖 emerytura
-                          </button>
-                        </div>
-                      )}
                     </div>
                   )}
 
