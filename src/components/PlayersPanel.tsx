@@ -774,24 +774,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                       >
                         {countryFlag(p.team!.country)} {p.team!.name}
                       </button>
-                      {p.role === "Coach" && (
-                        <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => openEditCoach(p.name)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-sky-300 hover:text-sky-200 transition-colors"
-                            title="Edytuj profil trenera"
-                          >
-                            <Pencil className="w-2.5 h-2.5" /> edytuj
-                          </button>
-                          <button
-                            onClick={() => retireHandler(p.name, false)}
-                            className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
-                            title="Emerytura sportowa (usuwa też z trenera drużyny)"
-                          >
-                            🏖 emerytura
-                          </button>
-                        </div>
-                      )}
                     </div>
                   )}
 
