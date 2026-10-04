@@ -896,10 +896,12 @@ const TournamentPanel = () => {
           return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
         }));
       }
-      // Record a ranking snapshot for the trend chart (fictional world date).
+      // Record a ranking snapshot for the trend chart on the CURRENT world date.
+      // Never backdate: writing today's ranking under an older end date would
+      // overwrite the real ranking of that past day.
       try {
         const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
-        const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`, finalized.endDate);
+        const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`);
         if (!historySaved) throw new Error("Ranking history save failed");
       } catch (error) {
         console.error("Nie udało się zapisać historii rankingu:", error);

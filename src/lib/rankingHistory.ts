@@ -5,7 +5,7 @@
 
 import { loadFromStorage, saveToStorageAsync } from "@/lib/storage";
 import { loadRemoteSnapshotCache, fetchRemoteSnapshots } from "@/lib/rankingSnapshotsDb";
-import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
+import { getWorldDate, WORLD_CLOCK_EVENT, WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
 
 import { splitRoster } from "@/lib/benchedPlayers";
 import type { MatchResult, TournamentData } from "@/lib/types";
@@ -17,7 +17,27 @@ interface StoredTransfer {
   date?: string;
 }
 import { teamDatabase, type TeamData } from "@/data/tournaments";
-import { canonicalTeamName, teamNameAt } from "@/lib/teamRenames";
+import { canonicalTeamName, teamNameAt, nameKey } from "@/lib/teamRenames";
+
+let identityIndex: Map<string, string> | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("teams:update", () => { identityIndex = null; });
+}
+
+/**
+ * Aktualna tożsamość drużyny: podąża łańcuchem zmian nazw, a następnie
+ * dopasowuje pisownię do drużyny z bieżącego rankingu (wielkość liter
+ * i spacje w arkuszach nie mogą tworzyć osobnej drużyny).
+ */
+export function resolveTeamIdentity(name: string): string {
+  const canonical = canonicalTeamName(name);
+  if (!identityIndex) {
+    identityIndex = new Map();
+    const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
+    ranking.forEach(team => identityIndex!.set(nameKey(team.name), team.name));
+  }
+  return identityIndex.get(nameKey(canonical)) ?? canonical;
+}
 
 /**
  * Scala aliasy do jednej tożsamości. Przy starym, uszkodzonym snapshotcie nie
@@ -28,9 +48,9 @@ export function canonicalizeSnapshotMap<T>(map: Record<string, T> | undefined, d
   const out: Record<string, T> = {};
   const priority: Record<string, number> = {};
   Object.entries(map).forEach(([team, value]) => {
-    const key = canonicalTeamName(team);
+    const key = resolveTeamIdentity(team);
     const historicalName = teamNameAt(key, date);
-    const score = team === historicalName ? 3 : team === key ? 2 : 1;
+    const score = nameKey(team) === nameKey(historicalName) ? 3 : nameKey(team) === nameKey(key) ? 2 : 1;
     if (out[key] === undefined || score > (priority[key] ?? -1)) {
       out[key] = value;
       priority[key] = score;
@@ -218,19 +238,46 @@ export function mergeRankingSnapshots(snapshots: RankingSnapshot[]): RankingSnap
     });
 }
 
+/**
+ * Czy lokalny wpis może pochodzić z rozgrywki w tym zapisie?
+ * Zapis gry zaczyna się w dniu startu świata (WORLD_CLOCK_DEFAULT). Wszystko
+ * wcześniej — a także wszystko do dnia ostatniego arkusza z rankingiem — to
+ * epoka arkuszy. Lokalne wpisy z tego okresu powstały w starych wersjach
+ * aplikacji (miesięczne "migawki" liczone z bieżącego rankingu, wsteczne daty
+ * turniejów) i nie są prawdziwym rankingiem z tamtych dni. Nie są kasowane,
+ * tylko pomijane przy budowie historii.
+ */
+export function isPlayableLocalDate(date: string, latestHistoricalDate: string, today: string): boolean {
+  return date <= today && date >= WORLD_CLOCK_DEFAULT && date > latestHistoricalDate;
+}
+
+let mergedCache: { key: string; value: RankingSnapshot[] } | null = null;
+let mergedVersion = 0;
+if (typeof window !== "undefined") {
+  const bump = () => { mergedVersion += 1; mergedCache = null; };
+  ["ranking-history:update", "ranking:update", "teams:update", WORLD_CLOCK_EVENT].forEach(evt =>
+    window.addEventListener(evt, bump));
+}
+
 /** Pełna historia z arkuszy użytkownika i lokalnego zapisu gry. */
 export function getMergedRankingHistory(): RankingSnapshot[] {
   const today = getWorldDate().slice(0, 10);
+  const cacheKey = `${today}|${mergedVersion}`;
+  if (mergedCache?.key === cacheKey) return mergedCache.value;
+
   const historical: RankingSnapshot[] = loadRemoteSnapshotCache()
     .filter(s => s.source === "historical")
     .map(s => ({ date: s.date, points: s.points || {}, ranks: s.ranks, rosters: s.rosters }))
     .filter(s => s.date <= today && Object.keys(s.points).length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
+  const latestHistorical = historical.at(-1)?.date ?? "";
   const local = loadRankingHistory()
-    .filter(s => !s.synthetic && s.date <= today)
+    .filter(s => !s.synthetic && isPlayableLocalDate(s.date, latestHistorical, today))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  return mergeRankingSnapshots([...historical, ...local]);
+  const value = mergeRankingSnapshots([...historical, ...local]);
+  mergedCache = { key: cacheKey, value };
+  return value;
 }
 
 
@@ -257,16 +304,16 @@ export function getRankingAt(dateIso: string): { team: string; currentTeam: stri
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
 export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
-  const teamName = canonicalTeamName(rawTeamName);
+  const teamName = resolveTeamIdentity(rawTeamName);
   const series: TeamRankingPoint[] = getMergedRankingHistory()
     .filter(s => s.points[teamName] !== undefined)
     .map(s => ({ date: s.date, points: s.points[teamName], rank: s.ranks?.[teamName] }));
 
   if (series.length === 0) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
-    const cur = ranking.find(t => t.name === teamName)?.points ?? 0;
+    const cur = ranking.find(t => nameKey(t.name) === nameKey(teamName))?.points ?? 0;
     const clubs = ranking.filter(isClub).sort((a, b) => (b.points || 0) - (a.points || 0));
-    const idx = clubs.findIndex(t => t.name === teamName);
+    const idx = clubs.findIndex(t => nameKey(t.name) === nameKey(teamName));
     return [{ date: getWorldDate(), points: cur, rank: idx >= 0 ? idx + 1 : undefined }];
   }
   // Ostatnia znana wartość obowiązuje aż do dziś — linia nie urywa się ani nie wraca.
@@ -274,6 +321,39 @@ export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
   const last = series[series.length - 1];
   if (last.date < today) series.push({ ...last, date: today });
   return series;
+}
+
+const shiftIsoDay = (iso: string, days: number): string => {
+  const dt = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
+export interface TrendPoint extends TeamRankingPoint { t: number }
+
+/**
+ * Seria do wykresu. Wartość z migawki obowiązuje do dnia poprzedzającego
+ * kolejną migawkę (punkt "przytrzymania"), więc gładka linia nie zaczyna
+ * zmieniać się przed faktyczną aktualizacją rankingu. Dla zawężonego zakresu
+ * wartość obowiązująca w dniu startu zakresu trafia na jego początek.
+ */
+export function buildTrendSeries(series: TeamRankingPoint[], fromDate = "0000-01-01"): TrendPoint[] {
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
+  const before = sorted.filter(p => p.date < fromDate).at(-1);
+  const inRange = sorted.filter(p => p.date >= fromDate);
+  if (before && (!inRange.length || inRange[0].date > fromDate)) inRange.unshift({ ...before, date: fromDate });
+
+  const out: TeamRankingPoint[] = [];
+  inRange.forEach((point, index) => {
+    const prev = inRange[index - 1];
+    if (prev) {
+      const holdDate = shiftIsoDay(point.date, -1);
+      const changed = prev.points !== point.points || prev.rank !== point.rank;
+      if (changed && holdDate > prev.date) out.push({ ...prev, date: holdDate });
+    }
+    out.push(point);
+  });
+  return out.map(p => ({ ...p, t: Date.parse(`${p.date}T12:00:00Z`) }));
 }
 
 
