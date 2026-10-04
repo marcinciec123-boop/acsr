@@ -144,6 +144,29 @@ const HallOfFamePanel = () => {
           </div>
         </div>
       ))}
+
+      <AlertDialog open={!!toRemove} onOpenChange={open => { if (!open) setToRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-foreground">Usunąć z Galerii Sław?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tabliczka <span className="font-semibold text-foreground">{toRemove}</span> zostanie usunięta z Galerii Sław. Gracz wróci jako zwykły zawodnik — wszystkie jego statystyki, trofea i historia pozostają nietknięte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (toRemove) unretirePlayer(toRemove);
+                setToRemove(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń z Galerii Sław
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
