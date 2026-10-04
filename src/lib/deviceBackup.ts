@@ -1,4 +1,5 @@
-import { WORLD_CLOCK_EVENT } from "./worldClock";
+import { WORLD_CLOCK_EVENT, getWorldDate } from "./worldClock";
+import { getAllImages } from "./storage";
 import { DEVICE_STORE_REF, getAllCachedDeviceValues, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
@@ -76,6 +77,26 @@ const collectDeviceState = async (): Promise<Record<string, string>> => {
   );
 };
 
+const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_"];
+const isMediaKey = (key: string) => MEDIA_PREFIXES.some(p => key.startsWith(p));
+
+/** Full save: real image data instead of reference markers, legacy images, and the fictional date. */
+const collectFullState = async (): Promise<Record<string, string>> => {
+  const keys: Record<string, string> = { ...collectLocalState(), ...(await collectDeviceState()) };
+  // Legacy image DB (teamlogo_/playerphoto_) — bring into the save.
+  try {
+    const images = await getAllImages();
+    for (const { id, dataUrl } of images) {
+      const key = id.startsWith("teamlogo_") ? "csgo_hub_" + id
+        : id.startsWith("playerphoto_") ? "csgo_hub_" + id : null;
+      if (key && dataUrl && (!keys[key] || keys[key] === DEVICE_STORE_REF)) keys[key] = dataUrl;
+    }
+  } catch { /* ignore */ }
+  for (const [k, v] of Object.entries(keys)) if (v === DEVICE_STORE_REF) delete keys[k];
+  keys.world_clock_date = getWorldDate();
+  return Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b)));
+};
+
 // Cheap, allocation-free hash of the whole state (FNV-1a). Replaces a full
 // JSON.stringify comparison of the save, which froze the UI on big saves.
 const stateSignature = (keys: Record<string, string>) => {
@@ -143,7 +164,7 @@ export const createDeviceBackup = async (
   label?: string,
 ): Promise<DeviceBackupSnapshot | null> => {
   if (!isBrowser()) return null;
-  const keys = { ...collectLocalState(), ...(await collectDeviceState()) };
+  const keys = await collectFullState();
   if (Object.keys(keys).length === 0) return null;
 
   const signature = stateSignature(keys);
@@ -250,11 +271,14 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
     const key = localStorage.key(i);
     if (key && isManagedKey(key)) currentKeys.push(key);
   }
-  currentKeys.forEach(key => localStorage.removeItem(key));
+  // Logos/photos are shared across saves: keep current ones unless the snapshot has its own.
+  const keep = (key: string) => isMediaKey(key) && !(key in snapshot.keys);
+  currentKeys.filter(k => !keep(k)).forEach(key => localStorage.removeItem(key));
   const currentDeviceKeys = Object.keys(await collectDeviceState().catch(() => ({})));
-  await Promise.all(currentDeviceKeys.map(key => removeDeviceValue(key).catch(() => undefined)));
+  await Promise.all(currentDeviceKeys.filter(k => !keep(k)).map(key => removeDeviceValue(key).catch(() => undefined)));
   await Promise.all(Object.entries(snapshot.keys).map(async ([key, value]) => {
-    if (value.length > 120_000) {
+    if (value === DEVICE_STORE_REF) return; // old exports carried only a marker
+    if (value.length > 120_000 || isMediaKey(key)) {
       await setDeviceValue(key, value);
       try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* device-only */ }
     } else {
@@ -262,6 +286,8 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
       await removeDeviceValue(key).catch(() => undefined);
     }
   }));
+  window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: {} }));
+  window.dispatchEvent(new CustomEvent("playerphoto:update", { detail: {} }));
   if (typeof window !== "undefined") {
     // The restored save carries its own fictional date — tell the UI to re-read it.
     window.dispatchEvent(new Event(WORLD_CLOCK_EVENT));
