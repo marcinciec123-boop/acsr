@@ -764,30 +764,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                           </Button>
                         </div>
                       )}
-                      {/* Edit / retire / delete (always available for FAs) */}
-                      <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => openEditFA(p.name)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
-                          title="Edytuj profil"
-                        >
-                          <Pencil className="w-2.5 h-2.5" /> edytuj
-                        </button>
-                        <button
-                          onClick={() => retireHandler(p.name, !!p.isManualFA)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors"
-                          title="Emerytura sportowa"
-                        >
-                          🏖 emerytura
-                        </button>
-                        <button
-                          onClick={() => removeAnyFA(p.name, !!p.isManualFA)}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-destructive transition-colors"
-                          title="Usuń z bazy"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" /> usuń
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <div className="mb-2">
