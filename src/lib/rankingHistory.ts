@@ -5,7 +5,7 @@
 
 import { loadFromStorage, saveToStorageAsync } from "@/lib/storage";
 import { loadRemoteSnapshotCache, fetchRemoteSnapshots } from "@/lib/rankingSnapshotsDb";
-import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
+import { getWorldDate, WORLD_CLOCK_EVENT, WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
 
 import { splitRoster } from "@/lib/benchedPlayers";
 import type { MatchResult, TournamentData } from "@/lib/types";
@@ -18,7 +18,6 @@ interface StoredTransfer {
 }
 import { teamDatabase, type TeamData } from "@/data/tournaments";
 import { canonicalTeamName, teamNameAt, nameKey } from "@/lib/teamRenames";
-import { WORLD_CLOCK_DEFAULT } from "@/lib/worldClock";
 
 let identityIndex: Map<string, string> | null = null;
 if (typeof window !== "undefined") {
