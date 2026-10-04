@@ -169,10 +169,10 @@ export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchI
 
         {/* Selected players hero */}
         {stats1 && stats2 && (
-          <div className="relative grid grid-cols-[1fr_auto_1fr] items-stretch gap-0 border-b border-border/50 bg-background/30">
+          <div className="relative grid grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] items-stretch border-b border-border/50 bg-background/30">
             <PlayerHero name={currentP1} team={team1} stats={stats1} align="left" />
-            <div className="flex flex-col items-center justify-center px-2 py-4 gap-2 border-x border-border/40 bg-background/40">
-              <Swords className="w-5 h-5 text-primary" />
+            <div className="flex flex-col items-center justify-center gap-2 border-x border-border/40 bg-background/40">
+              <Swords className="w-4 h-4 text-primary" />
               <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">vs</span>
             </div>
             <PlayerHero name={currentP2} team={team2} stats={stats2} align="right" />
@@ -339,21 +339,6 @@ const PlayerPicker = ({
   );
 };
 
-// Deterministic gradient per player name (adds a jersey-like visual identity).
-const heroGradient = (name: string) => {
-  const palettes = [
-    "from-indigo-500/40 via-fuchsia-500/25 to-transparent",
-    "from-amber-500/40 via-red-500/25 to-transparent",
-    "from-emerald-500/40 via-cyan-500/25 to-transparent",
-    "from-sky-500/40 via-violet-500/25 to-transparent",
-    "from-rose-500/40 via-orange-500/25 to-transparent",
-    "from-teal-500/40 via-lime-500/25 to-transparent",
-  ];
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return palettes[h % palettes.length];
-};
-
 const PlayerHero = ({
   name, team, stats, align,
 }: {
@@ -370,63 +355,36 @@ const PlayerHero = ({
 
   return (
     <div className={cn(
-      "relative overflow-hidden min-h-[140px] flex items-center",
+      "relative min-w-0 min-h-[168px] flex items-stretch bg-secondary/20",
       align === "right" && "flex-row-reverse",
     )}>
-      {/* Gradient backdrop (visible mainly behind the procedural fallback) */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br opacity-50",
-        heroGradient(name),
-        align === "right" ? "bg-gradient-to-bl" : "bg-gradient-to-br",
-      )} />
-      <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent" />
-
-      {/* Big photo filling the panel edge, softly blended toward the stats side */}
-      <div className={cn(
-        "absolute inset-y-0 w-[46%] pointer-events-none",
-        align === "right" ? "right-0" : "left-0",
-      )}>
-        <div className={cn(
-          "absolute inset-0",
-          align === "right"
-            ? "[mask-image:linear-gradient(to_left,black_50%,transparent_98%)]"
-            : "[mask-image:linear-gradient(to_right,black_50%,transparent_98%)]",
-        )}>
-          <PlayerAvatar playerName={name} teamName={team} fill rounded="none" className="opacity-95" />
-        </div>
-        {/* Soft vertical blend so the photo melts into the panel */}
-        <div className={cn(
-          "absolute inset-0",
-          align === "right"
-            ? "bg-gradient-to-l from-transparent via-transparent to-background/60"
-            : "bg-gradient-to-r from-transparent via-transparent to-background/60",
-        )} />
+      {/* Give the portrait its own column so it never sits behind the name or badges. */}
+      <div className="relative w-[32%] min-w-[58px] max-w-[136px] shrink-0 overflow-hidden pointer-events-none">
+        <PlayerAvatar playerName={name} teamName={team} fill rounded="none" />
+        <TeamLogo
+          teamName={team} size={26} rounded="md"
+          className={cn(
+            "absolute bottom-2 border-2 border-background rounded-md",
+            align === "right" ? "right-2" : "left-2",
+          )}
+        />
       </div>
-
-      {/* Team crest pinned over the photo edge */}
-      <TeamLogo
-        teamName={team} size={28} rounded="md"
-        className={cn(
-          "absolute z-10 bottom-2 border-2 border-background rounded-md",
-          align === "right" ? "right-2" : "left-2",
-        )}
-      />
 
       {/* Content beside the photo */}
       <div className={cn(
-        "relative z-10 flex-1 p-4 space-y-1.5 min-w-0",
+        "relative flex-1 min-w-0 flex flex-col justify-center gap-2 p-2 sm:p-3",
         align === "right" ? "text-right" : "text-left",
       )}>
-        <div className={cn("flex items-center gap-2", align === "right" && "flex-row-reverse")}>
-          {flag && <span className="text-lg leading-none">{flag}</span>}
-          <PlayerLink name={name} className="text-xl font-heading font-bold text-foreground truncate">
+        <div className={cn("flex min-w-0 items-start gap-1.5", align === "right" && "flex-row-reverse")}>
+          {flag && <span className="shrink-0 text-base leading-6">{flag}</span>}
+          <PlayerLink name={name} className="min-w-0 text-base sm:text-lg leading-6 font-heading font-bold text-foreground [overflow-wrap:anywhere]">
             {name}
           </PlayerLink>
         </div>
-        <div className={cn("flex items-center gap-1.5 flex-wrap", align === "right" && "justify-end")}>
+        <div className={cn("flex items-center gap-1.5 flex-wrap min-w-0", align === "right" && "justify-end")}>
           {role ? (
             <span className={cn(
-              "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border",
+              "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border whitespace-nowrap",
               roleColors[role],
             )}>
               <span>{roleIcons[role]}</span>
@@ -436,12 +394,12 @@ const PlayerHero = ({
             <span className="text-xs font-mono text-muted-foreground/70 uppercase tracking-wider">Rola nieznana</span>
           )}
           <span className={cn(
-            "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60 backdrop-blur-sm",
+            "inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded border border-border bg-background/60 whitespace-nowrap",
             ratingColor,
           )}>
             {stats.careerRating.toFixed(2)} rtg
           </span>
-          <span className="text-xs font-mono text-muted-foreground bg-background/60 backdrop-blur-sm px-1.5 py-0.5 rounded border border-border/50">
+          <span className="text-xs font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
             {stats.matchesPlayed}m • {winPct}% W
           </span>
         </div>
