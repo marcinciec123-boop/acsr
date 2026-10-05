@@ -91,6 +91,11 @@ const Index = () => {
   const handleOpenTournament = (tournamentId: string, matchId?: string) => {
     rememberScroll();
     setProfileStack([]);
+    // Zapamiętaj cel na wypadek, gdyby panel turniejów nie zdążył się
+    // zamontować przed wysłaniem zdarzenia (pierwsza wizyta w zakładce).
+    try {
+      sessionStorage.setItem("pending-tournament-open", JSON.stringify({ tournamentId, matchId }));
+    } catch { /* session storage unavailable */ }
     setActiveTab("tournaments");
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("tournament:open", { detail: { tournamentId, matchId } }));
