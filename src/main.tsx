@@ -38,6 +38,7 @@ const startApp = async () => {
   try { seedMissingContracts(); } catch (e) { console.error("Contract seeding failed:", e); }
   try { releaseExpiredContracts(); } catch (e) { console.error("Contract expiry failed:", e); }
   installContractExpiryWatcher();
+  void import("./lib/recordWatcher").then(m => m.installRecordWatcher());
   try { seedYearAwards2025(); } catch (e) { console.error("Year awards 2025 seed failed:", e); }
   const root = document.getElementById("root");
   if (!root) return;

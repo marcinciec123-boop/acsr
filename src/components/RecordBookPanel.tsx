@@ -4,6 +4,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { PlayerLink, TeamLink, TournamentLink } from "@/lib/profileNav";
 import { computeRecordBook, CATEGORY_LABEL, type RecordCategory, type RecordDef } from "@/lib/recordBook";
 import { cn } from "@/lib/utils";
+import { getRecentlyBroken } from "@/lib/recordWatcher";
 
 const CATS = Object.keys(CATEGORY_LABEL) as RecordCategory[];
 
@@ -22,7 +23,7 @@ const Holder = ({ e }: { e: RecordDef["entries"][number] }) => (
   </span>
 );
 
-const RecordCard = ({ r }: { r: RecordDef }) => {
+const RecordCard = ({ r, isNew }: { r: RecordDef; isNew?: boolean }) => {
   const [open, setOpen] = useState(false);
   const [first, ...rest] = r.entries;
   const ctx = first.player || first.team ? first.context : undefined;
@@ -30,7 +31,10 @@ const RecordCard = ({ r }: { r: RecordDef }) => {
     <div className="rounded-xl border border-border/60 bg-card/60 p-3 relative overflow-hidden">
       <div className="absolute -top-8 -right-8 w-20 h-20 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
       <div className="flex items-start justify-between gap-2">
-        <div className="text-xs font-mono uppercase tracking-wide text-muted-foreground leading-tight">{r.title}</div>
+        <div className="text-xs font-mono uppercase tracking-wide text-muted-foreground leading-tight">
+          {r.title}
+          {isNew && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-2xs font-bold">NOWY</span>}
+        </div>
         {r.desc && <span className="text-2xs font-mono text-muted-foreground/80 shrink-0">{r.desc}</span>}
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
@@ -87,16 +91,17 @@ const RecordCard = ({ r }: { r: RecordDef }) => {
 };
 
 const RecordBookPanel = () => {
-  // Keep-alive: przelicz rekordy przy każdej zmianie danych.
+  // Keep-alive: przelicz rekordy przy każdej zmianie danych i po sprawdzeniu rekordów.
   const [dataTick, setDataTick] = useState(0);
   useEffect(() => {
     const bump = () => setDataTick(t => t + 1);
-    const events = ["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
+    const events = ["records:update", "tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
     events.forEach(e => window.addEventListener(e, bump));
     return () => events.forEach(e => window.removeEventListener(e, bump));
   }, []);
 
   const records = useMemo(() => computeRecordBook(), [dataTick]);
+  const recent = useMemo(() => getRecentlyBroken(), [dataTick]);
   const [cat, setCat] = useState<RecordCategory | "all">("all");
   const [q, setQ] = useState("");
 
@@ -146,7 +151,7 @@ const RecordBookPanel = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.map(r => <RecordCard key={r.id} r={r} />)}
+          {filtered.map(r => <RecordCard key={r.id} r={r} isNew={recent.has(r.id)} />)}
         </div>
       )}
     </section>
