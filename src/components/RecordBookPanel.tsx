@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Crown, ChevronDown, Search } from "lucide-react";
 import TeamLogo from "@/components/TeamLogo";
 import { PlayerLink, TeamLink, TournamentLink } from "@/lib/profileNav";
@@ -87,7 +87,16 @@ const RecordCard = ({ r }: { r: RecordDef }) => {
 };
 
 const RecordBookPanel = () => {
-  const records = useMemo(() => computeRecordBook(), []);
+  // Keep-alive: przelicz rekordy przy każdej zmianie danych.
+  const [dataTick, setDataTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setDataTick(t => t + 1);
+    const events = ["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
+    events.forEach(e => window.addEventListener(e, bump));
+    return () => events.forEach(e => window.removeEventListener(e, bump));
+  }, []);
+
+  const records = useMemo(() => computeRecordBook(), [dataTick]);
   const [cat, setCat] = useState<RecordCategory | "all">("all");
   const [q, setQ] = useState("");
 
