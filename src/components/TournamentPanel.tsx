@@ -165,8 +165,7 @@ const TournamentPanel = () => {
 
   // Deep-link from profiles: open a tournament (and optionally jump into a match).
   useEffect(() => {
-    const onOpen = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { tournamentId?: string; matchId?: string } | undefined;
+    const openDetail = (detail: { tournamentId?: string; matchId?: string } | undefined) => {
       if (!detail?.tournamentId) return;
       const t = tournaments.find(x => x.id === detail.tournamentId);
       if (!t) return;
@@ -184,7 +183,20 @@ const TournamentPanel = () => {
       setSelectedMatchRef(ref);
       if (ref) setActivePhaseByTournament(prev => ({ ...prev, [t.id]: ref!.phaseId }));
     };
+    const onOpen = (e: Event) => {
+      try { sessionStorage.removeItem("pending-tournament-open"); } catch { /* ignore */ }
+      openDetail((e as CustomEvent).detail);
+    };
     window.addEventListener("tournament:open", onOpen);
+    // Odbierz cel zapisany przed zamontowaniem panelu (pierwsza wizyta
+    // w zakładce Turnieje — zdarzenie mogło zostać wysłane za wcześnie).
+    try {
+      const raw = sessionStorage.getItem("pending-tournament-open");
+      if (raw) {
+        sessionStorage.removeItem("pending-tournament-open");
+        openDetail(JSON.parse(raw));
+      }
+    } catch { /* ignore */ }
     return () => window.removeEventListener("tournament:open", onOpen);
   }, [tournaments]);
 
