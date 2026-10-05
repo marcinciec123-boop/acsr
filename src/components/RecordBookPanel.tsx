@@ -87,16 +87,17 @@ const RecordCard = ({ r }: { r: RecordDef }) => {
 };
 
 const RecordBookPanel = () => {
-  // Keep-alive: przelicz rekordy przy każdej zmianie danych.
+  // Keep-alive: przelicz rekordy przy każdej zmianie danych i po sprawdzeniu rekordów.
   const [dataTick, setDataTick] = useState(0);
   useEffect(() => {
     const bump = () => setDataTick(t => t + 1);
-    const events = ["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
+    const events = ["records:update", "tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
     events.forEach(e => window.addEventListener(e, bump));
     return () => events.forEach(e => window.removeEventListener(e, bump));
   }, []);
 
   const records = useMemo(() => computeRecordBook(), [dataTick]);
+  const recent = useMemo(() => getRecentlyBroken(), [dataTick]);
   const [cat, setCat] = useState<RecordCategory | "all">("all");
   const [q, setQ] = useState("");
 
