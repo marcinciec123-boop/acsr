@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Trophy, Medal, DollarSign, Users, Gamepad2, Crown } from "lucide-react";
 import PanelHeader from "@/components/PanelHeader";
@@ -47,7 +47,17 @@ const StatisticsPanel = () => {
   const [playerLimit, setPlayerLimit] = useState(15);
   const nav = useProfileNav();
 
-  const stats = useMemo(() => computePortalStats(year), [year]);
+  // Panel jest keep-alive (montowany raz), więc odświeżamy dane przy
+  // każdej zmianie turniejów / drużyn / rankingu / transferów.
+  const [dataTick, setDataTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setDataTick(t => t + 1);
+    const events = ["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
+    events.forEach(e => window.addEventListener(e, bump));
+    return () => events.forEach(e => window.removeEventListener(e, bump));
+  }, []);
+
+  const stats = useMemo(() => computePortalStats(year), [year, dataTick]);
   const tabs = useMemo(() => ["total", ...stats.years], [stats.years]);
 
   const prizeTotal = Math.max(1, stats.lanPrize + stats.onlinePrize);
