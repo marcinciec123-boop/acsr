@@ -9,6 +9,7 @@ import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
+import { computeBracketLayout } from "@/lib/bracketLayout";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
 
@@ -122,36 +123,10 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
   // Fixed dimensions so cards never clip and connector math stays stable.
   const MATCH_H = 112;
-  const BASE_GAP = 14;
+  const BASE_GAP = 18;
   const HEADER_H = 32;
-  const gapForDepth = (depth: number) => BASE_GAP + (Math.pow(2, depth) - 1) * (MATCH_H + BASE_GAP);
-  const offsetForDepth = (depth: number) => depth === 0 ? 0 : (Math.pow(2, depth - 1) * (MATCH_H + BASE_GAP)) - BASE_GAP / 2 - MATCH_H / 2;
-
-  const looksLikePlayoffRound = (round: string, roundMatches: MatchResult[]) => {
-    const lower = round.toLowerCase();
-    return lower.includes("quarter")
-      || lower.includes("semi")
-      || lower === "final"
-      || lower.includes("grand final")
-      || roundMatches.every(m => /^UB-R\d+-M\d+$/i.test(m.bracketSlot || ""));
-  };
-
-  const feedsDirectlyIntoRound = (prevName: string, nextName: string, prevRound: MatchResult[], nextRound: MatchResult[]) => {
-    if (prevRound.length !== nextRound.length * 2) return false;
-    const nextIds = new Set(nextRound.map(m => m.id));
-    const feedCount = prevRound.filter(m => (m.winnerTo && nextIds.has(m.winnerTo)) || (m.loserTo && nextIds.has(m.loserTo))).length;
-    return feedCount === prevRound.length || (feedCount === 0 && looksLikePlayoffRound(prevName, prevRound) && looksLikePlayoffRound(nextName, nextRound));
-  };
-
-  const buildLayout = (list: string[]) => list.reduce<Record<string, { depth: number; showConnector: boolean }>>((acc, round, idx) => {
-    const prevRound = idx > 0 ? list[idx - 1] : undefined;
-    const showConnector = !!prevRound && feedsDirectlyIntoRound(prevRound, round, grouped[prevRound], grouped[round]);
-    acc[round] = {
-      depth: showConnector ? acc[prevRound!].depth + 1 : 0,
-      showConnector,
-    };
-    return acc;
-  }, {});
+  const COLUMN_W = 260;
+  const CONNECTOR_W = 48;
 
   const renderMatchCard = (m: MatchResult, isLast: boolean) => {
     const isEditing = editingId === m.id;
@@ -324,52 +299,77 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   };
 
   const renderRoundRow = (list: string[], goldLastRound: boolean, forceLowerStyle = false) => {
-    const layout = buildLayout(list);
+    const columns = list.map(round => {
+      const { slotCount, bySlot } = positionMatches(grouped[round]);
+      return {
+        matches: Array.from({ length: slotCount }, (_, index) => bySlot.get(index) ?? null),
+      };
+    });
+    const layout = computeBracketLayout(columns, MATCH_H, BASE_GAP);
+    const bodyWidth = list.length * COLUMN_W + Math.max(0, list.length - 1) * CONNECTOR_W;
+
     return (
-      <div className="flex items-start justify-center min-w-fit gap-0 mx-auto">
-        {list.map((round, ri) => {
-          const matchesInRound = grouped[round];
-          const { slotCount, bySlot } = positionMatches(matchesInRound);
-          const isLast = goldLastRound && ri === list.length - 1;
-          const lower = forceLowerStyle || isLowerRound(round);
-          const { depth, showConnector } = layout[round];
-          const gap = gapForDepth(depth);
-          const offset = offsetForDepth(depth);
-          return (
-            <div key={round} className="flex items-start">
-              {showConnector && (
-                <div
-                  className="flex flex-col w-10 shrink-0"
-                  style={{ paddingTop: HEADER_H + offsetForDepth(depth - 1) + MATCH_H / 2, gap: `${MATCH_H + gapForDepth(depth - 1)}px` }}
-                >
-                  {Array.from({ length: slotCount }).map((_, i) => {
-                    const span = MATCH_H + gapForDepth(depth - 1);
-                    if (!bySlot.has(i)) return <div key={i} style={{ height: span }} />;
-                    return (
-                      <div key={i} className="relative" style={{ height: span }}>
-                        <div className="absolute left-0 top-0 w-3 h-px bg-primary/50" />
-                        <div className="absolute left-0 bottom-0 w-3 h-px bg-primary/50" />
-                        <div className="absolute left-3 top-0 bottom-0 w-px bg-primary/50" />
-                        <div className="absolute left-3 top-1/2 right-0 h-px bg-primary/50 -translate-y-px" />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="flex flex-col w-[260px] shrink-0">
+      <div className="relative mx-auto" style={{ width: bodyWidth, minWidth: bodyWidth }}>
+        <div className="relative" style={{ height: HEADER_H }}>
+          {list.map((round, ri) => {
+            const isLast = goldLastRound && ri === list.length - 1;
+            const lower = forceLowerStyle || isLowerRound(round);
+            const left = ri * (COLUMN_W + CONNECTOR_W);
+            return (
+              <div key={`header-${round}`} className="absolute top-0" style={{ left, width: COLUMN_W }}>
                 {renderRoundHeader(round, isLast, lower)}
-                <div className="flex flex-col" style={{ paddingTop: offset, gap: `${gap}px` }}>
-                  {Array.from({ length: slotCount }).map((_, i) => {
-                    const m = bySlot.get(i);
-                    return m
-                      ? renderMatchCard(m, isLast)
-                      : <div key={`empty-${i}`} style={{ height: MATCH_H }} aria-hidden />;
-                  })}
-                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        <div className="relative" style={{ height: layout.height }}>
+          <svg
+            className="absolute inset-0 pointer-events-none overflow-visible"
+            width={bodyWidth}
+            height={layout.height}
+            aria-hidden="true"
+          >
+            {layout.connectors.map((connector, index) => {
+              const x1 = connector.fromColumn * (COLUMN_W + CONNECTOR_W) + COLUMN_W;
+              const x2 = connector.toColumn * (COLUMN_W + CONNECTOR_W);
+              const y1 = layout.centers[connector.fromColumn]?.[connector.fromIndex];
+              const y2 = layout.centers[connector.toColumn]?.[connector.toIndex];
+              if (y1 === undefined || y2 === undefined) return null;
+              const midX = x1 + (x2 - x1) / 2;
+              return (
+                <path
+                  key={`${connector.fromColumn}-${connector.fromIndex}-${connector.toColumn}-${connector.toIndex}-${index}`}
+                  d={`M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`}
+                  fill="none"
+                  stroke="hsl(var(--border))"
+                  strokeOpacity="0.85"
+                  strokeWidth="1.5"
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+          </svg>
+
+          {list.map((round, ri) => {
+          const isLast = goldLastRound && ri === list.length - 1;
+            const left = ri * (COLUMN_W + CONNECTOR_W);
+            return columns[ri].matches.map((match, matchIndex) => {
+              if (!match) return null;
+              const center = layout.centers[ri]?.[matchIndex];
+              if (center === undefined) return null;
+              return (
+                <div
+                  key={match.id}
+                  className="absolute z-10"
+                  style={{ left, top: center - MATCH_H / 2, width: COLUMN_W, height: MATCH_H }}
+                >
+                  {renderMatchCard(match, isLast)}
+                </div>
+              );
+            });
+          })}
+        </div>
       </div>
     );
   };
