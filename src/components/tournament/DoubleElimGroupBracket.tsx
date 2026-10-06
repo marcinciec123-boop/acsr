@@ -7,6 +7,7 @@ import type { MatchResult, PhaseFormat } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
+import { computeBracketLayout } from "@/lib/bracketLayout";
 
 interface Props {
   matches: MatchResult[];
@@ -23,15 +24,10 @@ interface Props {
 
 // Match-card sizing (must match math)
 const MATCH_H = 64;
-const BASE_GAP = 12;
+const BASE_GAP = 16;
 const HEADER_H = 26;
-
-const gapForDepth = (depth: number) =>
-  BASE_GAP + (Math.pow(2, depth) - 1) * (MATCH_H + BASE_GAP);
-const offsetForDepth = (depth: number) =>
-  depth === 0
-    ? 0
-    : Math.pow(2, depth - 1) * (MATCH_H + BASE_GAP) - BASE_GAP / 2 - MATCH_H / 2;
+const COLUMN_W = 180;
+const CONNECTOR_W = 40;
 
 const teamLabel = (name: string, isWinner: boolean) => {
   if (isPlaceholder(name) || !name)
@@ -197,76 +193,6 @@ const MatchCard = ({
   );
 };
 
-const RoundColumn = ({
-  title,
-  slots,
-  depth,
-  side,
-  isFinal,
-  onMatchUpdate,
-  onOpenMatch,
-  onDeleteMatch,
-  onAddMatch,
-  allTeams,
-}: {
-  title: string;
-  /** Positional slots — null keeps an empty gap so remaining matches stay in place. */
-  slots: (MatchResult | null)[];
-  depth: number;
-  side: "ub" | "lb";
-  isFinal?: boolean;
-  onMatchUpdate: Props["onMatchUpdate"];
-  onOpenMatch?: Props["onOpenMatch"];
-  onDeleteMatch?: Props["onDeleteMatch"];
-  onAddMatch?: Props["onAddMatch"];
-  allTeams?: string[];
-}) => {
-  const offset = offsetForDepth(depth);
-  const gap = gapForDepth(depth);
-  return (
-    <div className="flex flex-col w-[170px] shrink-0">
-      <div className="flex items-center justify-between gap-1 px-1 mb-1.5" style={{ height: HEADER_H }}>
-        <h6
-          className={cn(
-            "text-xs font-mono uppercase font-bold tracking-wider truncate",
-            isFinal ? "text-[hsl(var(--gold))]" : side === "ub" ? "text-[hsl(var(--win))]" : "text-destructive/80",
-          )}
-          title={title}
-        >
-          {isFinal && "★ "}
-          {title}
-        </h6>
-        {onAddMatch && (
-          <button
-            onClick={() => onAddMatch(title)}
-            className="text-muted-foreground hover:text-primary transition-colors p-0.5 rounded hover:bg-secondary/50 shrink-0"
-            title="Dodaj mecz w tej fazie"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-      <div className="flex flex-col" style={{ paddingTop: offset, gap: `${gap}px` }}>
-        {slots.map((m, i) =>
-          m ? (
-            <MatchCard
-              key={m.id}
-              m={m}
-              isFinal={isFinal}
-              onMatchUpdate={onMatchUpdate}
-              onOpenMatch={onOpenMatch}
-              onDeleteMatch={onDeleteMatch}
-              allTeams={allTeams}
-            />
-          ) : (
-            <div key={`empty-${i}`} style={{ height: MATCH_H }} aria-hidden />
-          ),
-        )}
-      </div>
-    </div>
-  );
-};
-
 interface ColumnSpec {
   title: string;
   slots: string[];
@@ -340,32 +266,120 @@ export const DoubleElimGroupBracket = ({
     side: "ub" | "lb",
     label: string,
     color: string,
-  ) => (
+  ) => {
+    const targetSlot = (slot: string): string | undefined => {
+      const links: Record<string, string> = side === "lb"
+        ? {
+            "GSL-LM": "GSL-DM",
+            "IEM-LB-R1-M1": "IEM-LB-R2-M1",
+            "IEM-LB-R1-M2": "IEM-LB-R2-M2",
+            "IEM-LB-R2-M1": "IEM-LB-FINAL",
+            "IEM-LB-R2-M2": "IEM-LB-FINAL",
+          }
+        : {
+            "GSL-OM1": "GSL-WM",
+            "GSL-OM2": "GSL-WM",
+            "IEM-UB-R1-M1": "IEM-UB-SF-M1",
+            "IEM-UB-R1-M2": "IEM-UB-SF-M1",
+            "IEM-UB-R1-M3": "IEM-UB-SF-M2",
+            "IEM-UB-R1-M4": "IEM-UB-SF-M2",
+          };
+      return links[slot];
+    };
+    const idBySlot = new Map(matches.flatMap(match => match.bracketSlot ? [[match.bracketSlot, match.id] as const] : []));
+    const layoutColumns = cols.map(col => ({
+      matches: col.slots.map(match => {
+        if (!match) return null;
+        const target = match.bracketSlot ? targetSlot(match.bracketSlot) : undefined;
+        const winnerTo = target ? idBySlot.get(target) : match.winnerTo;
+        return winnerTo ? { ...match, winnerTo } : match;
+      }),
+    }));
+    const layout = computeBracketLayout(layoutColumns, MATCH_H, BASE_GAP);
+    const width = cols.length * COLUMN_W + Math.max(0, cols.length - 1) * CONNECTOR_W;
+
+    return (
     <div>
       <div className={cn("text-xs font-mono uppercase font-bold tracking-wider mb-2 pb-1 border-b", color)}>
         {label}
       </div>
       <div className="overflow-x-auto pb-2">
-        <div className="flex items-start min-w-fit gap-3">
-          {cols.map((col, ci) => (
-            <RoundColumn
-              key={`${col.title}-${ci}`}
-              title={col.title}
-              slots={col.slots}
-              depth={ci}
-              side={side}
-              isFinal={col.isFinal}
-              onMatchUpdate={onMatchUpdate}
-              onOpenMatch={onOpenMatch}
-              onDeleteMatch={onDeleteMatch}
-              onAddMatch={onAddMatch}
-              allTeams={allTeams}
-            />
-          ))}
+        <div className="relative" style={{ width, minWidth: width }}>
+          <div className="relative" style={{ height: HEADER_H }}>
+            {cols.map((col, columnIndex) => (
+              <div
+                key={`header-${col.title}-${columnIndex}`}
+                className="absolute top-0 flex items-center justify-between gap-1 px-1"
+                style={{ left: columnIndex * (COLUMN_W + CONNECTOR_W), width: COLUMN_W, height: HEADER_H }}
+              >
+                <h6
+                  className={cn(
+                    "text-xs font-mono uppercase font-bold tracking-wider truncate",
+                    col.isFinal ? "text-[hsl(var(--gold))]" : side === "ub" ? "text-[hsl(var(--win))]" : "text-destructive/80",
+                  )}
+                  title={col.title}
+                >
+                  {col.isFinal && "★ "}{col.title}
+                </h6>
+                {onAddMatch && (
+                  <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" onClick={() => onAddMatch(col.title)} title="Dodaj mecz w tej fazie">
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="relative" style={{ height: layout.height }}>
+            <svg className="absolute inset-0 pointer-events-none overflow-visible" width={width} height={layout.height} aria-hidden="true">
+              {layout.connectors.map((connector, index) => {
+                const x1 = connector.fromColumn * (COLUMN_W + CONNECTOR_W) + COLUMN_W;
+                const x2 = connector.toColumn * (COLUMN_W + CONNECTOR_W);
+                const y1 = layout.centers[connector.fromColumn]?.[connector.fromIndex];
+                const y2 = layout.centers[connector.toColumn]?.[connector.toIndex];
+                if (y1 === undefined || y2 === undefined) return null;
+                const midX = x1 + (x2 - x1) / 2;
+                return (
+                  <path
+                    key={`${connector.fromColumn}-${connector.fromIndex}-${connector.toColumn}-${connector.toIndex}-${index}`}
+                    d={`M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`}
+                    fill="none"
+                    stroke="hsl(var(--border))"
+                    strokeOpacity="0.85"
+                    strokeWidth="1.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+            </svg>
+
+            {cols.flatMap((col, columnIndex) => col.slots.map((match, matchIndex) => {
+              if (!match) return null;
+              const center = layout.centers[columnIndex]?.[matchIndex];
+              if (center === undefined) return null;
+              return (
+                <div
+                  key={match.id}
+                  className="absolute z-10"
+                  style={{ left: columnIndex * (COLUMN_W + CONNECTOR_W), top: center - MATCH_H / 2, width: COLUMN_W, height: MATCH_H }}
+                >
+                  <MatchCard
+                    m={match}
+                    isFinal={col.isFinal}
+                    onMatchUpdate={onMatchUpdate}
+                    onOpenMatch={onOpenMatch}
+                    onDeleteMatch={onDeleteMatch}
+                    allTeams={allTeams}
+                  />
+                </div>
+              );
+            }))}
+          </div>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
