@@ -95,7 +95,9 @@ const RecordBookPanel = () => {
   const [dataTick, setDataTick] = useState(0);
   useEffect(() => {
     const bump = () => setDataTick(t => t + 1);
-    const events = ["records:update", "tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
+    // Odświeżamy tylko po faktycznym sprawdzeniu rekordów (strażnik) —
+    // nie przy każdym zapisie danych, bo pełne przeliczenie jest ciężkie.
+    const events = ["records:update", "storage"];
     events.forEach(e => window.addEventListener(e, bump));
     return () => events.forEach(e => window.removeEventListener(e, bump));
   }, []);

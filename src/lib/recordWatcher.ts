@@ -3,6 +3,7 @@
 // pobite rekordy. Panel rekordów nasłuchuje "records:update".
 import { toast } from "sonner";
 import { computeRecordBook, type RecordDef } from "./recordBook";
+import { loadStatsTournaments } from "./statsPortal";
 
 const LS_KEY = "csgo_hub_record_leaders_v1";
 const BROKEN_KEY = "csgo_hub_record_broken_v1";
@@ -24,7 +25,33 @@ export function getRecentlyBroken(): Set<string> {
   return new Set(Object.entries(map).filter(([, t]) => now - t < NEW_FOR_MS).map(([id]) => id));
 }
 
+// Tani odcisk palca rozstrzygniętych wyników. Pełne przeliczenie Księgi
+// Rekordów (~70 kategorii) uruchamiamy tylko, gdy zmienił się wynik meczu
+// albo status zatwierdzenia — wpisywanie statystyk graczy nie zmienia
+// odcisku, więc nie powoduje ścinek.
+let lastFingerprint: string | null = null;
+function resultsFingerprint(): string {
+  const parts: string[] = [];
+  for (const t of loadStatsTournaments()) {
+    const ms = [
+      ...(t.phases || []).flatMap(p => [...(p.bracket || []), ...((p.groups || []).flatMap(g => g.matches || []))]),
+      ...(t.matches || []),
+    ];
+    for (const m of ms) {
+      if ((m.score1 || 0) + (m.score2 || 0) > 0 || m.resultConfirmed) {
+        parts.push(`${m.id}:${m.score1}:${m.score2}:${m.resultConfirmed ? 1 : 0}`);
+      }
+    }
+  }
+  return parts.join("|");
+}
+
 function check(): void {
+  let fp: string;
+  try { fp = resultsFingerprint(); } catch (e) { console.error("Record fingerprint failed:", e); return; }
+  if (fp === lastFingerprint) return;
+  lastFingerprint = fp;
+
   let records: RecordDef[];
   try { records = computeRecordBook(); } catch (e) { console.error("Record check failed:", e); return; }
   const prev = readJson<Leaders | null>(LS_KEY, null);
