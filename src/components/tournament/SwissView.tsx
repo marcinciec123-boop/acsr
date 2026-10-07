@@ -401,7 +401,7 @@ export const SwissView = ({
             </tr>
           </thead>
           <tbody>
-            {stage.standings.filter(s => s.status !== "eliminated").map((s, i) => {
+            {stage.standings.map((s, i) => {
               const style = STATUS_STYLE[s.status];
               return (
                 <motion.tr
@@ -453,11 +453,6 @@ export const SwissView = ({
             )}
           </tbody>
         </table>
-        {eliminatedCount > 0 && (
-          <div className="px-3 py-1.5 border-t border-border bg-secondary/30 text-xs font-mono text-muted-foreground">
-            {eliminatedCount} {eliminatedCount === 1 ? "drużyna odpadła" : "drużyn odpadło"} — ukryte w tabeli (licznik u góry).
-          </div>
-        )}
       </div>
 
       {/* Per-round detailed match sections */}
