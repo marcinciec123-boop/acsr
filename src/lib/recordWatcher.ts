@@ -3,6 +3,7 @@
 // pobite rekordy. Panel rekordów nasłuchuje "records:update".
 import { toast } from "sonner";
 import { computeRecordBook, type RecordDef } from "./recordBook";
+import { loadStatsTournaments } from "./statsPortal";
 
 const LS_KEY = "csgo_hub_record_leaders_v1";
 const BROKEN_KEY = "csgo_hub_record_broken_v1";
