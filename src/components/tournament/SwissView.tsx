@@ -401,7 +401,7 @@ export const SwissView = ({
             </tr>
           </thead>
           <tbody>
-            {stage.standings.map((s, i) => {
+            {stage.standings.filter(s => s.status !== "eliminated").map((s, i) => {
               const style = STATUS_STYLE[s.status];
               return (
                 <motion.tr
