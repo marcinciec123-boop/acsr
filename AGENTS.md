@@ -2,3 +2,4 @@
 - Derive cabinet entries from each save's existing tournament placements and player career participation; never persist duplicate trophy awards, so imported saves appear automatically.
 
 - Desktop app is a Tauri v2 shell in src-tauri bundling the built dist offline; GitHub Actions builds a signed release on every push to main and the in-app updater pulls latest.json, since the sandbox cannot produce .exe files.
+- Bracket views derive match positions and connector paths through the shared graph-based bracket layout helper, so irregular lower-bracket rounds remain aligned across tournament and group views.
