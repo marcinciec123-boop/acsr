@@ -453,6 +453,11 @@ export const SwissView = ({
             )}
           </tbody>
         </table>
+        {eliminatedCount > 0 && (
+          <div className="px-3 py-1.5 border-t border-border bg-secondary/30 text-xs font-mono text-muted-foreground">
+            {eliminatedCount} {eliminatedCount === 1 ? "drużyna odpadła" : "drużyn odpadło"} — ukryte w tabeli (licznik u góry).
+          </div>
+        )}
       </div>
 
       {/* Per-round detailed match sections */}
