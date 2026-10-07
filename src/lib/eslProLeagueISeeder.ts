@@ -6,7 +6,7 @@
 import type { TournamentData } from "./types";
 import { ESL_PRO_LEAGUE_I_SEED } from "./eslProLeagueISeed";
 
-const SEED_VERSION_KEY = "csgo_hub_seed_esl_pro_league_i_v2_stats_fix";
+const SEED_VERSION_KEY = "csgo_hub_seed_esl_pro_league_i_v3_swiss_teams_fix";
 const ESL_PRO_LEAGUE_I_ID = "esl-pro-league-i-2026";
 
 export function seedEslProLeagueI(current: TournamentData[]): TournamentData[] {
