@@ -62,6 +62,8 @@ export interface MatchResult {
   pointsLoser?: number;
   /** Czy wynik meczu został zatwierdzony i punkty zaaplikowane do rankingu */
   resultConfirmed?: boolean;
+  /** Realny znacznik czasu (ms) ostatniego zatwierdzenia wyniku przyciskiem. */
+  confirmedAt?: number;
   /** ISO timestamp ustawiany kiedy mecz uzyskuje finalny wynik (do chronologicznego sortowania historii). */
   playedAt?: string;
   /** Zaplanowany termin meczu (fikcyjny kalendarz) — "YYYY-MM-DDTHH:mm". */

@@ -127,8 +127,22 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     }
   }, [computedScore.s1, computedScore.s2]);
 
+  // Przelicza rating wszystkich graczy mapy na podstawie aktualnego wyniku
+  // (statystyki wpisane przed wynikiem miały 0 rund → rating 0.00).
+  const withRatings = (m: MatchMap): MatchMap => {
+    const rounds = (m.score1 || 0) + (m.score2 || 0);
+    if (rounds <= 0) return m;
+    const fix = (list?: MapPlayerStats[]) => list?.map(p => (p ? { ...p, rating: calculateRating({ ...p, rounds }) } : p));
+    return { ...m, team1Players: fix(m.team1Players), team2Players: fix(m.team2Players) };
+  };
+
   const updateMap = (idx: number, patch: Partial<MatchMap>) => {
-    const next = maps.map((m, i) => i === idx ? { ...m, ...patch } : m);
+    const scoreChanged = "score1" in patch || "score2" in patch;
+    const next = maps.map((m, i) => {
+      if (i !== idx) return m;
+      const merged = { ...m, ...patch };
+      return scoreChanged ? withRatings(merged) : merged;
+    });
     onUpdate({ maps: next });
   };
 
@@ -258,7 +272,13 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   };
 
   const handleConfirm = () => {
-    onUpdate({ pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true });
+    onUpdate({
+      pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true,
+      confirmedAt: Date.now(),
+      maps: maps.map(withRatings),
+    });
+    // Sprawdzenie pobitych rekordów dopiero po fizycznym zatwierdzeniu wyniku.
+    setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
     toast({
       title: "Wynik zatwierdzony",
