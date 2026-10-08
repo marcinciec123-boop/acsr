@@ -490,6 +490,7 @@ const PlayerProfile = ({
                       <th className="text-left py-1.5">Turniej</th>
                       <th className="text-left py-1.5">Runda</th>
                       <th className="text-left py-1.5">Data</th>
+                      <th className="text-left py-1.5">Drużyna</th>
                       <th className="text-left py-1.5">Przeciwnik</th>
                       <th className="text-center py-1.5">Wynik</th>
                       <th className="text-center py-1.5">K-D-A</th>
@@ -516,6 +517,20 @@ const PlayerProfile = ({
                               ? `${dateTime.slice(0, 10)}${dateTime.length >= 16 ? ` ${dateTime.slice(11, 16)}` : ""}`
                               : "—";
                           })()}
+                        </td>
+                        <td className="py-2">
+                          <button
+                            onClick={() => onSelectTeam(m.team)}
+                            title={`Wtedy grał w ${m.team}`}
+                            className="flex items-center gap-1.5 max-w-[150px] group/team"
+                          >
+                            <span className="shrink-0 opacity-80 group-hover/team:opacity-100 transition-opacity">
+                              <TeamLogo teamName={m.team} size={18} rounded="md" />
+                            </span>
+                            <span className="truncate text-muted-foreground group-hover/team:text-primary transition-colors">
+                              {m.team}
+                            </span>
+                          </button>
                         </td>
                         <td className="py-2">
                           <button
