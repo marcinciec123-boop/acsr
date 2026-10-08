@@ -899,6 +899,7 @@ const TournamentPanel = () => {
     const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {
       setTournaments(next);
+      setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
       // Mistrzostwa świata (reprezentacje narodowe) NIE wpływają na klubowy ranking.
       if (finalized.kind !== "worlds") {
         const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(t => ({ ...t }));

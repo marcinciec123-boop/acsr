@@ -48,7 +48,10 @@ const MIN_MAPS_TEAM_MAP = 10;
 const RATING_FIX_CUTOFF = new Date(2026, 9, 4).getTime(); // 2026-10-04 00:00 lokalnie
 const RATING_MIN = 0.45;
 const RATING_MAX = 2.0;
-function ratingCounts(rating: number, ts: number): boolean {
+function ratingCounts(rating: number, ts: number, confirmedAt?: number): boolean {
+  // Mecz zatwierdzony po aktualizacji systemu (realny czas) liczy się zawsze,
+  // niezależnie od daty w świecie gry.
+  if (confirmedAt && confirmedAt >= RATING_FIX_CUTOFF) return true;
   if (ts < RATING_FIX_CUTOFF && (rating > RATING_MAX || rating < RATING_MIN)) return false;
   return true;
 }
@@ -236,7 +239,7 @@ function computeRecordBookRaw(): RecordDef[] {
           pMap.deaths.push({ ...e, value: p.deaths, display: `${p.deaths}` });
           pMap.assists.push({ ...e, value: p.assists, display: `${p.assists}` });
           pMap.adr.push({ ...e, value: p.adr, display: f1(p.adr) });
-          if (ratingCounts(rating, ts)) {
+          if (ratingCounts(rating, ts, m.confirmedAt)) {
             pMap.rating.push({ ...e, value: rating, display: f2(rating) });
             pMap.lowRating.push({ ...e, value: rating, display: f2(rating) });
           }
@@ -275,7 +278,7 @@ function computeRecordBookRaw(): RecordDef[] {
         pSeries.kills.push({ ...e, value: s.k, display: `${s.k}` });
         pSeries.deaths.push({ ...e, value: s.d, display: `${s.d}` });
         if (s.rr) {
-          if (ratingCounts(s.ratingW / s.rr, ts)) pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
+          if (ratingCounts(s.ratingW / s.rr, ts, m.confirmedAt)) pSeries.rating.push({ ...e, value: s.ratingW / s.rr, display: f2(s.ratingW / s.rr) });
           pSeries.adr.push({ ...e, value: s.dmg / s.rr, display: f1(s.dmg / s.rr) });
         }
       }
