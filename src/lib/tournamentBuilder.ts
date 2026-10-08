@@ -671,7 +671,7 @@ const toMatchPlayer = (p: MapPlayerStats, rounds: number, teamName: string): Pla
     ef: p.ef,
     rounds,
   };
-  stats.rating = p.rating ?? calculateRating(stats);
+  stats.rating = (p.rating && p.rating > 0) ? p.rating : calculateRating(stats);
   return stats;
 };
 

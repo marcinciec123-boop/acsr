@@ -1,3 +1,4 @@
+import { calculateRating } from "./playerStats";
 // ===== Dodatki do aktualności: tożsamość komentujących, sondy, nastroje, załączniki, szablony =====
 
 import type { MatchResult, TournamentData } from "./types";
@@ -288,7 +289,7 @@ export function matchMvp(m: MatchResult): { name: string; team: string; rating: 
       .forEach(([p, team]) => {
         if (!p?.playerName) return;
         const a = acc.get(p.playerName) || { team, r: 0, n: 0, k: 0, d: 0, adr: 0 };
-        a.r += p.rating ?? 1; a.n++; a.k += p.kills || 0; a.d += p.deaths || 0; a.adr += p.adr || 0;
+        a.r += (p.rating && p.rating > 0) ? p.rating : calculateRating({ ...p, rounds: (mp.score1 || 0) + (mp.score2 || 0) } as any); a.n++; a.k += p.kills || 0; a.d += p.deaths || 0; a.adr += p.adr || 0;
         acc.set(p.playerName, a);
       });
   });
