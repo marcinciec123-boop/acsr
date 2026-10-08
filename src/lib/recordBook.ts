@@ -230,7 +230,7 @@ function computeRecordBookRaw(): RecordDef[] {
       for (const side of sides) {
         for (const p of side.list) {
           if (!p?.playerName) continue;
-          const rating = p.rating ?? calculateRating({ ...p, rounds });
+          const rating = (p.rating && p.rating > 0) ? p.rating : calculateRating({ ...p, rounds });
           const e = { player: p.playerName, team: side.team, context: mctx, ...base };
           pMap.kills.push({ ...e, value: p.kills, display: `${p.kills}` });
           pMap.deaths.push({ ...e, value: p.deaths, display: `${p.deaths}` });

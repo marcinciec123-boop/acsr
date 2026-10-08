@@ -118,7 +118,7 @@ function computeStreaksRaw(): StreakData {
       for (const side of sides) {
         for (const p of side.list) {
           if (!p?.playerName) continue;
-          const rating = p.rating ?? calculateRating({ ...p, rounds });
+          const rating = (p.rating && p.rating > 0) ? p.rating : calculateRating({ ...p, rounds });
           const prev = playerRun.get(p.playerName) || { count: 0, team: side.team };
           if (rating >= RATING_THRESHOLD) {
             playerRun.set(p.playerName, { count: prev.count + 1, team: side.team, last: m.ts });

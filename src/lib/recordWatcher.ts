@@ -39,7 +39,24 @@ function resultsFingerprint(): string {
     ];
     for (const m of ms) {
       if ((m.score1 || 0) + (m.score2 || 0) > 0 || m.resultConfirmed) {
-        parts.push(`${m.id}:${m.score1}:${m.score2}:${m.resultConfirmed ? 1 : 0}`);
+        // Dla zatwierdzonych meczów uwzględniamy też statystyki map (wynik
+        // mapy, K/D/ADR/KAST/rating) — poprawki statystyk/ratingów po
+        // zatwierdzeniu też odświeżają rekordy. Niezatwierdzone mecze nie
+        // wpływają na odcisk przy wpisywaniu statystyk (brak ścinek).
+        let st = "";
+        if (m.resultConfirmed) {
+          for (const mp of (m.maps || []) as any[]) {
+            let h = (mp.score1 || 0) * 100 + (mp.score2 || 0);
+            for (const p of [...(mp.team1Players || []), ...(mp.team2Players || [])]) {
+              if (!p) continue;
+              h = (h * 31 + (p.kills || 0) * 7 + (p.deaths || 0) * 3 + (p.assists || 0)
+                + Math.round((p.adr || 0) * 10) + Math.round((p.kast || 0) * 10)
+                + Math.round((p.rating || 0) * 1000) + (p.playerName?.length || 0)) | 0;
+            }
+            st += `,${h}`;
+          }
+        }
+        parts.push(`${m.id}:${m.score1}:${m.score2}:${m.resultConfirmed ? 1 : 0}${st}`);
       }
     }
   }

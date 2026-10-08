@@ -1023,7 +1023,7 @@ const PlayerStatsTab = ({
             </thead>
             <tbody>
               {players.map((p, i) => {
-                const rating = p.rating ?? calculateRating({ ...p, rounds: totalRounds });
+                const rating = (p.rating && p.rating > 0) ? p.rating : calculateRating({ ...p, rounds: totalRounds });
                 return (
                   <tr key={i} className="border-b border-border/20 hover:bg-secondary/20">
                     <td className="px-3 py-2">
