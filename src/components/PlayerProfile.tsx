@@ -520,6 +520,20 @@ const PlayerProfile = ({
                         </td>
                         <td className="py-2">
                           <button
+                            onClick={() => onSelectTeam(m.team)}
+                            title={`Wtedy grał w ${m.team}`}
+                            className="flex items-center gap-1.5 max-w-[150px] group/team"
+                          >
+                            <span className="shrink-0 opacity-80 group-hover/team:opacity-100 transition-opacity">
+                              <TeamLogo teamName={m.team} size={18} rounded="sm" />
+                            </span>
+                            <span className="truncate text-muted-foreground group-hover/team:text-primary transition-colors">
+                              {m.team}
+                            </span>
+                          </button>
+                        </td>
+                        <td className="py-2">
+                          <button
                             onClick={() => onSelectTeam(m.opponent)}
                             className="text-foreground hover:text-primary transition-colors font-bold"
                           >
