@@ -490,6 +490,7 @@ const PlayerProfile = ({
                       <th className="text-left py-1.5">Turniej</th>
                       <th className="text-left py-1.5">Runda</th>
                       <th className="text-left py-1.5">Data</th>
+                      <th className="text-left py-1.5">Drużyna</th>
                       <th className="text-left py-1.5">Przeciwnik</th>
                       <th className="text-center py-1.5">Wynik</th>
                       <th className="text-center py-1.5">K-D-A</th>
