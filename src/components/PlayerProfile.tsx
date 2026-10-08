@@ -525,7 +525,7 @@ const PlayerProfile = ({
                             className="flex items-center gap-1.5 max-w-[150px] group/team"
                           >
                             <span className="shrink-0 opacity-80 group-hover/team:opacity-100 transition-opacity">
-                              <TeamLogo teamName={m.team} size={18} rounded="sm" />
+                              <TeamLogo teamName={m.team} size={18} rounded="md" />
                             </span>
                             <span className="truncate text-muted-foreground group-hover/team:text-primary transition-colors">
                               {m.team}
