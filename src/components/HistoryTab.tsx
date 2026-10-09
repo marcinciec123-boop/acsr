@@ -36,6 +36,56 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   const [customTransfers, setCustomTransfers] = useState<Transfer[]>([]);
   const [manualFreeAgents, setManualFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
 
+  // Rozwiązane drużyny (baza startowa + rozwiązane w trakcie gry)
+  const [extraDisbands, setExtraDisbands] = useState(() => loadExtraDisbands());
+  const [disbandSearch, setDisbandSearch] = useState("");
+  useEffect(() => {
+    const refresh = () => setExtraDisbands(loadExtraDisbands());
+    window.addEventListener("teams:update", refresh);
+    window.addEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+    return () => {
+      window.removeEventListener("teams:update", refresh);
+      window.removeEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+    };
+  }, []);
+
+  interface DisbandEntry {
+    team: string;
+    date: string;
+    reason: string;
+    finalRoster?: string[];
+    country?: string;
+    region?: string;
+    live?: boolean;
+  }
+  const allDisbands = useMemo<DisbandEntry[]>(() => {
+    const seen = new Set<string>();
+    const list: DisbandEntry[] = [];
+    // Najpierw rozwiązane w trakcie gry (mają pełniejsze dane)
+    extraDisbands.forEach(d => {
+      const key = d.team.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({ team: d.team, date: d.date, reason: d.reason, finalRoster: d.finalRoster, country: d.country, region: d.region, live: true });
+    });
+    disbands.forEach(d => {
+      const key = d.team.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({ team: d.team, date: d.date, reason: d.reason });
+    });
+    return list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  }, [extraDisbands]);
+
+  const filteredDisbands = useMemo(() => {
+    const q = disbandSearch.trim().toLowerCase();
+    if (!q) return allDisbands;
+    return allDisbands.filter(d =>
+      d.team.toLowerCase().includes(q) ||
+      (d.finalRoster || []).some(p => p.toLowerCase().includes(q)),
+    );
+  }, [allDisbands, disbandSearch]);
+
   // Compute free agents from all transfers: players whose last transfer was to "-"
   const freeAgents = useMemo(() => {
     const allT = [...staticTransfers, ...customTransfersGlobal, ...customTransfers];
