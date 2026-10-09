@@ -1,10 +1,12 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter, ArrowUpDown, Plus, UserPlus, UserMinus, X } from "lucide-react";
 import { nameChanges, transfers as staticTransfers, disbands, customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
+import { loadExtraDisbands } from "@/lib/teamManagement";
+import { ORG_EVENTS_UPDATE_EVENT } from "@/lib/orgEvents";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,56 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
   // Manual transfers
   const [customTransfers, setCustomTransfers] = useState<Transfer[]>([]);
   const [manualFreeAgents, setManualFreeAgents] = useState<{ player: string; previousTeam: string; firstName: string; lastName: string; nationality: string }[]>([]);
+
+  // Rozwiązane drużyny (baza startowa + rozwiązane w trakcie gry)
+  const [extraDisbands, setExtraDisbands] = useState(() => loadExtraDisbands());
+  const [disbandSearch, setDisbandSearch] = useState("");
+  useEffect(() => {
+    const refresh = () => setExtraDisbands(loadExtraDisbands());
+    window.addEventListener("teams:update", refresh);
+    window.addEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+    return () => {
+      window.removeEventListener("teams:update", refresh);
+      window.removeEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
+    };
+  }, []);
+
+  interface DisbandEntry {
+    team: string;
+    date: string;
+    reason: string;
+    finalRoster?: string[];
+    country?: string;
+    region?: string;
+    live?: boolean;
+  }
+  const allDisbands = useMemo<DisbandEntry[]>(() => {
+    const seen = new Set<string>();
+    const list: DisbandEntry[] = [];
+    // Najpierw rozwiązane w trakcie gry (mają pełniejsze dane)
+    extraDisbands.forEach(d => {
+      const key = d.team.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({ team: d.team, date: d.date, reason: d.reason, finalRoster: d.finalRoster, country: d.country, region: d.region, live: true });
+    });
+    disbands.forEach(d => {
+      const key = d.team.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({ team: d.team, date: d.date, reason: d.reason });
+    });
+    return list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  }, [extraDisbands]);
+
+  const filteredDisbands = useMemo(() => {
+    const q = disbandSearch.trim().toLowerCase();
+    if (!q) return allDisbands;
+    return allDisbands.filter(d =>
+      d.team.toLowerCase().includes(q) ||
+      (d.finalRoster || []).some(p => p.toLowerCase().includes(q)),
+    );
+  }, [allDisbands, disbandSearch]);
 
   // Compute free agents from all transfers: players whose last transfer was to "-"
   const freeAgents = useMemo(() => {
@@ -174,7 +226,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
     { id: "transfers", label: "Transfery", icon: <ArrowRightLeft className="w-4 h-4" />, count: allTransfers.length },
     { id: "freeAgents", label: "Wolni agenci", icon: <UserMinus className="w-4 h-4" />, count: freeAgents.length },
     { id: "nameChanges", label: "Zmiany nazw", icon: <RefreshCw className="w-4 h-4" />, count: nameChanges.length },
-    { id: "disbands", label: "Rozwiązania", icon: <XCircle className="w-4 h-4" />, count: disbands.length },
+    { id: "disbands", label: "Rozwiązania", icon: <XCircle className="w-4 h-4" />, count: allDisbands.length },
   ];
 
   return (
@@ -500,29 +552,64 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
 
         {/* Disbands */}
         {section === "disbands" && (
-          <div className="space-y-4">
-            {disbands.map((d, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-card border border-destructive/20 rounded-lg p-5"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-destructive" />
-                    {d.team}
-                  </h3>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {new Date(d.date).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })}
-                  </span>
+          <div>
+            <div className="relative mb-6 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Szukaj drużyny lub gracza ze składu..."
+                value={disbandSearch}
+                onChange={e => setDisbandSearch(e.target.value)}
+                className="pl-9 bg-card border-border"
+              />
+            </div>
+            <div className="space-y-4">
+              {filteredDisbands.map((d, i) => (
+                <motion.div
+                  key={`${d.team}-${d.date}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.05, 0.5) }}
+                  className="bg-card border border-destructive/20 rounded-lg p-5"
+                >
+                  <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+                    <h3 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
+                      <XCircle className="w-5 h-5 text-destructive shrink-0" />
+                      {d.country && <span className="text-base">{countryFlag(d.country)}</span>}
+                      {d.team}
+                      {d.live && (
+                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/30">
+                          W tej grze
+                        </span>
+                      )}
+                    </h3>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {d.region && <span className="mr-2 px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{d.region}</span>}
+                      {new Date(d.date).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Powód: <span className="text-foreground">{d.reason}</span>
+                  </p>
+                  {d.finalRoster && d.finalRoster.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-mono text-muted-foreground uppercase mb-1.5">Skład w chwili rozwiązania</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {d.finalRoster.map(p => (
+                          <span key={p} className="px-2 py-0.5 rounded bg-secondary/60 border border-border text-xs font-mono text-foreground">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+              {filteredDisbands.length === 0 && (
+                <div className="bg-card border border-border rounded-lg px-4 py-8 text-center text-muted-foreground font-mono text-sm">
+                  Brak wyników
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  Powód: <span className="text-foreground">{d.reason}</span>
-                </p>
-              </motion.div>
-            ))}
+              )}
+            </div>
           </div>
         )}
       </div>

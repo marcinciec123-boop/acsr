@@ -9,11 +9,13 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Newspaper, Trophy, Users, ArrowRightLeft, User, HardDrive, Settings, Shield, UserCircle2,
+  Newspaper, Trophy, Users, ArrowRightLeft, User, HardDrive, Settings, Shield, UserCircle2, XCircle,
 } from "lucide-react";
 import type { Tab } from "@/components/NavBar";
 import { teamDatabase } from "@/data/tournaments";
+import { disbands as staticDisbands } from "@/data/history";
 import { loadFromStorage } from "@/lib/storage";
+import { loadExtraDisbands } from "@/lib/teamManagement";
 import type { TeamData } from "@/lib/types";
 
 interface Props {
@@ -46,12 +48,19 @@ const CommandPalette = ({ onTabChange, onSelectTeam, onSelectPlayer }: Props) =>
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const { teams, players } = useMemo(() => {
+  const { teams, players, disbanded } = useMemo(() => {
     const teamSrc = loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase;
     const sorted = [...teamSrc].sort((a, b) => (b.points || 0) - (a.points || 0));
     const playerSet = new Set<string>();
     teamSrc.forEach(t => (t.roster || []).forEach(p => playerSet.add(p)));
-    return { teams: sorted, players: Array.from(playerSet).sort() };
+    const activeNames = new Set(teamSrc.map(t => t.name.toLowerCase()));
+    const disbandedSet = new Map<string, string>();
+    loadExtraDisbands().forEach(d => disbandedSet.set(d.team.toLowerCase(), d.team));
+    staticDisbands.forEach(d => disbandedSet.set(d.team.toLowerCase(), d.team));
+    const disbanded = Array.from(disbandedSet.values())
+      .filter(name => !activeNames.has(name.toLowerCase()))
+      .sort();
+    return { teams: sorted, players: Array.from(playerSet).sort(), disbanded };
   }, [open]);
 
   const run = (fn: () => void) => {
@@ -80,6 +89,16 @@ const CommandPalette = ({ onTabChange, onSelectTeam, onSelectPlayer }: Props) =>
               <Shield className="w-4 h-4 text-primary" />
               <span className="ml-2">{t.name}</span>
               <span className="ml-auto text-xs text-muted-foreground font-mono">#{i + 1}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+        <CommandSeparator />
+        <CommandGroup heading="Rozwiązane drużyny">
+          {disbanded.slice(0, 20).map(name => (
+            <CommandItem key={name} value={`disbanded ${name}`} onSelect={() => run(() => onTabChange("transfers"))}>
+              <XCircle className="w-4 h-4 text-destructive" />
+              <span className="ml-2">{name}</span>
+              <span className="ml-auto text-xs text-muted-foreground font-mono">rozwiązana</span>
             </CommandItem>
           ))}
         </CommandGroup>
