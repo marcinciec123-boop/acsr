@@ -226,7 +226,7 @@ const HistoryTab = ({ onRosterChange }: HistoryTabProps = {}) => {
     { id: "transfers", label: "Transfery", icon: <ArrowRightLeft className="w-4 h-4" />, count: allTransfers.length },
     { id: "freeAgents", label: "Wolni agenci", icon: <UserMinus className="w-4 h-4" />, count: freeAgents.length },
     { id: "nameChanges", label: "Zmiany nazw", icon: <RefreshCw className="w-4 h-4" />, count: nameChanges.length },
-    { id: "disbands", label: "Rozwiązania", icon: <XCircle className="w-4 h-4" />, count: disbands.length },
+    { id: "disbands", label: "Rozwiązania", icon: <XCircle className="w-4 h-4" />, count: allDisbands.length },
   ];
 
   return (
