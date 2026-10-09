@@ -1,10 +1,12 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, RefreshCw, XCircle, Search, Filter, ArrowUpDown, Plus, UserPlus, UserMinus, X } from "lucide-react";
 import { nameChanges, transfers as staticTransfers, disbands, customTransfersGlobal, type Transfer } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
+import { loadExtraDisbands } from "@/lib/teamManagement";
+import { ORG_EVENTS_UPDATE_EVENT } from "@/lib/orgEvents";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
