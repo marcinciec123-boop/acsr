@@ -3,7 +3,6 @@
 // pobite rekordy. Panel rekordów nasłuchuje "records:update".
 import { toast } from "sonner";
 import { computeRecordBook, type RecordDef } from "./recordBook";
-import { loadStatsTournaments } from "./statsPortal";
 
 const LS_KEY = "csgo_hub_record_leaders_v1";
 const BROKEN_KEY = "csgo_hub_record_broken_v1";
@@ -25,50 +24,7 @@ export function getRecentlyBroken(): Set<string> {
   return new Set(Object.entries(map).filter(([, t]) => now - t < NEW_FOR_MS).map(([id]) => id));
 }
 
-// Tani odcisk palca rozstrzygniętych wyników. Pełne przeliczenie Księgi
-// Rekordów (~70 kategorii) uruchamiamy tylko, gdy zmienił się wynik meczu
-// albo status zatwierdzenia — wpisywanie statystyk graczy nie zmienia
-// odcisku, więc nie powoduje ścinek.
-let lastFingerprint: string | null = null;
-function resultsFingerprint(): string {
-  const parts: string[] = [];
-  for (const t of loadStatsTournaments()) {
-    const ms = [
-      ...(t.phases || []).flatMap(p => [...(p.bracket || []), ...((p.groups || []).flatMap(g => g.matches || []))]),
-      ...(t.matches || []),
-    ];
-    for (const m of ms) {
-      if ((m.score1 || 0) + (m.score2 || 0) > 0 || m.resultConfirmed) {
-        // Dla zatwierdzonych meczów uwzględniamy też statystyki map (wynik
-        // mapy, K/D/ADR/KAST/rating) — poprawki statystyk/ratingów po
-        // zatwierdzeniu też odświeżają rekordy. Niezatwierdzone mecze nie
-        // wpływają na odcisk przy wpisywaniu statystyk (brak ścinek).
-        let st = "";
-        if (m.resultConfirmed) {
-          for (const mp of (m.maps || []) as any[]) {
-            let h = (mp.score1 || 0) * 100 + (mp.score2 || 0);
-            for (const p of [...(mp.team1Players || []), ...(mp.team2Players || [])]) {
-              if (!p) continue;
-              h = (h * 31 + (p.kills || 0) * 7 + (p.deaths || 0) * 3 + (p.assists || 0)
-                + Math.round((p.adr || 0) * 10) + Math.round((p.kast || 0) * 10)
-                + Math.round((p.rating || 0) * 1000) + (p.playerName?.length || 0)) | 0;
-            }
-            st += `,${h}`;
-          }
-        }
-        parts.push(`${m.id}:${m.score1}:${m.score2}:${m.resultConfirmed ? 1 : 0}${st}`);
-      }
-    }
-  }
-  return parts.join("|");
-}
-
 function check(): void {
-  let fp: string;
-  try { fp = resultsFingerprint(); } catch (e) { console.error("Record fingerprint failed:", e); return; }
-  if (fp === lastFingerprint) return;
-  lastFingerprint = fp;
-
   let records: RecordDef[];
   try { records = computeRecordBook(); } catch (e) { console.error("Record check failed:", e); return; }
   const prev = readJson<Leaders | null>(LS_KEY, null);
@@ -100,15 +56,17 @@ function check(): void {
 let timer: ReturnType<typeof setTimeout> | null = null;
 const schedule = () => {
   if (timer) clearTimeout(timer);
-  timer = setTimeout(() => { timer = null; check(); }, 700);
+  timer = setTimeout(() => { timer = null; check(); }, 300);
 };
 
 let installed = false;
 export function installRecordWatcher(): void {
   if (installed || typeof window === "undefined") return;
   installed = true;
-  ["tournaments:update", "teams:update", "ranking:update", "season:reset", "storage"].forEach(ev =>
-    window.addEventListener(ev, schedule),
-  );
-  schedule();
+  // Rekordy sprawdzamy WYŁĄCZNIE po fizycznym zatwierdzeniu wyniku meczu
+  // („Zatwierdź wynik” / „Zaktualizuj punkty”), zakończeniu turnieju lub
+  // resecie sezonu — nie przy wpisywaniu wyników i statystyk.
+  ["records:check", "season:reset"].forEach(ev => window.addEventListener(ev, schedule));
+  // Pierwsze uruchomienie zapamiętuje obecnych liderów (bez komunikatów).
+  if (!localStorage.getItem(LS_KEY)) schedule();
 }
