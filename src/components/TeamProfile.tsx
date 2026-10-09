@@ -77,10 +77,25 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
   const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
-  const team = sorted.find((t) => t.name === teamName);
-  const globalRank = team ? sorted.indexOf(team) + 1 : 0;
-  const tier = globalRank <= 10 ? "Tier S" : globalRank <= 25 ? "Tier A" : globalRank <= 50 ? "Tier B" : globalRank <= 100 ? "Tier C" : "Poza rankingiem";
-  const tierColor = globalRank <= 10 ? "text-accent" : globalRank <= 25 ? "text-primary" : globalRank <= 50 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
+  const activeTeam = sorted.find((t) => t.name === teamName);
+  // Rozwiązana drużyna: profil budowany z archiwum (snapshot składu + historia turniejów).
+  const disbandInfo = useMemo(() => {
+    if (activeTeam) return null;
+    const key = teamName.toLowerCase();
+    const extra = loadExtraDisbands().filter(d => d.team.toLowerCase() === key).pop();
+    if (extra) return extra;
+    const st = staticDisbands.find(d => d.team.toLowerCase() === key);
+    if (st) return { team: st.team, date: st.date, reason: st.reason, finalRoster: [] as string[], country: "", region: "" };
+    return null;
+  }, [activeTeam, teamName]);
+  const team: TeamData | undefined = activeTeam || (disbandInfo ? {
+    name: disbandInfo.team, country: disbandInfo.country || "", region: disbandInfo.region || "—",
+    points: 0, roster: [...disbandInfo.finalRoster],
+  } as TeamData : undefined);
+  const isDisbanded = !activeTeam && !!disbandInfo;
+  const globalRank = activeTeam ? sorted.indexOf(activeTeam) + 1 : 0;
+  const tier = isDisbanded ? `Rozwiązana · ${disbandInfo!.date.slice(0, 10)}` : globalRank <= 10 ? "Tier S" : globalRank <= 25 ? "Tier A" : globalRank <= 50 ? "Tier B" : globalRank <= 100 ? "Tier C" : "Poza rankingiem";
+  const tierColor = isDisbanded ? "text-destructive" : globalRank <= 10 ? "text-accent" : globalRank <= 25 ? "text-primary" : globalRank <= 50 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
 
   // Refresh logo presence flag
   useEffect(() => {
