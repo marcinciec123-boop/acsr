@@ -9,11 +9,13 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Newspaper, Trophy, Users, ArrowRightLeft, User, HardDrive, Settings, Shield, UserCircle2,
+  Newspaper, Trophy, Users, ArrowRightLeft, User, HardDrive, Settings, Shield, UserCircle2, XCircle,
 } from "lucide-react";
 import type { Tab } from "@/components/NavBar";
 import { teamDatabase } from "@/data/tournaments";
+import { disbands as staticDisbands } from "@/data/history";
 import { loadFromStorage } from "@/lib/storage";
+import { loadExtraDisbands } from "@/lib/teamManagement";
 import type { TeamData } from "@/lib/types";
 
 interface Props {
