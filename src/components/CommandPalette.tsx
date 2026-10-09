@@ -48,12 +48,19 @@ const CommandPalette = ({ onTabChange, onSelectTeam, onSelectPlayer }: Props) =>
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const { teams, players } = useMemo(() => {
+  const { teams, players, disbanded } = useMemo(() => {
     const teamSrc = loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase;
     const sorted = [...teamSrc].sort((a, b) => (b.points || 0) - (a.points || 0));
     const playerSet = new Set<string>();
     teamSrc.forEach(t => (t.roster || []).forEach(p => playerSet.add(p)));
-    return { teams: sorted, players: Array.from(playerSet).sort() };
+    const activeNames = new Set(teamSrc.map(t => t.name.toLowerCase()));
+    const disbandedSet = new Map<string, string>();
+    loadExtraDisbands().forEach(d => disbandedSet.set(d.team.toLowerCase(), d.team));
+    staticDisbands.forEach(d => disbandedSet.set(d.team.toLowerCase(), d.team));
+    const disbanded = Array.from(disbandedSet.values())
+      .filter(name => !activeNames.has(name.toLowerCase()))
+      .sort();
+    return { teams: sorted, players: Array.from(playerSet).sort(), disbanded };
   }, [open]);
 
   const run = (fn: () => void) => {
