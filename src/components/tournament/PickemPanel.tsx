@@ -125,6 +125,17 @@ export const PickemPanel = ({ tournament: t }: Props) => {
     setDraft(fresh);
   }, [t.id]);
 
+  // Autosave typed picks so nothing is lost on restart even without pressing "Zapisz".
+  useEffect(() => {
+    if (draft === data) return;
+    const timer = setTimeout(() => {
+      const next = { ...draft, lockedAt: data.lockedAt };
+      savePicks(t.id, next);
+      setData(next);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [draft, data, t.id]);
+
   // Tournament-level lock only when results have been confirmed.
   const isLocked = !!t.resultsConfirmed;
   // Individual items handle their own lock (group started / swiss started / match played).
