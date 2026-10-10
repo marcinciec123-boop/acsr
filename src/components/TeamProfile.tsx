@@ -13,6 +13,8 @@ import ContractsWidget from "@/components/contracts/ContractsWidget";
 import AccoladeBadges from "@/components/AccoladeBadges";
 import { getTeamAccolades } from "@/lib/awardAccolades";
 import { teamDatabase } from "@/data/tournaments";
+import { loadExtraDisbands } from "@/lib/teamManagement";
+import { disbands as staticDisbands } from "@/data/history";
 import { playerNationalities } from "@/data/playerNationalities";
 import { playerRealNames } from "@/data/playerRealNames";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
