@@ -132,6 +132,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
       const next = { ...draft, lockedAt: data.lockedAt };
       savePicks(t.id, next);
       setData(next);
+      setDraft(next);
     }, 600);
     return () => clearTimeout(timer);
   }, [draft, data, t.id]);
