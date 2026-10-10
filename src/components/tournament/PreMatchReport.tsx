@@ -1,11 +1,11 @@
 // ===== Pre-Match Hub: raport map i przewidywane veto =====
 import { useMemo, useState } from "react";
-import { Ban, Check, Map as MapIcon, Target } from "lucide-react";
+import { Ban, Check, Map as MapIcon, Swords, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveMaps } from "@/lib/mapPool";
 import { getWorldNow } from "@/lib/worldClock";
 import TeamLogo from "@/components/TeamLogo";
-import { computeTeamMapStats, guessPermaban, predictVeto, type TeamMapStat } from "@/lib/mapAnalysis";
+import { computeH2H, computeTeamMapStats, guessPermaban, predictVeto, type H2HSummary, type TeamMapStat } from "@/lib/mapAnalysis";
 
 interface Props {
   team1: string;
@@ -84,6 +84,75 @@ const MapTableHalf = ({ team1, team2, maps, all, s1, s2, perma1, perma2 }: {
   </table>
 );
 
+const H2HBlock = ({ team1, team2, h }: { team1: string; team2: string; h: H2HSummary }) => {
+  const total = h.wins1 + h.wins2;
+  const p1 = total ? (h.wins1 / total) * 100 : 50;
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
+        <Swords className="w-3.5 h-3.5" /> Bilans H2H
+      </h3>
+      {!total ? (
+        <p className="text-xs font-mono text-muted-foreground">Te drużyny jeszcze ze sobą nie grały.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            <div className="flex items-center gap-1.5 min-w-0"><TeamLogo teamName={team1} size={22} rounded="md" /><span className="text-xs font-heading font-bold truncate">{team1}</span></div>
+            <div className="font-mono font-bold text-xl tabular-nums">
+              <span className={h.wins1 >= h.wins2 ? "text-win" : "text-muted-foreground"}>{h.wins1}</span>
+              <span className="text-muted-foreground/50 mx-1.5">:</span>
+              <span className={h.wins2 >= h.wins1 ? "text-win" : "text-muted-foreground"}>{h.wins2}</span>
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 justify-end"><span className="text-xs font-heading font-bold truncate">{team2}</span><TeamLogo teamName={team2} size={22} rounded="md" /></div>
+          </div>
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden flex">
+            <div className="bg-primary h-full" style={{ width: `${p1}%` }} />
+            <div className="bg-destructive/70 h-full flex-1" />
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              ["Mecze", total],
+              ["Mapy", `${h.maps1}-${h.maps2}`],
+              ["Rundy", `${h.rounds1}-${h.rounds2}`],
+            ].map(([l, v]) => (
+              <div key={l as string} className="bg-secondary/40 rounded px-1 py-1.5">
+                <div className="text-2xs font-mono uppercase text-muted-foreground">{l}</div>
+                <div className="text-sm font-mono font-bold tabular-nums">{v}</div>
+              </div>
+            ))}
+          </div>
+          {h.streak && (
+            <p className="text-xs font-mono text-muted-foreground">
+              Seria: <span className="text-foreground font-bold">{h.streak.side === 1 ? team1 : team2}</span> wygrywa {h.streak.count} {h.streak.count === 1 ? "mecz" : "z rzędu"}
+              {" · "}ostatnio: {h.meetings[0].tournament}
+            </p>
+          )}
+          {h.mapRecord.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {h.mapRecord.map(m => (
+                <span key={m.map} className="text-2xs font-mono px-1.5 py-0.5 rounded border border-border">
+                  {m.map} <span className={m.w1 > m.w2 ? "text-win" : m.w1 < m.w2 ? "text-destructive" : ""}>{m.w1}-{m.w2}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1">
+            <p className="text-2xs font-mono uppercase text-muted-foreground tracking-wider">Ostatnie spotkania</p>
+            {h.meetings.slice(0, 5).map(mt => (
+              <div key={mt.id} className="flex items-center gap-2 text-xs font-mono border-t border-border/40 pt-1">
+                <span className={cn("w-4 text-center font-bold", mt.winner === 1 ? "text-win" : "text-destructive")}>{mt.winner === 1 ? "W" : "L"}</span>
+                <span className="font-bold tabular-nums">{mt.s1}-{mt.s2}</span>
+                <span className="truncate text-muted-foreground flex-1 min-w-0">{mt.tournament}</span>
+                {mt.ts > 0 && <span className="text-muted-foreground/70 shrink-0">{new Date(mt.ts).toLocaleDateString("pl-PL")}</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
   const maps = useActiveMaps();
   const [period, setPeriod] = useState(6);
@@ -106,10 +175,13 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
     };
   }, [team1, team2, bo, maps, period, matchId]);
 
+  const h2h = useMemo(() => computeH2H(team1, team2, matchId), [team1, team2, matchId]);
   const hasData = s1.some(s => s.played) || s2.some(s => s.played);
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+      <H2HBlock team1={team1} team2={team2} h={h2h} />
+      <div className="border-t border-border/50" />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
           <MapIcon className="w-3.5 h-3.5" /> Raport przedmeczowy — mapy
