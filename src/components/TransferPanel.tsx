@@ -38,6 +38,7 @@ import {
   suggestDurationMonths, suggestSalary, terminateContract,
 } from "@/lib/contracts";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
+import { useProfileNav } from "@/lib/profileNav";
 import { loadOrgEvents, removeOrgEvent, ORG_EVENTS_UPDATE_EVENT, type OrgEvent } from "@/lib/orgEvents";
 
 type TransferType = "all" | "join" | "leave" | "move";
@@ -110,6 +111,7 @@ const persistPersonMetadataAfterSigning = (player: string) => {
 };
 
 const TransferPanel = () => {
+  const profileNav = useProfileNav();
   const [transfers, setTransfers] = useState<Transfer[]>(() => {
     const total = seedTransfers.length;
     const saved = loadFromStorage<Transfer[]>(TRANSFERS_KEY, []);
@@ -1022,7 +1024,7 @@ const TransferPanel = () => {
                         <ArrowRightLeft className="w-3 h-3 text-muted-foreground" />
                       </>
                     )}
-                    <span className="font-medium">{event.team}</span>
+                    <button type="button" onClick={() => profileNav?.openTeam(event.org || event.team)} className="font-medium hover:text-primary hover:underline text-left">{event.team}</button>
                     {event.org && event.org.toLowerCase() !== event.team.toLowerCase() && (
                       <span className="text-2xs font-mono text-muted-foreground px-1.5 py-0.5 rounded border border-border/60">
                         obecnie: {event.org}

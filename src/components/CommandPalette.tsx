@@ -95,7 +95,7 @@ const CommandPalette = ({ onTabChange, onSelectTeam, onSelectPlayer }: Props) =>
         <CommandSeparator />
         <CommandGroup heading="Rozwiązane drużyny">
           {disbanded.slice(0, 20).map(name => (
-            <CommandItem key={name} value={`disbanded ${name}`} onSelect={() => run(() => onTabChange("transfers"))}>
+            <CommandItem key={name} value={`disbanded ${name}`} onSelect={() => run(() => onSelectTeam(name))}>
               <XCircle className="w-4 h-4 text-destructive" />
               <span className="ml-2">{name}</span>
               <span className="ml-auto text-xs text-muted-foreground font-mono">rozwiązana</span>
