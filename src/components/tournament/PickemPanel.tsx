@@ -9,6 +9,7 @@ import { computeSwissStage } from "@/lib/swissEngine";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { getDisplayScore } from "@/lib/matchDisplay";
+import { loadFromStorage, saveToStorage } from "@/lib/storage";
 
 interface GroupPick { first: string; last: string; }
 /** Swiss picks: recordKey (e.g. "3-0") -> array of team names (fixed length). */
@@ -42,16 +43,26 @@ const emptyPicks = (): PickemData => ({
   groups: {}, swiss: {}, bracket: {}, champion: "", runnerUp: "",
 });
 
+// Durable key (device store + backups); legacy "pickem-<id>" localStorage keys are migrated on read.
+const durableKey = (id: string) => `pickem_${id}`;
+
 const loadPicks = (id: string): PickemData => {
   if (typeof window === "undefined") return emptyPicks();
+  const stored = loadFromStorage<PickemData | null>(durableKey(id), null);
+  if (stored) return { ...emptyPicks(), ...stored };
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + id);
-    if (raw) return { ...emptyPicks(), ...JSON.parse(raw) };
+    if (raw) {
+      const legacy = { ...emptyPicks(), ...JSON.parse(raw) };
+      saveToStorage(durableKey(id), legacy);
+      return legacy;
+    }
   } catch {}
   return emptyPicks();
 };
 
 const savePicks = (id: string, data: PickemData) => {
+  saveToStorage(durableKey(id), data);
   try { localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(data)); } catch {}
 };
 
