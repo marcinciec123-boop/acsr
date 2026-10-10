@@ -430,6 +430,13 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 )}
               </div>
 
+              {isDisbanded && (
+                <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+                  <span className="font-heading font-bold text-destructive">Organizacja rozwiązana</span>
+                  <span className="text-muted-foreground"> · {disbandInfo!.date.slice(0, 10)} · {disbandInfo!.reason}</span>
+                  {team.roster.length > 0 && <div className="text-xs text-muted-foreground mt-1">Ostatni skład: {team.roster.join(", ")}</div>}
+                </div>
+              )}
               {/* Stat strip */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <StatCell label="Mecze" value={`${totals.wins}-${totals.losses}`} accent={totals.winRate >= 50 ? "win" : "loss"} sub={`${totals.winRate}% WR`} />
