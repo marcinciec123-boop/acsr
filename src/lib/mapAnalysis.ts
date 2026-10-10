@@ -136,3 +136,64 @@ export function predictVeto(
   }
   return out;
 }
+
+// ===== Head-to-head =====
+export interface H2HMeeting { id: string; tournament: string; ts: number; s1: number; s2: number; winner: 1 | 2; maps: { map: string; s1: number; s2: number }[] }
+export interface H2HSummary {
+  meetings: H2HMeeting[]; // najnowsze najpierw
+  wins1: number; wins2: number;
+  maps1: number; maps2: number;
+  rounds1: number; rounds2: number;
+  streak: { side: 1 | 2; count: number } | null;
+  mapRecord: { map: string; w1: number; w2: number }[];
+}
+
+export function computeH2H(team1: string, team2: string, excludeMatchId?: string): H2HSummary {
+  const k1 = keyOf(team1), k2 = keyOf(team2);
+  const tours = loadFromStorage<TournamentData[]>("tournaments_data", []);
+  const meetings: H2HMeeting[] = [];
+  for (const t of Array.isArray(tours) ? tours : []) {
+    const list: MatchResult[] = [];
+    for (const p of t.phases || []) {
+      (p.bracket || []).forEach(m => list.push(m));
+      (p.groups || []).forEach(g => g.matches.forEach(m => list.push(m)));
+    }
+    for (const m of list) {
+      if (m.id === excludeMatchId) continue;
+      const a = keyOf(m.team1), b = keyOf(m.team2);
+      const flip = a === k2 && b === k1;
+      if (!(flip || (a === k1 && b === k2))) continue;
+      const s1 = flip ? m.score2 : m.score1, s2 = flip ? m.score1 : m.score2;
+      if ((s1 || 0) === (s2 || 0)) continue;
+      const maps = (m.maps || [])
+        .map(mp => ({ map: mp.map, s1: flip ? mp.score2 : mp.score1, s2: flip ? mp.score1 : mp.score2 }))
+        .filter(mp => (mp.s1 || 0) + (mp.s2 || 0) > 0 && mp.s1 !== mp.s2);
+      meetings.push({
+        id: m.id, tournament: t.name, s1, s2, winner: s1 > s2 ? 1 : 2, maps,
+        ts: getMatchTimestamp({ scheduledAt: m.scheduledAt, playedAt: m.playedAt, fallbackDate: t.startDate }) || 0,
+      });
+    }
+  }
+  meetings.sort((x, y) => y.ts - x.ts);
+  const r: H2HSummary = { meetings, wins1: 0, wins2: 0, maps1: 0, maps2: 0, rounds1: 0, rounds2: 0, streak: null, mapRecord: [] };
+  const mr = new Map<string, { map: string; w1: number; w2: number }>();
+  for (const mt of meetings) {
+    if (mt.winner === 1) r.wins1++; else r.wins2++;
+    const bo1 = mt.maps.length === 1 && Math.max(mt.s1, mt.s2) > 1;
+    if (bo1 || !mt.maps.length) { if (mt.winner === 1) r.maps1++; else r.maps2++; }
+    else { r.maps1 += mt.s1; r.maps2 += mt.s2; }
+    for (const mp of mt.maps) {
+      r.rounds1 += mp.s1; r.rounds2 += mp.s2;
+      const e = mr.get(mp.map) || { map: mp.map, w1: 0, w2: 0 };
+      if (mp.s1 > mp.s2) e.w1++; else e.w2++;
+      mr.set(mp.map, e);
+    }
+  }
+  if (meetings.length) {
+    const side = meetings[0].winner; let c = 0;
+    for (const mt of meetings) { if (mt.winner !== side) break; c++; }
+    r.streak = { side, count: c };
+  }
+  r.mapRecord = [...mr.values()].sort((a, b) => (b.w1 + b.w2) - (a.w1 + a.w2));
+  return r;
+}
