@@ -158,11 +158,14 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
   const [period, setPeriod] = useState(6);
   const [dataTick, setDataTick] = useState(0);
   useEffect(() => {
-    const bump = () => setDataTick(t => t + 1);
-    const events = ["tournaments:update", "teams:update", "season:reset", "records:check", "storage"];
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const bump = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => { t = null; setDataTick(x => x + 1); }, 700);
+    };
+    const events = ["tournaments:update", "season:reset", "storage"];
     events.forEach(e => window.addEventListener(e, bump));
-    const iv = window.setInterval(bump, 5000);
-    return () => { events.forEach(e => window.removeEventListener(e, bump)); window.clearInterval(iv); };
+    return () => { events.forEach(e => window.removeEventListener(e, bump)); if (t) clearTimeout(t); };
   }, []);
 
   const { s1, s2, perma1, perma2, veto } = useMemo(() => {
