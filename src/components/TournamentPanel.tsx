@@ -236,8 +236,8 @@ const TournamentPanel = () => {
   /** Turnieje, do których można jeszcze awansować (nie zakończone/zatwierdzone).
    *  Dozwolone są też inne kwalifikacje (np. open → closed), ale nie ten sam turniej. */
   const promotableTournaments = useMemo(
-    () => tournaments.filter(x => x.status !== "completed" && !x.resultsConfirmed && x.id !== editingId),
-    [tournaments, editingId],
+    () => tournaments.filter(x => x.status !== "completed" && !x.resultsConfirmed),
+    [tournaments],
   );
 
 
