@@ -1,5 +1,5 @@
 // ===== Pre-Match Hub: raport map i przewidywane veto =====
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ban, Check, Map as MapIcon, Swords, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveMaps } from "@/lib/mapPool";
@@ -156,6 +156,14 @@ const H2HBlock = ({ team1, team2, h }: { team1: string; team2: string; h: H2HSum
 export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
   const maps = useActiveMaps();
   const [period, setPeriod] = useState(6);
+  const [dataTick, setDataTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setDataTick(t => t + 1);
+    const events = ["tournaments:update", "teams:update", "season:reset", "records:check", "storage"];
+    events.forEach(e => window.addEventListener(e, bump));
+    const iv = window.setInterval(bump, 5000);
+    return () => { events.forEach(e => window.removeEventListener(e, bump)); window.clearInterval(iv); };
+  }, []);
 
   const { s1, s2, perma1, perma2, veto } = useMemo(() => {
     const now = getWorldNow();
@@ -173,9 +181,11 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
       perma1: guessPermaban(a), perma2: guessPermaban(b),
       veto: predictVeto(team1, team2, bo, maps, a, b),
     };
-  }, [team1, team2, bo, maps, period, matchId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team1, team2, bo, maps, period, matchId, dataTick]);
 
-  const h2h = useMemo(() => computeH2H(team1, team2, matchId), [team1, team2, matchId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const h2h = useMemo(() => computeH2H(team1, team2, matchId), [team1, team2, matchId, dataTick]);
   const hasData = s1.some(s => s.played) || s2.some(s => s.played);
 
   return (
