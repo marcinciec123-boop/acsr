@@ -1563,7 +1563,7 @@ const TournamentPanel = () => {
 
                     <div>
                       <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
-                        Powiązany turniej główny (opcjonalnie)
+                        Awans do turnieju (głównego lub innych kwalifikacji, opcjonalnie)
                       </label>
                       <select
                         value={qualLinkedTo}
