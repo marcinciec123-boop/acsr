@@ -56,7 +56,11 @@ function check(): void {
 let timer: ReturnType<typeof setTimeout> | null = null;
 const schedule = () => {
   if (timer) clearTimeout(timer);
-  timer = setTimeout(() => { timer = null; check(); }, 300);
+  timer = setTimeout(() => {
+    timer = null;
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) ric(check, { timeout: 3000 }); else setTimeout(check, 0);
+  }, 800);
 };
 
 let installed = false;
