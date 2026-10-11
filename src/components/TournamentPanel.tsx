@@ -233,9 +233,10 @@ const TournamentPanel = () => {
   /** Ile miejsc ma turniej (ręcznie ustawione sloty albo liczba wybranych drużyn). */
   const slotCount = Math.max(totalSlots || 0, selectedTeams.length);
 
-  /** Turnieje główne, do których można jeszcze awansować (nie zakończone/zatwierdzone). */
+  /** Turnieje, do których można jeszcze awansować (nie zakończone/zatwierdzone).
+   *  Dozwolone są też inne kwalifikacje (np. open → closed), ale nie ten sam turniej. */
   const promotableTournaments = useMemo(
-    () => tournaments.filter(x => x.kind !== "qualifier" && x.status !== "completed" && !x.resultsConfirmed),
+    () => tournaments.filter(x => x.status !== "completed" && !x.resultsConfirmed),
     [tournaments],
   );
 
@@ -1562,7 +1563,7 @@ const TournamentPanel = () => {
 
                     <div>
                       <label className="text-xs font-mono uppercase text-muted-foreground tracking-wider block mb-1">
-                        Powiązany turniej główny (opcjonalnie)
+                        Awans do turnieju (głównego lub innych kwalifikacji, opcjonalnie)
                       </label>
                       <select
                         value={qualLinkedTo}
