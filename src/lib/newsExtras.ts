@@ -313,52 +313,33 @@ export interface TemplateResult {
   poll?: { question: string; options: string[] };
 }
 
-const pick = <T,>(arr: T[], seed: string): T => arr[hashStr(seed) % arr.length];
+
+import { analyzeMatch, writeMatchReport, writeRoundReport, writeTransfer, writeBench, writeRanking, rnd } from "./newsWriter";
 
 export function matchReportTemplate(ref: MatchRef): TemplateResult {
   const m = ref.match;
-  const w = m.score1 > m.score2 ? m.team1 : m.team2;
-  const l = w === m.team1 ? m.team2 : m.team1;
-  const ws = Math.max(m.score1, m.score2), ls = Math.min(m.score1, m.score2);
-  const maps = (m.maps || []).map(mp => `${mp.map} ${mp.score1}:${mp.score2}`).join(", ");
   const mvp = matchMvp(m);
+  const f = analyzeMatch(m, mvp);
+  const { w, l } = f;
   const isFinal = /final/i.test(m.round || "") && !/semi|quarter|ćwierć|pół/i.test(m.round || "");
-  const head = isFinal
-    ? pick([`${w} mistrzem ${ref.tournamentName}!`, `${w} triumfuje w ${ref.tournamentName}`, `Puchar ${ref.tournamentName} jedzie do ${w}`], m.id)
-    : pick([`${w} ogrywa ${l} ${ws}:${ls}`, `${w} lepsze od ${l} w ${ref.tournamentName}`, `${l} bez odpowiedzi na ${w}`], m.id);
-  const lines = [
-    `${w} pokonało ${l} ${ws}:${ls}${m.round ? ` (${m.round})` : ""} w ramach ${ref.tournamentName} [Tier ${ref.tier}].`,
-    maps ? `Wyniki map: ${maps}.` : "",
-    mvp ? `MVP spotkania: ${mvp.name} (${mvp.team}) — rating ${mvp.rating.toFixed(2)}, ${mvp.kills}-${mvp.deaths}, ADR ${mvp.adr.toFixed(1)}.` : "",
-    isFinal
-      ? `To zwieńczenie turnieju dla ${w} — trofeum i komplet punktów rankingowych trafia na ich konto.`
-      : pick([`${l} musi szybko wyciągnąć wnioski przed kolejnymi meczami.`, `${w} potwierdza formę, a ${l} zostaje z wieloma pytaniami.`], m.id + "x"),
-  ].filter(Boolean);
+  const { title, content } = writeMatchReport(f, ref.tournamentName, ref.tier, isFinal);
   return {
-    title: head,
-    content: lines.join("\n\n"),
+    title, content,
     category: isFinal ? "tournament" : "recap",
     tags: [w, l, ref.tournamentName, ...(mvp ? [mvp.name] : [])],
     embeds: [{ kind: "match", tournamentId: ref.tournamentId, matchId: m.id }, ...(mvp ? [{ kind: "player" as const, name: mvp.name }] : [])],
     cover: { teamA: m.team1, teamB: m.team2, label: ref.tournamentName },
     poll: isFinal
-      ? { question: `Czy ${w} obroni formę w następnym turnieju?`, options: ["Tak, to ich era", "Jednorazowy wyskok", "Zobaczymy"] }
-      : { question: `Kto zajdzie dalej w ${ref.tournamentName}?`, options: [w, l] },
+      ? { question: rnd([`Czy ${w} obroni formę w następnym turnieju?`, `Ile trofeów zdobędzie ${w} w tym sezonie?`]), options: ["Tak, to ich era", "Jednorazowy wyskok", "Zobaczymy"] }
+      : { question: rnd([`Kto zajdzie dalej w ${ref.tournamentName}?`, `Zasłużone zwycięstwo ${w}?`]), options: [w, l] },
   };
 }
 
 export function transferTemplate(player: string, fromTeam: string, toTeam: string): TemplateResult {
-  const role = playerRoles[player];
   const hasFrom = fromTeam && fromTeam !== "-";
+  const { title, content } = writeTransfer(player, fromTeam, toTeam);
   return {
-    title: hasFrom ? `${player} przechodzi z ${fromTeam} do ${toTeam}` : `${toTeam} ogłasza ${player}`,
-    content: [
-      hasFrom
-        ? `Oficjalnie: ${player}${role ? ` (${role})` : ""} opuszcza ${fromTeam} i dołącza do ${toTeam}.`
-        : `${toTeam} sięga po ${player}${role ? `, który w nowej ekipie ma pełnić rolę ${role}` : ""}.`,
-      `„Cieszę się z nowego wyzwania. ${toTeam} ma ambicje, które pokrywają się z moimi — chcemy walczyć o trofea” — mówi ${player}.`,
-      `Organizacja liczy, że transfer wzmocni skład przed nadchodzącymi turniejami.`,
-    ].join("\n\n"),
+    title, content,
     category: hasFrom ? "transfer" : "signing",
     tags: [player, toTeam, ...(hasFrom ? [fromTeam] : [])],
     embeds: [{ kind: "player", name: player }],
@@ -368,15 +349,9 @@ export function transferTemplate(player: string, fromTeam: string, toTeam: strin
 }
 
 export function benchTemplate(player: string, team: string): TemplateResult {
+  const { title, content } = writeBench(player, team);
   return {
-    title: `${player} przesunięty na ławkę ${team}`,
-    content: [
-      `${team} poinformowało, że ${player} zostaje przesunięty do rezerwy i nie zagra w najbliższych turniejach.`,
-      `„To była trudna decyzja. Dziękujemy ${player} za dotychczasową pracę i będziemy wspierać go w dalszych krokach” — przekazała organizacja.`,
-      `Zawodnik może szukać nowego klubu. Nazwisko zastępcy ma zostać ogłoszone wkrótce.`,
-    ].join("\n\n"),
-    category: "release",
-    tags: [player, team],
+    title, content, category: "release", tags: [player, team],
     embeds: [{ kind: "player", name: player }],
     cover: { teamA: team, label: "BENCH" },
     poll: { question: `Gdzie powinien trafić ${player}?`, options: ["Do topowej ekipy", "Niższy tier na odbudowę", "Przerwa od grania"] },
@@ -384,18 +359,9 @@ export function benchTemplate(player: string, team: string): TemplateResult {
 }
 
 export function rankingTemplate(team: string, rank: number, points: number): TemplateResult {
+  const { title, content } = writeRanking(team, rank, points);
   return {
-    title: `${team} na #${rank} w rankingu ACSR`,
-    content: [
-      `${team} zajmuje obecnie ${rank}. miejsce w światowym rankingu ACSR z dorobkiem ${Math.round(points)} pkt.`,
-      rank <= 5
-        ? `To pozycja ścisłej czołówki — od nich oczekuje się walki o każde trofeum.`
-        : rank <= 20
-          ? `Drużyna puka do czołówki i każdy kolejny turniej może ją przybliżyć do Top 5.`
-          : `Ekipa wciąż buduje pozycję i szuka przełomowego wyniku.`,
-    ].join("\n\n"),
-    category: "rating",
-    tags: [team, "ranking"],
+    title, content, category: "rating", tags: [team, "ranking"],
     cover: { teamA: team, label: `#${rank} ACSR` },
     poll: { question: `Gdzie ${team} będzie za miesiąc?`, options: ["Wyżej", "Tak samo", "Niżej"] },
   };
@@ -403,24 +369,11 @@ export function rankingTemplate(team: string, rank: number, points: number): Tem
 
 export function roundReportTemplate(g: RoundRef): TemplateResult {
   const phase = g.phaseName && g.phaseName !== g.label ? `${g.phaseName} — ${g.label}` : g.label;
-  const lines = g.matches.map(r => {
-    const m = r.match;
-    const w = m.score1 > m.score2 ? m.team1 : m.team2;
-    const l = w === m.team1 ? m.team2 : m.team1;
-    const maps = (m.maps || []).map(mp => `${mp.map} ${mp.score1}:${mp.score2}`).join(", ");
-    return `• ${w} ${Math.max(m.score1, m.score2)}:${Math.min(m.score1, m.score2)} ${l}${maps ? ` (${maps})` : ""}`;
-  });
-  const mvps = g.matches.map(r => matchMvp(r.match)).filter(Boolean) as NonNullable<ReturnType<typeof matchMvp>>[];
-  const star = mvps.sort((a, b) => b.rating - a.rating)[0];
-  const winners = [...new Set(g.matches.map(r => r.match.score1 > r.match.score2 ? r.match.team1 : r.match.team2))];
+  const facts = g.matches.map(r => analyzeMatch(r.match, matchMvp(r.match)));
+  const star = facts.map(f => f.mvp).filter(Boolean).sort((a, b) => b!.rating - a!.rating)[0] || null;
+  const { title, content, winners } = writeRoundReport(facts, g.tournamentName, g.tier, phase, g.label, star);
   return {
-    title: `${g.tournamentName}: podsumowanie — ${g.label}`,
-    content: [
-      `Za nami ${phase} w ${g.tournamentName} [Tier ${g.tier}]. Rozegrano ${g.matches.length} ${g.matches.length === 1 ? "mecz" : "meczów"}.`,
-      lines.join("\n"),
-      star ? `Najlepszy zawodnik etapu: ${star.name} (${star.team}) — rating ${star.rating.toFixed(2)}, ${star.kills}-${star.deaths}, ADR ${star.adr.toFixed(1)}.` : "",
-      `Zwycięzcy: ${winners.join(", ")}. Czas na kolejny etap rywalizacji.`,
-    ].filter(Boolean).join("\n\n"),
+    title, content,
     category: "recap",
     tags: [g.tournamentName, g.label, ...winners.slice(0, 6), ...(star ? [star.name] : [])],
     embeds: [
