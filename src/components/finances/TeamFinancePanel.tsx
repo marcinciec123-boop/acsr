@@ -61,12 +61,14 @@ const TeamFinancePanel = ({ team, onDisbanded }: { team: string; onDisbanded?: (
   const [showAll, setShowAll] = useState(false);
   const [startBal, setStartBal] = useState("");
   const [running, setRunning] = useState("");
+  const [staff, setStaff] = useState("");
 
   useEffect(() => {
     if (!f) return;
     setStartBal(String(f.startingBalance));
     setRunning(String(f.monthlyRunning));
-  }, [f?.startingBalance, f?.monthlyRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+    setStaff(String(f.monthlyStaff));
+  }, [f?.startingBalance, f?.monthlyRunning, f?.monthlyStaff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!f) return <p className="text-sm text-muted-foreground">Brak danych finansowych.</p>;
 
@@ -80,10 +82,11 @@ const TeamFinancePanel = ({ team, onDisbanded }: { team: string; onDisbanded?: (
     updateFinanceSettings(team, {
       startingBalance: Math.max(0, parseInt(startBal, 10) || 0),
       monthlyRunning: Math.max(0, parseInt(running, 10) || 0),
+      monthlyStaff: Math.max(0, parseInt(staff, 10) || 0),
     });
   };
 
-  const order = ["start", "prize", "transfer_in", "manual_in", "salary", "bonus", "transfer_out", "running", "manual_out"] as const;
+  const order = ["start", "prize", "transfer_in", "manual_in", "salary", "bonus", "transfer_out", "running", "staff", "manual_out"] as const;
   const ledger = showAll ? f.ledger : f.ledger.slice(0, 25);
 
   return (
@@ -135,6 +138,9 @@ const TeamFinancePanel = ({ team, onDisbanded }: { team: string; onDisbanded?: (
             </label>
             <label className="text-[10px] font-mono text-muted-foreground">Koszty bieżące / mies.
               <Input inputMode="numeric" value={running} onChange={e => setRunning(e.target.value)} onBlur={saveSettings} />
+            </label>
+            <label className="text-[10px] font-mono text-muted-foreground col-span-2">Personel / mies. (sztab, analitycy, fizjo, media)
+              <Input inputMode="numeric" value={staff} onChange={e => setStaff(e.target.value)} onBlur={saveSettings} />
             </label>
           </div>
         </div>

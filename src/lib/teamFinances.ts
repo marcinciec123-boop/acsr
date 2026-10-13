@@ -7,17 +7,15 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import type { TournamentData } from "./types";
 import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
-import { CONTRACTS_EVENT, loadContracts, type PlayerContract } from "./contracts";
+import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
 import { getWorldNow, getWorldDate } from "./worldClock";
 import { loadAllTeams } from "./teamManagement";
 
 export const FINANCES_EVENT = "finances:update";
 const ENTRIES_KEY = "team_finance_entries";
 const SETTINGS_KEY = "team_finance_settings";
-const DAY = 86_400_000;
-const MONTH_DAYS = 30.44;
 
-export type LedgerCategory = "prize" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "manual_in" | "manual_out" | "start";
+export type LedgerCategory = "prize" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "staff" | "manual_in" | "manual_out" | "start";
 
 export const CATEGORY_LABEL: Record<LedgerCategory, string> = {
   start: "Budżet startowy",
@@ -27,7 +25,8 @@ export const CATEGORY_LABEL: Record<LedgerCategory, string> = {
   salary: "Pensje",
   bonus: "Premie za podpis",
   transfer_out: "Zakupy zawodników",
-  running: "Koszty bieżące",
+  running: "Koszty bieżące (marketing, eventy)",
+  staff: "Personel (sztab, analitycy, fizjo, media)",
   manual_out: "Inne wydatki",
 };
 
@@ -51,6 +50,7 @@ export interface ManualEntry {
 export interface TeamFinanceSettings {
   startingBalance?: number;
   monthlyRunning?: number;
+  monthlyStaff?: number;
 }
 
 export type FinanceHealth = "ok" | "low" | "negative" | "critical";
@@ -66,6 +66,7 @@ export interface TeamFinance {
   health: FinanceHealth;
   startingBalance: number;
   monthlyRunning: number;
+  monthlyStaff: number;
 }
 
 export const CRITICAL_THRESHOLD = -500_000;
@@ -100,17 +101,42 @@ export function updateFinanceSettings(team: string, patch: TeamFinanceSettings):
 
 // ---------- defaults ----------
 
-export function defaultStartingBalance(rank: number): number {
-  if (rank <= 10) return 2_000_000;
-  if (rank <= 30) return 800_000;
-  if (rank <= 60) return 350_000;
-  return 150_000;
+/** Stały dla danej drużyny mnożnik losowy z zakresu [min, max]. */
+const jitter = (team: string, salt: string, min: number, max: number) => min + seededRandom(`${team}:${salt}`) * (max - min);
+const round = (v: number, step: number) => Math.max(step, Math.round(v / step) * step);
+
+export function defaultStartingBalance(rank: number, team = ""): number {
+  const base = rank <= 5 ? 3_000_000 : rank <= 10 ? 2_000_000 : rank <= 20 ? 1_200_000 : rank <= 30 ? 800_000 : rank <= 60 ? 350_000 : 150_000;
+  // Część organizacji ma bogatego właściciela, część ledwo przędzie.
+  const r = seededRandom(`${team}:sugar`);
+  const mult = r > 0.9 ? jitter(team, "rich", 2, 3.5) : r < 0.15 ? jitter(team, "poor", 0.25, 0.6) : jitter(team, "start", 0.6, 1.6);
+  return round(base * mult, 10_000);
 }
-export function defaultMonthlyRunning(rank: number): number {
-  if (rank <= 10) return 60_000;
-  if (rank <= 30) return 30_000;
-  if (rank <= 60) return 15_000;
-  return 8_000;
+export function defaultMonthlyRunning(rank: number, team = ""): number {
+  const base = rank <= 10 ? 60_000 : rank <= 30 ? 30_000 : rank <= 60 ? 15_000 : 8_000;
+  return round(base * jitter(team, "run", 0.6, 1.5), 500);
+}
+export function defaultMonthlyStaff(rank: number, team = ""): number {
+  const base = rank <= 10 ? 45_000 : rank <= 30 ? 25_000 : rank <= 60 ? 12_000 : 5_000;
+  return round(base * jitter(team, "staff", 0.65, 1.45), 500);
+}
+
+// Obciążenia naliczane są na początku każdego miesiąca (1. dnia),
+// a pierwszy/ostatni niepełny miesiąc proporcjonalnie.
+const monthStartAfter = (t: number) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); };
+const monthKey = (t: number) => new Date(t).toISOString().slice(0, 7);
+/** [dataObciążenia, ułamekMiesiąca] dla okresu [from, to) obciążanego do `now`. */
+function monthlyCharges(from: number, to: number, now: number): [number, number][] {
+  const out: [number, number][] = [];
+  let t = from;
+  while (t < to && t <= now) {
+    const next = monthStartAfter(t);
+    const d = new Date(t);
+    const monthLen = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+    out.push([t, (Math.min(next, to) - t) / monthLen]);
+    t = next;
+  }
+  return out;
 }
 
 // ---------- compute ----------
@@ -167,6 +193,7 @@ function computeAll(): Map<string, TeamFinance> {
   const contracts = loadContracts();
   const byPlayer = new Map<string, PlayerContract[]>();
   const firstContract = new Map<string, number>();
+  const salaryMonths = new Map<string, { team: string; at: number; amount: number; players: number }>();
   for (const c of contracts) {
     const arr = byPlayer.get(c.player) || [];
     arr.push(c);
@@ -174,19 +201,29 @@ function computeAll(): Map<string, TeamFinance> {
     const s = ms(c.startDate);
     if (!firstContract.has(c.team) || s < firstContract.get(c.team)!) firstContract.set(c.team, s);
 
-    const end = Math.min(nowMs, ms(c.terminatedAt || c.endDate));
     const start = ms(c.startDate);
-    if (end > start && c.salary > 0) {
-      const months = (end - start) / DAY / MONTH_DAYS;
-      push(c.team, {
-        id: `sal_${c.id}`, date: day(new Date(end).toISOString()), amount: -Math.round(c.salary * months),
-        category: "salary", label: `Pensja: ${c.player} (${months.toFixed(1)} mies.)`,
-      });
+    // Kontrakt kończy się wcześniej z dwóch dat: zerwania lub wygaśnięcia.
+    const end = Math.min(ms(c.endDate), c.terminatedAt ? ms(c.terminatedAt) : Infinity);
+    if (end > start && c.salary > 0 && c.team && c.team !== "-") {
+      for (const [at, frac] of monthlyCharges(start, end, nowMs)) {
+        const key = `${c.team}|${monthKey(at)}`;
+        const cur = salaryMonths.get(key) || { team: c.team, at, amount: 0, players: 0 };
+        cur.amount += c.salary * frac;
+        cur.players += 1;
+        cur.at = Math.min(cur.at, at);
+        salaryMonths.set(key, cur);
+      }
     }
     const bonus = c.terms?.signingBonus || 0;
     if (bonus > 0 && start <= nowMs) {
       push(c.team, { id: `bon_${c.id}`, date: day(c.startDate), amount: -bonus, category: "bonus", label: `Premia za podpis: ${c.player}` });
     }
+  }
+  for (const [key, m] of salaryMonths) {
+    push(m.team, {
+      id: `sal_${key}`, date: day(new Date(m.at).toISOString()), amount: -Math.round(m.amount),
+      category: "salary", label: `Pensje ${monthKey(m.at)} (${m.players} os.)`,
+    });
   }
   for (const [player, list] of byPlayer) {
     list.sort((a, b) => ms(a.startDate) - ms(b.startDate));
@@ -215,18 +252,20 @@ function computeAll(): Map<string, TeamFinance> {
   for (const team of names) {
     const rank = rankOf.get(team) ?? 999;
     const s = settings[team] || {};
-    const startingBalance = s.startingBalance ?? defaultStartingBalance(rank);
-    const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank);
+    const startingBalance = s.startingBalance ?? defaultStartingBalance(rank, team);
+    const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank, team);
+    const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
     const epoch = firstContract.get(team);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
-    if (epoch && rankOf.has(team) && nowMs > epoch && monthlyRunning > 0) {
-      const months = (nowMs - epoch) / DAY / MONTH_DAYS;
-      ledger.push({
-        id: `run_${team}`, date: nowDay, amount: -Math.round(monthlyRunning * months), category: "running",
-        label: `Marketing, eventy, bootcampy (${months.toFixed(1)} mies.)`,
-      });
+    if (epoch && rankOf.has(team)) {
+      for (const [at, frac] of monthlyCharges(epoch, Infinity, nowMs)) {
+        const date = day(new Date(at).toISOString());
+        const mk = monthKey(at);
+        if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning * frac), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
+        if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff * frac), category: "staff", label: `Personel ${mk}` });
+      }
     }
     ledger.sort((a, b) => b.date.localeCompare(a.date));
     let income = 0, expenses = 0;
@@ -241,8 +280,8 @@ function computeAll(): Map<string, TeamFinance> {
       .reduce((a, c) => a + c.salary, 0);
     const balance = startingBalance + income - expenses;
     out.set(team, {
-      team, balance, income, expenses, byCategory, ledger, startingBalance, monthlyRunning,
-      monthlyBurn: salaries + (rankOf.has(team) ? monthlyRunning : 0),
+      team, balance, income, expenses, byCategory, ledger, startingBalance, monthlyRunning, monthlyStaff,
+      monthlyBurn: salaries + (rankOf.has(team) ? monthlyRunning + monthlyStaff : 0),
       health: healthOf(balance),
     });
   }
