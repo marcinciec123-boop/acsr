@@ -10,6 +10,7 @@ import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
 import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
 import { getWorldNow, getWorldDate } from "./worldClock";
 import { loadAllTeams } from "./teamManagement";
+import { canonicalTeamName } from "./teamRenames";
 
 export const FINANCES_EVENT = "finances:update";
 const ENTRIES_KEY = "team_finance_entries";
@@ -94,7 +95,8 @@ export function removeManualEntry(id: string): void {
 }
 export function updateFinanceSettings(team: string, patch: TeamFinanceSettings): void {
   const all = loadFinanceSettings();
-  all[team] = { ...all[team], ...patch };
+  const key = canonicalTeamName(team);
+  all[key] = { ...all[key], ...patch };
   saveToStorage(SETTINGS_KEY, all);
   emit();
 }
@@ -163,13 +165,14 @@ function computeAll(): Map<string, TeamFinance> {
   const nowMs = getWorldNow().getTime();
   const nowDay = new Date(nowMs).toISOString().slice(0, 10);
   const teams = [...loadAllTeams()].sort((a, b) => b.points - a.points);
-  const rankOf = new Map(teams.map((t, i) => [t.name, i + 1]));
+  const rankOf = new Map(teams.map((t, i) => [canonicalTeamName(t.name), i + 1]));
   const settings = loadFinanceSettings();
   const ledgers = new Map<string, LedgerEntry[]>();
   const push = (team: string, e: LedgerEntry) => {
     if (!team || team === "-") return;
-    let l = ledgers.get(team);
-    if (!l) { l = []; ledgers.set(team, l); }
+    const key = canonicalTeamName(team);
+    let l = ledgers.get(key);
+    if (!l) { l = []; ledgers.set(key, l); }
     l.push(e);
   };
 
@@ -199,15 +202,16 @@ function computeAll(): Map<string, TeamFinance> {
     arr.push(c);
     byPlayer.set(c.player, arr);
     const s = ms(c.startDate);
-    if (!firstContract.has(c.team) || s < firstContract.get(c.team)!) firstContract.set(c.team, s);
+    const cTeam = canonicalTeamName(c.team);
+    if (!firstContract.has(cTeam) || s < firstContract.get(cTeam)!) firstContract.set(cTeam, s);
 
     const start = ms(c.startDate);
     // Kontrakt kończy się wcześniej z dwóch dat: zerwania lub wygaśnięcia.
     const end = Math.min(ms(c.endDate), c.terminatedAt ? ms(c.terminatedAt) : Infinity);
-    if (end > start && c.salary > 0 && c.team && c.team !== "-") {
+    if (end > start && c.salary > 0 && cTeam && cTeam !== "-") {
       for (const [at, frac] of monthlyCharges(start, end, nowMs)) {
-        const key = `${c.team}|${monthKey(at)}`;
-        const cur = salaryMonths.get(key) || { team: c.team, at, amount: 0, players: 0 };
+        const key = `${cTeam}|${monthKey(at)}`;
+        const cur = salaryMonths.get(key) || { team: cTeam, at, amount: 0, players: 0 };
         cur.amount += c.salary * frac;
         cur.players += 1;
         cur.at = Math.min(cur.at, at);
@@ -247,7 +251,7 @@ function computeAll(): Map<string, TeamFinance> {
   }
 
   // 4) Złożenie per drużyna (+ budżet startowy, koszty bieżące)
-  const names = new Set<string>([...teams.map(t => t.name), ...ledgers.keys()]);
+  const names = new Set<string>([...teams.map(t => canonicalTeamName(t.name)), ...ledgers.keys()]);
   const out = new Map<string, TeamFinance>();
   for (const team of names) {
     const rank = rankOf.get(team) ?? 999;
@@ -276,7 +280,7 @@ function computeAll(): Map<string, TeamFinance> {
       if (e.amount >= 0) income += e.amount; else expenses -= e.amount;
     }
     const salaries = contracts
-      .filter(c => c.team === team && !c.terminatedAt && ms(c.startDate) <= nowMs && ms(c.endDate) > nowMs)
+      .filter(c => canonicalTeamName(c.team) === team && !c.terminatedAt && ms(c.startDate) <= nowMs && ms(c.endDate) > nowMs)
       .reduce((a, c) => a + c.salary, 0);
     const balance = startingBalance + income - expenses;
     out.set(team, {
@@ -294,12 +298,12 @@ function all(): Map<string, TeamFinance> {
 }
 
 export function getTeamFinance(team: string): TeamFinance | null {
-  return all().get(team) || null;
+  return all().get(canonicalTeamName(team)) || null;
 }
 
 /** Tylko aktywne drużyny — do tabeli finansów ligi. */
 export function getLeagueFinances(): TeamFinance[] {
-  const active = new Set(loadAllTeams().map(t => t.name));
+  const active = new Set(loadAllTeams().map(t => canonicalTeamName(t.name)));
   return [...all().values()].filter(f => active.has(f.team)).sort((a, b) => b.balance - a.balance);
 }
 
