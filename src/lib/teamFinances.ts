@@ -183,6 +183,7 @@ function computeAll(): Map<string, TeamFinance> {
     const key = canonicalTeamName(team);
     let l = ledgers.get(key);
     if (!l) { l = []; ledgers.set(key, l); }
+    if (l.some(x => x.id === e.id)) return;
     l.push(e);
   };
 
@@ -204,10 +205,13 @@ function computeAll(): Map<string, TeamFinance> {
 
   // 2) Kontrakty — pensje, premie, odstępne
   const contracts = loadContracts();
+  const seenContract = new Set<string>();
   const byPlayer = new Map<string, PlayerContract[]>();
   const firstContract = new Map<string, number>();
   const salaryMonths = new Map<string, { team: string; at: number; amount: number; players: number }>();
   for (const c of contracts) {
+    if (seenContract.has(c.id)) continue;
+    seenContract.add(c.id);
     const arr = byPlayer.get(c.player) || [];
     arr.push(c);
     byPlayer.set(c.player, arr);
@@ -224,13 +228,13 @@ function computeAll(): Map<string, TeamFinance> {
   // kontrakt obowiązujący w tym dniu. Bieżący kontrakt z datą „w przyszłości”
   // (np. po cofnięciu zegara) też jest płacony, żeby zawodnik na liście
   // nie grał za darmo.
-  const payDays = firstsOfMonth(seasonStart, nowMs);
+  const payDays = firstsOfMonth(seasonStart + 1, nowMs);
   for (const [, list] of byPlayer) {
     const current = list
       .filter(c => !c.terminatedAt)
       .sort((a, b) => ms(b.startDate) - ms(a.startDate))[0];
     for (const at of payDays) {
-      let c = list.find(x => activeAt(x, at));
+      let c = list.find(x => !x.terminatedAt && activeAt(x, at)) || list.find(x => activeAt(x, at));
       if (!c && current && ms(current.startDate) > at && at < contractEnd(current)) c = current;
       if (!c || !(c.salary > 0)) continue;
       const cTeam = canonicalTeamName(c.team);
@@ -292,7 +296,7 @@ function computeAll(): Map<string, TeamFinance> {
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
     if (epoch && rankOf.has(team)) {
-      for (const at of firstsOfMonth(epoch, nowMs)) {
+      for (const at of firstsOfMonth(epoch + 1, nowMs)) {
         const date = day(new Date(at).toISOString());
         const mk = monthKey(at);
         if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
