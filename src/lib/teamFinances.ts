@@ -61,6 +61,10 @@ export interface TeamFinance {
   balance: number;
   income: number;
   expenses: number;
+  /** Przychody / koszty tylko z bieżącego miesiąca fikcyjnego kalendarza. */
+  monthIncome: number;
+  monthExpenses: number;
+  month: string; // YYYY-MM
   monthlyBurn: number; // pensje + koszty bieżące / mies.
   byCategory: Partial<Record<LedgerCategory, number>>;
   ledger: LedgerEntry[];
@@ -211,20 +215,31 @@ function computeAll(): Map<string, TeamFinance> {
     const cTeam = canonicalTeamName(c.team);
     if (!firstContract.has(cTeam) || s < firstContract.get(cTeam)!) firstContract.set(cTeam, s);
 
-    const start = Math.max(s, seasonStart);
-    if (c.salary > 0 && cTeam && cTeam !== "-") {
-      for (const at of firstsOfMonth(start, Math.min(nowMs, contractEnd(c) - 1))) {
-        if (!activeAt(c, at)) continue;
-        const key = `${cTeam}|${monthKey(at)}`;
-        const cur = salaryMonths.get(key) || { team: cTeam, at, amount: 0, players: 0 };
-        cur.amount += c.salary;
-        cur.players += 1;
-        salaryMonths.set(key, cur);
-      }
-    }
     const bonus = c.terms?.signingBonus || 0;
     if (bonus > 0 && s >= seasonStart && s <= nowMs) {
       push(c.team, { id: `bon_${c.id}`, date: day(c.startDate), amount: -bonus, category: "bonus", label: `Premia za podpis: ${c.player}` });
+    }
+  }
+  // Pensje: 1. dnia każdego miesiąca (fikcyjny kalendarz) pełna pensja za
+  // kontrakt obowiązujący w tym dniu. Bieżący kontrakt z datą „w przyszłości”
+  // (np. po cofnięciu zegara) też jest płacony, żeby zawodnik na liście
+  // nie grał za darmo.
+  const payDays = firstsOfMonth(seasonStart, nowMs);
+  for (const [, list] of byPlayer) {
+    const current = list
+      .filter(c => !c.terminatedAt)
+      .sort((a, b) => ms(b.startDate) - ms(a.startDate))[0];
+    for (const at of payDays) {
+      let c = list.find(x => activeAt(x, at));
+      if (!c && current && ms(current.startDate) > at && at < contractEnd(current)) c = current;
+      if (!c || !(c.salary > 0)) continue;
+      const cTeam = canonicalTeamName(c.team);
+      if (!cTeam || cTeam === "-") continue;
+      const key = `${cTeam}|${monthKey(at)}`;
+      const cur = salaryMonths.get(key) || { team: cTeam, at, amount: 0, players: 0 };
+      cur.amount += c.salary;
+      cur.players += 1;
+      salaryMonths.set(key, cur);
     }
   }
   for (const [key, m] of salaryMonths) {
@@ -257,6 +272,7 @@ function computeAll(): Map<string, TeamFinance> {
 
   const nf = new Date(nowMs);
   const nextFirst = Date.UTC(nf.getUTCFullYear(), nf.getUTCMonth() + 1, 1);
+  const curMonth = nowDay.slice(0, 7);
 
   // 4) Złożenie per drużyna (+ budżet startowy, koszty bieżące)
   const names = new Set<string>([...teams.map(t => canonicalTeamName(t.name)), ...ledgers.keys()]);
@@ -284,19 +300,22 @@ function computeAll(): Map<string, TeamFinance> {
       }
     }
     ledger.sort((a, b) => b.date.localeCompare(a.date));
-    let income = 0, expenses = 0;
+    let income = 0, expenses = 0, monthIncome = 0, monthExpenses = 0;
     const byCategory: Partial<Record<LedgerCategory, number>> = {};
     for (const e of ledger) {
       byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
       if (e.category === "start") continue;
       if (e.amount >= 0) income += e.amount; else expenses -= e.amount;
+      if (e.date.slice(0, 7) === curMonth) {
+        if (e.amount >= 0) monthIncome += e.amount; else monthExpenses -= e.amount;
+      }
     }
     const salaries = contracts
-      .filter(c => canonicalTeamName(c.team) === team && activeAt(c, nextFirst))
-      .reduce((a, c) => a + c.salary, 0);
+      .filter(c => !c.terminatedAt && canonicalTeamName(c.team) === team && contractEnd(c) > nextFirst)
+      .reduce((a, c) => a + (c.salary || 0), 0);
     const balance = startingBalance + income - expenses;
     out.set(team, {
-      team, balance, income, expenses, byCategory, ledger, startingBalance, monthlyRunning, monthlyStaff,
+      team, balance, income, expenses, monthIncome, monthExpenses, month: curMonth, byCategory, ledger, startingBalance, monthlyRunning, monthlyStaff,
       monthlyBurn: salaries + (rankOf.has(team) ? monthlyRunning + monthlyStaff : 0),
       health: healthOf(balance),
     });
