@@ -1,83 +1,37 @@
-import { removeFromStorage, saveToStorage } from "./storage";
-import { teamDatabase } from "@/data/tournaments";
-import type { TeamData } from "./types";
-import { resetWorldClock } from "./worldClock";
+import { getAllDeviceValues, removeDeviceValue } from "./deviceStore";
 
 /**
- * Reset sezonu.
+ * Pełny reset świata gry do stanu z 1 stycznia.
  *
- * Czyści wszystko, co powstało w trakcie rozgrywania sezonu (turnieje, wyniki
- * symulacji, historia rankingu, aktualności, nagrody roku, pick'emy), ale NIE
- * rusza rzeczy "trwałych": składów, transferów, kontraktów, ustawień aplikacji.
+ * Usuwa absolutnie wszystkie dane aplikacji (localStorage + pamięć urządzenia),
+ * poza ustawieniami aplikacji i slotami zapisu. Po przeładowaniu seedery
+ * odtwarzają bazowe turnieje, składy, kontrakty i ranking.
  */
 
-/** Klucze `storage` (bez prefiksu) usuwane przy resecie sezonu. */
-const SEASON_KEYS = [
-  "tournaments_data",
-  "ranking_history_v1",
-  "ranking_history_month_mark",
-  "ranking_adjustments",
-  "news_posts",
-  "news_post_likes",
-  "news_comments",
-  "year_awards_history",
-  "year_awards_shown",
-  "pickem_data",
-  "hot_streaks_cache",
-  "player_stats_cache",
-];
+/** Klucze, które przeżywają reset (ustawienia aplikacji). */
+const KEEP_EXACT = new Set([
+  "csgo_hub_app_theme",
+  "csgo_hub_app_font",
+  "csgo_hub_map_pool_active",
+  "csgo_hub_auto_backup_disabled",
+  "csgo_hub_save_1",
+  "csgo_hub_save_2",
+  "app_theme",
+  "app_font",
+]);
+const KEEP_PREFIXES = ["csgo_hub_ui_", "sb-"];
 
-/** Surowe klucze localStorage (bez prefiksu storage) używane przez UI. */
-const RAW_KEYS = [
-  "news_threads_collapsed",
-];
+const keep = (k: string) => KEEP_EXACT.has(k) || KEEP_PREFIXES.some(p => k.startsWith(p));
 
-export interface SeasonResetOptions {
-  /** Czy wyzerować punkty rankingowe drużyn do wartości bazowych. */
-  resetRanking?: boolean;
-  /** Czy cofnąć datę w grze do wartości domyślnej. */
-  resetClock?: boolean;
-}
-
-export function resetSeason(options: SeasonResetOptions = {}): void {
-  const { resetRanking = true, resetClock = true } = options;
-
-  SEASON_KEYS.forEach(key => {
-    try { removeFromStorage(key); } catch { /* ignore */ }
-  });
-  RAW_KEYS.forEach(key => {
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
-  });
-
-  // Flagi seederów – bez ich wyczyszczenia bazowe turnieje nie wróciłyby.
+export async function resetSeason(): Promise<void> {
   try {
-    Object.keys(localStorage)
-      .filter(k => k.startsWith("csgo_hub_seed"))
-      .forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => !keep(k)).forEach(k => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+  try { sessionStorage.clear(); } catch { /* ignore */ }
+  try {
+    const all = await getAllDeviceValues();
+    await Promise.all(Object.keys(all).filter(k => !keep(k)).map(k => removeDeviceValue(k).catch(() => undefined)));
   } catch { /* ignore */ }
 
-  if (resetRanking) {
-    // Punkty wracają do bazowych, ale aktualne składy/nazwy zostają nietknięte.
-    const base = new Map(teamDatabase.map(t => [t.name, t]));
-    const current = (() => {
-      try {
-        const raw = localStorage.getItem("csgo_hub_ranking_data");
-        return raw && raw.startsWith("[") ? (JSON.parse(raw) as TeamData[]) : null;
-      } catch { return null; }
-    })();
-    const next: TeamData[] = (current || teamDatabase.map(t => ({ ...t }))).map(team => ({
-      ...team,
-      points: base.get(team.name)?.points ?? team.points,
-    }));
-    saveToStorage("ranking_data", next);
-  }
-
-  if (resetClock) resetWorldClock();
-
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("teams:update"));
-    window.dispatchEvent(new CustomEvent("ranking:update"));
-    window.dispatchEvent(new CustomEvent("ranking-history:update"));
-    window.dispatchEvent(new CustomEvent("season:reset"));
-  }
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("season:reset"));
 }

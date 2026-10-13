@@ -100,10 +100,11 @@ const SettingsTab = ({
       return;
     }
     setConfirmReset(false);
-    resetSeason({ resetRanking: resetRankingPoints, resetClock: resetClockToo });
-    onReset();
-    // Przeładowanie gwarantuje, że wszystkie panele czytają czysty stan.
-    setTimeout(() => window.location.reload(), 150);
+    void resetSeason().then(() => {
+      onReset();
+      // Przeładowanie gwarantuje, że seedery odtworzą stan z 1 stycznia.
+      window.location.reload();
+    });
   };
 
 
@@ -164,31 +165,11 @@ const SettingsTab = ({
             <RotateCcw className="w-4 h-4 text-destructive" />
             Reset sezonu
           </h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            Przywróć sezon do stanu początkowego: turnieje, wyniki symulacji, historia rankingu,
-            aktualności, nagrody roku i pick'emy zostaną usunięte. Składy, transfery i kontrakty
-            zostają nienaruszone.
+          <p className="text-sm text-muted-foreground mb-4">
+            Przywraca cały świat gry do stanu z {WORLD_CLOCK_DEFAULT}: turnieje, wyniki, ranking,
+            składy, transfery, kontrakty, finanse, rekordy, nagrody, aktualności i pick'emy.
+            Zostają tylko ustawienia aplikacji (motyw, czcionka, pula map) oraz sloty zapisu.
           </p>
-          <div className="flex flex-col gap-2 mb-4 text-xs font-mono text-muted-foreground">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={resetRankingPoints}
-                onChange={e => setResetRankingPoints(e.target.checked)}
-                className="accent-destructive w-4 h-4"
-              />
-              Wyzeruj punkty rankingowe do wartości bazowych
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={resetClockToo}
-                onChange={e => setResetClockToo(e.target.checked)}
-                className="accent-destructive w-4 h-4"
-              />
-              Cofnij datę w grze do {WORLD_CLOCK_DEFAULT}
-            </label>
-          </div>
           <button
             onClick={handleReset}
             className={cn(
