@@ -8,7 +8,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import type { TournamentData } from "./types";
 import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
 import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
-import { getWorldNow, getWorldDate } from "./worldClock";
+import { getWorldDate, WORLD_CLOCK_DEFAULT } from "./worldClock";
 import { loadAllTeams } from "./teamManagement";
 import { canonicalTeamName } from "./teamRenames";
 
@@ -123,23 +123,26 @@ export function defaultMonthlyStaff(rank: number, team = ""): number {
   return round(base * jitter(team, "staff", 0.65, 1.45), 500);
 }
 
-// Obciążenia naliczane są na początku każdego miesiąca (1. dnia),
-// a pierwszy/ostatni niepełny miesiąc proporcjonalnie.
-const monthStartAfter = (t: number) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); };
-const monthKey = (t: number) => new Date(t).toISOString().slice(0, 7);
-/** [dataObciążenia, ułamekMiesiąca] dla okresu [from, to) obciążanego do `now`. */
-function monthlyCharges(from: number, to: number, now: number): [number, number][] {
-  const out: [number, number][] = [];
-  let t = from;
-  while (t < to && t <= now) {
-    const next = monthStartAfter(t);
-    const d = new Date(t);
-    const monthLen = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-    out.push([t, (Math.min(next, to) - t) / monthLen]);
-    t = next;
+// Obciążenia: KAŻDEGO 1. dnia miesiąca schodzi pełna miesięczna kwota
+// (pensje aktywnych kontraktów + koszty bieżące + personel). Bez ułamków
+// i bez obciążeń w środku miesiąca — kwota = „Wydatki / mies.”.
+/** Kolejne 1. dni miesiąca (UTC) od `from` (włącznie) do `now` (włącznie). */
+function firstsOfMonth(from: number, now: number): number[] {
+  const out: number[] = [];
+  const d = new Date(from);
+  let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  if (t < from) t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  while (t <= now && out.length < 600) {
+    out.push(t);
+    const n = new Date(t);
+    t = Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1);
   }
   return out;
 }
+const monthKey = (t: number) => new Date(t).toISOString().slice(0, 7);
+const contractEnd = (c: PlayerContract) => Math.min(ms(c.endDate), c.terminatedAt ? ms(c.terminatedAt) : Infinity);
+/** Kontrakt aktywny w chwili `t` (start <= t < koniec/zerwanie). */
+const activeAt = (c: PlayerContract, t: number) => ms(c.startDate) <= t && t < contractEnd(c);
 
 // ---------- compute ----------
 
@@ -162,8 +165,8 @@ if (typeof window !== "undefined") {
 }
 
 function computeAll(): Map<string, TeamFinance> {
-  const nowMs = getWorldNow().getTime();
-  const nowDay = new Date(nowMs).toISOString().slice(0, 10);
+  const nowDay = getWorldDate();
+  const nowMs = ms(nowDay) + 12 * 3600_000; // południe UTC dnia w grze
   const teams = [...loadAllTeams()].sort((a, b) => b.points - a.points);
   const rankOf = new Map(teams.map((t, i) => [canonicalTeamName(t.name), i + 1]));
   const settings = loadFinanceSettings();
@@ -205,16 +208,14 @@ function computeAll(): Map<string, TeamFinance> {
     const cTeam = canonicalTeamName(c.team);
     if (!firstContract.has(cTeam) || s < firstContract.get(cTeam)!) firstContract.set(cTeam, s);
 
-    const start = ms(c.startDate);
-    // Kontrakt kończy się wcześniej z dwóch dat: zerwania lub wygaśnięcia.
-    const end = Math.min(ms(c.endDate), c.terminatedAt ? ms(c.terminatedAt) : Infinity);
-    if (end > start && c.salary > 0 && cTeam && cTeam !== "-") {
-      for (const [at, frac] of monthlyCharges(start, end, nowMs)) {
+    const start = s;
+    if (c.salary > 0 && cTeam && cTeam !== "-") {
+      for (const at of firstsOfMonth(start, Math.min(nowMs, contractEnd(c) - 1))) {
+        if (!activeAt(c, at)) continue;
         const key = `${cTeam}|${monthKey(at)}`;
         const cur = salaryMonths.get(key) || { team: cTeam, at, amount: 0, players: 0 };
-        cur.amount += c.salary * frac;
+        cur.amount += c.salary;
         cur.players += 1;
-        cur.at = Math.min(cur.at, at);
         salaryMonths.set(key, cur);
       }
     }
@@ -250,6 +251,9 @@ function computeAll(): Map<string, TeamFinance> {
     });
   }
 
+  const nf = new Date(nowMs);
+  const nextFirst = Date.UTC(nf.getUTCFullYear(), nf.getUTCMonth() + 1, 1);
+
   // 4) Złożenie per drużyna (+ budżet startowy, koszty bieżące)
   const names = new Set<string>([...teams.map(t => canonicalTeamName(t.name)), ...ledgers.keys()]);
   const out = new Map<string, TeamFinance>();
@@ -260,15 +264,15 @@ function computeAll(): Map<string, TeamFinance> {
     const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank, team);
     const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
-    const epoch = firstContract.get(team);
+    const epoch = firstContract.get(team) ?? (rankOf.has(team) ? ms(WORLD_CLOCK_DEFAULT) : undefined);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
     if (epoch && rankOf.has(team)) {
-      for (const [at, frac] of monthlyCharges(epoch, Infinity, nowMs)) {
+      for (const at of firstsOfMonth(epoch, nowMs)) {
         const date = day(new Date(at).toISOString());
         const mk = monthKey(at);
-        if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning * frac), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
-        if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff * frac), category: "staff", label: `Personel ${mk}` });
+        if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
+        if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff), category: "staff", label: `Personel ${mk}` });
       }
     }
     ledger.sort((a, b) => b.date.localeCompare(a.date));
@@ -280,7 +284,7 @@ function computeAll(): Map<string, TeamFinance> {
       if (e.amount >= 0) income += e.amount; else expenses -= e.amount;
     }
     const salaries = contracts
-      .filter(c => canonicalTeamName(c.team) === team && !c.terminatedAt && ms(c.startDate) <= nowMs && ms(c.endDate) > nowMs)
+      .filter(c => canonicalTeamName(c.team) === team && activeAt(c, nextFirst))
       .reduce((a, c) => a + c.salary, 0);
     const balance = startingBalance + income - expenses;
     out.set(team, {
