@@ -21,7 +21,7 @@ import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
-import { getWorldDate } from "@/lib/worldClock";
+import { getWorldDate, advanceWorldTo } from "@/lib/worldClock";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 import { getActiveMaps } from "@/lib/mapPool";
@@ -277,6 +277,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       confirmedAt: Date.now(),
       maps: maps.map(withRatings),
     });
+    // Fikcyjny kalendarz idzie do przodu do terminu meczu (finanse, kontrakty).
+    if (match.scheduledAt) advanceWorldTo(match.scheduledAt);
     // Sprawdzenie pobitych rekordów dopiero po fizycznym zatwierdzeniu wyniku.
     setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);

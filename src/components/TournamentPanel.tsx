@@ -928,6 +928,12 @@ const TournamentPanel = () => {
   };
 
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
+    // Fikcyjny kalendarz podąża za turniejem: start → data rozpoczęcia, koniec → data zakończenia.
+    const src = tournaments.find(t => t.id === id);
+    if (src && src.status !== status) {
+      if (status === "live") advanceWorldTo(src.startDate);
+      if (status === "completed") advanceWorldTo(src.endDate || src.startDate);
+    }
     setTournaments(prev => prev.map(t => {
       if (t.id !== id) return t;
       // Auto-news on status transition
