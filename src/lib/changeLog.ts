@@ -32,6 +32,10 @@ import {
   loadFreeAgentRoleOverrides,
   loadFreeAgentRealNameOverrides,
 } from "./freeAgents";
+import { seedMajorBerlin2025 } from "./majorBerlin2025Seeder";
+import { seedEslProLeagueI } from "./eslProLeagueISeeder";
+import { seedEseaMasters2026 } from "./eseaMasters2026Seeder";
+import type { TournamentData } from "./types";
 
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
