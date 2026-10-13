@@ -68,7 +68,16 @@ export interface MatchResult {
   playedAt?: string;
   /** Zaplanowany termin meczu (fikcyjny kalendarz) — "YYYY-MM-DDTHH:mm". */
   scheduledAt?: string;
+  /** Zapis map veto (Bo3/Bo5). team = 1|2 (strona meczu). */
+  veto?: VetoRecord[];
+}
 
+export interface VetoRecord {
+  team: 1 | 2 | 0;
+  action: "ban" | "pick" | "decider";
+  map: string;
+  /** Strona startowa drużyny 1 na tej mapie (wybór rywala picku; decider = nożówka). */
+  team1StartSide?: "T" | "CT";
 }
 
 export type PhaseFormat =

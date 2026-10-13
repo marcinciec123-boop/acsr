@@ -16,6 +16,10 @@ export interface TeamMapStat {
   losses: number;
   roundDiff: number;
   picks: number;
+  /** Bany z zapisanych map veto */
+  bans: number;
+  /** Bany jako pierwszy ban drużyny (permaban) */
+  firstBans: number;
   /** Wygładzony winrate 0..1 (prior 50%) */
   strength: number;
 }
@@ -34,8 +38,10 @@ function allMatches(): { m: MatchResult; fallback: string }[] {
   for (const t of Array.isArray(tours) ? tours : []) {
     for (const p of t.phases || []) {
       (p.bracket || []).forEach(m => out.push({ m, fallback: t.startDate }));
-      (p.groups || []).forEach(g => g.matches.forEach(m => out.push({ m, fallback: t.startDate })));
+      (p.groups || []).forEach(g => (g.matches || []).forEach(m => out.push({ m, fallback: t.startDate })));
     }
+    const seen = new Set(out.map(x => x.m.id));
+    ((t as any).matches || []).forEach((m: MatchResult) => { if (!seen.has(m.id)) out.push({ m, fallback: t.startDate }); });
   }
   return out;
 }
@@ -56,16 +62,27 @@ export function computeTeamMapStats(
 ): TeamMapStat[] {
   const tk = keyOf(team);
   const stats = new Map<string, TeamMapStat>();
-  activeMaps.forEach(map => stats.set(map, { map, played: 0, wins: 0, losses: 0, roundDiff: 0, picks: 0, strength: 0.5 }));
+  activeMaps.forEach(map => stats.set(map, { map, played: 0, wins: 0, losses: 0, roundDiff: 0, picks: 0, bans: 0, firstBans: 0, strength: 0.5 }));
 
   for (const { m, fallback } of allMatches()) {
-    if (m.id === excludeMatchId || !m.maps?.length) continue;
+    if (m.id === excludeMatchId) continue;
     const side = keyOf(m.team1) === tk ? 1 : keyOf(m.team2) === tk ? 2 : 0;
     if (!side) continue;
-    const ts = getMatchTimestamp({ scheduledAt: m.scheduledAt, playedAt: m.playedAt, fallbackDate: fallback });
-    if (sinceTs && ts && ts < sinceTs) continue;
+    const ts = getMatchTimestamp({ scheduledAt: m.scheduledAt, playedAt: m.playedAt, fallbackDate: fallback }) || 0;
+    if (sinceTs && (!ts || ts < sinceTs)) continue;
     if (untilTs && ts && ts > untilTs) continue;
     const bo = m.bo || 1;
+    const veto = Array.isArray(m.veto) && m.veto.length ? m.veto : null;
+    if (veto) {
+      let first = true;
+      for (const v of veto) {
+        if (v.team !== side) continue;
+        const s = stats.get(v.map);
+        if (v.action === "ban") { if (s) { s.bans++; if (first) s.firstBans++; } first = false; }
+        else if (v.action === "pick" && s) s.picks++;
+      }
+    }
+    if (!m.maps?.length) continue;
     m.maps.forEach((mp, idx) => {
       const s = stats.get(mp.map);
       if (!s) return;
@@ -75,29 +92,41 @@ export function computeTeamMapStats(
       s.played++;
       if (own > opp) s.wins++; else s.losses++;
       s.roundDiff += own - opp;
-      if (pickerIndex(bo, idx, m.maps!.length) === side) s.picks++;
+      if (!veto && pickerIndex(bo, idx, m.maps!.length) === side) s.picks++;
     });
   }
   stats.forEach(s => { s.strength = (s.wins + 1) / (s.played + 2); });
   return activeMaps.map(map => stats.get(map)!);
 }
 
-/** Najbardziej prawdopodobny permaban: mapa najrzadziej grana, potem najsłabsza. */
+/** Permaban: najczęstszy pierwszy ban z zapisanych veto; bez veto — tylko przy wystarczającej próbie. */
 export function guessPermaban(stats: TeamMapStat[]): string | null {
   if (!stats.length) return null;
+  const vetoed = [...stats].sort((a, b) => b.firstBans - a.firstBans || b.bans - a.bans);
+  if (vetoed[0].firstBans >= 2 || (vetoed[0].bans >= 2 && vetoed[0].bans > (vetoed[1]?.bans ?? 0))) return vetoed[0].map;
+  const total = stats.reduce((n, s) => n + s.played, 0);
+  if (total < 6) return null;
   const sorted = [...stats].sort((a, b) => a.played - b.played || a.strength - b.strength || a.roundDiff - b.roundDiff);
-  return sorted[0].map;
+  return sorted[0].played === 0 ? sorted[0].map : null;
 }
 
-export function vetoSequence(bo: number, team1: string, team2: string): { team: string; action: "ban" | "pick" }[] {
-  const b = (t: string) => ({ team: t, action: "ban" as const });
-  const p = (t: string) => ({ team: t, action: "pick" as const });
-  if (bo === 1) return Array.from({ length: 10 }, (_, i) => b(i % 2 === 0 ? team1 : team2));
-  if (bo === 3) return [b(team1), b(team2), p(team1), p(team2), b(team1), b(team2), b(team1), b(team2)];
-  return [b(team1), b(team2), p(team1), p(team2), p(team1), p(team2), b(team1), b(team2)];
+export type VetoSeqStep = { team: 1 | 2; action: "ban" | "pick" };
+
+/** Kolejność veto. Bo3: B B P P, potem bany do 1 mapy. Bo5: B B P P B B P P, potem bany. Bo1: same bany. */
+export function vetoSequence(bo: number, poolSize: number): VetoSeqStep[] {
+  const head: VetoSeqStep[] = bo === 3
+    ? [{ team: 1, action: "ban" }, { team: 2, action: "ban" }, { team: 1, action: "pick" }, { team: 2, action: "pick" }]
+    : bo === 5
+      ? [{ team: 1, action: "ban" }, { team: 2, action: "ban" }, { team: 1, action: "pick" }, { team: 2, action: "pick" },
+         { team: 1, action: "ban" }, { team: 2, action: "ban" }, { team: 1, action: "pick" }, { team: 2, action: "pick" }]
+      : [];
+  const out = head.slice(0, Math.max(0, poolSize - 1));
+  let t: 1 | 2 = 1;
+  while (out.length < poolSize - 1) { out.push({ team: t, action: "ban" }); t = t === 1 ? 2 : 1; }
+  return out;
 }
 
-/** Symulacja veto: ban = mapa, gdzie przewaga rywala największa; pick = gdzie własna przewaga największa. */
+/** Symulacja veto: ban = mapa, gdzie przewaga rywala największa (preferuje znane permabany); pick = własna przewaga. */
 export function predictVeto(
   team1: string,
   team2: string,
@@ -109,31 +138,24 @@ export function predictVeto(
   const get = (arr: TeamMapStat[], map: string) => arr.find(x => x.map === map);
   const score = (own: TeamMapStat | undefined, opp: TeamMapStat | undefined) => {
     const o = own?.strength ?? 0.5, r = opp?.strength ?? 0.5;
-    const exp = Math.min(own?.played ?? 0, 10) * 0.01;
-    return o - r + exp;
+    const exp = Math.min(own?.played ?? 0, 10) * 0.01 + Math.min(own?.picks ?? 0, 5) * 0.02;
+    return o - r + exp - Math.min(own?.bans ?? 0, 5) * 0.03;
   };
-  const mapsNeeded = bo === 1 ? 1 : bo;
   let avail = [...activeMaps];
   const out: VetoStep[] = [];
-  let picks = 0;
-  for (const step of vetoSequence(bo, team1, team2)) {
-    if (avail.length <= mapsNeeded - picks) break;
-    const isT1 = step.team === team1;
-    const own = isT1 ? s1 : s2, opp = isT1 ? s2 : s1;
+  for (const step of vetoSequence(bo, activeMaps.length)) {
+    if (avail.length <= 1) break;
+    const own = step.team === 1 ? s1 : s2, opp = step.team === 1 ? s2 : s1;
     let best = avail[0], bestVal = -Infinity;
     for (const map of avail) {
       const adv = score(get(own, map), get(opp, map));
       const val = step.action === "pick" ? adv : -adv;
       if (val > bestVal) { bestVal = val; best = map; }
     }
-    out.push({ team: step.team, action: step.action, map: best });
+    out.push({ team: step.team === 1 ? team1 : team2, action: step.action, map: best });
     avail = avail.filter(m => m !== best);
-    if (step.action === "pick") picks++;
   }
-  while (picks < mapsNeeded && avail.length) {
-    out.push({ team: "", action: "decider", map: avail.shift()! });
-    picks++;
-  }
+  if (avail.length) out.push({ team: "", action: "decider", map: avail[0] });
   return out;
 }
 
@@ -156,8 +178,10 @@ export function computeH2H(team1: string, team2: string, excludeMatchId?: string
     const list: MatchResult[] = [];
     for (const p of t.phases || []) {
       (p.bracket || []).forEach(m => list.push(m));
-      (p.groups || []).forEach(g => g.matches.forEach(m => list.push(m)));
+      (p.groups || []).forEach(g => (g.matches || []).forEach(m => list.push(m)));
     }
+    const seen = new Set(list.map(m => m.id));
+    ((t as any).matches || []).forEach((m: MatchResult) => { if (!seen.has(m.id)) list.push(m); });
     for (const m of list) {
       if (m.id === excludeMatchId) continue;
       const a = keyOf(m.team1), b = keyOf(m.team2);

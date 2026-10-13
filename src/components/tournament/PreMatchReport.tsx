@@ -23,7 +23,8 @@ const PERIODS = [
 
 const pct = (s: TeamMapStat) => (s.played ? Math.round((s.wins / s.played) * 100) : null);
 
-const WrCell = ({ s }: { s: TeamMapStat }) => {
+const WrCell = ({ s }: { s?: TeamMapStat }) => {
+  if (!s) return <div className="text-center text-muted-foreground/50 font-mono text-sm">—</div>;
   const p = pct(s);
   const rd = s.roundDiff;
   return (
@@ -32,11 +33,18 @@ const WrCell = ({ s }: { s: TeamMapStat }) => {
         p === null ? "text-muted-foreground/50" : p >= 55 ? "text-win" : p <= 45 ? "text-destructive" : "text-foreground")}>
         {p === null ? "—" : `${p}%`}
       </span>
+      {p === null && (s.picks > 0 || s.bans > 0) && (
+        <span className="text-2xs font-mono tabular-nums">
+          {s.picks > 0 && <span className="text-primary">{s.picks}P </span>}
+          {s.bans > 0 && <span className="text-destructive/80">{s.bans}B</span>}
+        </span>
+      )}
       {p !== null && (
         <span className="text-2xs font-mono text-muted-foreground tabular-nums">
           {s.wins}-{s.losses}
           {rd !== 0 && <span className={rd > 0 ? "text-win/80" : "text-destructive/80"}> {rd > 0 ? "+" : ""}{rd}</span>}
           {s.picks > 0 && <span className="text-primary"> ·{s.picks}P</span>}
+          {s.bans > 0 && <span className="text-destructive/80"> ·{s.bans}B</span>}
         </span>
       )}
     </div>
@@ -107,7 +115,7 @@ const H2HBlock = ({ team1, team2, h }: { team1: string; team2: string; h: H2HSum
           </div>
           <div className="h-1.5 rounded-full bg-secondary overflow-hidden flex">
             <div className="bg-primary h-full" style={{ width: `${p1}%` }} />
-            <div className="bg-destructive/70 h-full flex-1" />
+            <div className="bg-muted-foreground/40 h-full flex-1" />
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
@@ -231,7 +239,7 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
                 </div>
               ))}
             </div>
-            <p className="text-2xs font-mono text-muted-foreground mt-1">Winrate • bilans W-L • różnica rund • P = własne picki</p>
+            <p className="text-2xs font-mono text-muted-foreground mt-1">Winrate • bilans W-L • różnica rund • P = picki · B = bany (z map veto)</p>
           </div>
         );
       })()}

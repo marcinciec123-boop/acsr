@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import MapVeto from "@/components/MapVeto";
 import { cn } from "@/lib/utils";
 import type { MatchResult, MatchMap, MapPlayerStats } from "@/lib/types";
 import { calculateRating, getRatingColor } from "@/lib/playerStats";
@@ -711,6 +712,49 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           </TabsContent>
 
           <TabsContent value="maps" className="space-y-4">
+            {bo > 1 && match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && (
+              !match.veto?.length ? (
+                maps.length === 0 && (
+                  <MapVeto
+                    team1={match.team1} team2={match.team2} bo={bo} matchId={match.id}
+                    onComplete={(_names, veto, vmaps) => {
+                      onUpdate({
+                        veto,
+                        maps: vmaps.map(vm => ({
+                          map: vm.map, score1: 0, score2: 0, team1StartSide: vm.team1StartSide,
+                          team1Players: ensurePlayers(undefined, match.team1, tournamentId),
+                          team2Players: ensurePlayers(undefined, match.team2, tournamentId),
+                        })),
+                      });
+                      setActiveMapIdx(0);
+                    }}
+                  />
+                )
+              ) : (
+                <div className="bg-card border border-border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-heading font-bold uppercase text-primary tracking-wider">Map Veto</p>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs"
+                      onClick={() => {
+                        const played = maps.some(m => (m.score1 || 0) + (m.score2 || 0) > 0);
+                        if (played && !window.confirm("Mapy mają już wyniki. Usunąć veto i mapy, żeby zrobić veto od nowa?")) return;
+                        onUpdate({ veto: undefined, maps: [] });
+                        setActiveMapIdx(0);
+                      }}>Veto od nowa</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {match.veto.map((v, i) => (
+                      <span key={i} className={cn("text-xs font-mono px-2 py-0.5 rounded border",
+                        v.action === "ban" ? "text-destructive/80 bg-destructive/5 border-destructive/20"
+                          : v.action === "pick" ? "text-win bg-win/5 border-win/20" : "text-primary bg-primary/10 border-primary/30")}>
+                        {i + 1}. {v.action === "decider" ? "Decider" : v.team === 1 ? match.team1 : match.team2}: {v.action === "ban" ? "✗" : "✓"} {v.map}
+                        {v.action !== "ban" && v.team1StartSide ? ` (${match.team1} ${v.team1StartSide})` : v.action === "decider" ? " (nożówka)" : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            )}
             <div className="flex items-center justify-between">
               <div className="flex flex-wrap gap-1.5">
                 {maps.map((m, i) => (
