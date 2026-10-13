@@ -10,6 +10,7 @@ import {
 import { summarizeTeamContracts } from "@/lib/contracts";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
+import TeamFinancePanel, { FinanceWarningRibbon } from "@/components/finances/TeamFinancePanel";
 import AccoladeBadges from "@/components/AccoladeBadges";
 import { getTeamAccolades } from "@/lib/awardAccolades";
 import { teamDatabase } from "@/data/tournaments";
@@ -53,7 +54,7 @@ interface TeamProfileProps {
   onSelectPlayer?: (player: string) => void;
 }
 
-type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "contracts";
+type TabId = "overview" | "roster" | "matches" | "trophies" | "transfers" | "contracts" | "finances";
 
 const placementColor = (p: number) =>
   p === 1 ? "text-accent border-accent/40 bg-accent/10"
@@ -354,6 +355,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
     { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
     { id: "contracts", label: "Kontrakty", icon: FileSignature, count: summarizeTeamContracts(teamName).total },
+    ...(isDisbanded ? [] : [{ id: "finances" as TabId, label: "Finanse", icon: TrendingUp }]),
   ];
 
   return (
@@ -463,6 +465,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
           </div>
         </motion.div>
 
+        {!isDisbanded && <FinanceWarningRibbon team={teamName} onOpen={() => setActiveTab("finances")} />}
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-4 border-b border-border overflow-x-auto">
           {tabs.map(t => {
@@ -709,6 +712,10 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
           {activeTab === "contracts" && (
             <TeamContractsPanel team={teamName} onSelectPlayer={onSelectPlayer} />
+          )}
+
+          {activeTab === "finances" && (
+            <TeamFinancePanel team={teamName} onDisbanded={onBack} />
           )}
 
           {activeTab === "roster" && (

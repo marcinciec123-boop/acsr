@@ -5,4 +5,4 @@
 - [x] Sprawdzić kompilację i testy turniejowe.
 
 ## Pomysły na później (od Marcina)
-- [ ] Intel Grand Slam / żetony Majora, relacja z rund meczu, finanse + plotki transferowe, grafiki meczu/MVP do udostępniania
+- [ ] Intel Grand Slam / żetony Majora, relacja z rund meczu, plotki transferowe (finanse zrobione), grafiki meczu/MVP do udostępniania
