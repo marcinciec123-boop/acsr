@@ -269,7 +269,10 @@ function computeAll(): Map<string, TeamFinance> {
     const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
     const fc = firstContract.get(team);
-    const epoch = fc !== undefined ? Math.max(fc, seasonStart) : (rankOf.has(team) ? seasonStart : undefined);
+    // Aktywne drużyny płacą koszty stałe od startu sezonu niezależnie od dat
+    // kontraktów (kontrakty z „przyszłą” datą po cofnięciu zegara nie mogą
+    // wyłączać miesięcznych obciążeń).
+    const epoch = rankOf.has(team) ? seasonStart : (fc !== undefined ? Math.max(fc, seasonStart) : undefined);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
     if (epoch && rankOf.has(team)) {
