@@ -95,7 +95,8 @@ export function removeManualEntry(id: string): void {
 }
 export function updateFinanceSettings(team: string, patch: TeamFinanceSettings): void {
   const all = loadFinanceSettings();
-  all[team] = { ...all[team], ...patch };
+  const key = canonicalTeamName(team);
+  all[key] = { ...all[key], ...patch };
   saveToStorage(SETTINGS_KEY, all);
   emit();
 }
@@ -302,7 +303,7 @@ export function getTeamFinance(team: string): TeamFinance | null {
 
 /** Tylko aktywne drużyny — do tabeli finansów ligi. */
 export function getLeagueFinances(): TeamFinance[] {
-  const active = new Set(loadAllTeams().map(t => t.name));
+  const active = new Set(loadAllTeams().map(t => canonicalTeamName(t.name)));
   return [...all().values()].filter(f => active.has(f.team)).sort((a, b) => b.balance - a.balance);
 }
 
