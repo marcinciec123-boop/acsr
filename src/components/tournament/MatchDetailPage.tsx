@@ -21,7 +21,7 @@ import { getDisplayScore } from "@/lib/matchDisplay";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
-import { getWorldDate } from "@/lib/worldClock";
+import { getWorldDate, advanceWorldTo } from "@/lib/worldClock";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 import { getActiveMaps } from "@/lib/mapPool";
