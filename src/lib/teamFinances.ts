@@ -8,7 +8,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import type { TournamentData } from "./types";
 import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
 import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
-import { getWorldNow, getWorldDate } from "./worldClock";
+import { getWorldDate, WORLD_CLOCK_DEFAULT } from "./worldClock";
 import { loadAllTeams } from "./teamManagement";
 import { canonicalTeamName } from "./teamRenames";
 
@@ -264,7 +264,7 @@ function computeAll(): Map<string, TeamFinance> {
     const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank, team);
     const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
-    const epoch = firstContract.get(team);
+    const epoch = firstContract.get(team) ?? (rankOf.has(team) ? ms(WORLD_CLOCK_DEFAULT) : undefined);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
     if (epoch && rankOf.has(team)) {
