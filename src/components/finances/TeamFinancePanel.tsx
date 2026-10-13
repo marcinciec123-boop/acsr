@@ -91,7 +91,7 @@ const TeamFinancePanel = ({ team, onDisbanded }: { team: string; onDisbanded?: (
     });
   };
 
-  const order = ["start", "prize", "transfer_in", "manual_in", "salary", "bonus", "transfer_out", "running", "staff", "manual_out"] as const;
+  const order = ["start", "prize", "sponsor", "transfer_in", "manual_in", "salary", "bonus", "transfer_out", "running", "staff", "manual_out"] as const;
   const ledger = showAll ? f.ledger : f.ledger.slice(0, 25);
 
   return (
