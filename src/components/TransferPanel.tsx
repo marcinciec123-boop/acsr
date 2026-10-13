@@ -1,3 +1,4 @@
+import LeagueFinancesTable from "@/components/finances/LeagueFinancesTable";
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightLeft, Search, Filter, ArrowUpDown, Plus, UserMinus, History, Undo2, Trash2, X as XIcon, GraduationCap, Users as UsersIcon, Building2 } from "lucide-react";
@@ -42,7 +43,7 @@ import { useProfileNav } from "@/lib/profileNav";
 import { loadOrgEvents, removeOrgEvent, ORG_EVENTS_UPDATE_EVENT, type OrgEvent } from "@/lib/orgEvents";
 
 type TransferType = "all" | "join" | "leave" | "move";
-type Section = "transfers" | "freeAgents" | "changes" | "org";
+type Section = "transfers" | "freeAgents" | "changes" | "org" | "finances";
 
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
@@ -802,7 +803,17 @@ const TransferPanel = () => {
             <Building2 className="w-3.5 h-3.5" /> Historia organizacji
             <span className="font-mono text-xs opacity-70">({orgEvents.length})</span>
           </button>
+          <button
+            onClick={() => setSection("finances")}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md font-heading font-semibold text-sm border transition-colors",
+              section === "finances" ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            💰 Finanse ligi
+          </button>
         </div>
+        {section === "finances" && <LeagueFinancesTable />}
 
         {section === "transfers" && (
           <>
