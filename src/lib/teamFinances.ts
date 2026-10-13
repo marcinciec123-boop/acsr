@@ -16,11 +16,12 @@ export const FINANCES_EVENT = "finances:update";
 const ENTRIES_KEY = "team_finance_entries";
 const SETTINGS_KEY = "team_finance_settings";
 
-export type LedgerCategory = "prize" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "staff" | "manual_in" | "manual_out" | "start";
+export type LedgerCategory = "prize" | "sponsor" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "staff" | "manual_in" | "manual_out" | "start";
 
 export const CATEGORY_LABEL: Record<LedgerCategory, string> = {
   start: "Budżet startowy",
   prize: "Nagrody turniejowe (25%)",
+  sponsor: "Sponsorzy (miesięcznie)",
   transfer_in: "Sprzedaż zawodników",
   manual_in: "Dofinansowania / wpływy",
   salary: "Pensje",
