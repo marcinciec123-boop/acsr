@@ -182,7 +182,7 @@ function computeAll(): Map<string, TeamFinance> {
     for (const pl of t.placements) {
       const prize = prizes[pl.placement] || 0;
       if (!pl.team || prize <= 0) continue;
-      push(pl.team, {
+      push(team, {
         id: `prize_${t.id}`, date, amount: Math.round(prize * ORG_CUT), category: "prize",
         label: `${t.name} — miejsce ${pl.placement}`,
       });
