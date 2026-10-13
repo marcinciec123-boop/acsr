@@ -32,6 +32,10 @@ import {
   loadFreeAgentRoleOverrides,
   loadFreeAgentRealNameOverrides,
 } from "./freeAgents";
+import { seedMajorBerlin2025 } from "./majorBerlin2025Seeder";
+import { seedEslProLeagueI } from "./eslProLeagueISeeder";
+import { seedEseaMasters2026 } from "./eseaMasters2026Seeder";
+import type { TournamentData } from "./types";
 
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
@@ -312,6 +316,19 @@ export function setPlayerRealName(player: string, firstName: string, lastName: s
  * - Re-applies player overrides into the static maps.
  */
 export function bootstrapPersistedState(): void {
+  // Base tournament seeders at app start. After a season reset the storage is
+  // empty and seeding previously happened only when TournamentPanel mounted,
+  // so player profiles showed no base stats until the user opened Tournaments.
+  try {
+    const storedTournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
+    const seededTournaments = seedEseaMasters2026(seedEslProLeagueI(seedMajorBerlin2025(storedTournaments)));
+    if (seededTournaments.length !== storedTournaments.length) {
+      saveToStorage("tournaments_data", seededTournaments);
+    }
+  } catch (e) {
+    console.warn("Tournament seeding failed:", e);
+  }
+
   // Team name overrides — apply FIRST so subsequent lookups use current names.
   const nameOv = loadFromStorage<Record<string, string>>("team_name_overrides", {});
   if (Object.keys(nameOv).length > 0) {
