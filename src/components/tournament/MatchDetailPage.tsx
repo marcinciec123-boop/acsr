@@ -277,6 +277,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       confirmedAt: Date.now(),
       maps: maps.map(withRatings),
     });
+    // Fikcyjny kalendarz idzie do przodu do terminu meczu (finanse, kontrakty).
+    if (match.scheduledAt) advanceWorldTo(match.scheduledAt);
     // Sprawdzenie pobitych rekordów dopiero po fizycznym zatwierdzeniu wyniku.
     setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);

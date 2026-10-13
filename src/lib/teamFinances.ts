@@ -167,6 +167,9 @@ if (typeof window !== "undefined") {
 function computeAll(): Map<string, TeamFinance> {
   const nowDay = getWorldDate();
   const nowMs = ms(nowDay) + 12 * 3600_000; // południe UTC dnia w grze
+  // Finanse liczone od startu świata gry (fikcyjny kalendarz) — kontrakty
+  // podpisane „przed sezonem” nie generują kosztów z lat poprzednich.
+  const seasonStart = ms(WORLD_CLOCK_DEFAULT);
   const teams = [...loadAllTeams()].sort((a, b) => b.points - a.points);
   const rankOf = new Map(teams.map((t, i) => [canonicalTeamName(t.name), i + 1]));
   const settings = loadFinanceSettings();
@@ -208,7 +211,7 @@ function computeAll(): Map<string, TeamFinance> {
     const cTeam = canonicalTeamName(c.team);
     if (!firstContract.has(cTeam) || s < firstContract.get(cTeam)!) firstContract.set(cTeam, s);
 
-    const start = s;
+    const start = Math.max(s, seasonStart);
     if (c.salary > 0 && cTeam && cTeam !== "-") {
       for (const at of firstsOfMonth(start, Math.min(nowMs, contractEnd(c) - 1))) {
         if (!activeAt(c, at)) continue;
@@ -220,7 +223,7 @@ function computeAll(): Map<string, TeamFinance> {
       }
     }
     const bonus = c.terms?.signingBonus || 0;
-    if (bonus > 0 && start <= nowMs) {
+    if (bonus > 0 && s >= seasonStart && s <= nowMs) {
       push(c.team, { id: `bon_${c.id}`, date: day(c.startDate), amount: -bonus, category: "bonus", label: `Premia za podpis: ${c.player}` });
     }
   }
@@ -237,6 +240,7 @@ function computeAll(): Map<string, TeamFinance> {
       const next = list[i + 1];
       const fee = prev.terms?.buyout || 0;
       if (prev.terminationReason !== "transfer" || fee <= 0 || prev.team === next.team) continue;
+      if (ms(next.startDate) < seasonStart || ms(next.startDate) > nowMs) continue;
       const date = day(next.startDate);
       push(prev.team, { id: `tin_${prev.id}`, date, amount: fee, category: "transfer_in", label: `Sprzedaż: ${player} → ${next.team}` });
       push(next.team, { id: `tout_${next.id}`, date, amount: -fee, category: "transfer_out", label: `Zakup: ${player} z ${prev.team}` });
@@ -264,7 +268,8 @@ function computeAll(): Map<string, TeamFinance> {
     const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank, team);
     const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
-    const epoch = firstContract.get(team) ?? (rankOf.has(team) ? ms(WORLD_CLOCK_DEFAULT) : undefined);
+    const fc = firstContract.get(team);
+    const epoch = fc !== undefined ? Math.max(fc, seasonStart) : (rankOf.has(team) ? seasonStart : undefined);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
     if (epoch && rankOf.has(team)) {
