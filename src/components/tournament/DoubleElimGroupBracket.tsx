@@ -335,9 +335,12 @@ export const DoubleElimGroupBracket = ({
               {layout.connectors.map((connector, index) => {
                 const x1 = connector.fromColumn * (COLUMN_W + CONNECTOR_W) + COLUMN_W;
                 const x2 = connector.toColumn * (COLUMN_W + CONNECTOR_W);
-                const y1 = layout.centers[connector.fromColumn]?.[connector.fromIndex];
-                const y2 = layout.centers[connector.toColumn]?.[connector.toIndex];
-                if (y1 === undefined || y2 === undefined) return null;
+                const c1 = layout.centers[connector.fromColumn]?.[connector.fromIndex];
+                const c2 = layout.centers[connector.toColumn]?.[connector.toIndex];
+                if (c1 === undefined || c2 === undefined) return null;
+                // Anchor on the divider between both teams (header pushes rows down).
+                const y1 = c1 + 10.5;
+                const y2 = c2 + 10.5;
                 const midX = x1 + (x2 - x1) / 2;
                 return (
                   <path
