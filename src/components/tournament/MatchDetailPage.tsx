@@ -738,7 +738,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                       onClick={() => {
                         const played = maps.some(m => (m.score1 || 0) + (m.score2 || 0) > 0);
                         if (played && !window.confirm("Mapy mają już wyniki. Usunąć veto i mapy, żeby zrobić veto od nowa?")) return;
-                        onUpdate({ veto: undefined, maps: played ? [] : [] });
+                        onUpdate({ veto: undefined, maps: [] });
                         setActiveMapIdx(0);
                       }}>Veto od nowa</Button>
                   </div>
