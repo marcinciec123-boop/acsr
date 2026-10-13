@@ -565,7 +565,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
                 {/* Forma (sparkline) — desktop */}
                 <div className="hidden md:flex justify-center items-center">
-                  <Sparkline team={team.name} />
+                  <Sparkline team={team.name} sig={sparkSig} />
                 </div>
 
                 {/* Trend — desktop */}
@@ -628,7 +628,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <span className="w-[92px] flex justify-end">{PointsPill}</span>
                 </div>
 
-              </motion.div>
+              </div>
 
               {/* Rozwijane szczegóły */}
               {isOpen && (
