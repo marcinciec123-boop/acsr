@@ -14,6 +14,11 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const monthName = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString("pl-PL", { month: "long", year: "numeric", timeZone: "UTC" });
+};
+
 export const money = (n: number) => (n < 0 ? "-" : "") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
 
 export const HEALTH_CLASS: Record<FinanceHealth, string> = {
@@ -98,12 +103,12 @@ const TeamFinancePanel = ({ team, onDisbanded }: { team: string; onDisbanded?: (
           <p className="text-[10px] font-mono">{HEALTH_LABEL[f.health]}</p>
         </div>
         <div className="rounded-xl border border-border bg-card/60 p-3">
-          <p className="text-[10px] uppercase font-mono text-muted-foreground">Przychody</p>
-          <p className="text-lg font-heading font-bold text-emerald-400">{money(f.income)}</p>
+          <p className="text-[10px] uppercase font-mono text-muted-foreground">Przychody · {monthName(f.month)}</p>
+          <p className="text-lg font-heading font-bold text-emerald-400">{money(f.monthIncome)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card/60 p-3">
-          <p className="text-[10px] uppercase font-mono text-muted-foreground">Koszty</p>
-          <p className="text-lg font-heading font-bold text-destructive">{money(-f.expenses)}</p>
+          <p className="text-[10px] uppercase font-mono text-muted-foreground">Koszty · {monthName(f.month)}</p>
+          <p className="text-lg font-heading font-bold text-destructive">{money(-f.monthExpenses)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card/60 p-3">
           <p className="text-[10px] uppercase font-mono text-muted-foreground">Wydatki / mies.</p>
