@@ -204,6 +204,59 @@ function computeAll(): Map<string, TeamFinance> {
     }
   }
 
+  // 1b) Forma sportowa do wyceny sponsorów (mecze + miejsca, fikcyjne daty)
+  const TIER_W: Record<string, number> = { S: 1, A: 0.6, B: 0.35, C: 0.2 };
+  const perf = new Map<string, { at: number; win?: boolean; w: number; place?: number }[]>();
+  const addPerf = (team: string, ev: { at: number; win?: boolean; w: number; place?: number }) => {
+    if (!team || team === "-") return;
+    const k = canonicalTeamName(team);
+    let l = perf.get(k);
+    if (!l) { l = []; perf.set(k, l); }
+    l.push(ev);
+  };
+  for (const t of tournaments) {
+    const w = TIER_W[t.tier] ?? 0.3;
+    const tDate = day(t.endDate || t.startDate);
+    const tAt = tDate ? ms(tDate) : NaN;
+    const all: MatchResult[] = [...(t.matches || [])];
+    for (const p of t.phases || []) {
+      if (p.bracket) all.push(...p.bracket);
+      for (const g of p.groups || []) all.push(...(g.matches || []));
+    }
+    for (const m of all) {
+      if (m.score1 === m.score2 || !m.team1 || !m.team2) continue;
+      const at = m.scheduledAt ? ms(m.scheduledAt) : day(t.startDate) ? ms(day(t.startDate)) : NaN;
+      if (!Number.isFinite(at)) continue;
+      const one = m.score1 > m.score2;
+      addPerf(m.team1, { at, win: one, w });
+      addPerf(m.team2, { at, win: !one, w });
+    }
+    if (t.status === "completed" && Number.isFinite(tAt)) {
+      for (const pl of t.placements || []) addPerf(pl.team, { at: tAt, w, place: pl.placement });
+    }
+  }
+  const sponsorBase = (rank: number, team: string) => {
+    const base = rank <= 3 ? 140_000 : rank <= 5 ? 110_000 : rank <= 10 ? 80_000 : rank <= 20 ? 50_000 : rank <= 30 ? 32_000 : rank <= 60 ? 16_000 : 7_000;
+    return base * jitter(team, "spon", 0.8, 1.25);
+  };
+  /** Wycena miesięczna: baza z rozpoznawalności × forma z ostatnich 90 dni przed wypłatą. */
+  const sponsorFor = (team: string, rank: number, at: number) => {
+    const from = at - 90 * 86_400_000;
+    let wins = 0, games = 0, bonus = 0;
+    for (const e of perf.get(team) || []) {
+      if (e.at < from || e.at >= at) continue;
+      if (e.place !== undefined) {
+        bonus += e.w * (e.place === 1 ? 0.3 : e.place === 2 ? 0.15 : e.place <= 4 ? 0.07 : e.place <= 8 ? 0.02 : -0.03);
+      } else {
+        games += e.w; if (e.win) wins += e.w;
+      }
+    }
+    const form = games >= 0.6 ? 0.7 + (wins / games) * 0.6 : 1; // 0.7..1.3
+    const b = Math.max(-0.15, Math.min(0.7, bonus));
+    const mood = jitter(team, `spon_${monthKey(at)}`, 0.9, 1.1);
+    return round(sponsorBase(rank, team) * form * (1 + b) * mood, 500);
+  };
+
   // 2) Kontrakty — pensje, premie, odstępne
   const contracts = loadContracts();
   const seenContract = new Set<string>();
