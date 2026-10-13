@@ -36,8 +36,6 @@ const SettingsTab = ({
   onLoadState = () => undefined,
 }: SettingsTabProps) => {
   const [confirmReset, setConfirmReset] = useState(false);
-  const [resetRankingPoints, setResetRankingPoints] = useState(true);
-  const [resetClockToo, setResetClockToo] = useState(true);
 
   const getSlot = (key: string): SaveSlot | null => {
     try {
