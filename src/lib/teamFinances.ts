@@ -5,7 +5,7 @@
 // i cache'owany do czasu realnej zmiany danych (brak lagów przy renderach).
 
 import { loadFromStorage, saveToStorage } from "./storage";
-import type { TournamentData } from "./types";
+import type { MatchResult, TournamentData } from "./types";
 import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
 import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
 import { getWorldDate, WORLD_CLOCK_DEFAULT } from "./worldClock";
@@ -355,6 +355,8 @@ function computeAll(): Map<string, TeamFinance> {
         const mk = monthKey(at);
         if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
         if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff), category: "staff", label: `Personel ${mk}` });
+        const spon = sponsorFor(team, rank, at);
+        if (spon > 0) ledger.push({ id: `spon_${team}_${mk}`, date, amount: spon, category: "sponsor", label: `Sponsorzy ${mk}` });
       }
     }
     ledger.sort((a, b) => b.date.localeCompare(a.date));
