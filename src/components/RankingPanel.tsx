@@ -26,18 +26,8 @@ import { canonicalTeamName } from "@/lib/teamRenames";
 import { CalendarClock } from "lucide-react";
 
 // Mini wykres punktów (sparkline) — broadcast style
-// Wspólna pamięć serii — liczona raz na drużynę, czyszczona przy zmianie historii rankingu.
-let sparkCache = new Map<string, number[]>();
-let sparkCacheSig = "";
-const getSparkPoints = (team: string, sig: string): number[] => {
-  if (sig !== sparkCacheSig) { sparkCache = new Map(); sparkCacheSig = sig; }
-  let v = sparkCache.get(team);
-  if (!v) { v = getTeamRankingSeries(team).slice(-14).map(p => p.points); sparkCache.set(team, v); }
-  return v;
-};
-
-const Sparkline = ({ team, sig = "", width = 46, height = 14 }: { team: string; sig?: string; width?: number; height?: number }) => {
-  const pts = useMemo(() => getSparkPoints(team, sig), [team, sig]);
+const Sparkline = ({ team, width = 46, height = 14 }: { team: string; width?: number; height?: number }) => {
+  const pts = useMemo(() => getTeamRankingSeries(team).slice(-14).map(p => p.points), [team]);
   if (pts.length < 2) return <span className="inline-block" style={{ width, height }} />;
   const min = Math.min(...pts), max = Math.max(...pts);
   const span = max - min || 1;
@@ -111,16 +101,8 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   const [pastDate, setPastDate] = useState(() => getWorldDate());
   const pastRanking = useMemo(() => (showPast ? getRankingAt(pastDate) : []), [showPast, pastDate]);
 
-  // Zapis tylko gdy dane naprawdę się zmieniły względem tego, co już jest w pamięci.
-  const sparkSig = useMemo(() => teams.map(t => `${t.name}:${t.points}`).join("|"), [teams]);
-  useEffect(() => {
-    const json = JSON.stringify(teams);
-    if (JSON.stringify(loadFromStorage(RANKING_KEY, null)) !== json) saveToStorage(RANKING_KEY, teams);
-  }, [teams]);
-  useEffect(() => {
-    const json = JSON.stringify(adjustments);
-    if (JSON.stringify(loadFromStorage(ADJUSTMENTS_KEY, null)) !== json) saveToStorage(ADJUSTMENTS_KEY, adjustments);
-  }, [adjustments]);
+  useEffect(() => { saveToStorage(RANKING_KEY, teams); }, [teams]);
+  useEffect(() => { saveToStorage(ADJUSTMENTS_KEY, adjustments); }, [adjustments]);
   useEffect(() => {
     const refresh = () => {
       const saved = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
@@ -512,7 +494,10 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
             return (
               <div key={team.name} className={cn("border-t border-border/40", isOpen && "bg-secondary/20")}>
-              <div
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: Math.min(i * 0.008, 0.4) }}
                 onClick={() => setExpandedTeam(isOpen ? null : team.name)}
                 className={cn(
                   "items-center hover:bg-secondary/30 transition-colors group cursor-pointer border-l-2",
@@ -565,7 +550,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
 
                 {/* Forma (sparkline) — desktop */}
                 <div className="hidden md:flex justify-center items-center">
-                  <Sparkline team={team.name} sig={sparkSig} />
+                  <Sparkline team={team.name} />
                 </div>
 
                 {/* Trend — desktop */}
@@ -628,7 +613,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
                   <span className="w-[92px] flex justify-end">{PointsPill}</span>
                 </div>
 
-              </div>
+              </motion.div>
 
               {/* Rozwijane szczegóły */}
               {isOpen && (
