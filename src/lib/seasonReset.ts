@@ -33,5 +33,6 @@ export async function resetSeason(): Promise<void> {
     await Promise.all(Object.keys(all).filter(k => !keep(k)).map(k => removeDeviceValue(k).catch(() => undefined)));
   } catch { /* ignore */ }
 
+  try { localStorage.setItem("csgo_hub_season_reset_pending", "1"); } catch { /* ignore */ }
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("season:reset"));
 }

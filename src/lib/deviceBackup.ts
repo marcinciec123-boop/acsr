@@ -323,6 +323,10 @@ export const importDeviceBackup = async (raw: string): Promise<DeviceBackupSnaps
 
 export const restoreLatestDeviceBackupIfLocalStateMissing = async (): Promise<boolean> => {
   if (!isBrowser()) return false;
+  if (localStorage.getItem("csgo_hub_season_reset_pending")) {
+    localStorage.removeItem("csgo_hub_season_reset_pending");
+    return false;
+  }
   const deviceState = await collectDeviceState().catch(() => ({}));
   if (Object.keys({ ...collectLocalState(), ...deviceState }).length > 0) return false;
   const latest = (await listDeviceBackups())[0];
