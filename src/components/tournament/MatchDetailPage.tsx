@@ -298,7 +298,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
     });
     setConfirmOpen(false);
-    onBack();
+    // Zostajemy na stronie meczu — użytkownik cofa się sam przyciskiem „Powrót do turnieju”.
   };
 
   const resetToVrs = () => {
