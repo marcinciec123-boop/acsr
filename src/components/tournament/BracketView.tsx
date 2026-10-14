@@ -33,10 +33,16 @@ const TeamRow = ({
   const placeholder = isPlaceholder(name);
   return (
     <div className={cn(
-      "flex justify-between items-center px-3 py-2 transition-colors",
+      "relative flex justify-between items-center px-3 py-2 transition-colors",
       isWinner && "bg-[hsl(var(--win))]/12",
       !isWinner && score >= 0 && "bg-card/60",
     )}>
+      {isWinner && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+        />
+      )}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {isWinner && isFinal && <Crown className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />}
         {!placeholder && <TeamLogo teamName={name} size={22} rounded="md" />}
@@ -142,7 +148,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
         className="relative group text-xs flex flex-col"
       >
         <div className={cn(
-          "border rounded-md shadow-md bg-card/60 backdrop-blur-sm flex flex-col flex-1",
+          "border rounded-md shadow-md bg-card/60 backdrop-blur-sm flex flex-col flex-1 overflow-hidden",
           isLast
             ? "border-[hsl(var(--gold))]/50 shadow-[0_0_16px_hsl(var(--gold)/0.18)]"
             : decided
@@ -158,11 +164,6 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             <span>BO{m.bo || 3}</span>
             {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           </div>
-          {showPrediction && (
-            <div className="absolute top-full left-0 right-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity rounded-b-md border border-t-0 border-primary/40 bg-card shadow-lg overflow-hidden">
-              <MatchPredictionBadge team1={m.team1} team2={m.team2} tier={tier || "B"} />
-            </div>
-          )}
         {isEditing ? (
           <div className="p-2 space-y-1.5 bg-card min-h-[128px]">
             {editingRound ? (
