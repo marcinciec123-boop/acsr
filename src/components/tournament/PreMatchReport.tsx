@@ -171,7 +171,7 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
       if (t) clearTimeout(t);
       t = setTimeout(() => { t = null; setDataTick(x => x + 1); }, 120);
     };
-    const events = ["tournaments:update", "season:reset", "storage"];
+    const events = ["tournaments:update", "season:reset", "storage", "worldclock:update"];
     events.forEach(e => window.addEventListener(e, bump));
     return () => { events.forEach(e => window.removeEventListener(e, bump)); if (t) clearTimeout(t); };
   }, []);
