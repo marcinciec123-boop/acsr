@@ -152,11 +152,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   const mapsToWin = bo === 1 ? 1 : bo === 3 ? 2 : 3;
   const seriesDecided = computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin;
 
-  const addMap = () => {
+  const addMap = (forcedMap?: string) => {
     if (maps.length >= bo) return;
     if (seriesDecided) return;
     const used = new Set(maps.map(m => m.map));
-    const available = MAP_POOL.find(m => !used.has(m)) || MAP_POOL[maps.length % MAP_POOL.length];
+    const available = forcedMap ?? MAP_POOL.find(m => !used.has(m)) ?? MAP_POOL[maps.length % MAP_POOL.length];
     const newMap: MatchMap = {
       map: available,
       score1: 0,
@@ -166,6 +166,16 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     };
     onUpdate({ maps: [...maps, newMap] });
     setActiveMapIdx(maps.length);
+  };
+
+  // BO1: mapa jest losowana przez grę z aktywnej puli map.
+  const addRandomMap = () => {
+    const pool = getActiveMaps();
+    const used = new Set(maps.map(m => m.map));
+    const candidates = pool.filter(m => !used.has(m));
+    const list = candidates.length > 0 ? candidates : pool;
+    if (list.length === 0) return;
+    addMap(list[Math.floor(Math.random() * list.length)]);
   };
 
   const removeMap = (idx: number) => {
