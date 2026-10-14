@@ -261,6 +261,11 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
           </button>
         )}
         </div>
+        {showPrediction && (
+          <div className="absolute top-full left-0 right-0 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity rounded-b-md border border-t-0 border-primary/40 bg-card shadow-lg overflow-hidden">
+            <MatchPredictionBadge team1={m.team1} team2={m.team2} tier={tier || "B"} />
+          </div>
+        )}
       </div>
     );
   };
