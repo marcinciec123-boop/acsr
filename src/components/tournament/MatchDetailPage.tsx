@@ -786,11 +786,12 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 size="sm"
                 variant="outline"
                 className="h-8 gap-1"
-                onClick={addMap}
+                onClick={() => (bo === 1 ? addRandomMap() : addMap())}
                 disabled={maps.length >= bo || seriesDecided}
-                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : undefined}
+                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : bo === 1 ? "Gra losuje mapę z aktywnej puli" : undefined}
               >
-                <Plus className="w-3 h-3" /> Dodaj mapę
+                {bo === 1 ? <Shuffle className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {bo === 1 ? "Losuj mapę" : "Dodaj mapę"}
               </Button>
             </div>
 
