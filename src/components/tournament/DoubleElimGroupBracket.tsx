@@ -155,7 +155,13 @@ const MatchCard = ({
           )}
         </span>
       </div>
-      <div className={cn("flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w1 && "bg-[hsl(var(--win))]/10")}>
+      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w1 && "bg-[hsl(var(--win))]/10")}>
+        {w1 && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+          />
+        )}
         <div className="flex-1 min-w-0">{teamLabel(m.team1, w1)}</div>
         <Input
           type="number"
@@ -167,7 +173,13 @@ const MatchCard = ({
         />
       </div>
       <div className="h-px bg-border/40" />
-      <div className={cn("flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w2 && "bg-[hsl(var(--win))]/10")}>
+      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w2 && "bg-[hsl(var(--win))]/10")}>
+        {w2 && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+          />
+        )}
         <div className="flex-1 min-w-0">{teamLabel(m.team2, w2)}</div>
         <Input
           type="number"
