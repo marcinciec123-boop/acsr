@@ -169,24 +169,25 @@ export const PreMatchReport = ({ team1, team2, bo, matchId }: Props) => {
     let t: ReturnType<typeof setTimeout> | null = null;
     const bump = () => {
       if (t) clearTimeout(t);
-      t = setTimeout(() => { t = null; setDataTick(x => x + 1); }, 700);
+      t = setTimeout(() => { t = null; setDataTick(x => x + 1); }, 120);
     };
-    const events = ["tournaments:update", "season:reset", "storage"];
+    const events = ["tournaments:update", "season:reset", "storage", "worldclock:update"];
     events.forEach(e => window.addEventListener(e, bump));
     return () => { events.forEach(e => window.removeEventListener(e, bump)); if (t) clearTimeout(t); };
   }, []);
 
   const { s1, s2, perma1, perma2, veto } = useMemo(() => {
+    // Rozegrane mecze to fakt — nie odcinamy ich górną granicą daty
+    // (data świata gry potrafi stać przed terminami meczów sezonu).
     const now = getWorldNow();
-    const until = now.getTime();
     let since = 0;
     if (period) {
       const d = new Date(now);
       d.setMonth(d.getMonth() - period);
       since = d.getTime();
     }
-    const a = computeTeamMapStats(team1, maps, since, until, matchId);
-    const b = computeTeamMapStats(team2, maps, since, until, matchId);
+    const a = computeTeamMapStats(team1, maps, since, 0, matchId);
+    const b = computeTeamMapStats(team2, maps, since, 0, matchId);
     return {
       s1: a, s2: b,
       perma1: guessPermaban(a), perma2: guessPermaban(b),
