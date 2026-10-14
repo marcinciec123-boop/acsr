@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -152,11 +152,11 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   const mapsToWin = bo === 1 ? 1 : bo === 3 ? 2 : 3;
   const seriesDecided = computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin;
 
-  const addMap = () => {
+  const addMap = (forcedMap?: string) => {
     if (maps.length >= bo) return;
     if (seriesDecided) return;
     const used = new Set(maps.map(m => m.map));
-    const available = MAP_POOL.find(m => !used.has(m)) || MAP_POOL[maps.length % MAP_POOL.length];
+    const available = forcedMap ?? MAP_POOL.find(m => !used.has(m)) ?? MAP_POOL[maps.length % MAP_POOL.length];
     const newMap: MatchMap = {
       map: available,
       score1: 0,
@@ -166,6 +166,16 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     };
     onUpdate({ maps: [...maps, newMap] });
     setActiveMapIdx(maps.length);
+  };
+
+  // BO1: mapa jest losowana przez grę z aktywnej puli map.
+  const addRandomMap = () => {
+    const pool = getActiveMaps();
+    const used = new Set(maps.map(m => m.map));
+    const candidates = pool.filter(m => !used.has(m));
+    const list = candidates.length > 0 ? candidates : pool;
+    if (list.length === 0) return;
+    addMap(list[Math.floor(Math.random() * list.length)]);
   };
 
   const removeMap = (idx: number) => {
@@ -776,11 +786,12 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 size="sm"
                 variant="outline"
                 className="h-8 gap-1"
-                onClick={addMap}
+                onClick={() => (bo === 1 ? addRandomMap() : addMap())}
                 disabled={maps.length >= bo || seriesDecided}
-                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : undefined}
+                title={seriesDecided ? `BO${bo} rozstrzygnięte (do ${mapsToWin} wygranych map) — kolejne mapy nie są grane.` : bo === 1 ? "Gra losuje mapę z aktywnej puli" : undefined}
               >
-                <Plus className="w-3 h-3" /> Dodaj mapę
+                {bo === 1 ? <Shuffle className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {bo === 1 ? "Losuj mapę" : "Dodaj mapę"}
               </Button>
             </div>
 
