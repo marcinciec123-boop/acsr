@@ -56,7 +56,11 @@ const TeamRow = ({
           name={placeholder ? undefined : name}
           className={cn(
             "truncate text-[13px]",
-            isWinner ? "font-bold text-foreground" : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
+            isChampion
+              ? "font-bold text-[hsl(var(--gold))]"
+              : isWinner
+                ? "font-bold text-foreground"
+                : placeholder ? "text-muted-foreground italic" : "text-foreground/85"
           )}
         >
           {name || "TBD"}
@@ -65,7 +69,7 @@ const TeamRow = ({
       </div>
       <span className={cn(
         "font-mono font-bold ml-2 text-sm tabular-nums",
-        isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground/70"
+        isChampion ? "text-[hsl(var(--gold))]" : isWinner ? "text-[hsl(var(--win))]" : "text-muted-foreground/70"
       )}>
         {score}
       </span>
@@ -167,7 +171,16 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
               ? "bg-[hsl(var(--gold))]/10 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30"
               : "bg-secondary/40 text-muted-foreground border-border/50"
           )}>
-            <span>BO{m.bo || 3}</span>
+            <span className="truncate flex items-center gap-1.5 min-w-0">
+              {isLast && decided ? (
+                <>
+                  <Crown className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{winner1 ? m.team1 : m.team2}</span>
+                </>
+              ) : (
+                `BO${m.bo || 3}`
+              )}
+            </span>
             {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           </div>
         {isEditing ? (
