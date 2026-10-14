@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock } from "lucide-react";
+import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
