@@ -31,16 +31,22 @@ const TeamRow = ({
   name, score, isWinner, isFinal,
 }: { name: string; score: number; isWinner: boolean; isFinal: boolean }) => {
   const placeholder = isPlaceholder(name);
+  const isChampion = isWinner && isFinal;
   return (
     <div className={cn(
       "relative flex justify-between items-center px-3 py-2 transition-colors",
-      isWinner && "bg-[hsl(var(--win))]/12",
+      isWinner && (isChampion ? "bg-[hsl(var(--gold))]/12" : "bg-[hsl(var(--win))]/12"),
       !isWinner && score >= 0 && "bg-card/60",
     )}>
       {isWinner && (
         <span
           aria-hidden="true"
-          className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+          className={cn(
+            "absolute left-0 inset-y-0 w-[3px]",
+            isChampion
+              ? "bg-[hsl(var(--gold))] shadow-[0_0_6px_hsl(var(--gold)/0.6)]"
+              : "bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]",
+          )}
         />
       )}
       <div className="flex items-center gap-2 min-w-0 flex-1">
