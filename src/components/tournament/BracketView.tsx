@@ -474,10 +474,12 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 <div className="flex flex-col" style={{ gap: `${BASE_GAP}px` }}>
                   {grouped[round].map(m => renderMatchCard(m, false))}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
+      )}
+        </div>
+      </div>
       </div>
 
       {onAdd && (
