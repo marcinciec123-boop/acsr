@@ -183,7 +183,10 @@ const MatchCard = ({
           value={d1}
           onChange={(e) => handleChange(1, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-10 h-5 text-center text-xs px-0.5 font-mono font-bold", w1 && "text-[hsl(var(--win))]")}
+          className={cn(
+            "w-10 h-5 text-center text-xs px-0.5 font-mono font-bold",
+            w1 && (isFinal ? "text-[hsl(var(--gold))]" : "text-[hsl(var(--win))]"),
+          )}
         />
       </div>
       <div className="h-px bg-border/40" />
@@ -206,7 +209,10 @@ const MatchCard = ({
           value={d2}
           onChange={(e) => handleChange(2, parseInt(e.target.value) || 0)}
           disabled={disabled}
-          className={cn("w-10 h-5 text-center text-xs px-0.5 font-mono font-bold", w2 && "text-[hsl(var(--win))]")}
+          className={cn(
+            "w-10 h-5 text-center text-xs px-0.5 font-mono font-bold",
+            w2 && (isFinal ? "text-[hsl(var(--gold))]" : "text-[hsl(var(--win))]"),
+          )}
         />
         {onOpenMatch && (
           <Button
