@@ -2,7 +2,7 @@ import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown } from "luci
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useScrollRestore } from "@/lib/uiPrefs";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
@@ -82,6 +82,24 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   const panRef = useScrollRestore<HTMLDivElement>(`bracket_${scrollKey || matches[0]?.id || "default"}`);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollEdges = useCallback(() => {
+    const el = panRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, [panRef]);
+
+  useEffect(() => {
+    updateScrollEdges();
+    const el = panRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateScrollEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [panRef, updateScrollEdges, matches.length]);
 
   const displayRoundName = (round?: string) => {
     const clean = (round || "Match").trim();
