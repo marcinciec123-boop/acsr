@@ -290,20 +290,25 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   };
 
   const renderRoundHeader = (round: string, isLast: boolean, lower: boolean) => (
-    <div className="flex items-center justify-between gap-1 px-1 h-6 mb-2">
-      <h5 className={cn(
-        "text-xs font-mono uppercase font-bold tracking-[0.15em] truncate",
-        isLast ? "text-[hsl(var(--gold))]" : lower ? "text-destructive/80" : "text-primary"
+    <div className="flex items-center justify-center px-1 h-7 mb-2">
+      <div className={cn(
+        "flex items-center gap-1.5 max-w-full rounded-md border px-3 py-1 backdrop-blur-sm",
+        "text-xs font-mono uppercase font-bold tracking-[0.18em]",
+        isLast
+          ? "bg-[hsl(var(--gold))]/10 border-[hsl(var(--gold))]/40 text-[hsl(var(--gold))] shadow-[0_0_12px_hsl(var(--gold)/0.15)]"
+          : lower
+            ? "bg-destructive/10 border-destructive/30 text-destructive/90"
+            : "bg-primary/10 border-primary/30 text-primary"
       )}>
-        {isLast && "★ "}{round}
-      </h5>
-      {onAdd && (
-        <button onClick={() => onAdd(round)}
-          className="text-muted-foreground hover:text-primary transition-colors p-0.5 rounded hover:bg-secondary/50"
-          title="Dodaj mecz w tej rundzie">
-          <Plus className="w-3 h-3" />
-        </button>
-      )}
+        <span className="truncate">{isLast && "★ "}{round}</span>
+        {onAdd && (
+          <button onClick={() => onAdd(round)}
+            className="shrink-0 opacity-60 hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-foreground/10"
+            title="Dodaj mecz w tej rundzie">
+            <Plus className="w-3 h-3" />
+          </button>
+        )}
+      </div>
     </div>
   );
 
