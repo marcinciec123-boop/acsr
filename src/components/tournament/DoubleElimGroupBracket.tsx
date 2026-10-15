@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Maximize2, Pencil, Trash2, Plus, Check } from "lucide-react";
+import { Maximize2, Pencil, Trash2, Plus, Check, Crown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { MatchResult, PhaseFormat } from "@/lib/types";
@@ -141,8 +141,17 @@ const MatchCard = ({
       )}
     >
       <div className="flex items-center justify-between px-1.5 h-5 bg-secondary/40 border-b border-border/50 shrink-0 text-xs font-mono uppercase tracking-wider text-muted-foreground">
-        <span>BO{m.bo || 3}</span>
-        <span className="flex items-center gap-1">
+        <span className="truncate flex items-center gap-1 min-w-0">
+          {isFinal && decided ? (
+            <>
+              <Crown className="w-3 h-3 text-[hsl(var(--gold))] shrink-0" />
+              <span className="truncate text-[hsl(var(--gold))]">{w1 ? m.team1 : m.team2}</span>
+            </>
+          ) : (
+            `BO${m.bo || 3}`
+          )}
+        </span>
+        <span className="flex items-center gap-1 shrink-0">
           {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           {canEdit && (
             <button
@@ -155,11 +164,16 @@ const MatchCard = ({
           )}
         </span>
       </div>
-      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w1 && "bg-[hsl(var(--win))]/10")}>
+      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w1 && (isFinal ? "bg-[hsl(var(--gold))]/10" : "bg-[hsl(var(--win))]/10"))}>
         {w1 && (
           <span
             aria-hidden="true"
-            className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+            className={cn(
+              "absolute left-0 inset-y-0 w-[3px]",
+              isFinal
+                ? "bg-[hsl(var(--gold))] shadow-[0_0_6px_hsl(var(--gold)/0.6)]"
+                : "bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]",
+            )}
           />
         )}
         <div className="flex-1 min-w-0">{teamLabel(m.team1, w1)}</div>
@@ -173,11 +187,16 @@ const MatchCard = ({
         />
       </div>
       <div className="h-px bg-border/40" />
-      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w2 && "bg-[hsl(var(--win))]/10")}>
+      <div className={cn("relative flex items-center gap-1 px-1.5 py-0.5 flex-1 min-h-0", w2 && (isFinal ? "bg-[hsl(var(--gold))]/10" : "bg-[hsl(var(--win))]/10"))}>
         {w2 && (
           <span
             aria-hidden="true"
-            className="absolute left-0 inset-y-0 w-[3px] bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]"
+            className={cn(
+              "absolute left-0 inset-y-0 w-[3px]",
+              isFinal
+                ? "bg-[hsl(var(--gold))] shadow-[0_0_6px_hsl(var(--gold)/0.6)]"
+                : "bg-[hsl(var(--win))] shadow-[0_0_6px_hsl(var(--win)/0.55)]",
+            )}
           />
         )}
         <div className="flex-1 min-w-0">{teamLabel(m.team2, w2)}</div>
