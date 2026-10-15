@@ -2,7 +2,7 @@ import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown } from "luci
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useScrollRestore } from "@/lib/uiPrefs";
 import type { MatchResult } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
@@ -82,6 +82,24 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   const panRef = useScrollRestore<HTMLDivElement>(`bracket_${scrollKey || matches[0]?.id || "default"}`);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollEdges = useCallback(() => {
+    const el = panRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, [panRef]);
+
+  useEffect(() => {
+    updateScrollEdges();
+    const el = panRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateScrollEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [panRef, updateScrollEdges, matches.length]);
 
   const displayRoundName = (round?: string) => {
     const clean = (round || "Match").trim();
@@ -410,7 +428,24 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
   return (
     <div className="space-y-6">
-      <div ref={panRef} className="overflow-x-auto pb-3 px-1">
+      <div className="relative">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 w-10 z-20 transition-opacity duration-300",
+            "bg-gradient-to-r from-background to-transparent",
+            canScrollLeft ? "opacity-100" : "opacity-0"
+          )}
+          aria-hidden="true"
+        />
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 w-10 z-20 transition-opacity duration-300",
+            "bg-gradient-to-l from-background to-transparent",
+            canScrollRight ? "opacity-100" : "opacity-0"
+          )}
+          aria-hidden="true"
+        />
+        <div ref={panRef} className="overflow-x-auto pb-3 px-1" onScroll={updateScrollEdges}>
         {isDoubleElim ? (
           <div className="space-y-8">
             <div>
@@ -439,10 +474,11 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 <div className="flex flex-col" style={{ gap: `${BASE_GAP}px` }}>
                   {grouped[round].map(m => renderMatchCard(m, false))}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
+      )}
+        </div>
       </div>
 
       {onAdd && (
