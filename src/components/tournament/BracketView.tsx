@@ -428,7 +428,24 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
   return (
     <div className="space-y-6">
-      <div ref={panRef} className="overflow-x-auto pb-3 px-1">
+      <div className="relative">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 w-10 z-20 transition-opacity duration-300",
+            "bg-gradient-to-r from-background to-transparent",
+            canScrollLeft ? "opacity-100" : "opacity-0"
+          )}
+          aria-hidden="true"
+        />
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 w-10 z-20 transition-opacity duration-300",
+            "bg-gradient-to-l from-background to-transparent",
+            canScrollRight ? "opacity-100" : "opacity-0"
+          )}
+          aria-hidden="true"
+        />
+        <div ref={panRef} className="overflow-x-auto pb-3 px-1" onScroll={updateScrollEdges}>
         {isDoubleElim ? (
           <div className="space-y-8">
             <div>
