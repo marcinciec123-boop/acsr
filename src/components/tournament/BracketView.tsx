@@ -480,7 +480,6 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
       )}
         </div>
       </div>
-      </div>
 
       {onAdd && (
         <div className="flex gap-2 pt-2 border-t border-border/40">
