@@ -7,7 +7,8 @@ import {
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
   ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
-import { summarizeTeamContracts } from "@/lib/contracts";
+import { summarizeTeamContracts, loadContracts } from "@/lib/contracts";
+import { getTeamFinance, FINANCES_EVENT } from "@/lib/teamFinances";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
 import TeamFinancePanel, { FinanceWarningRibbon } from "@/components/finances/TeamFinancePanel";
@@ -452,6 +453,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   accent="primary"
                 />
               </div>
+              {!isDisbanded && <FinanceQuickTile team={teamName} onOpen={(t) => setActiveTab(t)} />}
+
 
             </div>
 
