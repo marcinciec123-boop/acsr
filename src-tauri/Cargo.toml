@@ -18,8 +18,8 @@ tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# Yankowane wersje `zip` (2.x-8.x wycofane z crates.io 2026-10-16) wymuszane
-# przez tauri-plugin-updater: pobieramy 2.2.2 bezpoœrednio z repozytorium.
+# crates.io yanked every zip 2.x-8.x release on 2026-10-16, but
+# tauri-plugin-updater still requires zip = "^2". Pull 2.2.2 from upstream git.
 [patch.crates-io]
 zip = { git = "https://github.com/zip-rs/zip2", tag = "v2.2.2" }
 
