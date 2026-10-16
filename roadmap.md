@@ -5,6 +5,7 @@
 - [x] Sprawdzić kompilację i testy turniejowe.
 
 - [x] Naprawić build Tauri na GitHub Actions (yankowane `zip` → patch na 2.2.2 z gita + zatwierdzony Cargo.lock).
+- [x] Zablokować wersje wtyczek npm (`@tauri-apps/plugin-updater` ~2.7.0, `plugin-process` ~2.4.0) tak, by odpowiadały Cargo.lock.
 
 ## Przed finalnym buildem
 - [ ] „Sloty zapisu” w Ustawieniach zapisują tylko turnieje — podpiąć pod pełny backup 1:1 (deviceBackup).
