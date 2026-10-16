@@ -3,4 +3,5 @@
 
 - Desktop app is a Tauri v2 shell in src-tauri bundling the built dist offline; GitHub Actions builds a signed release on every push to main and the in-app updater pulls latest.json, since the sandbox cannot produce .exe files.
 - Keep src-tauri/Cargo.lock committed and pin withdrawn (yanked) transitive crates through [patch.crates-io] in src-tauri/Cargo.toml, so CI dependency resolution keeps working when crates.io pulls a version.
+- Pin @tauri-apps/* npm plugin packages to the same major/minor as their matching Rust crates in src-tauri/Cargo.lock, because the Tauri CLI aborts the build when an npm package and its crate differ on major/minor.
 - Bracket views derive match positions and connector paths through the shared graph-based bracket layout helper, so irregular lower-bracket rounds remain aligned across tournament and group views.
