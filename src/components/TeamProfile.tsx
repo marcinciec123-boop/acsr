@@ -7,7 +7,8 @@ import {
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
   ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
-import { summarizeTeamContracts } from "@/lib/contracts";
+import { summarizeTeamContracts, loadContracts } from "@/lib/contracts";
+import { getTeamFinance, FINANCES_EVENT } from "@/lib/teamFinances";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
 import TeamFinancePanel, { FinanceWarningRibbon } from "@/components/finances/TeamFinancePanel";
@@ -452,6 +453,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                   accent="primary"
                 />
               </div>
+              {!isDisbanded && <FinanceQuickTile team={teamName} onOpen={(t) => setActiveTab(t)} />}
+
 
             </div>
 
@@ -1081,3 +1084,41 @@ const MatchList = ({
 );
 
 export default TeamProfile;
+
+const FinanceQuickTile = ({ team, onOpen }: { team: string; onOpen: (t: TabId) => void }) => {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick(t => t + 1);
+    const evs = [FINANCES_EVENT, "contracts:update", "worldclock:update"];
+    evs.forEach(e => window.addEventListener(e, bump));
+    return () => evs.forEach(e => window.removeEventListener(e, bump));
+  }, []);
+  const fin = useMemo(() => getTeamFinance(team), [team, tick]);
+  const nextContract = useMemo(() => {
+    const now = Date.now();
+    void now;
+    return loadContracts()
+      .filter(c => c.team === team && !(c as { endedAt?: string }).endedAt)
+      .sort((a, b) => a.endDate.localeCompare(b.endDate))[0];
+  }, [team, tick]);
+  if (!fin) return null;
+  const net = fin.monthIncome - fin.monthExpenses;
+  return (
+    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <button type="button" onClick={() => onOpen("finances")} className="text-left rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 px-3 py-2 transition-colors">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Budżet</p>
+        <p className={cn("font-heading font-bold", fin.balance < 0 ? "text-destructive" : "text-foreground")}>{formatMoney(fin.balance)}</p>
+      </button>
+      <button type="button" onClick={() => onOpen("finances")} className="text-left rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 px-3 py-2 transition-colors">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Saldo · {fin.month}</p>
+        <p className={cn("font-heading font-bold", net >= 0 ? "text-[hsl(var(--win))]" : "text-destructive")}>{net >= 0 ? "+" : "−"}{formatMoney(Math.abs(net))}</p>
+      </button>
+      <button type="button" onClick={() => onOpen("contracts")} className="text-left rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 px-3 py-2 transition-colors min-w-0">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Najbliższy koniec kontraktu</p>
+        <p className="font-heading font-bold text-foreground truncate">
+          {nextContract ? `${nextContract.player} · ${nextContract.endDate.slice(0, 10)}` : "—"}
+        </p>
+      </button>
+    </div>
+  );
+};

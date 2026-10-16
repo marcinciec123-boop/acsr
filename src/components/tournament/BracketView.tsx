@@ -1,4 +1,5 @@
-import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown } from "lucide-react";
+import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown, Camera } from "lucide-react";
+import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -426,8 +427,30 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   };
 
 
+  const exportPng = async () => {
+    const el = panRef.current?.firstElementChild as HTMLElement | null;
+    if (!el) return;
+    const bg = getComputedStyle(document.body).backgroundColor;
+    try {
+      const url = await toPng(el, {
+        pixelRatio: 2, backgroundColor: bg, cacheBust: true,
+        width: el.scrollWidth + 32, height: el.scrollHeight + 32,
+        style: { padding: "16px", margin: "0" },
+        filter: (n) => !(n instanceof HTMLElement && n.dataset.exportHide === "true"),
+      });
+      const a = document.createElement("a");
+      a.href = url; a.download = "drabinka.png";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { console.error("Eksport drabinki nie powiódł się", e); }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end -mb-4">
+        <Button size="sm" variant="outline" onClick={exportPng} className="gap-1.5 h-7 text-xs font-mono uppercase">
+          <Camera className="w-3.5 h-3.5" /> Eksportuj PNG
+        </Button>
+      </div>
       <div className="relative">
         <div
           className={cn(

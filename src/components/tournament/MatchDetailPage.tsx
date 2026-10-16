@@ -188,11 +188,25 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       toast({ title: "Nie można symulować", description: "Najpierw przypisz obie drużyny.", variant: "destructive" });
       return;
     }
-    const result = simulateMatch(match.team1, match.team2, bo, { tournamentId });
+    // Jeśli przeprowadzono veto (BO3/BO5) — gramy dokładnie wybrane mapy w ich kolejności, z ustalonymi stronami.
+    const vetoMaps = bo > 1 && match.veto?.length
+      ? match.veto.filter(v => v.action === "pick" || v.action === "decider")
+      : [];
+    const useVeto = vetoMaps.length >= bo;
+    const result = simulateMatch(match.team1, match.team2, bo, {
+      tournamentId,
+      ...(useVeto ? { maps: vetoMaps.map(v => v.map) } : {}),
+    });
+    const simMaps = useVeto
+      ? result.maps.map((mp, i) => {
+          const side = vetoMaps[i]?.team1StartSide ?? (maps.find(x => x.map === mp.map) as { team1StartSide?: "T" | "CT" } | undefined)?.team1StartSide;
+          return side ? { ...mp, team1StartSide: side } : mp;
+        })
+      : result.maps;
     onUpdate({
       score1: result.score1,
       score2: result.score2,
-      maps: result.maps,
+      maps: simMaps,
     });
     setActiveMapIdx(0);
     const shown = bo === 1 && result.maps[0]
