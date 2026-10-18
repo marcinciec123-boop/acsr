@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Zap, Trophy, Users, Calendar } from "lucide-react";
 import { initialTournaments as tournaments, teamDatabase, calendarEvents, type TeamData } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
+import TournamentLogo from "@/components/TournamentLogo";
 
 interface OverviewProps {
   onNavigate: (tab: "tournaments" | "calendar" | "rankings") => void;
@@ -65,7 +66,7 @@ const OverviewSection = ({ onNavigate, dynamicRanking }: OverviewProps) => {
                       <span className="text-xs font-mono px-2 py-0.5 rounded border bg-primary/10 text-primary border-primary/30">{t.tier}</span>
                       <span className="text-xs font-mono text-muted-foreground">{t.format === "major" ? "⭐ MAJOR" : t.format.toUpperCase()}</span>
                     </div>
-                    <h4 className="font-heading font-bold text-foreground">{t.name}</h4>
+                    <h4 className="font-heading font-bold text-foreground flex items-center gap-2"><TournamentLogo id={t.id} name={t.name} size={20} hideFallback />{t.name}</h4>
                     <p className="text-muted-foreground text-sm">{t.location}</p>
                   </div>
                   <div className="text-right">
