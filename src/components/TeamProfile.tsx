@@ -1094,13 +1094,10 @@ const FinanceQuickTile = ({ team, onOpen }: { team: string; onOpen: (t: TabId) =
     return () => evs.forEach(e => window.removeEventListener(e, bump));
   }, []);
   const fin = useMemo(() => getTeamFinance(team), [team, tick]);
-  const nextContract = useMemo(() => {
-    const now = Date.now();
-    void now;
-    return loadContracts()
-      .filter(c => c.team === team && !(c as { endedAt?: string }).endedAt)
-      .sort((a, b) => a.endDate.localeCompare(b.endDate))[0];
-  }, [team, tick]);
+  const nextContract = useMemo(
+    () => getNextContractExpiry(team),
+    [team, tick],
+  );
   if (!fin) return null;
   const net = fin.monthIncome - fin.monthExpenses;
   return (
