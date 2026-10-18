@@ -7,7 +7,7 @@ import {
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
   ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
-import { summarizeTeamContracts, loadContracts } from "@/lib/contracts";
+import { summarizeTeamContracts, getNextContractExpiry } from "@/lib/contracts";
 import { getTeamFinance, FINANCES_EVENT } from "@/lib/teamFinances";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
