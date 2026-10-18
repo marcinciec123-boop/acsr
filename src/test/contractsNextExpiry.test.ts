@@ -53,6 +53,7 @@ describe("next contract expiry on the team profile tile", () => {
     localStorage.setItem("csgo_hub_team_rename_log", JSON.stringify([
       { oldName: "Team Alpha", newName: "Team Omega", date: "2026-06-01" },
     ]));
+    window.dispatchEvent(new CustomEvent("teams:update"));
     const list = [contract({ player: "keeper", team: "Team Alpha", endDate: "2027-02-01" })];
     expect(getNextContractExpiry("Team Omega", list, NOW)?.player).toBe("keeper");
   });
