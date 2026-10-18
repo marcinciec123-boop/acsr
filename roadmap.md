@@ -8,6 +8,7 @@
 - [x] Zablokować wersje wtyczek npm (`@tauri-apps/plugin-updater` ~2.7.0, `plugin-process` ~2.4.0) tak, by odpowiadały Cargo.lock.
 
 ## Przed finalnym buildem
+- [x] Kafelek „Najbliższy koniec kontraktu” w profilu drużyny pomijał zakończone i przeterminowane umowy — naprawione (helper `getNextContractExpiry` + testy).
 - [ ] „Sloty zapisu” w Ustawieniach zapisują tylko turnieje — podpiąć pod pełny backup 1:1 (deviceBackup).
 
 ## Pomysły na później (od Marcina)
