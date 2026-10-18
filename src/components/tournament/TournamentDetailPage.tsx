@@ -27,6 +27,9 @@ import { TournamentUpcomingPanel } from "./TournamentUpcomingPanel";
 import { ScheduleBulkPanel } from "./ScheduleBulkPanel";
 
 import TeamLogo from "@/components/TeamLogo";
+import TournamentLogo from "@/components/TournamentLogo";
+import { saveTournamentLogo, deleteTournamentLogo } from "@/lib/tournamentLogos";
+import { fileToLogoDataUrl } from "@/lib/teamLogos";
 import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { loadAllTeams, loadArchivedTeams } from "@/lib/teamManagement";
@@ -412,9 +415,7 @@ export const TournamentDetailPage = ({
             </div>
 
             <div className="flex items-start gap-4 mb-2">
-              <div className="hidden sm:flex w-14 h-14 rounded-lg bg-primary/15 border border-primary/30 items-center justify-center shrink-0">
-                <Trophy className="w-7 h-7 text-primary" />
-              </div>
+              <TournamentLogoEditor id={t.id} name={t.name} />
               <div className="min-w-0 flex-1">
                 <h1 className="text-2xl sm:text-4xl font-heading font-bold text-foreground leading-tight">{t.name}</h1>
                 {t.organizer && (
@@ -1160,5 +1161,27 @@ export const TournamentDetailPage = ({
         </div>
       </div>
     </section>
+  );
+};
+
+
+const TournamentLogoEditor = ({ id, name }: { id: string; name: string }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex flex-col items-center gap-1 shrink-0">
+      <button type="button" onClick={() => inputRef.current?.click()} title="Ustaw logo turnieju" className="rounded-lg hover:ring-2 hover:ring-primary/50 transition-all">
+        <TournamentLogo id={id} name={name} size={56} className="rounded-lg" />
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={async e => {
+        const f = e.target.files?.[0];
+        e.target.value = "";
+        if (!f) return;
+        try { await saveTournamentLogo(id, await fileToLogoDataUrl(f, 256)); } catch { /* ignore */ }
+      }} />
+      <div className="flex gap-1.5 text-[10px] font-mono text-muted-foreground">
+        <button type="button" onClick={() => inputRef.current?.click()} className="hover:text-primary">Logo</button>
+        <button type="button" onClick={() => deleteTournamentLogo(id)} className="hover:text-destructive">Usuń</button>
+      </div>
+    </div>
   );
 };
