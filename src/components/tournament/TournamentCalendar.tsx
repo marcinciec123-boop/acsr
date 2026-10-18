@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Trophy, MapPin, Users, Crown } from "lucide-react";
 import { type Tournament } from "@/data/tournaments";
 import { cn } from "@/lib/utils";
+import TournamentLogo from "@/components/TournamentLogo";
 import { getWorldNow, useWorldDate } from "@/lib/worldClock";
 import { usePersistedState } from "@/lib/uiPrefs";
 
@@ -128,7 +129,7 @@ const TournamentCalendar = ({ tournaments, view, onOpen }: Props) => {
                   <div className="flex items-center gap-1.5">
                     <span className={cn("text-xs font-mono font-black px-1 rounded border", tierBg[t.tier])}>{t.tier}</span>
                     <span className={cn("w-1.5 h-1.5 rounded-full", statusDot[t.status])} />
-                    <span className="text-xs font-heading font-bold text-foreground truncate">{t.name}</span>
+                    <TournamentLogo id={t.id} name={t.name} size={16} hideFallback /><span className="text-xs font-heading font-bold text-foreground truncate">{t.name}</span>
                   </div>
                 </div>
                 <div className="relative h-8">

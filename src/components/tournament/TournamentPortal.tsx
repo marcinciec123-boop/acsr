@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TournamentData } from "@/lib/types";
 import TeamLogo from "@/components/TeamLogo";
+import TournamentLogo from "@/components/TournamentLogo";
 import { getTeamFlag, isPlaceholder } from "@/lib/teamHelpers";
 import { getWorldNow, useWorldDate } from "@/lib/worldClock";
 import { usePersistedState } from "@/lib/uiPrefs";
@@ -180,9 +181,10 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
         </div>
 
         {/* Title */}
-        <h3 className="font-heading font-bold text-foreground text-base mb-0.5 line-clamp-2 leading-tight">
-          {t.name}
-        </h3>
+        <div className="flex items-center gap-2 mb-0.5">
+          <TournamentLogo id={t.id} name={t.name} size={28} />
+          <h3 className="font-heading font-bold text-foreground text-base line-clamp-2 leading-tight">{t.name}</h3>
+        </div>
         <p className="text-xs text-muted-foreground mb-3 truncate">
           {t.organizer || "—"} {formatYear(t.startDate) && `• ${formatYear(t.startDate)}`}
         </p>
@@ -296,7 +298,8 @@ const FeaturedLiveCard = ({ t, onClick }: { t: TournamentData; onClick: () => vo
           </span>
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-heading font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
+        <h2 className="text-2xl sm:text-3xl font-heading font-bold text-foreground mb-1 group-hover:text-primary transition-colors flex items-center gap-3">
+          <TournamentLogo id={t.id} name={t.name} size={40} />
           {t.name}
         </h2>
         <p className="text-sm text-muted-foreground mb-4">{t.organizer}</p>
@@ -577,25 +580,62 @@ const TournamentMonthCalendar = ({ tournaments, onSelect }: { tournaments: Tourn
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
-        {cells.map((day, index) => {
-          if (!day) return <div key={index} className="min-h-24 sm:min-h-32 border-l border-t border-border/30 bg-secondary/10" />;
-          const iso = toIsoLocal(day);
-          const events = dayIndex[iso] || [];
-          const today = iso === worldDate;
+      <div>
+        {Array.from({ length: cells.length / 7 }).map((_, w) => {
+          const week = cells.slice(w * 7, w * 7 + 7);
+          const isos = week.map(d => (d ? toIsoLocal(d) : null));
+          const seen = new Map<string, { t: TournamentData; s: number; e: number }>();
+          isos.forEach((iso, i) => {
+            if (!iso) return;
+            (dayIndex[iso] || []).forEach(t => {
+              const cur = seen.get(t.id);
+              if (cur) cur.e = i; else seen.set(t.id, { t, s: i, e: i });
+            });
+          });
+          const items = [...seen.values()].sort((a, b) => a.s - b.s || (b.e - b.s) - (a.e - a.s));
+          const laneEnds: number[] = [];
+          const placed = items.map(it => {
+            let lane = laneEnds.findIndex(end => end < it.s);
+            if (lane === -1) { lane = laneEnds.length; laneEnds.push(it.e); } else laneEnds[lane] = it.e;
+            return { ...it, lane };
+          });
           return (
-            <div
-              key={iso}
-              className={cn(
-                "min-h-24 sm:min-h-32 border-l border-t border-border/30 p-1.5 flex flex-col gap-1 min-w-0",
-                today && "bg-primary/10",
-              )}
-            >
-              <span className={cn("text-xs font-mono", today ? "text-primary font-black" : "text-muted-foreground")}>{day.getDate()}</span>
-              <div className="space-y-1 overflow-hidden">
-                {events.slice(0, 4).map(t => <CalendarEventButton key={t.id} t={t} onSelect={onSelect} dense />)}
-                {events.length > 4 && <span className="block text-xs font-mono text-muted-foreground px-1">+{events.length - 4} więcej</span>}
-              </div>
+            <div key={w} className="relative grid grid-cols-7 auto-rows-min border-t border-border/30 min-h-24 sm:min-h-28">
+              {week.map((day, i) => (
+                <div
+                  key={i}
+                  style={{ gridColumn: i + 1, gridRow: `1 / span ${Math.max(2, laneEnds.length + 2)}` }}
+                  className={cn("border-l border-border/30", !day && "bg-secondary/10", day && isos[i] === worldDate && "bg-primary/10")}
+                />
+              ))}
+              {week.map((day, i) => day && (
+                <span key={"n" + i} style={{ gridColumn: i + 1, gridRow: 1 }} className={cn("relative px-1.5 pt-1 text-xs font-mono", isos[i] === worldDate ? "text-primary font-black" : "text-muted-foreground")}>
+                  {day.getDate()}
+                </span>
+              ))}
+              {placed.map(({ t, s: cs, e: ce, lane }) => {
+                const startsHere = isos[cs] === t.startDate;
+                const endsHere = isos[ce] === t.endDate;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onSelect(t.id)}
+                    title={`${t.name} • ${fullDate(t.startDate)} → ${fullDate(t.endDate)}`}
+                    style={{ gridColumn: `${cs + 1} / ${ce + 2}`, gridRow: lane + 2 }}
+                    className={cn(
+                      "relative mx-0.5 mb-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 border text-left transition-colors hover:brightness-125",
+                      tierColor(t.tier),
+                      startsHere ? "rounded-l-md" : "rounded-l-none border-l-0",
+                      endsHere ? "rounded-r-md" : "rounded-r-none border-r-0",
+                    )}
+                  >
+                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
+                    <TournamentLogo id={t.id} name={t.name} size={16} hideFallback />
+                    <span className="font-heading font-bold text-xs leading-tight line-clamp-2 break-words">{t.name}</span>
+                  </button>
+                );
+              })}
             </div>
           );
         })}
@@ -651,7 +691,7 @@ const TournamentYearTimeline = ({ tournaments, onSelect }: { tournaments: Tourna
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
                   <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDot(t.status))} />
-                  <span className="text-sm font-heading font-bold text-foreground truncate">{t.name}</span>
+                  <TournamentLogo id={t.id} name={t.name} size={18} hideFallback /><span className="text-sm font-heading font-bold text-foreground truncate">{t.name}</span>
                 </div>
                 <div className="mt-0.5 text-xs font-mono text-muted-foreground">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {statusLabel(t.status)}</div>
               </div>
@@ -699,10 +739,10 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
                 className="w-full grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-secondary/30 transition-colors text-left"
               >
                 <span className={cn("text-xs font-mono font-bold px-2 py-1 rounded border", tierColor(t.tier))}>{t.tier}-Tier</span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-center gap-2"><TournamentLogo id={t.id} name={t.name} size={28} /><div className="min-w-0">
                   <div className="font-heading font-bold text-foreground truncate">{t.name}</div>
                   <div className="text-xs font-mono text-muted-foreground truncate">{fullDate(t.startDate)} → {fullDate(t.endDate)} • {t.format} • {t.location || "—"}</div>
-                </div>
+                </div></div>
                 <div className="flex items-center gap-2">
                   <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-xs font-mono", t.status === "completed" ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>
                     <span className={cn("w-1.5 h-1.5 rounded-full", statusDot(t.status))} />
@@ -748,6 +788,7 @@ const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: Tournam
               className="w-full text-left grid grid-cols-1 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_110px_70px] gap-1 md:gap-3 items-center px-4 py-2.5 hover:bg-secondary/30 transition-colors">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border shrink-0", tierColor(t.tier))}>{t.tier}</span>
+                <TournamentLogo id={t.id} name={t.name} size={24} />
                 <div className="min-w-0">
                   <div className="font-heading font-bold text-sm text-foreground truncate">{t.name}</div>
                   <div className="text-xs font-mono text-muted-foreground truncate">{formatDate(t.startDate)} – {formatDate(t.endDate)}</div>
