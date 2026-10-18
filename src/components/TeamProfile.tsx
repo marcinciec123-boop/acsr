@@ -7,7 +7,7 @@ import {
   Upload, X, Calendar, Swords, Award, TrendingUp, ImageIcon,
   ArrowDownCircle, ArrowUpCircle, Armchair, FileSignature,
 } from "lucide-react";
-import { summarizeTeamContracts, loadContracts } from "@/lib/contracts";
+import { summarizeTeamContracts, getNextContractExpiry } from "@/lib/contracts";
 import { getTeamFinance, FINANCES_EVENT } from "@/lib/teamFinances";
 import TeamContractsPanel from "@/components/contracts/TeamContractsPanel";
 import ContractsWidget from "@/components/contracts/ContractsWidget";
@@ -1094,13 +1094,10 @@ const FinanceQuickTile = ({ team, onOpen }: { team: string; onOpen: (t: TabId) =
     return () => evs.forEach(e => window.removeEventListener(e, bump));
   }, []);
   const fin = useMemo(() => getTeamFinance(team), [team, tick]);
-  const nextContract = useMemo(() => {
-    const now = Date.now();
-    void now;
-    return loadContracts()
-      .filter(c => c.team === team && !(c as { endedAt?: string }).endedAt)
-      .sort((a, b) => a.endDate.localeCompare(b.endDate))[0];
-  }, [team, tick]);
+  const nextContract = useMemo(
+    () => getNextContractExpiry(team),
+    [team, tick],
+  );
   if (!fin) return null;
   const net = fin.monthIncome - fin.monthExpenses;
   return (

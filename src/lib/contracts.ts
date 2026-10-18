@@ -181,6 +181,17 @@ export function getTeamContracts(team: string, list?: PlayerContract[]): PlayerC
   return all.filter(c => !c.terminatedAt && canonicalTeamName(c.team) === canonical);
 }
 
+/**
+ * Najbliższy planowany koniec kontraktu w drużynie — tylko umowy, które jeszcze
+ * nie wygasły. Zakończone (transfer/rozwiązanie/odnowienie) i przeterminowane
+ * są pomijane, żeby kafelki profilu nie pokazywały zawodnika, który już odszedł.
+ */
+export function getNextContractExpiry(team: string, list?: PlayerContract[], nowMs = getWorldNow().getTime()): PlayerContract | undefined {
+  return getTeamContracts(team, list)
+    .filter(c => (c.endDate || "").slice(0, 10) >= new Date(nowMs).toISOString().slice(0, 10))
+    .sort((a, b) => (a.endDate || "").localeCompare(b.endDate || ""))[0];
+}
+
 export interface ContractSummary {
   total: number;
   active: number;
