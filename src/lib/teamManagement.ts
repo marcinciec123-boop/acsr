@@ -13,6 +13,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent } from "./freeAgents";
+import { resolvePlayerCountry } from "./playerCountry";
 import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
