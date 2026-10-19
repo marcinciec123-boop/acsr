@@ -671,7 +671,6 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                             autoFocus
                             value={p.role || ""}
                             onChange={(e) => handleSetRole(p.name, e.target.value as PlayerRole | "")}
-                            onBlur={() => setRoleEditFor(null)}
                             className="text-[10px] font-mono px-1 py-0.5 rounded border border-primary/40 bg-card text-foreground"
                           >
                             <option value="">—</option>

@@ -317,13 +317,15 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   const team = teams.find(t => sameName(t.name, name));
   if (!team) return { ok: false, error: "Nie znaleziono drużyny" };
 
-  // 1) gracze → wolni agenci
+  // 1) usuń z rankingu NAJPIERW — addManualFreeAgent odrzuca graczy,
+  //    którzy wciąż figurowaliby w składzie (ranking_data)
+  saveTeams(teams.filter(t => t.name !== name));
+
+  // 2) gracze → wolni agenci
   for (const player of team.roster) {
     addManualFreeAgent({ player, country: team.country });
   }
-
-  // 2) usuń z rankingu
-  saveTeams(teams.filter(t => t.name !== name));
+  window.dispatchEvent(new CustomEvent("freeagents:update"));
 
   // 3) usuń bench
   const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});

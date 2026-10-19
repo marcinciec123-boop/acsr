@@ -169,7 +169,6 @@ const PlayerProfile = ({
                     autoFocus
                     value={role}
                     onChange={(e) => handleRoleChange(e.target.value as PlayerRole | "")}
-                    onBlur={() => setEditingRole(false)}
                     className="text-xs font-mono px-2 py-1 rounded-full border border-primary/40 bg-card text-foreground"
                   >
                     <option value="">— brak roli —</option>
