@@ -85,6 +85,22 @@ export function persistPlayerMetadata(player: string, input: PersistPlayerMetada
       else delete playerRoles[nick];
     }
     savePlayerRoleOverrides(cur);
+
+    // Synchronizuj magazyny wolnych agentów, żeby rola była spójna
+    // w panelu FA, profilu gracza i liście graczy (klucze z freeAgents.ts).
+    const faRoleOv = loadFromStorage<Record<string, PlayerRole>>("fa_role_overrides", {});
+    if (input.role) faRoleOv[nick] = input.role;
+    else delete faRoleOv[nick];
+    saveToStorage("fa_role_overrides", faRoleOv);
+
+    const manualFAs = loadFromStorage<Array<{ player: string; role?: PlayerRole }>>("manual_free_agents", []);
+    const faIdx = manualFAs.findIndex(f => f.player.toLowerCase() === nick.toLowerCase());
+    if (faIdx !== -1) {
+      if (input.role) manualFAs[faIdx] = { ...manualFAs[faIdx], role: input.role };
+      else delete manualFAs[faIdx].role;
+      saveToStorage("manual_free_agents", manualFAs);
+    }
+    window.dispatchEvent(new CustomEvent("players:update"));
   }
 
   if (input.firstName !== undefined || input.lastName !== undefined) {
