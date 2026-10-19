@@ -200,7 +200,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       });
     }
     return out;
-  }, [teams, statsIndex]);
+  }, [teams, statsIndex, teamsTick, refreshKey]);
 
   const allNationalities = useMemo(() => {
     const set = new Set<string>();
