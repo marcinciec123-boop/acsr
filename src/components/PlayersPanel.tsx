@@ -103,10 +103,14 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
       });
     };
     window.addEventListener("teams:update", bump);
+    window.addEventListener("players:update", bump);
+    window.addEventListener("freeagents:update", bump);
     window.addEventListener("ranking:update", bump);
     window.addEventListener("worldclock:update", bump);
     return () => {
       window.removeEventListener("teams:update", bump);
+      window.removeEventListener("players:update", bump);
+      window.removeEventListener("freeagents:update", bump);
       window.removeEventListener("ranking:update", bump);
       window.removeEventListener("worldclock:update", bump);
       if (refreshFrame) cancelAnimationFrame(refreshFrame);
