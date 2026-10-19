@@ -13,6 +13,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent } from "./freeAgents";
+import { resolvePlayerCountry } from "./playerCountry";
 import { getWorldDate } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { customTransfersGlobal } from "@/data/history";
@@ -322,8 +323,9 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   saveTeams(teams.filter(t => t.name !== name));
 
   // 2) gracze → wolni agenci
+  // Narodowość gracza NIGDY nie jest nadpisywana krajem drużyny.
   for (const player of team.roster) {
-    addManualFreeAgent({ player, country: team.country });
+    addManualFreeAgent({ player, country: resolvePlayerCountry(player) });
   }
   window.dispatchEvent(new CustomEvent("freeagents:update"));
 

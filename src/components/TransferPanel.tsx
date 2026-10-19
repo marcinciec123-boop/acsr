@@ -175,9 +175,13 @@ const TransferPanel = () => {
     const refresh = () => setOrgEvents(loadOrgEvents());
     window.addEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
     window.addEventListener("teams:update", refresh);
+    window.addEventListener("players:update", refresh);
+    window.addEventListener("freeagents:update", refresh);
     return () => {
       window.removeEventListener(ORG_EVENTS_UPDATE_EVENT, refresh);
       window.removeEventListener("teams:update", refresh);
+      window.removeEventListener("players:update", refresh);
+      window.removeEventListener("freeagents:update", refresh);
     };
   }, []);
 
@@ -222,10 +226,14 @@ const TransferPanel = () => {
   useEffect(() => {
     const refresh = () => setDataVersion(v => v + 1);
     window.addEventListener("teams:update", refresh);
+    window.addEventListener("players:update", refresh);
+    window.addEventListener("freeagents:update", refresh);
     window.addEventListener("ranking:update", refresh);
     window.addEventListener("transfers:update", refresh);
     return () => {
       window.removeEventListener("teams:update", refresh);
+      window.removeEventListener("players:update", refresh);
+      window.removeEventListener("freeagents:update", refresh);
       window.removeEventListener("ranking:update", refresh);
       window.removeEventListener("transfers:update", refresh);
     };

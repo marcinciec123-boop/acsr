@@ -76,7 +76,11 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   useEffect(() => {
     const onBench = () => setBenchTick(t => t + 1);
     window.addEventListener("bench:update", onBench);
-    return () => window.removeEventListener("bench:update", onBench);
+    window.addEventListener("players:update", onBench);
+    return () => {
+      window.removeEventListener("bench:update", onBench);
+      window.removeEventListener("players:update", onBench);
+    };
   }, []);
 
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
