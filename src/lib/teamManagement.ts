@@ -322,8 +322,9 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   saveTeams(teams.filter(t => t.name !== name));
 
   // 2) gracze → wolni agenci
+  // Narodowość gracza NIGDY nie jest nadpisywana krajem drużyny.
   for (const player of team.roster) {
-    addManualFreeAgent({ player, country: team.country });
+    addManualFreeAgent({ player, country: resolvePlayerCountry(player) });
   }
   window.dispatchEvent(new CustomEvent("freeagents:update"));
 

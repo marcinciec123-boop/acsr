@@ -217,7 +217,9 @@ export function getFreeAgents(): FreeAgent[] {
     if (onAnyRoster.has(m.player)) continue;
     if (retired.has(m.player)) continue;
     seen.add(m.player);
-    const country = normalizeCountry(m.country || playerNationalities[m.player] || "");
+    // Prawdziwa narodowość gracza ma pierwszeństwo nad krajem zapisanym przy FA
+    // (stare wpisy z disbandu miały kraj drużyny).
+    const country = normalizeCountry(playerNationalities[m.player] || m.country || "");
     const realName = (m.firstName || m.lastName)
       ? { firstName: m.firstName || "", lastName: m.lastName || "" }
       : playerRealNames[m.player];
