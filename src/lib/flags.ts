@@ -43,30 +43,49 @@ const countryToISO: Record<string, string> = {
   "OMN": "OM", "JOR": "JO", "LBN": "LB", "SYR": "SY", "IRQ": "IQ",
   "IRN": "IR", "ISR": "IL", "YEM": "YE",
 
+  // Remaining official ISO 3166-1 alpha-3 codes (including territories)
+  "AFG": "AF", "ALA": "AX", "ASM": "AS", "AND": "AD", "AIA": "AI",
+  "ATA": "AQ", "ATG": "AG", "ABW": "AW", "BMU": "BM", "BES": "BQ",
+  "BVT": "BV", "IOT": "IO", "CYM": "KY", "CXR": "CX", "CCK": "CC",
+  "COL": "CO", "COK": "CK", "CUW": "CW", "DMA": "DM", "FLK": "FK",
+  "FRO": "FO", "GUF": "GF", "PYF": "PF", "ATF": "TF", "GIB": "GI",
+  "GRL": "GL", "GRD": "GD", "GLP": "GP", "GUM": "GU", "GGY": "GG",
+  "GNB": "GW", "HMD": "HM", "VAT": "VA", "IMN": "IM", "JEY": "JE",
+  "LVA": "LV", "LIE": "LI", "MDV": "MV", "MTQ": "MQ", "MRT": "MR",
+  "MYT": "YT", "MCO": "MC", "MSR": "MS", "MAR": "MA", "NCL": "NC",
+  "NIU": "NU", "NFK": "NF", "MNP": "MP", "PSE": "PS", "PER": "PE",
+  "PCN": "PN", "PRI": "PR", "REU": "RE", "BLM": "BL", "SHN": "SH",
+  "KNA": "KN", "LCA": "LC", "MAF": "MF", "SPM": "PM", "VCT": "VC",
+  "SMR": "SM", "SXM": "SX", "ZAF": "ZA", "SGS": "GS", "SJM": "SJ",
+  "TKL": "TK", "TUN": "TN", "TCA": "TC", "GBR": "GB", "UMI": "UM",
+  "VGB": "VG", "VIR": "VI", "WLF": "WF", "ESH": "EH",
+
   // Common aliases used by esports databases
   "SUI": "CH", "CRO": "HR", "ENG": "GB-ENG", "SCO": "GB-SCT",
   "WAL": "GB-WLS", "BOS": "BA", "MAC2": "MK", "UAE": "AE",
   "PHI": "PH", "CHI": "CL", "URU": "UY", "NGR": "NG",
+  "POR": "PT", "GRE": "GR", "ROM": "RO", "INA": "ID",
+  "MAS": "MY", "VIE": "VN", "TPE": "TW", "ZIM": "ZW",
+  "GB-ENG": "GB-ENG", "GB-SCT": "GB-SCT", "GB-WLS": "GB-WLS",
 };
 
-/** Always return a 2-letter ISO code (or "" if unknown). */
+/** Return an ISO alpha-2 code, a UK subdivision code, or "" if unknown. */
 export function normalizeCountry(code: string | undefined | null): string {
   if (!code) return "";
   const up = code.toUpperCase().trim();
-  if (countryToISO[up]) return countryToISO[up];
-  if (up.length === 2) return up;
+  if (Object.prototype.hasOwnProperty.call(countryToISO, up)) return countryToISO[up];
+  if (/^[A-Z]{2}$/.test(up)) return up;
   return "";
 }
 
-export function countryFlag(countryCode: string): string {
-  const iso = countryToISO[countryCode] || countryCode;
-  if (!iso || iso.length !== 2) return "🏳️";
-  if (iso === "XK") return "🇽🇰"; // Kosovo special case
+export function countryFlag(countryCode: string | undefined | null): string {
+  const iso = normalizeCountry(countryCode);
   // England / Scotland / Wales use Unicode tag sequences (not regional indicators)
   if (iso === "GB-ENG") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿";
   if (iso === "GB-SCT") return "🏴󠁧󠁢󠁳󠁣󠁴󠁿";
   if (iso === "GB-WLS") return "🏴󠁧󠁢󠁷󠁬󠁳󠁿";
-  const codePoints = [...iso.toUpperCase()].map(
+  if (!iso || iso.length !== 2) return "🏳️";
+  const codePoints = [...iso].map(
     (c) => 0x1f1e6 + c.charCodeAt(0) - 65
   );
   return String.fromCodePoint(...codePoints);
