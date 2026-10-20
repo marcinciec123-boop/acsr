@@ -714,6 +714,31 @@ const TransferPanel = () => {
                     </div>
                   )}
 
+                  {transferPlayer && transferFrom !== "-" && transferTo !== "-" && existingContract && (
+                    <div className="rounded border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-2">
+                      <p className="text-xs font-mono uppercase tracking-wider text-amber-400">Kwota transferu / odstępne</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={transferFee}
+                          onChange={e => setTransferFee(e.target.value)}
+                          className="h-8 font-mono"
+                          placeholder="0"
+                        />
+                        <span className="text-xs font-mono text-muted-foreground">USD</span>
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground">
+                        {transferTo} płaci, {transferFrom} otrzymuje. 0 = transfer za darmo.
+                      </p>
+                      {feeExceedsBudget && (
+                        <p className="text-xs font-mono text-destructive">
+                          ⚠ {transferTo} ma tylko {formatSalary(buyerFinance!.balance)} w budżecie — transfer wpędzi klub w długi.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {transferPlayer && transferTo !== "-" && (
                     <div className="rounded border border-primary/30 bg-primary/5 p-2.5 space-y-2">
                       <p className="text-xs font-mono uppercase tracking-wider text-primary">Warunki kontraktu</p>
