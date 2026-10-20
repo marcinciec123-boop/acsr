@@ -334,10 +334,21 @@ function closeCurrent(
   player: string,
   atIso: string,
   reason: PlayerContract["terminationReason"],
+  transferFee?: number,
 ): PlayerContract[] {
   return list.map(c =>
     c.player === player && !c.terminatedAt
-      ? { ...c, terminatedAt: atIso, terminationReason: reason, endDate: reason === "renewal" ? c.endDate : atIso }
+      ? {
+          ...c,
+          terminatedAt: atIso,
+          terminationReason: reason,
+          endDate: reason === "renewal" ? c.endDate : atIso,
+          // Przy transferze kwota odstępnego ląduje na zamykanym kontrakcie —
+          // finanse drużyn księgują ją jako sprzedaż/zakup zawodnika.
+          terms: reason === "transfer" && transferFee !== undefined
+            ? { ...c.terms, buyout: transferFee }
+            : c.terms,
+        }
       : c,
   );
 }
@@ -354,7 +365,7 @@ export interface CreateContractResult {
  */
 export function signContract(
   draft: ContractDraft,
-  options: { reason?: PlayerContract["terminationReason"]; skipDuplicateCheck?: boolean } = {},
+  options: { reason?: PlayerContract["terminationReason"]; skipDuplicateCheck?: boolean; transferFee?: number } = {},
 ): CreateContractResult {
   const list = loadContracts();
   const checkList = options.skipDuplicateCheck
