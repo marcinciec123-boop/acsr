@@ -62,13 +62,10 @@ export function countryFlag(countryCode: string): string {
   const iso = countryToISO[countryCode] || countryCode;
   if (!iso || iso.length !== 2) return "🏳️";
   if (iso === "XK") return "🇽🇰"; // Kosovo special case
-  // Subdivision flags (England, Scotland, Wales) — render directly.
-  if (iso.startsWith("GB-")) return isoToFlag(iso.slice(3) === "ENG" ? "GB-ENG" : iso);
-  return isoToFlag(iso);
-}
-
-function isoToFlag(iso: string): string {
-  if (iso.length !== 2) return "🏳️";
+  // England / Scotland / Wales use Unicode tag sequences (not regional indicators)
+  if (iso === "GB-ENG") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿";
+  if (iso === "GB-SCT") return "🏴󠁧󠁢󠁳󠁣󠁴󠁿";
+  if (iso === "GB-WLS") return "🏴󠁧󠁢󠁷󠁬󠁳󠁿";
   const codePoints = [...iso.toUpperCase()].map(
     (c) => 0x1f1e6 + c.charCodeAt(0) - 65
   );
