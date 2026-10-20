@@ -38,6 +38,7 @@ import {
   addMonthsIso, formatDatePl, formatSalary, getActiveContract, signContract,
   suggestDurationMonths, suggestSalary, terminateContract,
 } from "@/lib/contracts";
+import { getTeamFinance } from "@/lib/teamFinances";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { useProfileNav } from "@/lib/profileNav";
 import { loadOrgEvents, removeOrgEvent, ORG_EVENTS_UPDATE_EVENT, type OrgEvent } from "@/lib/orgEvents";
@@ -206,6 +207,7 @@ const TransferPanel = () => {
   const [contractMonths, setContractMonths] = useState<number>(12);
   const [contractBuyout, setContractBuyout] = useState("");
   const [contractNote, setContractNote] = useState("");
+  const [transferFee, setTransferFee] = useState("");
 
   // Aktualny kontrakt wybranej osoby (żeby widzieć, na czym stoi transfer).
   const existingContract = useMemo(
