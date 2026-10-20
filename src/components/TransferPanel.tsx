@@ -215,6 +215,18 @@ const TransferPanel = () => {
     [transferPlayer, dataVersion],
   );
 
+  // Kwota odstępnego — domyślnie buyout z obecnego kontraktu.
+  useEffect(() => {
+    setTransferFee(existingContract?.terms?.buyout ? String(existingContract.terms.buyout) : "");
+  }, [existingContract]);
+
+  const feeNum = Math.max(0, Number(transferFee) || 0);
+  const buyerFinance = useMemo(
+    () => (transferTo !== "-" ? getTeamFinance(transferTo) : null),
+    [transferTo, dataVersion],
+  );
+  const feeExceedsBudget = feeNum > 0 && buyerFinance != null && feeNum > buyerFinance.balance;
+
   // Sugerowane warunki liczone z siły drużyny i formy zawodnika.
   useEffect(() => {
     if (!transferPlayer || transferTo === "-") return;
