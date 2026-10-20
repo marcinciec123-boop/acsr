@@ -38,6 +38,7 @@ import {
   addMonthsIso, formatDatePl, formatSalary, getActiveContract, signContract,
   suggestDurationMonths, suggestSalary, terminateContract,
 } from "@/lib/contracts";
+import { getTeamFinance } from "@/lib/teamFinances";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { useProfileNav } from "@/lib/profileNav";
 import { loadOrgEvents, removeOrgEvent, ORG_EVENTS_UPDATE_EVENT, type OrgEvent } from "@/lib/orgEvents";
@@ -206,12 +207,25 @@ const TransferPanel = () => {
   const [contractMonths, setContractMonths] = useState<number>(12);
   const [contractBuyout, setContractBuyout] = useState("");
   const [contractNote, setContractNote] = useState("");
+  const [transferFee, setTransferFee] = useState("");
 
   // Aktualny kontrakt wybranej osoby (żeby widzieć, na czym stoi transfer).
   const existingContract = useMemo(
     () => (transferPlayer ? getActiveContract(transferPlayer) : undefined),
     [transferPlayer, dataVersion],
   );
+
+  // Kwota odstępnego — domyślnie buyout z obecnego kontraktu.
+  useEffect(() => {
+    setTransferFee(existingContract?.terms?.buyout ? String(existingContract.terms.buyout) : "");
+  }, [existingContract]);
+
+  const feeNum = Math.max(0, Number(transferFee) || 0);
+  const buyerFinance = useMemo(
+    () => (transferTo !== "-" ? getTeamFinance(transferTo) : null),
+    [transferTo, dataVersion],
+  );
+  const feeExceedsBudget = feeNum > 0 && buyerFinance != null && feeNum > buyerFinance.balance;
 
   // Sugerowane warunki liczone z siły drużyny i formy zawodnika.
   useEffect(() => {
@@ -451,21 +465,30 @@ const TransferPanel = () => {
             role: isCoach ? undefined : (playerRoles as Record<string, never>)[t.player],
           },
         },
-        { reason: "transfer", skipDuplicateCheck: true },
+        {
+          reason: "transfer",
+          skipDuplicateCheck: true,
+          // Odstępne ląduje na zamykanym kontrakcie — finanse księgują je
+          // jako sprzedaż (drużyna sprzedająca) i zakup (kupująca).
+          transferFee: transferFrom !== "-" && existingContract ? feeNum : undefined,
+        },
       );
       if (!res.ok) {
         toast({ title: "Kontrakt niezapisany", description: res.error, variant: "destructive" });
       }
     }
 
+    const feeLabel = transferFrom !== "-" && transferTo !== "-" && existingContract && feeNum > 0
+      ? ` (odstępne: ${formatSalary(feeNum)})`
+      : "";
     recordChange(
       "transfer",
-      `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
+      `Transfer: ${t.player} ${transferFrom} → ${transferTo}${feeLabel}`,
       before,
     );
     refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
-    setContractBuyout(""); setContractNote("");
+    setContractBuyout(""); setContractNote(""); setTransferFee("");
     setShowDialog(false);
   };
 
@@ -688,6 +711,31 @@ const TransferPanel = () => {
                         <span>{existingContract.team} • {formatSalary(existingContract.salary)}/mies.</span>
                         <span>do {formatDatePl(existingContract.endDate)}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {transferPlayer && transferFrom !== "-" && transferTo !== "-" && existingContract && (
+                    <div className="rounded border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-2">
+                      <p className="text-xs font-mono uppercase tracking-wider text-amber-400">Kwota transferu / odstępne</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={transferFee}
+                          onChange={e => setTransferFee(e.target.value)}
+                          className="h-8 font-mono"
+                          placeholder="0"
+                        />
+                        <span className="text-xs font-mono text-muted-foreground">USD</span>
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground">
+                        {transferTo} płaci, {transferFrom} otrzymuje. 0 = transfer za darmo.
+                      </p>
+                      {feeExceedsBudget && (
+                        <p className="text-xs font-mono text-destructive">
+                          ⚠ {transferTo} ma tylko {formatSalary(buyerFinance!.balance)} w budżecie — transfer wpędzi klub w długi.
+                        </p>
+                      )}
                     </div>
                   )}
 
