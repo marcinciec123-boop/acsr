@@ -465,21 +465,30 @@ const TransferPanel = () => {
             role: isCoach ? undefined : (playerRoles as Record<string, never>)[t.player],
           },
         },
-        { reason: "transfer", skipDuplicateCheck: true },
+        {
+          reason: "transfer",
+          skipDuplicateCheck: true,
+          // Odstępne ląduje na zamykanym kontrakcie — finanse księgują je
+          // jako sprzedaż (drużyna sprzedająca) i zakup (kupująca).
+          transferFee: transferFrom !== "-" && existingContract ? feeNum : undefined,
+        },
       );
       if (!res.ok) {
         toast({ title: "Kontrakt niezapisany", description: res.error, variant: "destructive" });
       }
     }
 
+    const feeLabel = transferFrom !== "-" && transferTo !== "-" && existingContract && feeNum > 0
+      ? ` (odstępne: ${formatSalary(feeNum)})`
+      : "";
     recordChange(
       "transfer",
-      `Transfer: ${t.player} ${transferFrom} → ${transferTo}`,
+      `Transfer: ${t.player} ${transferFrom} → ${transferTo}${feeLabel}`,
       before,
     );
     refreshChangeLog();
     setTransferPlayer(""); setTransferFrom("-"); setTransferTo("-");
-    setContractBuyout(""); setContractNote("");
+    setContractBuyout(""); setContractNote(""); setTransferFee("");
     setShowDialog(false);
   };
 
