@@ -385,7 +385,7 @@ export function signContract(
     terms: draft.terms || {},
   };
 
-  const closed = closeCurrent(list, draft.player, draft.startDate, options.reason || "transfer");
+  const closed = closeCurrent(list, draft.player, draft.startDate, options.reason || "transfer", options.transferFee);
   saveContracts([...closed, contract]);
   return { ok: true, contract };
 }
