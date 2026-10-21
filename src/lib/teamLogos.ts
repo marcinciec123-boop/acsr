@@ -1,6 +1,7 @@
 // Team logo persistence: heavy image data lives in IndexedDB-backed device storage.
 import { saveImage, loadImage, deleteImage } from "./storage";
 import { scheduleDeviceBackup } from "./deviceBackup";
+import { canonicalTeamName, teamNameChain } from "./teamRenames";
 import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const LS_PREFIX = "csgo_hub_teamlogo_";
@@ -49,6 +50,22 @@ export async function loadTeamLogo(teamName: string): Promise<string | null> {
         scheduleDeviceBackup();
       } catch { /* keep using legacy image DB */ }
       return legacy;
+    }
+  } catch { /* ignore */ }
+  // Rename fallback: stare zapisy trzymają logo pod poprzednią nazwą drużyny.
+  try {
+    const chain = teamNameChain(canonicalTeamName(teamName));
+    for (const alias of chain) {
+      if (alias === teamName) continue;
+      const aliasKey = lsKey(alias);
+      const cachedAlias = getCachedDeviceValue(aliasKey);
+      if (cachedAlias) return cachedAlias;
+      const fromDevice = await getDeviceValue(aliasKey);
+      if (fromDevice) return fromDevice;
+      const fromLs = localStorage.getItem(aliasKey);
+      if (fromLs && fromLs !== DEVICE_STORE_REF) return fromLs;
+      const legacy = await loadImage(idbKey(alias));
+      if (legacy) return legacy;
     }
   } catch { /* ignore */ }
   return null;
