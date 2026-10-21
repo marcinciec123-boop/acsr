@@ -8,6 +8,7 @@ import { calculateRating } from "./playerStats";
 import { loadStatsTournaments, nationalTeamNames, computePortalStats } from "./statsPortal";
 import { parsePrizePool } from "./prizeDistribution";
 import { getMatchTimestamp } from "./matchTime";
+import { canonicalTeamName } from "./teamRenames";
 
 export type RecordCategory = "player-map" | "player-match" | "player-career" | "team" | "map" | "tournament";
 
