@@ -8,6 +8,7 @@ import { calculateRating } from "./playerStats";
 import { loadStatsTournaments, nationalTeamNames, computePortalStats } from "./statsPortal";
 import { parsePrizePool } from "./prizeDistribution";
 import { getMatchTimestamp } from "./matchTime";
+import { canonicalTeamName } from "./teamRenames";
 
 export type RecordCategory = "player-map" | "player-match" | "player-career" | "team" | "map" | "tournament";
 
@@ -163,7 +164,9 @@ function computeRecordBookRaw(): RecordDef[] {
   const reverseSweeps: RecordEntry[] = [];
 
   for (const { m, t, ts } of matches) {
-    const t1 = m.team1.trim(); const t2 = m.team2.trim();
+    // Statystyki drużyn łączymy pod aktualną (kanoniczną) nazwą organizacji —
+    // po zmianie nazwy dorobek ze starej nazwy nie może „zamrozić" rekordów.
+    const t1 = canonicalTeamName(m.team1.trim()); const t2 = canonicalTeamName(m.team2.trim());
     if (m.score1 === m.score2) continue;
     const w = m.score1 > m.score2 ? t1 : t2;
     const l = w === t1 ? t2 : t1;
