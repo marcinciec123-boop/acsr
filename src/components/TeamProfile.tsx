@@ -85,7 +85,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
 
   const rankingSource = teams && teams.length > 0 ? teams : teamDatabase;
   const sorted = useMemo(() => [...rankingSource].sort((a, b) => b.points - a.points), [rankingSource]);
-  const activeTeam = sorted.find((t) => t.name === teamName);
+  const activeTeam = sorted.find((t) => t.name === teamName)
+    || sorted.find((t) => canonicalTeamName(t.name) === canonicalTeamName(teamName));
   // Rozwiązana drużyna: profil budowany z archiwum (snapshot składu + historia turniejów).
   const disbandInfo = useMemo(() => {
     if (activeTeam) return null;
