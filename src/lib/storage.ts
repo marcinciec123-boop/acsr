@@ -19,6 +19,10 @@ function notifyStorageUpdate(key: string): void {
   if (key === "ranking_history_v1") {
     window.dispatchEvent(new CustomEvent("ranking-history:update"));
   }
+  if (key === "manual_free_agents" || key.startsWith("fa_")) {
+    window.dispatchEvent(new CustomEvent("freeagents:update"));
+    window.dispatchEvent(new CustomEvent("players:update"));
+  }
 }
 
 function normalizeStoredData<T>(key: string, data: T): T {
