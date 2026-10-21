@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, type ReactNode } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { canonicalTeamName } from "./teamRenames";
 
 export interface ProfileNav {
   openTeam: (name: string) => void;
@@ -37,7 +38,8 @@ export const TeamLink = ({
   const nav = useProfileNav();
   const content = children ?? name;
   if (!nav || !isReal(name)) return <span className={className}>{content}</span>;
-  const activate = (e: React.SyntheticEvent) => { e.stopPropagation(); nav.openTeam(name!); };
+  // Kliknięcie historycznej (starej) nazwy otwiera profil aktualnej organizacji.
+  const activate = (e: React.SyntheticEvent) => { e.stopPropagation(); nav.openTeam(canonicalTeamName(name!)); };
   return (
     <span
       role="link"

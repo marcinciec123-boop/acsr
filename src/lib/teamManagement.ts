@@ -20,16 +20,16 @@ import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
 import { recordRename, sameName } from "./teamRenames";
 import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
-import { loadTeamLogo, saveTeamLogo, deleteTeamLogo } from "./teamLogos";
+import { loadTeamLogo, saveTeamLogo } from "./teamLogos";
 
-/** Zmiana nazwy nie zmienia organizacji — logo przenosi się na nową nazwę. */
+/** Zmiana nazwy nie zmienia organizacji — logo przenosi się na nową nazwę,
+ *  ale zostaje też pod starą (historia, rekordy, archiwum). */
 function migrateTeamLogo(oldName: string, newName: string): void {
   void (async () => {
     try {
       const logo = await loadTeamLogo(oldName);
       if (!logo) return;
       await saveTeamLogo(newName, logo);
-      await deleteTeamLogo(oldName);
     } catch {
       /* logo migration is best-effort */
     }

@@ -117,7 +117,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   // Transfers
   const teamTransfers = useMemo(() => {
     const transfers = loadFromStorage<Transfer[]>("transfers_data", []);
-    return transfers.filter(t => t.oldTeam === teamName || t.newTeam === teamName);
+    const canon = canonicalTeamName(teamName);
+    return transfers.filter(t => canonicalTeamName(t.oldTeam) === canon || canonicalTeamName(t.newTeam) === canon);
   }, [teamName]);
 
   // Tournaments / matches / trophies aggregated from saved data
@@ -134,13 +135,14 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       opponent: string; bo?: number; round?: string; scheduledAt?: string;
     }[] = [];
     let wins = 0, losses = 0, mapsW = 0, mapsL = 0;
+    const canon = canonicalTeamName(teamName);
     const mapEvents: { map: string; won: boolean; date: string }[] = [];
     const sideEvents: { date: string; tWon: number; ctWon: number; tPlayed: number; ctPlayed: number }[] = [];
 
 
 
     for (const t of tournaments) {
-      const placement = t.placements?.find(p => canonicalTeamName(p.team) === canonicalTeamName(teamName));
+      const placement = t.placements?.find(p => canonicalTeamName(p.team) === canon);
       if (placement) {
         trophies.push({
           id: t.id, name: t.name,
@@ -156,8 +158,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       if (t.matches) all.push(...t.matches);
 
       for (const m of all) {
-        const isT1 = m.team1 === teamName;
-        const isT2 = m.team2 === teamName;
+        const isT1 = canonicalTeamName(m.team1) === canon;
+        const isT2 = canonicalTeamName(m.team2) === canon;
         if (!isT1 && !isT2) continue;
         if (m.team1 === "BYE" || m.team2 === "BYE") continue;
         const ownScore = isT1 ? m.score1 : m.score2;
@@ -753,7 +755,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
               ) : (
                 <div className="space-y-2">
                   {teamTransfers.map(t => {
-                    const isJoin = t.newTeam === teamName;
+                    const isJoin = canonicalTeamName(t.newTeam) === canonicalTeamName(teamName);
                     return (
                       <div key={t.id} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg border border-border/50">
                         <div className={cn(
