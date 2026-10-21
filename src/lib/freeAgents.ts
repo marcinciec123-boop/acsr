@@ -29,6 +29,13 @@ export interface FreeAgent {
   manual?: boolean;
 }
 
+/** Notify open panels that the free-agent pool changed (add/edit/remove). */
+function emitFreeAgentsUpdate(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("freeagents:update"));
+  window.dispatchEvent(new CustomEvent("players:update"));
+}
+
 const FA_NATIONALITY_OVERRIDE_KEY = "fa_nationality_overrides";
 const MANUAL_FA_KEY = "manual_free_agents";
 const FA_ROLE_OVERRIDE_KEY = "fa_role_overrides";
