@@ -141,6 +141,7 @@ export function addManualFreeAgent(input: AddFreeAgentInput): boolean {
   if (input.firstName || input.lastName) {
     setFreeAgentRealName(nick, input.firstName?.trim() || "", input.lastName?.trim() || "");
   }
+  emitFreeAgentsUpdate();
   return true;
 }
 
@@ -155,6 +156,7 @@ export function removeManualFreeAgent(player: string, options: { clearOverrides?
     setFreeAgentRole(player, "");
     setFreeAgentRealName(player, "", "");
   }
+  emitFreeAgentsUpdate();
 }
 
 /** Patch an existing FA. Works for both manual entries and transfer-derived FAs
@@ -181,6 +183,7 @@ export function updateManualFreeAgent(
       (patch.lastName ?? base.lastName ?? ""),
     );
   }
+  emitFreeAgentsUpdate();
 }
 
 // ---------- main FA list ----------

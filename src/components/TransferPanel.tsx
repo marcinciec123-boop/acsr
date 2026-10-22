@@ -316,7 +316,7 @@ const TransferPanel = () => {
       });
     }
     return out.sort((a, b) => a.name.localeCompare(b.name));
-  }, [liveTeams, transfers]);
+  }, [liveTeams, transfers, dataVersion]);
 
   const filteredPicker = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
@@ -552,7 +552,7 @@ const TransferPanel = () => {
             </div>
           </div>
           <div className="relative">
-          <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (o) { setPickerSearch(""); setPickerKind("all"); } }}>
+          <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (o) { setPickerSearch(""); setPickerKind("all"); setDataVersion(v => v + 1); } }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
                 <Plus className="w-4 h-4" /> Nowy transfer
