@@ -5,3 +5,4 @@
 - Keep src-tauri/Cargo.lock committed and pin withdrawn (yanked) transitive crates through [patch.crates-io] in src-tauri/Cargo.toml, so CI dependency resolution keeps working when crates.io pulls a version.
 - Pin @tauri-apps/* npm plugin packages to the same major/minor as their matching Rust crates in src-tauri/Cargo.lock, because the Tauri CLI aborts the build when an npm package and its crate differ on major/minor.
 - Bracket views derive match positions and connector paths through the shared graph-based bracket layout helper, so irregular lower-bracket rounds remain aligned across tournament and group views.
+- All disband and manual bankruptcy actions use `disbandTeam` to capture members before removal, clear current roster/coach overrides, release organization contracts and move members to free agency; this prevents orphaned players and continuing payroll without rewriting historical transfers.
