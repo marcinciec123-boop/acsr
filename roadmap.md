@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
-- [ ] Punkt 1: przy rozwiązaniu drużyny uwolnić skład, rezerwowych i trenera, zamknąć kontrakty i zachować narodowości (także przy ręcznym bankructwie).
+- [x] Punkt 1: przy rozwiązaniu drużyny uwolnić skład, rezerwowych i trenera, zamknąć kontrakty i zachować narodowości (także przy ręcznym bankructwie).
 
 - [x] Przebudować układ głównego lower bracketu według rzeczywistych połączeń meczów.
 - [x] Ujednolicić mniejsze drabinki grupowe i dodać czytelne łączniki.
