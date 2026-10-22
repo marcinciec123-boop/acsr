@@ -12,8 +12,9 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
-import { addManualFreeAgent } from "./freeAgents";
-import { resolvePlayerCountry } from "./playerCountry";
+import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAgents, setFreeAgentRole } from "./freeAgents";
+import { playerNationalities } from "@/data/playerNationalities";
+import { loadPlayerNatOverrides } from "./playerMetadata";
 import { getWorldDate, getWorldNowIso } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
 import { getTeamContracts, loadContracts, saveContracts } from "./contracts";
@@ -333,7 +334,12 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   const finalRoster = [...new Set([...team.roster, ...(rosterOverrides[teamName] || []), ...(bench[teamName] || [])])];
   const people = [...new Set([...finalRoster, ...(coach ? [coach] : []), ...teamContracts.map(c => c.player)])];
   // Capture explicit nationalities before removing any current membership.
-  const countries = new Map(people.map(player => [player, resolvePlayerCountry(player)]));
+  const playerCountries = loadPlayerNatOverrides();
+  const faCountries = loadFreeAgentNationalityOverrides();
+  const manualCountries = new Map(loadManualFreeAgents().map(p => [p.player, p.country]));
+  const countries = new Map(people.map(player => [player,
+    playerCountries[player] || playerNationalities[player] || faCountries[player] || manualCountries.get(player) || "",
+  ]));
 
   // 1) usuń z rankingu NAJPIERW — addManualFreeAgent odrzuca graczy,
   //    którzy wciąż figurowaliby w składzie (ranking_data)
@@ -358,7 +364,8 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   // 2) gracze → wolni agenci
   // Narodowość gracza NIGDY nie jest nadpisywana krajem drużyny.
   for (const player of people) {
-    addManualFreeAgent({ player, country: countries.get(player) || "" });
+    addManualFreeAgent({ player, country: countries.get(player) || "", ...(player === coach ? { role: "Coach" } : {}) });
+    if (player === coach) setFreeAgentRole(player, "Coach");
   }
   window.dispatchEvent(new CustomEvent("freeagents:update"));
 

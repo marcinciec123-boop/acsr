@@ -48,16 +48,17 @@ describe("disbandTeam releases the whole organization", () => {
       expect(names.filter(p => p === player)).toHaveLength(1);
     }
     expect(loadFromStorage("benched_players", {})).toEqual({});
+    expect(getFreeAgents().find(p => p.player === "testOverrideCoach")?.role).toBe("Coach");
     expect(loadExtraDisbands()[0]?.finalRoster).toEqual(["testStarter", "testBench", "testBenchOnly"]);
   });
 
   it("keeps each person's nationality instead of assigning the club country", () => {
     disbandTeam(club.name);
     const countries = Object.fromEntries(getFreeAgents().map(p => [p.player, p.country]));
-    expect(countries.testStarter).toBe("UKR");
-    expect(countries.testBench).toBe("SWE");
-    expect(countries.testBenchOnly).toBe("DNK");
-    expect(countries.testOverrideCoach).toBe("FRA");
+    expect(countries.testStarter).toBe("UA");
+    expect(countries.testBench).toBe("SE");
+    expect(countries.testBenchOnly).toBe("DK");
+    expect(countries.testOverrideCoach).toBe("FR");
   });
 
   it("ends organization contracts as releases, preserves history and permits signing elsewhere", () => {
