@@ -12,10 +12,12 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
-import { addManualFreeAgent } from "./freeAgents";
-import { resolvePlayerCountry } from "./playerCountry";
-import { getWorldDate } from "./worldClock";
+import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAgents, setFreeAgentRole } from "./freeAgents";
+import { playerNationalities } from "@/data/playerNationalities";
+import { loadPlayerNatOverrides } from "./playerMetadata";
+import { getWorldDate, getWorldNowIso } from "./worldClock";
 import { loadBenched } from "./benchedPlayers";
+import { getTeamContracts, loadContracts, saveContracts } from "./contracts";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
 import { recordRename, sameName } from "./teamRenames";
@@ -307,7 +309,8 @@ export interface DisbandInput {
  * Rozwiązuje drużynę:
  *  - usuwa ją z bieżącego rankingu (`ranking_data`)
  *  - dodaje do listy zarchiwizowanych (zachowuje widoczność w historii turniejów)
- *  - przenosi wszystkich graczy ze składu do wolnych agentów (manual FA)
+ *  - przenosi skład, rezerwowych i trenera do wolnych agentów (manual FA)
+ *  - zamyka niezakończone kontrakty organizacji jako zwolnienie bez odstępnego
  *  - zapisuje wpis w `disbands_extra` z datą + powodem + składem końcowym
  *  - usuwa wpisy bench dla tej drużyny
  *
@@ -318,59 +321,97 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   const team = teams.find(t => sameName(t.name, name));
   if (!team) return { ok: false, error: "Nie znaleziono drużyny" };
 
+  const teamName = team.name;
+  const date = getWorldDate();
+  const atIso = getWorldNowIso();
+  const bench = loadBenched();
+  const coachOverrides = loadFromStorage<Record<string, string>>(COACH_OVERRIDE_KEY, {});
+  const coach = coachOverrides[teamName] ?? team.coach;
+  const rosterOverrides = loadFromStorage<Record<string, string[]>>(ROSTER_OVERRIDE_KEY, {});
+  const contracts = loadContracts();
+  const teamContracts = getTeamContracts(teamName, contracts);
+  const contractIds = new Set(teamContracts.map(c => c.id));
+  const finalRoster = [...new Set([...team.roster, ...(rosterOverrides[teamName] || []), ...(bench[teamName] || [])])];
+  const people = [...new Set([...finalRoster, ...(coach ? [coach] : []), ...teamContracts.map(c => c.player)])];
+  // Capture explicit nationalities before removing any current membership.
+  const playerCountries = loadPlayerNatOverrides();
+  const faCountries = loadFreeAgentNationalityOverrides();
+  const manualCountries = new Map(loadManualFreeAgents().map(p => [p.player, p.country]));
+  const countries = new Map(people.map(player => [player,
+    playerCountries[player] || playerNationalities[player] || faCountries[player] || manualCountries.get(player) || "",
+  ]));
+
   // 1) usuń z rankingu NAJPIERW — addManualFreeAgent odrzuca graczy,
   //    którzy wciąż figurowaliby w składzie (ranking_data)
-  saveTeams(teams.filter(t => t.name !== name));
+  saveTeams(teams.filter(t => t !== team));
+  rosterOverrides[teamName] = [];
+  coachOverrides[teamName] = "";
+  saveToStorage(ROSTER_OVERRIDE_KEY, rosterOverrides);
+  saveToStorage(COACH_OVERRIDE_KEY, coachOverrides);
+  for (const current of teamDatabase) {
+    if (!sameName(current.name, teamName)) continue;
+    current.roster = [];
+    current.coach = undefined;
+  }
+
+  // Close only this organization's contracts, retaining the history and terms.
+  if (contractIds.size > 0) {
+    saveContracts(contracts.map(c => contractIds.has(c.id)
+      ? { ...c, terminatedAt: atIso, terminationReason: "release", endDate: atIso }
+      : c));
+  }
 
   // 2) gracze → wolni agenci
   // Narodowość gracza NIGDY nie jest nadpisywana krajem drużyny.
-  for (const player of team.roster) {
-    addManualFreeAgent({ player, country: resolvePlayerCountry(player) });
+  for (const player of people) {
+    addManualFreeAgent({ player, country: countries.get(player) || "", ...(player === coach ? { role: "Coach" } : {}) });
+    if (player === coach) setFreeAgentRole(player, "Coach");
   }
   window.dispatchEvent(new CustomEvent("freeagents:update"));
 
   // 3) usuń bench
-  const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});
-  if (bench[name]) {
-    delete bench[name];
+  if (bench[teamName]) {
+    delete bench[teamName];
     saveToStorage(BENCH_KEY, bench);
     window.dispatchEvent(new CustomEvent("bench:update"));
   }
 
   // 4) archiwum
-  saveArchivedTeams([...loadArchivedTeams(), name]);
+  saveArchivedTeams([...loadArchivedTeams(), teamName]);
   saveExtraDisbands([
     ...loadExtraDisbands(),
     {
-      team: name,
-      date: getWorldDate(),
+      team: teamName,
+      date,
       reason: input.reason?.trim() || "Rozwiązanie drużyny",
-      finalRoster: [...team.roster],
+      finalRoster,
       country: team.country,
       region: team.region,
     },
   ]);
 
-  recordOrgDisband(name, getWorldDate(), input.reason?.trim() || "Rozwiązanie drużyny");
+  recordOrgDisband(teamName, date, input.reason?.trim() || "Rozwiązanie drużyny");
 
   // 5) usuń z bieżących, niezakończonych turniejów (uczestnicy + faza 1)
   const tournaments = loadFromStorage<TournamentData[]>(TOURNAMENTS_KEY, []);
   let touched = false;
   const updated = tournaments.map(t => {
     if (t.resultsConfirmed || t.status === "completed") return t;
-    if (!t.participants.includes(name)) return t;
+    if (!t.participants.includes(teamName)) return t;
     touched = true;
     return {
       ...t,
-      participants: t.participants.filter(p => p !== name),
-      teams: t.participants.filter(p => p !== name).length,
+      participants: t.participants.filter(p => p !== teamName),
+      teams: t.participants.filter(p => p !== teamName).length,
       phases: t.phases.map(p => ({
         ...p,
-        teams: p.teams.map(x => (x === name ? `TBD-disband` : x)),
+        teams: p.teams.map(x => (x === teamName ? `TBD-disband` : x)),
       })),
     };
   });
   if (touched) saveToStorage(TOURNAMENTS_KEY, updated);
+  window.dispatchEvent(new CustomEvent("teams:update"));
+  window.dispatchEvent(new CustomEvent("players:update"));
 
   return { ok: true };
 }
