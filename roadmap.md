@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [ ] Punkt 2: „Cofnij” przywraca kontrakty, ławkę i jej historię oraz dane finansowe; stare migawki nie usuwają brakujących danych.
 - [x] Punkt 1: przy rozwiązaniu drużyny uwolnić skład, rezerwowych i trenera, zamknąć kontrakty i zachować narodowości (także przy ręcznym bankructwie).
 
 - [x] Przebudować układ głównego lower bracketu według rzeczywistych połączeń meczów.
