@@ -36,6 +36,9 @@ import { seedMajorBerlin2025 } from "./majorBerlin2025Seeder";
 import { seedEslProLeagueI } from "./eslProLeagueISeeder";
 import { seedEseaMasters2026 } from "./eseaMasters2026Seeder";
 import type { TournamentData } from "./types";
+import { CONTRACTS_KEY, CONTRACTS_EVENT, loadContracts, type PlayerContract } from "./contracts";
+import { loadBenched, loadBenchLog, type BenchLogEntry } from "./benchedPlayers";
+import type { ManualEntry, TeamFinanceSettings } from "./teamFinances";
 
 const CHANGE_LOG_KEY = "change_log";
 const ROSTER_OVERRIDE_KEY = "roster_overrides";
@@ -62,6 +65,12 @@ export interface DatabaseSnapshot {
   playerRoleOverrides: Record<string, PlayerRole>;
   playerNatOverrides: Record<string, string>;
   playerRealnameOverrides: Record<string, { firstName: string; lastName: string }>;
+  // Optional only for compatibility with change history saved before these fields existed.
+  contracts?: PlayerContract[];
+  benchedPlayers?: Record<string, string[]>;
+  benchLog?: BenchLogEntry[];
+  teamFinanceEntries?: ManualEntry[];
+  teamFinanceSettings?: Record<string, TeamFinanceSettings>;
 }
 
 export interface ChangeLogEntry {
@@ -93,6 +102,14 @@ export function captureSnapshot(): DatabaseSnapshot {
     playerRoleOverrides: { ...loadPlayerRoleOverrides() },
     playerNatOverrides: { ...loadPlayerNatOverrides() },
     playerRealnameOverrides: { ...loadPlayerRealnameOverrides() },
+    contracts: loadContracts().map(c => ({ ...c, terms: { ...c.terms } })),
+    benchedPlayers: Object.fromEntries(Object.entries(loadBenched()).map(([team, players]) => [team, [...players]])),
+    benchLog: loadBenchLog().map(entry => ({ ...entry })),
+    teamFinanceEntries: loadFromStorage<ManualEntry[]>("team_finance_entries", []).map(entry => ({ ...entry })),
+    teamFinanceSettings: Object.fromEntries(
+      Object.entries(loadFromStorage<Record<string, TeamFinanceSettings>>("team_finance_settings", {}))
+        .map(([team, settings]) => [team, { ...settings }]),
+    ),
   };
 }
 
@@ -142,6 +159,29 @@ export function restoreSnapshot(snap: DatabaseSnapshot): void {
   Object.entries(snap.playerRoleOverrides).forEach(([p, r]) => { playerRoles[p] = r; });
   Object.entries(snap.playerNatOverrides).forEach(([p, c]) => { playerNationalities[p] = c; });
   Object.entries(snap.playerRealnameOverrides).forEach(([p, n]) => { playerRealNames[p] = n; });
+
+  // Restore inputs, not calculated balances. Never erase data missing from legacy snapshots.
+  if (snap.contracts !== undefined) saveToStorage(CONTRACTS_KEY, snap.contracts.map(c => ({ ...c, terms: { ...c.terms } })));
+  if (snap.benchedPlayers !== undefined) {
+    saveToStorage("benched_players", Object.fromEntries(Object.entries(snap.benchedPlayers).map(([team, players]) => [team, [...players]])));
+  }
+  if (snap.benchLog !== undefined) saveToStorage("bench_log", snap.benchLog.map(entry => ({ ...entry })));
+  if (snap.teamFinanceEntries !== undefined) saveToStorage("team_finance_entries", snap.teamFinanceEntries.map(entry => ({ ...entry })));
+  if (snap.teamFinanceSettings !== undefined) {
+    saveToStorage("team_finance_settings", Object.fromEntries(Object.entries(snap.teamFinanceSettings).map(([team, settings]) => [team, { ...settings }])));
+  }
+
+  // Notify after every restored store is ready, so widgets and finance caches agree.
+  if (typeof window !== "undefined") {
+    if (snap.contracts !== undefined) window.dispatchEvent(new CustomEvent(CONTRACTS_EVENT));
+    if (snap.benchedPlayers !== undefined || snap.benchLog !== undefined) window.dispatchEvent(new CustomEvent("bench:update"));
+    if (snap.contracts !== undefined || snap.teamFinanceEntries !== undefined || snap.teamFinanceSettings !== undefined) {
+      window.dispatchEvent(new CustomEvent("finances:update"));
+    }
+    window.dispatchEvent(new CustomEvent("teams:update"));
+    window.dispatchEvent(new CustomEvent("players:update"));
+    window.dispatchEvent(new CustomEvent("transfers:update"));
+  }
 }
 
 // ----------------- change log persistence -----------------

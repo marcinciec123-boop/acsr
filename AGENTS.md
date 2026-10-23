@@ -6,3 +6,4 @@
 - Pin @tauri-apps/* npm plugin packages to the same major/minor as their matching Rust crates in src-tauri/Cargo.lock, because the Tauri CLI aborts the build when an npm package and its crate differ on major/minor.
 - Bracket views derive match positions and connector paths through the shared graph-based bracket layout helper, so irregular lower-bracket rounds remain aligned across tournament and group views.
 - All disband and manual bankruptcy actions use `disbandTeam` to capture members before removal, clear current roster/coach overrides, release organization contracts and move members to free agency; this prevents orphaned players and continuing payroll without rewriting historical transfers.
+- Change-log snapshots deep-copy contracts, bench membership/history and finance inputs; restoration skips fields absent from legacy snapshots and notifies domain subscribers after writes, so undo reverses transfer accounting without erasing uncaptured data.
