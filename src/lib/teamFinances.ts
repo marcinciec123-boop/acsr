@@ -10,7 +10,7 @@ import { ORG_CUT, resolveTournamentPrizes } from "./prizeDistribution";
 import { CONTRACTS_EVENT, loadContracts, seededRandom, type PlayerContract } from "./contracts";
 import { getWorldDate, WORLD_CLOCK_DEFAULT } from "./worldClock";
 import { loadAllTeams } from "./teamManagement";
-import { canonicalTeamName } from "./teamRenames";
+import { canonicalTeamName, sameName } from "./teamRenames";
 
 export const FINANCES_EVENT = "finances:update";
 const ENTRIES_KEY = "team_finance_entries";
@@ -312,7 +312,7 @@ function computeAll(): Map<string, TeamFinance> {
       const prev = list[i];
       const next = list[i + 1];
       const fee = prev.terms?.buyout || 0;
-      if (prev.terminationReason !== "transfer" || fee <= 0 || prev.team === next.team) continue;
+      if (prev.terminationReason !== "transfer" || fee <= 0 || sameName(canonicalTeamName(prev.team), canonicalTeamName(next.team))) continue;
       if (ms(next.startDate) < seasonStart || ms(next.startDate) > nowMs) continue;
       const date = day(next.startDate);
       push(prev.team, { id: `tin_${prev.id}`, date, amount: fee, category: "transfer_in", label: `Sprzedaż: ${player} → ${next.team}` });
