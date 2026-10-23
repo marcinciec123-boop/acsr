@@ -7,6 +7,7 @@
 import type { TeamData } from "./types";
 import { loadFromStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
+import { canonicalTeamName, sameName } from "./teamRenames";
 
 // Tier multiplier applied to the base rank-diff curve.
 const TIER_MULT: Record<string, number> = {
@@ -36,10 +37,17 @@ export const getRankingSnapshot = (): TeamData[] => {
 };
 
 /** Resolve 1-based rank position. Unranked teams get the bottom rank. */
+/** Match a ranking entry against a (possibly historical) team name. */
+const isTeam = (rankName: string, teamName: string): boolean => {
+  if (!rankName || !teamName) return false;
+  if (rankName === teamName) return true;
+  return sameName(canonicalTeamName(rankName), canonicalTeamName(teamName.trim()));
+};
+
 export const getTeamRank = (teamName: string, ranking: TeamData[]): number => {
   if (!teamName || teamName === "BYE" || teamName === "TBD") return ranking.length + 1;
   const sorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
-  const idx = sorted.findIndex(t => t.name === teamName);
+  const idx = sorted.findIndex(t => isTeam(t.name, teamName));
   return idx === -1 ? sorted.length + 1 : idx + 1;
 };
 
