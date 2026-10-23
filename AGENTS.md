@@ -7,3 +7,4 @@
 - Bracket views derive match positions and connector paths through the shared graph-based bracket layout helper, so irregular lower-bracket rounds remain aligned across tournament and group views.
 - All disband and manual bankruptcy actions use `disbandTeam` to capture members before removal, clear current roster/coach overrides, release organization contracts and move members to free agency; this prevents orphaned players and continuing payroll without rewriting historical transfers.
 - Change-log snapshots deep-copy contracts, bench membership/history and finance inputs; restoration skips fields absent from legacy snapshots and notifies domain subscribers after writes, so undo reverses transfer accounting without erasing uncaptured data.
+- Backup restoration treats tournament logos as device media and broadcasts a global logo update that clears the tournament-logo memo; this preserves small images and refreshes previously cached images or missing results.

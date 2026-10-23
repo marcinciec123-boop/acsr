@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [ ] Punkt 4: zachować loga turniejów w pamięci urządzenia podczas przywracania kopii i odświeżyć ich grafikę.
 - [x] Punkt 3: nie naliczać odstępnego między dawną i obecną nazwą tej samej organizacji.
 - [x] Punkt 2: „Cofnij” przywraca kontrakty, ławkę i jej historię oraz dane finansowe; stare migawki nie usuwają brakujących danych.
 - [x] Punkt 1: przy rozwiązaniu drużyny uwolnić skład, rezerwowych i trenera, zamknąć kontrakty i zachować narodowości (także przy ręcznym bankructwie).

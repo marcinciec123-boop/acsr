@@ -5,6 +5,15 @@ import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceVal
 const key = (id: string) => "csgo_hub_tournamentlogo_" + id;
 const memo = new Map<string, string | null>();
 
+// A backup restore broadcasts without an id: discard all previous logo/null results
+// before mounted logos read the restored device values.
+if (typeof window !== "undefined") {
+  window.addEventListener("tournamentlogo:update", (event: Event) => {
+    const detail = (event as CustomEvent<{ id?: string }>).detail;
+    if (!detail?.id) memo.clear();
+  });
+}
+
 export async function saveTournamentLogo(id: string, dataUrl: string): Promise<void> {
   await setDeviceValue(key(id), dataUrl);
   try { localStorage.setItem(key(id), DEVICE_STORE_REF); } catch { /* ignore */ }
