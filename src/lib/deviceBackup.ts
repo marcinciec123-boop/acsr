@@ -76,7 +76,7 @@ const collectDeviceState = async (): Promise<Record<string, string>> => {
   );
 };
 
-const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_"];
+const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_", "csgo_hub_tournamentlogo_"];
 const isMediaKey = (key: string) => MEDIA_PREFIXES.some(p => key.startsWith(p));
 
 /** Full save: real image data instead of reference markers, legacy images, and the fictional date. */
@@ -287,6 +287,7 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
   }));
   window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: {} }));
   window.dispatchEvent(new CustomEvent("playerphoto:update", { detail: {} }));
+  window.dispatchEvent(new CustomEvent("tournamentlogo:update", { detail: {} }));
   if (typeof window !== "undefined") {
     // The restored save carries its own fictional date — tell the UI to re-read it.
     window.dispatchEvent(new Event(WORLD_CLOCK_EVENT));
