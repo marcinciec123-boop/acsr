@@ -206,10 +206,13 @@ export function computeSwissStage(
     });
   });
 
-  // Buchholz: sum of opponents' wins (only count opponents we actually played).
+  // Buchholz: sum of opponents' wins — only opponents actually played in THIS
+  // stage (pastOpponents also holds prior-phase meetings for rematch avoidance).
   map.forEach(s => {
     let bu = 0;
-    s.pastOpponents.forEach(opp => {
+    const played = new Set<string>();
+    s.history.forEach(h => { if (h.opponent && h.result) played.add(h.opponent); });
+    played.forEach(opp => {
       const o = map.get(opp);
       if (o) bu += o.wins;
     });
