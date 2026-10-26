@@ -11,6 +11,10 @@ import { removeFromAllBenches } from "./benchedPlayers";
 import { processExpiredContracts, type ExpiredRelease } from "./contracts";
 import { getWorldNowIso } from "./worldClock";
 import type { TeamData, Transfer } from "./types";
+import { canonicalTeamName, sameName } from "./teamRenames";
+
+const sameTeam = (a: string, b: string) =>
+  a === b || sameName(canonicalTeamName(a), canonicalTeamName(b));
 
 const TRANSFERS_KEY = "transfers_data";
 const RANKING_KEY = "ranking_data";
@@ -29,7 +33,8 @@ export function releaseExpiredContracts(): ExpiredRelease[] {
 
   for (const r of releases) {
     // Runtime roster (teamDatabase is the master source)
-    const team = teamDatabase.find(t => t.name === r.team);
+    const team = teamDatabase.find(t => sameTeam(t.name, r.team))
+      ?? teamDatabase.find(t => t.roster.includes(r.player) || t.coach === r.player);
     if (team) {
       team.roster = team.roster.filter(p => p !== r.player);
       if (team.coach === r.player) team.coach = undefined;
@@ -52,9 +57,11 @@ export function releaseExpiredContracts(): ExpiredRelease[] {
   // Mirror into ranking_data
   const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
   if (ranking) {
-    const released = new Map(releases.map(r => [r.team, releases.filter(x => x.team === r.team).map(x => x.player)]));
     const patched = ranking.map(team => {
-      const drop = released.get(team.name);
+      const drop = releases
+        .filter(r => sameTeam(team.name, r.team) || team.roster.includes(r.player) || team.coach === r.player)
+        .map(r => r.player);
+      if (drop.length === 0) return team;
       if (!drop) return team;
       return {
         ...team,
