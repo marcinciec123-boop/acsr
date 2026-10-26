@@ -26,6 +26,17 @@ function saveRetired(list: string[]): void {
   window.dispatchEvent(new CustomEvent("teams:update"));
 }
 
+const DELETED_KEY = "deleted_players";
+
+export function loadDeletedPlayers(): string[] {
+  return loadFromStorage<string[]>(DELETED_KEY, []);
+}
+
+/** Retired + permanently deleted — everyone hidden from player/FA lists. */
+export function loadHiddenPlayers(): string[] {
+  return [...loadRetiredPlayers(), ...loadDeletedPlayers()];
+}
+
 /**
  * Send a player to retirement: removes them from every roster, coach slot and
  * bench, and closes their active contract so no salary keeps being paid.
@@ -34,6 +45,22 @@ export function retirePlayer(player: string): void {
   const list = loadRetiredPlayers();
   if (!list.includes(player)) list.push(player);
   saveToStorage(RETIRED_KEY, Array.from(new Set(list)));
+  detachPlayer(player);
+}
+
+/** Permanently delete a player/coach from the database — NOT added to the Hall of Fame. */
+export function deletePlayer(player: string): void {
+  const list = loadDeletedPlayers();
+  if (!list.includes(player)) list.push(player);
+  saveToStorage(DELETED_KEY, Array.from(new Set(list)));
+  // Make sure they don't appear in the Hall of Fame either.
+  const retired = loadRetiredPlayers();
+  if (retired.includes(player)) saveToStorage(RETIRED_KEY, retired.filter(p => p !== player));
+  detachPlayer(player);
+}
+
+function detachPlayer(player: string): void {
+
 
   // Runtime master roster
   let runtimeMutated = false;
