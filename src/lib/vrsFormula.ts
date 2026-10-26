@@ -102,13 +102,13 @@ export const predictRankDelta = (
   ranking: TeamData[] = getRankingSnapshot(),
 ): { from: number; to: number; delta: number } => {
   const currentSorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
-  const from = currentSorted.findIndex(t => t.name === teamName) + 1;
+  const from = currentSorted.findIndex(t => isTeam(t.name, teamName)) + 1;
   if (from === 0) return { from: ranking.length + 1, to: ranking.length + 1, delta: 0 };
   const projected = ranking.map(t =>
-    t.name === teamName ? { ...t, points: Math.max(0, (t.points || 0) + pointsDelta) } : t,
+    isTeam(t.name, teamName) ? { ...t, points: Math.max(0, (t.points || 0) + pointsDelta) } : t,
   );
   const projectedSorted = [...projected].sort((a, b) => (b.points || 0) - (a.points || 0));
-  const to = projectedSorted.findIndex(t => t.name === teamName) + 1;
+  const to = projectedSorted.findIndex(t => isTeam(t.name, teamName)) + 1;
   return { from, to, delta: from - to }; // positive = moved up
 };
 
@@ -125,16 +125,16 @@ export const predictRankDeltaPair = (
   ranking: TeamData[] = getRankingSnapshot(),
 ): { a: { from: number; to: number; delta: number }; b: { from: number; to: number; delta: number } } => {
   const currentSorted = [...ranking].sort((x, y) => (y.points || 0) - (x.points || 0));
-  const fromA = currentSorted.findIndex(t => t.name === teamA) + 1;
-  const fromB = currentSorted.findIndex(t => t.name === teamB) + 1;
+  const fromA = currentSorted.findIndex(t => isTeam(t.name, teamA)) + 1;
+  const fromB = currentSorted.findIndex(t => isTeam(t.name, teamB)) + 1;
   const projected = ranking.map(t => {
-    if (t.name === teamA) return { ...t, points: Math.max(0, (t.points || 0) + deltaA) };
-    if (t.name === teamB) return { ...t, points: Math.max(0, (t.points || 0) + deltaB) };
+    if (isTeam(t.name, teamA)) return { ...t, points: Math.max(0, (t.points || 0) + deltaA) };
+    if (isTeam(t.name, teamB)) return { ...t, points: Math.max(0, (t.points || 0) + deltaB) };
     return t;
   });
   const projectedSorted = [...projected].sort((x, y) => (y.points || 0) - (x.points || 0));
-  const toA = projectedSorted.findIndex(t => t.name === teamA) + 1;
-  const toB = projectedSorted.findIndex(t => t.name === teamB) + 1;
+  const toA = projectedSorted.findIndex(t => isTeam(t.name, teamA)) + 1;
+  const toB = projectedSorted.findIndex(t => isTeam(t.name, teamB)) + 1;
   const fb = (from: number, to: number) =>
     from === 0
       ? { from: ranking.length + 1, to: ranking.length + 1, delta: 0 }
