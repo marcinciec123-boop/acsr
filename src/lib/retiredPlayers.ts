@@ -7,6 +7,9 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData } from "./types";
+import { persistCurrentRosters } from "./changeLog";
+import { removeFromAllBenches } from "./benchedPlayers";
+import { terminateContract } from "./contracts";
 
 const RETIRED_KEY = "retired_players";
 
@@ -23,26 +26,54 @@ function saveRetired(list: string[]): void {
   window.dispatchEvent(new CustomEvent("teams:update"));
 }
 
-/** Send a player to retirement. Also clears them from any team's coach slot in the live ranking. */
+/**
+ * Send a player to retirement: removes them from every roster, coach slot and
+ * bench, and closes their active contract so no salary keeps being paid.
+ */
 export function retirePlayer(player: string): void {
   const list = loadRetiredPlayers();
   if (!list.includes(player)) list.push(player);
-  saveRetired(list);
+  saveToStorage(RETIRED_KEY, Array.from(new Set(list)));
 
-  // Pull from any coach slot in ranking_data
-  const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
-  const teams = stored && stored.length > 0 ? stored : teamDatabase.map(t => ({ ...t }));
-  let mutated = false;
-  const next = teams.map(t => {
-    if (t.coach === player) {
-      mutated = true;
-      return { ...t, coach: undefined };
+  // Runtime master roster
+  let runtimeMutated = false;
+  for (const t of teamDatabase) {
+    if (t.roster?.includes(player)) {
+      t.roster = t.roster.filter(p => p !== player);
+      runtimeMutated = true;
     }
-    return t;
-  });
-  if (mutated) {
-    saveToStorage("ranking_data", next);
+    if (t.coach === player) {
+      t.coach = undefined;
+      runtimeMutated = true;
+    }
+  }
+  if (runtimeMutated) persistCurrentRosters();
+
+  // Live ranking
+  const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
+  if (stored && stored.length > 0) {
+    let mutated = false;
+    const next = stored.map(t => {
+      const inRoster = (t.roster || []).includes(player);
+      const isCoach = t.coach === player;
+      if (!inRoster && !isCoach) return t;
+      mutated = true;
+      return {
+        ...t,
+        roster: (t.roster || []).filter(p => p !== player),
+        coach: isCoach ? undefined : t.coach,
+      };
+    });
+    if (mutated) saveToStorage("ranking_data", next);
+  }
+
+  removeFromAllBenches(player);
+  terminateContract(player, "release");
+
+  if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("teams:update"));
+    window.dispatchEvent(new CustomEvent("players:update"));
+    window.dispatchEvent(new CustomEvent("bench:update"));
   }
 }
 
