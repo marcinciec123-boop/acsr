@@ -21,7 +21,7 @@ import {
   getFreeAgents, setFreeAgentNationality, addManualFreeAgent,
   removeManualFreeAgent, updateManualFreeAgent, loadManualFreeAgents,
 } from "@/lib/freeAgents";
-import { retirePlayer, loadRetiredPlayers } from "@/lib/retiredPlayers";
+import { retirePlayer, deletePlayer, loadHiddenPlayers } from "@/lib/retiredPlayers";
 import { captureSnapshot, recordChange, setPlayerRole, setPlayerNationality, setPlayerRealName } from "@/lib/changeLog";
 import { toast } from "@/hooks/use-toast";
 import PanelHeader from "@/components/PanelHeader";
@@ -134,7 +134,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
   const rows = useMemo<PlayerRow[]>(() => {
     const out: PlayerRow[] = [];
     const seen = new Set<string>();
-    const retiredSet = new Set(loadRetiredPlayers());
+    const retiredSet = new Set(loadHiddenPlayers());
     const empty: BasicPlayerStats = { rating: 0, matches: 0, kdr: 0, adr: 0 };
     const statFor = (p: string) => statsIndex.get(p) || empty;
     // National teams are not a player's club — skip them here so members
@@ -379,7 +379,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
     if (!confirm(`Usunąć na stałe ${nick}? Nie będzie widoczny w bazie.`)) return;
     const before = captureSnapshot();
     if (isManual) removeManualFreeAgent(nick);
-    retirePlayer(nick); // guarantees hide even for transfer-derived FAs
+    deletePlayer(nick); // hides permanently, without adding to the Hall of Fame
     recordChange("fa-remove", `Usunięto: ${nick}`, before);
     setRefreshKey(k => k + 1);
     toast({ title: "Usunięto", description: `${nick} został usunięty.` });

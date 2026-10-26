@@ -217,7 +217,10 @@ export function getFreeAgents(): FreeAgent[] {
 
 
 
-  const retired = new Set(loadFromStorage<string[]>("retired_players", []));
+  const retired = new Set([
+    ...loadFromStorage<string[]>("retired_players", []),
+    ...loadFromStorage<string[]>("deleted_players", []),
+  ]);
 
   const out: FreeAgent[] = [];
   const seen = new Set<string>();
