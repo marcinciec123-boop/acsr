@@ -33,8 +33,9 @@ export function releaseExpiredContracts(): ExpiredRelease[] {
 
   for (const r of releases) {
     // Runtime roster (teamDatabase is the master source)
-    const team = teamDatabase.find(t => sameTeam(t.name, r.team))
-      ?? teamDatabase.find(t => t.roster.includes(r.player) || t.coach === r.player);
+    const clubsDb = (teamDatabase as TeamData[]).filter(t => !t.isNational);
+    const team = clubsDb.find(t => sameTeam(t.name, r.team))
+      ?? clubsDb.find(t => t.roster.includes(r.player) || t.coach === r.player);
     if (team) {
       team.roster = team.roster.filter(p => p !== r.player);
       if (team.coach === r.player) team.coach = undefined;
@@ -57,12 +58,19 @@ export function releaseExpiredContracts(): ExpiredRelease[] {
   // Mirror into ranking_data
   const ranking = loadFromStorage<TeamData[] | null>(RANKING_KEY, null);
   if (ranking) {
+    const clubs = ranking.filter(t => !t.isNational);
     const patched = ranking.map(team => {
+      // National teams are not party to club contracts — never touch them.
+      if (team.isNational) return team;
       const drop = releases
-        .filter(r => sameTeam(team.name, r.team) || team.roster.includes(r.player) || team.coach === r.player)
+        .filter(r => {
+          if (sameTeam(team.name, r.team)) return true;
+          // Fallback only when no club matches the contract's (historical) name.
+          const named = clubs.some(c => sameTeam(c.name, r.team));
+          return !named && (team.roster.includes(r.player) || team.coach === r.player);
+        })
         .map(r => r.player);
       if (drop.length === 0) return team;
-      if (!drop) return team;
       return {
         ...team,
         roster: team.roster.filter(p => !drop.includes(p)),
