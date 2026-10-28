@@ -12,6 +12,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import { getActiveRoster } from "./benchedPlayers";
 import type { TeamData } from "./types";
+import { canonicalTeamName, sameName } from "./teamRenames";
 
 const KEY = "tournament_lineups";
 
@@ -56,18 +57,19 @@ export function clearTournamentLineup(tournamentId: string, team: string): void 
 
 /**
  * Resolve the lineup that should actually play for a team in a tournament.
- * Priority: explicit lineup > active roster (bench excluded) > full roster.
+ * Priority: explicit lineup > active roster (bench excluded).
  */
 export function resolveLineup(tournamentId: string | undefined, team: string): string[] {
-  const teamData = teamDatabase.find(t => t.name === team);
+  const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
+  const source = stored && stored.length > 0 ? stored : teamDatabase;
+  const teamData = source.find(t => sameName(canonicalTeamName(t.name), canonicalTeamName(team)));
   if (tournamentId) {
     const explicit = getTournamentLineup(tournamentId, team);
     if (explicit.length > 0) return explicit;
   }
   if (teamData) {
     const active = getActiveRoster(teamData);
-    if (active.length > 0) return active.slice(0, 5);
-    return teamData.roster.slice(0, 5);
+    return active.slice(0, 5);
   }
   return [];
 }

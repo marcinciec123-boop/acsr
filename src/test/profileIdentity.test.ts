@@ -51,7 +51,7 @@ describe("profiles keep organization and player identity", () => {
     const event = (id: string, team: string) => ({
       id, name: id, tier: "S", kind: "tournament", status: "completed", prizePool: "$1000",
       startDate: "2026-01-01", endDate: "2026-01-02", location: "LAN",
-      placements: [{ team, placement: 1 }], prizeDistribution: { 1: 1000 },
+      placements: [{ team, placement: 1 }], customPrizes: { 1: 1000 },
     });
     saveToStorage("tournaments_data", [event("Identity Event 1", "Identity Old"), event("Identity Event 2", " IDENTITY CURRENT ")]);
     const stats = computePortalStats("total");

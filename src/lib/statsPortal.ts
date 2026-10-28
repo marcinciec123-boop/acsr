@@ -79,7 +79,7 @@ export function loadStatsTournaments(): TournamentData[] {
 }
 
 
-export const computePortalStats = memoOnSave<string, PortalStats>(computePortalStatsRaw);
+export const computePortalStats = memoOnSave<string, PortalStats>(computePortalStatsRaw, ["team_rename_log"]);
 
 function computePortalStatsRaw(year: string | "total"): PortalStats {
   const all = loadStatsTournaments().filter(t => t.kind !== "qualifier");
@@ -197,20 +197,8 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
 // ===== Lekki cache zarobków (profil drużyny / gracza) =====
 // computePortalStats jest kosztowne, a profile potrzebują tylko jednej pozycji.
 // Cache jest unieważniany przy każdej zmianie danych turniejów/rankingu.
-let earningsCache: { stats: PortalStats; stamp: number } | null = null;
-let cacheStamp = 0;
-const bumpCache = () => { cacheStamp++; earningsCache = null; };
-if (typeof window !== "undefined") {
-  ["tournaments:update", "teams:update", "ranking:update", "storage"].forEach(ev =>
-    window.addEventListener(ev, bumpCache),
-  );
-}
-
 function totalStats(): PortalStats {
-  if (earningsCache && earningsCache.stamp === cacheStamp) return earningsCache.stats;
-  const stats = computePortalStats("total");
-  earningsCache = { stats, stamp: cacheStamp };
-  return stats;
+  return computePortalStats("total");
 }
 
 export interface EarningsSummary {
