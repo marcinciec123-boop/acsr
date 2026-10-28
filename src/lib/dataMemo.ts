@@ -9,11 +9,11 @@ const deps = () => [
   loadFromStorage<unknown>("ranking_data", null),
 ];
 
-export function memoOnSave<A extends string | number | undefined, R>(fn: (arg: A) => R): (arg?: A) => R {
+export function memoOnSave<A extends string | number | undefined, R>(fn: (arg: A) => R, extraKeys: string[] = []): (arg?: A) => R {
   let lastDeps: unknown[] = [];
   const cache = new Map<A, R>();
   return (arg?: A) => {
-    const d = deps();
+    const d = [...deps(), ...extraKeys.map(key => loadFromStorage<unknown>(key, null))];
     if (d.length !== lastDeps.length || d.some((v, i) => v !== lastDeps[i])) {
       cache.clear();
       lastDeps = d;

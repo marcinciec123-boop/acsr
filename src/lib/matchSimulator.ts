@@ -21,6 +21,7 @@ import { loadFromStorage } from "./storage";
 import type { TeamData } from "./types";
 import { getBenchedFor } from "./benchedPlayers";
 import { getTournamentLineup } from "./tournamentLineups";
+import { canonicalTeamName, nameKey, sameName } from "./teamRenames";
 
 import { getActiveMaps } from "./mapPool";
 
@@ -41,14 +42,14 @@ const randInt = (min: number, max: number) => Math.floor(randRange(min, max + 1)
 const getTeamStrength = (teamName: string): number => {
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const src = stored && stored.length > 0 ? stored : teamDatabase;
-  const t = src.find(x => x.name === teamName);
+  const t = src.find(x => sameName(canonicalTeamName(x.name), canonicalTeamName(teamName)));
   return Math.max(100, t?.points ?? 800);
 };
 
 const getRoster = (teamName: string, tournamentId?: string): string[] => {
   const stored = loadFromStorage<TeamData[] | null>("ranking_data", null);
   const src = stored && stored.length > 0 ? stored : teamDatabase;
-  const t = src.find(x => x.name === teamName);
+  const t = src.find(x => sameName(canonicalTeamName(x.name), canonicalTeamName(teamName)));
 
   // 1) Tournament-specific lineup wins if set.
   if (tournamentId) {
@@ -61,8 +62,8 @@ const getRoster = (teamName: string, tournamentId?: string): string[] => {
   }
 
   // 2) Otherwise: full roster minus benched players.
-  const benched = new Set(getBenchedFor(teamName));
-  const active = (t?.roster || []).filter(p => !benched.has(p));
+  const benched = new Set(getBenchedFor(teamName).map(nameKey));
+  const active = (t?.roster || []).filter(p => !benched.has(nameKey(p)));
   const roster = active.slice(0, 5);
   while (roster.length < 5) roster.push(`Player ${roster.length + 1}`);
   return roster;

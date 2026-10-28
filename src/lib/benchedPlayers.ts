@@ -11,6 +11,7 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import type { TeamData } from "./types";
 import { getWorldNowIso } from "./worldClock";
+import { canonicalTeamName, nameKey, sameName } from "./teamRenames";
 
 const BENCH_KEY = "benched_players";
 
@@ -30,36 +31,62 @@ function saveBenched(map: BenchMap): void {
   window.dispatchEvent(new CustomEvent("bench:update"));
 }
 
+function benchKeys(map: BenchMap, team: string): string[] {
+  const canonical = canonicalTeamName(team);
+  return Object.keys(map).filter(key => sameName(canonicalTeamName(key), canonical));
+}
+
+function benchMembers(map: BenchMap, team: string): string[] {
+  const members = new Map<string, string>();
+  for (const key of benchKeys(map, team)) {
+    for (const player of map[key] || []) members.set(nameKey(player), player);
+  }
+  return [...members.values()];
+}
+
+function replaceTeamBench(map: BenchMap, team: string, players: string[]): void {
+  for (const key of benchKeys(map, team)) delete map[key];
+  if (players.length) map[canonicalTeamName(team)] = players;
+}
+
 export function getBenchedFor(team: string): string[] {
-  return loadBenched()[team] || [];
+  return benchMembers(loadBenched(), team);
 }
 
 export function isBenched(team: string, player: string): boolean {
-  return getBenchedFor(team).includes(player);
+  return getBenchedFor(team).some(p => sameName(p, player));
 }
 
 export function benchPlayer(team: string, player: string, date?: string): void {
   const map = loadBenched();
-  const cur = new Set(map[team] || []);
-  if (cur.has(player)) return;
-  cur.add(player);
-  map[team] = [...cur];
+  const cur = benchMembers(map, team);
+  if (cur.some(p => sameName(p, player))) return;
+  replaceTeamBench(map, team, [...cur, player]);
   recordBenchEvent(team, player, "bench", date);
   saveBenched(map);
 }
 
 export function activatePlayer(team: string, player: string): void {
   const map = loadBenched();
-  if (!(map[team] || []).includes(player)) return;
-  const cur = (map[team] || []).filter(p => p !== player);
-  map[team] = cur;
+  const members = benchMembers(map, team);
+  if (!members.some(p => sameName(p, player))) return;
+  const cur = members.filter(p => !sameName(p, player));
+  replaceTeamBench(map, team, cur);
   recordBenchEvent(team, player, "activate");
   saveBenched(map);
 }
 
 export function clearBenchFor(team: string): void {
   const map = loadBenched();
-  delete map[team];
+  replaceTeamBench(map, team, []);
+  saveBenched(map);
+}
+
+/** Consolidate current membership after a rename without rewriting history. */
+export function consolidateBenchFor(team: string): void {
+  const map = loadBenched();
+  if (!benchKeys(map, team).length) return;
+  replaceTeamBench(map, team, benchMembers(map, team));
   saveBenched(map);
 }
 
@@ -68,7 +95,7 @@ export function removeFromAllBenches(player: string): void {
   const map = loadBenched();
   let changed = false;
   for (const team of Object.keys(map)) {
-    const next = map[team].filter(p => p !== player);
+    const next = map[team].filter(p => !sameName(p, player));
     if (next.length !== map[team].length) {
       map[team] = next;
       changed = true;
@@ -79,9 +106,9 @@ export function removeFromAllBenches(player: string): void {
 
 /** Roster split: active (first 5 not on bench) + benched. */
 export function splitRoster(team: TeamData): { active: string[]; bench: string[] } {
-  const benched = new Set(getBenchedFor(team.name));
-  const active = team.roster.filter(p => !benched.has(p));
-  const bench = team.roster.filter(p => benched.has(p));
+  const benched = new Set(getBenchedFor(team.name).map(nameKey));
+  const active = team.roster.filter(p => !benched.has(nameKey(p)));
+  const bench = team.roster.filter(p => benched.has(nameKey(p)));
   return { active, bench };
 }
 
