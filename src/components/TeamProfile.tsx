@@ -77,9 +77,13 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     const onBench = () => setBenchTick(t => t + 1);
     window.addEventListener("bench:update", onBench);
     window.addEventListener("players:update", onBench);
+    window.addEventListener("teams:update", onBench);
+    window.addEventListener("tournaments:update", onBench);
     return () => {
       window.removeEventListener("bench:update", onBench);
       window.removeEventListener("players:update", onBench);
+      window.removeEventListener("teams:update", onBench);
+      window.removeEventListener("tournaments:update", onBench);
     };
   }, []);
 
@@ -268,7 +272,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     ...historicMajorsForTeam(teamName).map(h => ({ tournamentId: h.id, name: h.name, team: h.team, placement: 1, date: String(h.year), tier: "S", historic: true })),
     ...trophies.map(t => ({ tournamentId: t.id, name: t.name, team: t.team, placement: t.placement, date: t.endDate, tier: t.tier })),
   ], [teamName, trophies]);
-  const earnings = useMemo(() => getTeamEarnings(teamName), [teamName]);
+  const earnings = useMemo(() => getTeamEarnings(teamName), [teamName, benchTick]);
 
 
   // ===== Win % na mapach z filtrem czasowym (wg fikcyjnego kalendarza) =====

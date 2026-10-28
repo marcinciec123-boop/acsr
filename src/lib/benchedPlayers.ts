@@ -82,6 +82,14 @@ export function clearBenchFor(team: string): void {
   saveBenched(map);
 }
 
+/** Consolidate current membership after a rename without rewriting history. */
+export function consolidateBenchFor(team: string): void {
+  const map = loadBenched();
+  if (!benchKeys(map, team).length) return;
+  replaceTeamBench(map, team, benchMembers(map, team));
+  saveBenched(map);
+}
+
 /** When a player leaves a team via transfer, remove them from bench. */
 export function removeFromAllBenches(player: string): void {
   const map = loadBenched();

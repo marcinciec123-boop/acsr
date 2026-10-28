@@ -16,7 +16,7 @@ import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAg
 import { playerNationalities } from "@/data/playerNationalities";
 import { loadPlayerNatOverrides } from "./playerMetadata";
 import { getWorldDate, getWorldNowIso } from "./worldClock";
-import { loadBenched } from "./benchedPlayers";
+import { clearBenchFor, consolidateBenchFor, getBenchedFor } from "./benchedPlayers";
 import { getTeamContracts, loadContracts, saveContracts } from "./contracts";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
@@ -205,13 +205,7 @@ export function propagateRename(oldName: string, newName: string): void {
   migrateTeamLogo(oldName, newName);
 
   // 1) Bench map
-  const bench = loadFromStorage<Record<string, string[]>>(BENCH_KEY, {});
-  if (bench[oldName]) {
-    bench[newName] = bench[oldName];
-    delete bench[oldName];
-    saveToStorage(BENCH_KEY, bench);
-    window.dispatchEvent(new CustomEvent("bench:update"));
-  }
+  consolidateBenchFor(newName);
 
   // 1b) Roster / coach override maps (persistCurrentRosters używa nazwy jako klucza)
   const rosterOv = loadFromStorage<Record<string, string[]>>(ROSTER_OVERRIDE_KEY, {});
@@ -324,14 +318,14 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   const teamName = team.name;
   const date = getWorldDate();
   const atIso = getWorldNowIso();
-  const bench = loadBenched();
+  const benched = getBenchedFor(teamName);
   const coachOverrides = loadFromStorage<Record<string, string>>(COACH_OVERRIDE_KEY, {});
   const coach = coachOverrides[teamName] ?? team.coach;
   const rosterOverrides = loadFromStorage<Record<string, string[]>>(ROSTER_OVERRIDE_KEY, {});
   const contracts = loadContracts();
   const teamContracts = getTeamContracts(teamName, contracts);
   const contractIds = new Set(teamContracts.map(c => c.id));
-  const finalRoster = [...new Set([...team.roster, ...(rosterOverrides[teamName] || []), ...(bench[teamName] || [])])];
+  const finalRoster = [...new Set([...team.roster, ...(rosterOverrides[teamName] || []), ...benched])];
   const people = [...new Set([...finalRoster, ...(coach ? [coach] : []), ...teamContracts.map(c => c.player)])];
   // Capture explicit nationalities before removing any current membership.
   const playerCountries = loadPlayerNatOverrides();
@@ -370,11 +364,7 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   window.dispatchEvent(new CustomEvent("freeagents:update"));
 
   // 3) usuń bench
-  if (bench[teamName]) {
-    delete bench[teamName];
-    saveToStorage(BENCH_KEY, bench);
-    window.dispatchEvent(new CustomEvent("bench:update"));
-  }
+  clearBenchFor(teamName);
 
   // 4) archiwum
   saveArchivedTeams([...loadArchivedTeams(), teamName]);

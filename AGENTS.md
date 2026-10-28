@@ -10,3 +10,5 @@
 - Backup restoration treats tournament logos as device media and broadcasts a global logo update that clears the tournament-logo memo; this preserves small images and refreshes previously cached images or missing results.
 - Accolade lookups and organization earnings use canonical team identity and normalized comparisons; historical award and tournament records stay unchanged so renames preserve history without splitting totals.
 - Bench reads merge all aliases of a club and bench mutations replace those aliases together; normalized player matching prevents stale bench entries from reactivating players in the simulator.
+- Statistics memoization tracks rename-log changes as well as tournament/ranking data; profile earnings use that cache directly to avoid stale totals in a second cache.
+- Automatic lineups exclude bench members even when every player is benched; explicit tournament lineups may still select a substitute intentionally.
