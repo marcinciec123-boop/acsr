@@ -68,7 +68,7 @@ const isOnline = (t: TournamentData): boolean =>
 export function nationalTeamNames(): Set<string> {
   try {
     const teams = loadFromStorage<{ name: string; isNational?: boolean }[]>("ranking_data", []) || [];
-    return new Set(teams.filter(t => t.isNational).map(t => nameKey(canonicalTeamName(t.name))));
+    return new Set(teams.filter(t => t.isNational).map(t => t.name));
   } catch {
     return new Set<string>();
   }
@@ -94,7 +94,7 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
   let mapCount = 0;
   let majorCount = 0;
 
-  const national = nationalTeamNames();
+  const national = new Set([...nationalTeamNames()].map(team => nameKey(canonicalTeamName(team))));
   const currentNames = new Map(
     loadFromStorage<{ name: string }[]>("ranking_data", []).map(t => [nameKey(canonicalTeamName(t.name)), t.name]),
   );
