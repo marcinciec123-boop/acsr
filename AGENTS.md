@@ -8,3 +8,5 @@
 - All disband and manual bankruptcy actions use `disbandTeam` to capture members before removal, clear current roster/coach overrides, release organization contracts and move members to free agency; this prevents orphaned players and continuing payroll without rewriting historical transfers.
 - Change-log snapshots deep-copy contracts, bench membership/history and finance inputs; restoration skips fields absent from legacy snapshots and notifies domain subscribers after writes, so undo reverses transfer accounting without erasing uncaptured data.
 - Backup restoration treats tournament logos as device media and broadcasts a global logo update that clears the tournament-logo memo; this preserves small images and refreshes previously cached images or missing results.
+- Accolade lookups and organization earnings use canonical team identity and normalized comparisons; historical award and tournament records stay unchanged so renames preserve history without splitting totals.
+- Bench reads merge all aliases of a club and bench mutations replace those aliases together; normalized player matching prevents stale bench entries from reactivating players in the simulator.

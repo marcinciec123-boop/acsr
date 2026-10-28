@@ -3,6 +3,7 @@
 // "#4 gracz roku 2025" shown in player/team profiles.
 
 import { loadYearAwardsHistory } from "./yearAwards";
+import { canonicalTeamName, sameName } from "./teamRenames";
 
 export interface Accolade {
   year: number;
@@ -29,7 +30,7 @@ export function getPlayerAccolades(playerName: string): Accolade[] {
     const year = a.year ?? Number(key);
 
     const list = (a.playerTop20?.length ? a.playerTop20 : a.playerTop5) || [];
-    const idx = list.findIndex(p => p.player === playerName);
+    const idx = list.findIndex(p => sameName(p.player, playerName));
     if (idx >= 0) {
       const rank = idx + 1;
       out.push({
@@ -40,11 +41,11 @@ export function getPlayerAccolades(playerName: string): Accolade[] {
       });
     }
 
-    if (a.rookieOfYear?.player === playerName) out.push({ year, label: `Odkrycie Roku ${year}`, tone: "special" });
-    if (a.topFragger?.player === playerName) out.push({ year, label: `Top Fragger ${year}`, tone: "special" });
-    if (a.mvpKing?.player === playerName) out.push({ year, label: `Król MVP ${year}`, tone: "special" });
-    if (a.transferOfYear?.player === playerName) out.push({ year, label: `Transfer Roku ${year}`, tone: "special" });
-    if (a.coachOfYear?.coach === playerName) out.push({ year, label: `Trener Roku ${year}`, tone: "special" });
+    if (sameName(a.rookieOfYear?.player, playerName)) out.push({ year, label: `Odkrycie Roku ${year}`, tone: "special" });
+    if (sameName(a.topFragger?.player, playerName)) out.push({ year, label: `Top Fragger ${year}`, tone: "special" });
+    if (sameName(a.mvpKing?.player, playerName)) out.push({ year, label: `Król MVP ${year}`, tone: "special" });
+    if (sameName(a.transferOfYear?.player, playerName)) out.push({ year, label: `Transfer Roku ${year}`, tone: "special" });
+    if (sameName(a.coachOfYear?.coach, playerName)) out.push({ year, label: `Trener Roku ${year}`, tone: "special" });
   }
 
   return out.sort(byYearDesc);
@@ -52,6 +53,8 @@ export function getPlayerAccolades(playerName: string): Accolade[] {
 
 export function getTeamAccolades(teamName: string): Accolade[] {
   if (!teamName) return [];
+  const currentName = canonicalTeamName(teamName);
+  const matchesTeam = (name: string | undefined) => !!name && sameName(canonicalTeamName(name), currentName);
   const history = loadYearAwardsHistory();
   const out: Accolade[] = [];
 
@@ -61,7 +64,7 @@ export function getTeamAccolades(teamName: string): Accolade[] {
     const year = a.year ?? Number(key);
 
     const list = (a.teamTop5?.length ? a.teamTop5 : a.teamTop3) || [];
-    const idx = list.findIndex(t => t.team === teamName);
+    const idx = list.findIndex(t => matchesTeam(t.team));
     if (idx >= 0) {
       const rank = idx + 1;
       out.push({
@@ -72,10 +75,10 @@ export function getTeamAccolades(teamName: string): Accolade[] {
       });
     }
 
-    if (a.playerOfYear?.team === teamName) {
+    if (a.playerOfYear && matchesTeam(a.playerOfYear.team)) {
       out.push({ year, label: `Gracz Roku ${year}: ${a.playerOfYear.player}`, tone: "special" });
     }
-    if (a.coachOfYear?.team === teamName) {
+    if (a.coachOfYear && matchesTeam(a.coachOfYear.team)) {
       out.push({ year, label: `Trener Roku ${year}: ${a.coachOfYear.coach}`, tone: "special" });
     }
   }

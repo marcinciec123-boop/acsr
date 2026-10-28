@@ -11,6 +11,7 @@ import { getTeamRosterAt } from "@/lib/rankingHistory";
 import { getTournamentLineup } from "@/lib/tournamentLineups";
 import { resolveLineup } from "@/lib/tournamentLineups";
 import { isMajorTournament } from "@/lib/majors";
+import { canonicalTeamName, nameKey, sameName } from "./teamRenames";
 
 export type Tier = "S" | "A" | "B" | "C";
 
@@ -67,7 +68,7 @@ const isOnline = (t: TournamentData): boolean =>
 export function nationalTeamNames(): Set<string> {
   try {
     const teams = loadFromStorage<{ name: string; isNational?: boolean }[]>("ranking_data", []) || [];
-    return new Set(teams.filter(t => t.isNational).map(t => t.name));
+    return new Set(teams.filter(t => t.isNational).map(t => nameKey(canonicalTeamName(t.name))));
   } catch {
     return new Set<string>();
   }
@@ -94,6 +95,9 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
   let majorCount = 0;
 
   const national = nationalTeamNames();
+  const currentNames = new Map(
+    loadFromStorage<{ name: string }[]>("ranking_data", []).map(t => [nameKey(canonicalTeamName(t.name)), t.name]),
+  );
   const orgMap = new Map<string, OrgStat>();
   const playerMap = new Map<string, PlayerStat>();
   const biggestPools: BigPool[] = [];
@@ -134,18 +138,21 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
     for (const pl of t.placements || []) {
       if (!pl.team) continue;
       // Reprezentacje narodowe nie są organizacjami — pomijamy w zarobkach.
-      if (national.has(pl.team)) continue;
+      const canonical = canonicalTeamName(pl.team);
+      const key = nameKey(canonical);
+      const team = currentNames.get(key) || canonical;
+      if (national.has(key)) continue;
       const prize = distributed[pl.placement] || 0;
 
-      const org = orgMap.get(pl.team) || {
-        team: pl.team, earnings: 0, gold: 0, silver: 0, bronze: 0, events: 0, titles: [],
+      const org = orgMap.get(key) || {
+        team, earnings: 0, gold: 0, silver: 0, bronze: 0, events: 0, titles: [],
       };
       org.earnings += prize;
       org.events += 1;
       if (pl.placement === 1) { org.gold++; org.titles.push({ id: t.id, name: t.name, tier, major }); }
       else if (pl.placement === 2) org.silver++;
       else if (pl.placement === 3 || pl.placement === 4) org.bronze++;
-      orgMap.set(pl.team, org);
+      orgMap.set(key, org);
 
       // Only players who actually represented the team at that event earn money:
       // explicit tournament lineup > historical roster snapshot at the event date
@@ -164,7 +171,7 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
           ps.earnings += share;
           ps.events += 1;
           if (pl.placement === 1) ps.gold++;
-          if (!ps.teams.includes(pl.team)) ps.teams.push(pl.team);
+          if (!ps.teams.some(name => sameName(name, team))) ps.teams.push(team);
           playerMap.set(p, ps);
         }
       }
@@ -216,7 +223,8 @@ export interface EarningsSummary {
 
 export function getTeamEarnings(team: string): EarningsSummary {
   const { orgs } = totalStats();
-  const idx = orgs.findIndex(o => o.team === team);
+  const currentName = canonicalTeamName(team);
+  const idx = orgs.findIndex(o => sameName(canonicalTeamName(o.team), currentName));
   if (idx < 0) return { earnings: 0, events: 0, gold: 0, rank: null };
   const o = orgs[idx];
   return { earnings: o.earnings, events: o.events, gold: o.gold, rank: idx + 1 };
