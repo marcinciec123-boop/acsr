@@ -1,6 +1,9 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [ ] Audyt — punkt 2: zachować wyróżnienia po zmianach nazw klubów i wielkości liter nicków.
+- [ ] Audyt — punkt 3: połączyć zarobki i trofea jednej organizacji pod jej obecną nazwą.
+- [ ] Audyt — punkt 4: rozpoznawać i obsługiwać ławkę pod dawnymi i obecnymi nazwami klubu.
 - [x] Punkt 4: zachować loga turniejów w pamięci urządzenia podczas przywracania kopii i odświeżyć ich grafikę.
 - [x] Punkt 3: nie naliczać odstępnego między dawną i obecną nazwą tej samej organizacji.
 - [x] Punkt 2: „Cofnij” przywraca kontrakty, ławkę i jej historię oraz dane finansowe; stare migawki nie usuwają brakujących danych.
