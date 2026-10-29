@@ -19,6 +19,7 @@ import { predictBothOutcomes, predictMatch, predictRankDelta, predictRankDeltaPa
 import { MatchComparePanel } from "./MatchComparePanel";
 import { PreMatchReport } from "./PreMatchReport";
 import { getDisplayScore } from "@/lib/matchDisplay";
+import { isMapDecided, isMatchDecided, mapWins, winsNeededFor } from "@/lib/matchStatus";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
@@ -102,21 +103,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
   const maps: MatchMap[] = useMemo(() => match.maps || [], [match.maps]);
 
-  const isMapDecided = (m: MatchMap) => {
-    const max = Math.max(m.score1, m.score2);
-    const diff = Math.abs(m.score1 - m.score2);
-    // CS2 MR12: first to 13 with 2-round lead. Overtime increments by 3 (16, 19, 22, …).
-    return max >= 13 && diff >= 2;
-  };
-
   const computedScore = useMemo(() => {
     if (maps.length === 0) return { s1: match.score1, s2: match.score2 };
-    let s1 = 0, s2 = 0;
-    maps.forEach(m => {
-      if (!isMapDecided(m)) return;
-      if (m.score1 > m.score2) s1++;
-      else if (m.score2 > m.score1) s2++;
-    });
+    const { score1: s1, score2: s2 } = mapWins(maps);
     return { s1, s2 };
   }, [maps, match.score1, match.score2]);
 
@@ -124,7 +113,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   useEffect(() => {
     if (maps.length === 0) return;
     if (computedScore.s1 !== match.score1 || computedScore.s2 !== match.score2) {
-      onUpdate({ score1: computedScore.s1, score2: computedScore.s2 });
+      onUpdate({ bo, score1: computedScore.s1, score2: computedScore.s2 });
     }
   }, [computedScore.s1, computedScore.s2]);
 
@@ -144,13 +133,13 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       const merged = { ...m, ...patch };
       return scoreChanged ? withRatings(merged) : merged;
     });
-    onUpdate({ maps: next });
+    onUpdate({ bo, maps: next, ...mapWins(next) });
   };
 
   // For BO3 we play to 2 wins (max 3 maps); BO5 to 3 wins (max 5).
   // Once a side reaches the required wins we forbid adding more maps.
-  const mapsToWin = bo === 1 ? 1 : bo === 3 ? 2 : 3;
-  const seriesDecided = computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin;
+  const mapsToWin = winsNeededFor(bo);
+  const seriesDecided = isMatchDecided({ ...match, bo, score1: computedScore.s1, score2: computedScore.s2 });
 
   const addMap = (forcedMap?: string) => {
     if (maps.length >= bo) return;
@@ -179,7 +168,8 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   };
 
   const removeMap = (idx: number) => {
-    onUpdate({ maps: maps.filter((_, i) => i !== idx) });
+    const next = maps.filter((_, i) => i !== idx);
+    onUpdate({ bo, maps: next, ...mapWins(next) });
     if (activeMapIdx >= maps.length - 1) setActiveMapIdx(Math.max(0, maps.length - 2));
   };
 
@@ -235,9 +225,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     updateMap(mapIdx, { [side]: players } as Partial<MatchMap>);
   };
 
-  const winner1 = computedScore.s1 > computedScore.s2 && computedScore.s1 + computedScore.s2 > 0;
-  const winner2 = computedScore.s2 > computedScore.s1 && computedScore.s1 + computedScore.s2 > 0;
-  const matchDecided = (winner1 || winner2) && (computedScore.s1 >= mapsToWin || computedScore.s2 >= mapsToWin);
+  const winner1 = seriesDecided && computedScore.s1 > computedScore.s2;
+  const winner2 = seriesDecided && computedScore.s2 > computedScore.s1;
+  const matchDecided = seriesDecided;
   const winnerName = winner1 ? match.team1 : winner2 ? match.team2 : "";
   const loserName = winner1 ? match.team2 : winner2 ? match.team1 : "";
 

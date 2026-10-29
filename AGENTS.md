@@ -12,3 +12,4 @@
 - Bench reads merge all aliases of a club and bench mutations replace those aliases together; normalized player matching prevents stale bench entries from reactivating players in the simulator.
 - Statistics memoization tracks rename-log changes as well as tournament/ranking data; profile earnings use that cache directly to avoid stale totals in a second cache.
 - Automatic lineups exclude bench members even when every player is benched; explicit tournament lineups may still select a substitute intentionally.
+- Series outcomes, progress, advancement and completed-match history use the shared matchStatus helpers; partial map results are saved atomically with map-win totals so leaving a match cannot finalize a series early.

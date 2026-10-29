@@ -4,19 +4,9 @@
 
 import type { MatchResult, MatchMap, TournamentData } from "./types";
 import { getWorldNowIso } from "./worldClock";
+import { isMatchDecided, winsNeededFor } from "./matchStatus";
 
 const isBye = (t?: string) => t === "BYE";
-
-const winsNeededFor = (bo?: 1 | 3 | 5) => (bo === 5 ? 3 : bo === 3 ? 2 : 1);
-
-const hasFinalScore = (m: MatchResult): boolean => {
-  if (isBye(m.team1) || isBye(m.team2)) return true;
-  if (!m.team1 || !m.team2) return false;
-  if (m.team1.startsWith("TBD") || m.team2.startsWith("TBD")) return false;
-  if ((m.score1 || 0) + (m.score2 || 0) <= 0) return false;
-  if (m.score1 === m.score2) return false;
-  return true;
-};
 
 /** Auto-fills BYE match results so they don't require manual interaction. */
 const resolveByeMatch = (m: MatchResult): MatchResult => {
@@ -34,14 +24,15 @@ const resolveByeMatch = (m: MatchResult): MatchResult => {
 
 /** Stamp `playedAt` on a match if it just got a final score and didn't have one. */
 export const stampPlayedAt = (prev: MatchResult, next: MatchResult): MatchResult => {
-  const finalNow = hasFinalScore(next);
-  const finalBefore = hasFinalScore(prev);
+  const finalNow = isMatchDecided(next);
+  const finalBefore = isMatchDecided(prev);
   if (finalNow && (!next.playedAt || !finalBefore)) {
     return { ...next, playedAt: next.playedAt || getWorldNowIso() };
   }
   // Reset playedAt if scores were cleared
   if (!finalNow && next.playedAt && !isBye(next.team1) && !isBye(next.team2)) {
-    return { ...next, playedAt: undefined };
+    return { ...next, playedAt: undefined, resultConfirmed: false, confirmedAt: undefined,
+      pointsWinner: undefined, pointsLoser: undefined };
   }
   return next;
 };
