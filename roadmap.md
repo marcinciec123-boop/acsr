@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [ ] Bo3/Bo5: zachować mecz w trakcie do wymaganych dwóch/trzech wygranych map; wdrożyć bez dodawania testów.
 - [x] Audyt — punkt 2: zachować wyróżnienia po zmianach nazw klubów i wielkości liter nicków.
 - [x] Audyt — punkt 3: połączyć zarobki i trofea jednej organizacji pod jej obecną nazwą.
 - [x] Audyt — punkt 4: rozpoznawać i obsługiwać ławkę pod dawnymi i obecnymi nazwami klubu.
