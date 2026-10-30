@@ -573,6 +573,13 @@ const TournamentPanel = () => {
         next.team2 = newT2;
         next.score1 = 0;
         next.score2 = 0;
+        next.maps = undefined;
+        next.veto = undefined;
+        next.playedAt = undefined;
+        next.resultConfirmed = false;
+        next.confirmedAt = undefined;
+        next.pointsWinner = undefined;
+        next.pointsLoser = undefined;
       }
       return next;
     });

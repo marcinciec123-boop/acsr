@@ -37,17 +37,17 @@ export const stampPlayedAt = (prev: MatchResult, next: MatchResult): MatchResult
   return next;
 };
 
-const normalizeMatchList = (matches?: MatchResult[]): MatchResult[] | undefined => {
+const normalizeMatchList = (matches?: MatchResult[], defaultBo?: 1 | 3 | 5): MatchResult[] | undefined => {
   if (!matches) return matches;
-  return matches.map(resolveByeMatch);
+  return matches.map(m => resolveByeMatch(m.bo === undefined && defaultBo ? { ...m, bo: defaultBo } : m));
 };
 
 /** Walk an entire tournament and auto-resolve every BYE match in every phase/group. */
 export const normalizeTournamentByes = (t: TournamentData): TournamentData => {
   const phases = t.phases?.map(p => ({
     ...p,
-    bracket: normalizeMatchList(p.bracket),
-    groups: p.groups?.map(g => ({ ...g, matches: normalizeMatchList(g.matches) || [] })),
+    bracket: normalizeMatchList(p.bracket, p.bo),
+    groups: p.groups?.map(g => ({ ...g, matches: normalizeMatchList(g.matches, p.bo) || [] })),
   }));
   return {
     ...t,
