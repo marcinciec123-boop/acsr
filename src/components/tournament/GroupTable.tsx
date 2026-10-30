@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
@@ -39,7 +40,7 @@ const renderMatchRow = (
   onMatchUpdate: Props["onMatchUpdate"],
   onOpenMatch: Props["onOpenMatch"],
 ) => {
-  const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+  const decided = isMatchDecided(m);
   const w1 = decided && m.score1 > m.score2;
   const w2 = decided && m.score2 > m.score1;
   const isBo1 = (m.bo || 1) === 1;

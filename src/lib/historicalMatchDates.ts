@@ -1,3 +1,4 @@
+import { isMatchDecided } from "./matchStatus";
 // ===== Naprawa dat meczów w zaimportowanych (historycznych) turniejach =====
 //
 // Wgrane turnieje miały `playedAt` ustawiane na moment importu (stąd "lipcowe"
@@ -23,7 +24,7 @@ const daysBetween = (a: string, b: string): number =>
   ));
 
 const hasScore = (m: MatchResult) =>
-  (m.score1 || 0) + (m.score2 || 0) > 0 && m.team1 !== "BYE" && m.team2 !== "BYE";
+  isMatchDecided(m) && m.team1 !== "BYE" && m.team2 !== "BYE";
 
 /** Rozkłada mecze jednego turnieju po dniach jego trwania. */
 const fixTournament = (t: TournamentData): { tournament: TournamentData; changed: number } => {

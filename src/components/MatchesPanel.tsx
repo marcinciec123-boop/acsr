@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 // ===== Panel Mecze =====
 // Zestawienie nadchodzących meczów (najbliższe 7 dni) oraz rozegranych
 // (ostatni tydzień), pogrupowane po turniejach. Wszystko liczone względem
@@ -30,7 +31,7 @@ interface Row {
 }
 
 const isPlayed = (m: MatchResult) =>
-  !!m.resultConfirmed || (m.score1 || 0) + (m.score2 || 0) > 0;
+  isMatchDecided(m);
 
 const collect = (tournaments: TournamentData[]): Row[] => {
   const out: Row[] = [];
@@ -45,7 +46,7 @@ const collect = (tournaments: TournamentData[]): Row[] => {
           location: t.location,
           phaseName: p.name,
           groupName,
-          match: m,
+          match: { ...m, bo: m.bo ?? p.bo },
           // ta sama podstawa co wyświetlana godzina (timeSource)
           when: m.scheduledAt || m.playedAt,
 

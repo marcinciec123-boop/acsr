@@ -1,7 +1,8 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Sparkles, Star, TrendingUp, Users } from "lucide-react";
-import type { MapPlayerStats, TeamData, TournamentData } from "@/lib/types";
+import type { MapPlayerStats, MatchResult, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
@@ -23,14 +24,14 @@ interface Props {
 
 const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD" && !team.startsWith("TBD");
 
-const winnerOf = (score1: number, score2: number, team1: string, team2: string) => {
-  if (!isRealTeam(team1) || !isRealTeam(team2) || score1 + score2 === 0 || score1 === score2) return "";
-  return score1 > score2 ? team1 : team2;
+const winnerOf = (m: MatchResult) => {
+  if (!isMatchDecided(m)) return "";
+  return m.team1 === "BYE" ? m.team2 : m.team2 === "BYE" ? m.team1 : m.score1 > m.score2 ? m.team1 : m.team2;
 };
 
-const loserOf = (score1: number, score2: number, team1: string, team2: string) => {
-  if (!isRealTeam(team1) || !isRealTeam(team2) || score1 + score2 === 0 || score1 === score2) return "";
-  return score1 > score2 ? team2 : team1;
+const loserOf = (m: MatchResult) => {
+  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || !isMatchDecided(m)) return "";
+  return m.score1 > m.score2 ? m.team2 : m.team1;
 };
 
 const derivePlacements = (tournament: TournamentData): TournamentData["placements"] => {
@@ -53,21 +54,21 @@ const derivePlacements = (tournament: TournamentData): TournamentData["placement
   bracket
     .filter(m => (m.round || "Match") === finalRound)
     .forEach(m => {
-      add(winnerOf(m.score1, m.score2, m.team1, m.team2), 1);
-      add(loserOf(m.score1, m.score2, m.team1, m.team2), 2);
+      add(winnerOf(m), 1);
+      add(loserOf(m), 2);
     });
 
   const semiRound = rounds.find(r => /semi/i.test(r));
   if (semiRound) {
     bracket
       .filter(m => (m.round || "Match") === semiRound)
-      .forEach(m => add(loserOf(m.score1, m.score2, m.team1, m.team2), 3));
+      .forEach(m => add(loserOf(m), 3));
   }
 
   for (let i = rounds.length - 1; i >= 0; i--) {
     bracket
       .filter(m => (m.round || "Match") === rounds[i])
-      .forEach(m => add(loserOf(m.score1, m.score2, m.team1, m.team2), out.length + 1));
+      .forEach(m => add(loserOf(m), out.length + 1));
   }
 
   // Teams eliminated in earlier phases — order by Swiss/group standings (bilans matters).

@@ -1,3 +1,4 @@
+import { isMatchDecided } from "./matchStatus";
 import { memoOnSave } from "./dataMemo";
 // ===== Księga Rekordów ACSR =====
 // Rekordy all-time liczone na bieżąco z meczów zapisanych w lokalnym zapisie
@@ -69,7 +70,7 @@ function collect(list: TournamentData[], skip: Set<string>): FlatMatch[] {
     for (const m of ms) {
       if (!m.team1 || !m.team2 || m.team1 === "BYE" || m.team2 === "BYE") continue;
       if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
-      if ((m.score1 || 0) + (m.score2 || 0) <= 0) continue;
+      if (!isMatchDecided(m)) continue;
       let ts = 0;
       try { ts = getMatchTimestamp(m) || 0; } catch { ts = 0; }
       if (!ts) {

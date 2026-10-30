@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState } from "react";
 import { BarChart3, Trophy, Target, Skull, Zap, Filter, X, Map as MapIcon, Clock, Crosshair, Layers } from "lucide-react";
 import type { TournamentData, MapPlayerStats } from "@/lib/types";
@@ -88,7 +89,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
 
     for (const m of allMatches) {
       if (isPlaceholder(m.team1) || isPlaceholder(m.team2)) continue;
-      if ((m.score1 || 0) + (m.score2 || 0) === 0) continue;
+      if (!isMatchDecided(m)) continue;
 
       totalMatches++;
       const t1 = ensureTeam(m.team1);

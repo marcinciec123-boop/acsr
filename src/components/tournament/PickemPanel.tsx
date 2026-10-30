@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Target, Trophy, Save, RotateCcw, CheckCircle2, ChevronDown, ChevronUp, Award, Zap, GitBranch } from "lucide-react";
@@ -206,7 +207,7 @@ export const PickemPanel = ({ tournament: t }: Props) => {
       let got = 0; let max = 0;
       (p.bracket || []).forEach(m => {
         if (!m.team1 || !m.team2 || isPlaceholder(m.team1) || isPlaceholder(m.team2)) return;
-        const played = (m.score1 + m.score2) > 0;
+        const played = isMatchDecided(m, p.bo);
         if (!played) return;
         max += SCORING.bracketMatch;
         const actualWinner = m.score1 > m.score2 ? m.team1 : m.team2;

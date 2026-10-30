@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 // ===== Match Compare Panel =====
 // Separate tab on the match detail page (NOT the main scoreboard).
 // Contains two HLTV-style modules:
@@ -60,7 +61,7 @@ const shrinkProb = (p: number) => p;
 const fmtOdds = (o: number) => o.toFixed(2);
 
 export const MatchComparePanel = ({ team1, team2, tier, bo, tournamentId, matchId, score1 = 0, score2 = 0 }: Props) => {
-  const decided = (score1 + score2) > 0 && score1 !== score2;
+  const decided = isMatchDecided({ team1, team2, score1, score2, bo });
   const winnerSlot: 1 | 2 | 0 = decided ? (score1 > score2 ? 1 : 2) : 0;
   const roster1 = useMemo(() => getRoster(team1, tournamentId), [team1, tournamentId]);
   const roster2 = useMemo(() => getRoster(team2, tournamentId), [team2, tournamentId]);

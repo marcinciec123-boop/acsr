@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Pencil, Trash2, Plus, Check, Crown } from "lucide-react";
@@ -56,7 +57,7 @@ const MatchCard = ({
   isFinal?: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
-  const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+  const decided = isMatchDecided(m);
   const w1 = decided && m.score1 > m.score2;
   const w2 = decided && m.score2 > m.score1;
   const disabled = isPlaceholder(m.team1) || isPlaceholder(m.team2) || !m.team1 || !m.team2;

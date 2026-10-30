@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -119,8 +120,8 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
   const playedMatches = t.phases.reduce((sum, p) => {
-    const b = (p.bracket || []).filter(m => m.score1 + m.score2 > 0).length;
-    const g = (p.groups || []).reduce((ss, gr) => ss + gr.matches.filter(m => m.score1 + m.score2 > 0).length, 0);
+    const b = (p.bracket || []).filter(m => isMatchDecided(m, p.bo)).length;
+    const g = (p.groups || []).reduce((ss, gr) => ss + gr.matches.filter(m => isMatchDecided(m, p.bo)).length, 0);
     return sum + b + g;
   }, 0);
   const progress = totalMatches > 0 ? Math.round((playedMatches / totalMatches) * 100) : 0;
@@ -132,7 +133,7 @@ const TournamentCard = ({ t, onClick }: { t: TournamentData; onClick: () => void
       if (phase.bracket && phase.bracket.length > 0) {
         for (let i = phase.bracket.length - 1; i >= 0; i--) {
           const m = phase.bracket[i];
-          if (m.score1 + m.score2 > 0 && (m.round || "").toLowerCase().includes("final")) {
+          if (isMatchDecided(m, phase.bo) && (m.round || "").toLowerCase().includes("final")) {
             winner = m.score1 > m.score2 ? m.team1 : m.team2;
             break;
           }
@@ -270,8 +271,8 @@ const FeaturedLiveCard = ({ t, onClick }: { t: TournamentData; onClick: () => vo
     sum + (p.bracket?.length || 0) + (p.groups?.reduce((s, g) => s + g.matches.length, 0) || 0), 0
   );
   const playedMatches = t.phases.reduce((sum, p) => {
-    const b = (p.bracket || []).filter(m => m.score1 + m.score2 > 0).length;
-    const g = (p.groups || []).reduce((ss, gr) => ss + gr.matches.filter(m => m.score1 + m.score2 > 0).length, 0);
+    const b = (p.bracket || []).filter(m => isMatchDecided(m, p.bo)).length;
+    const g = (p.groups || []).reduce((ss, gr) => ss + gr.matches.filter(m => isMatchDecided(m, p.bo)).length, 0);
     return sum + b + g;
   }, 0);
   const progress = totalMatches > 0 ? Math.round((playedMatches / totalMatches) * 100) : 0;

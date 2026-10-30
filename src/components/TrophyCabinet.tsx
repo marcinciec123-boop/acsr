@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState } from "react";
 import { Medal, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ function finalMatch(tournament: TournamentData): MatchResult | undefined {
   const phases = tournament.phases || [];
   const last = phases[phases.length - 1];
   const candidates = last?.bracket || last?.groups?.flatMap(g => g.matches) || tournament.matches || [];
-  return candidates.filter(m => m.score1 !== m.score2 && m.score1 + m.score2 > 0 &&
+  return candidates.filter(m => isMatchDecided(m, last?.bo) &&
     (/grand final|^final$|finał/i.test(m.round || "") || m.bracketSlot === "GF"))
     .at(-1);
 }

@@ -1,3 +1,4 @@
+import { isMatchDecided } from "./matchStatus";
 import { memoOnSave } from "./dataMemo";
 // ===== Statistics Portal =====
 // Liquipedia-style aggregate statistics computed from the local tournament
@@ -121,7 +122,7 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
       ...((p.groups || []).flatMap(g => g.matches || [])),
     ]).concat(t.matches || []);
     for (const m of collect) {
-      if ((m.score1 || 0) + (m.score2 || 0) > 0) {
+      if (isMatchDecided(m)) {
         matchCount++;
         mapCount += (m.maps || []).filter(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0).length || 1;
       }

@@ -1,3 +1,4 @@
+import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown, Camera } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
@@ -165,7 +166,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
   const renderMatchCard = (m: MatchResult, isLast: boolean) => {
     const isEditing = editingId === m.id;
-    const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+    const decided = isMatchDecided(m);
     const winner1 = decided && m.score1 > m.score2;
     const winner2 = decided && m.score2 > m.score1;
     const editingRound = editingRoundFor === m.id;
@@ -200,6 +201,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 `BO${m.bo || 3}`
               )}
             </span>
+            {isMatchInProgress(m) && <span className="text-primary">W TRAKCIE</span>}
             {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           </div>
         {isEditing ? (
