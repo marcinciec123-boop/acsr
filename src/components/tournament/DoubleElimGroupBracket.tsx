@@ -1,4 +1,4 @@
-import { isMatchDecided } from "@/lib/matchStatus";
+import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Pencil, Trash2, Plus, Check, Crown } from "lucide-react";
@@ -153,6 +153,7 @@ const MatchCard = ({
           )}
         </span>
         <span className="flex items-center gap-1 shrink-0">
+          {isMatchInProgress(m) && <span className="text-primary" title="W trakcie">●</span>}
           {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           {canEdit && (
             <button

@@ -30,7 +30,7 @@ export const stampPlayedAt = (prev: MatchResult, next: MatchResult): MatchResult
     return { ...next, playedAt: next.playedAt || getWorldNowIso() };
   }
   // Reset playedAt if scores were cleared
-  if (!finalNow && next.playedAt && !isBye(next.team1) && !isBye(next.team2)) {
+  if (!finalNow && (next.playedAt || next.resultConfirmed) && !isBye(next.team1) && !isBye(next.team2)) {
     return { ...next, playedAt: undefined, resultConfirmed: false, confirmedAt: undefined,
       pointsWinner: undefined, pointsLoser: undefined };
   }

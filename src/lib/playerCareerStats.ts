@@ -9,6 +9,7 @@ import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
 import { worldNowMs } from "./worldClock";
 import { compareMatchesNewestFirst } from "./matchTime";
+import { isMatchDecided } from "./matchStatus";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -180,6 +181,7 @@ function computeCareerStatsUncached(playerName: string, tournaments?: Tournament
 
     for (const match of allMatches) {
       if (match.team1 === "BYE" || match.team2 === "BYE") continue;
+      if (!isMatchDecided(match)) continue;
       const inMaps = findInMap(match, playerName);
       if (inMaps.length === 0) continue;
 
@@ -462,6 +464,7 @@ export function listPlayerMatches(playerName: string, tournaments?: TournamentDa
     if (t.matches) allMatches.push(...t.matches);
     for (const match of allMatches) {
       if (match.team1 === "BYE" || match.team2 === "BYE") continue;
+      if (!isMatchDecided(match)) continue;
       const inMaps = findInMap(match, playerName);
       if (inMaps.length === 0) continue;
       const isTeam1 = inMaps[0].isTeam1;
@@ -577,6 +580,7 @@ export function computeAllPlayersBasicStats(
 
     for (const match of allMatches) {
       if (!match.maps) continue;
+      if (!isMatchDecided(match)) continue;
       // Accumulate per-player across all maps of this match.
       interface Acc {
         isTeam1: boolean;

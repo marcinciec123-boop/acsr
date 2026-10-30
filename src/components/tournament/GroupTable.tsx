@@ -1,4 +1,4 @@
-import { isMatchDecided } from "@/lib/matchStatus";
+import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
@@ -88,7 +88,7 @@ const renderMatchRow = (
           variant="ghost"
           className="h-6 w-6 text-primary hover:text-primary shrink-0"
           onClick={() => onOpenMatch(m.id)}
-          title="Otwórz szczegóły meczu"
+          title={isMatchInProgress(m) ? "W trakcie — otwórz szczegóły meczu" : "Otwórz szczegóły meczu"}
         >
           <Maximize2 className="w-3 h-3" />
         </Button>
