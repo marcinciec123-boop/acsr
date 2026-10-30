@@ -1,3 +1,4 @@
+import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Trophy, X, Layers, Maximize2, Sparkles, AlertCircle, Trash2, CalendarClock } from "lucide-react";
@@ -119,8 +120,8 @@ const RoundMatchCard = ({
   onOpenMatch?: (id: string) => void;
   onDelete?: (id: string) => void;
 }) => {
-  const played = match.score1 + match.score2 > 0;
-  const inProgress = (match.maps?.length || 0) > 0 && !played;
+  const played = isMatchDecided(match);
+  const inProgress = isMatchInProgress(match);
   const winner: 1 | 2 | 0 = !played ? 0 : match.score1 > match.score2 ? 1 : 2;
 
   const handleOpen = () => onOpenMatch?.(match.id);

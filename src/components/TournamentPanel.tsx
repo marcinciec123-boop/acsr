@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trophy, Plus, Trash2,
@@ -69,11 +70,11 @@ const isRealTeam = (team?: string) => !!team && team !== "BYE" && team !== "TBD"
 const matchWinner = (m: MatchResult) => {
   if (m.team2 === "BYE" && isRealTeam(m.team1)) return m.team1;
   if (m.team1 === "BYE" && isRealTeam(m.team2)) return m.team2;
-  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  if (!isMatchDecided(m)) return "";
   return m.score1 > m.score2 ? m.team1 : m.team2;
 };
 const matchLoser = (m: MatchResult) => {
-  if (!isRealTeam(m.team1) || !isRealTeam(m.team2) || m.score1 + m.score2 === 0 || m.score1 === m.score2) return "";
+  if (!isMatchDecided(m)) return "";
   return m.score1 > m.score2 ? m.team2 : m.team1;
 };
 
@@ -540,15 +541,13 @@ const TournamentPanel = () => {
       if (!m.team1 || !m.team2) return null;
       if (m.team1 === "BYE") return m.team2 && m.team2 !== "BYE" ? m.team2 : null;
       if (m.team2 === "BYE") return m.team1 !== "BYE" ? m.team1 : null;
-      const tot = (m.score1 || 0) + (m.score2 || 0);
-      if (tot === 0 || m.score1 === m.score2) return null;
+      if (!isMatchDecided(m)) return null;
       return m.score1 > m.score2 ? m.team1 : m.team2;
     };
     const decidedLoser = (m: MatchResult): string | null => {
       if (!m.team1 || !m.team2) return null;
       if (m.team1 === "BYE" || m.team2 === "BYE") return null;
-      const tot = (m.score1 || 0) + (m.score2 || 0);
-      if (tot === 0 || m.score1 === m.score2) return null;
+      if (!isMatchDecided(m)) return null;
       return m.score1 > m.score2 ? m.team2 : m.team1;
     };
 
@@ -574,6 +573,13 @@ const TournamentPanel = () => {
         next.team2 = newT2;
         next.score1 = 0;
         next.score2 = 0;
+        next.maps = undefined;
+        next.veto = undefined;
+        next.playedAt = undefined;
+        next.resultConfirmed = false;
+        next.confirmedAt = undefined;
+        next.pointsWinner = undefined;
+        next.pointsLoser = undefined;
       }
       return next;
     });
@@ -599,7 +605,7 @@ const TournamentPanel = () => {
                 if (g.id !== groupId) return g;
                 let nextMatches = g.matches.map(m => {
                   if (m.id !== matchId) return m;
-                  return stampPlayedAt(m, { ...m, ...patch });
+                  return stampPlayedAt(m, { ...m, bo: m.bo ?? p.bo, ...patch });
                 });
                 // Auto-propagate winners/losers within DE groups
                 if (p.format === "gsl-de-groups") {
@@ -614,7 +620,7 @@ const TournamentPanel = () => {
           if (p.bracket) {
             const updated = p.bracket.map(m => {
               if (m.id !== matchId) return m;
-              return stampPlayedAt(m, { ...m, ...patch });
+              return stampPlayedAt(m, { ...m, bo: m.bo ?? p.bo, ...patch });
             });
             // Run propagation to convergence (a fix in R1 may cascade through R2, R3...)
             let curr = updated;
@@ -955,7 +961,7 @@ const TournamentPanel = () => {
               if (phase.bracket && phase.bracket.length > 0) {
                 const finals = phase.bracket.filter(x => (x.round || "").toLowerCase().includes("final") && !(x.round || "").toLowerCase().includes("lower"));
                 const last = finals[finals.length - 1] || phase.bracket[phase.bracket.length - 1];
-                if (last && last.score1 + last.score2 > 0) {
+                if (last && isMatchDecided(last, phase.bo)) {
                   winner = last.score1 > last.score2 ? last.team1 : last.team2;
                   runnerUp = last.score1 > last.score2 ? last.team2 : last.team1;
                 }

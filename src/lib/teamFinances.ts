@@ -1,3 +1,4 @@
+import { isMatchDecided } from "./matchStatus";
 // ===== Finanse organizacji =====
 // Bilans jest WYLICZANY z istniejących danych (turnieje, kontrakty) + ręcznych
 // wpisów użytkownika. Nic nie dzieje się automatycznie — żadnych bankructw ani
@@ -224,7 +225,7 @@ function computeAll(): Map<string, TeamFinance> {
       for (const g of p.groups || []) all.push(...(g.matches || []));
     }
     for (const m of all) {
-      if (m.score1 === m.score2 || !m.team1 || !m.team2) continue;
+      if (!isMatchDecided(m)) continue;
       const at = m.scheduledAt ? ms(m.scheduledAt) : day(t.startDate) ? ms(day(t.startDate)) : NaN;
       if (!Number.isFinite(at)) continue;
       const one = m.score1 > m.score2;

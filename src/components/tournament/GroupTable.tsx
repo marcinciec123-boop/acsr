@@ -1,3 +1,4 @@
+import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
@@ -39,7 +40,7 @@ const renderMatchRow = (
   onMatchUpdate: Props["onMatchUpdate"],
   onOpenMatch: Props["onOpenMatch"],
 ) => {
-  const decided = m.score1 + m.score2 > 0 && m.score1 !== m.score2;
+  const decided = isMatchDecided(m);
   const w1 = decided && m.score1 > m.score2;
   const w2 = decided && m.score2 > m.score1;
   const isBo1 = (m.bo || 1) === 1;
@@ -87,7 +88,7 @@ const renderMatchRow = (
           variant="ghost"
           className="h-6 w-6 text-primary hover:text-primary shrink-0"
           onClick={() => onOpenMatch(m.id)}
-          title="Otwórz szczegóły meczu"
+          title={isMatchInProgress(m) ? "W trakcie — otwórz szczegóły meczu" : "Otwórz szczegóły meczu"}
         >
           <Maximize2 className="w-3 h-3" />
         </Button>

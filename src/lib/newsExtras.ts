@@ -1,3 +1,4 @@
+import { isMatchDecided } from "./matchStatus";
 import { calculateRating } from "./playerStats";
 // ===== Dodatki do aktualności: tożsamość komentujących, sondy, nastroje, załączniki, szablony =====
 
@@ -173,7 +174,7 @@ export function loadTournaments(): TournamentData[] {
 
 const isPlayed = (m: MatchResult) =>
   !!m.team1 && !!m.team2 && !/^(TBD|BYE)/i.test(m.team1) && !/^(TBD|BYE)/i.test(m.team2) &&
-  (m.score1 !== m.score2 || (m.maps?.length ?? 0) > 0) && (m.score1 + m.score2 > 0);
+  isMatchDecided(m);
 
 export function allMatchesOf(t: TournamentData): MatchResult[] {
   const out: MatchResult[] = [];

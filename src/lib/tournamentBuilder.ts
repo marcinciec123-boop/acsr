@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import type { MatchStats, MapStats, PlayerMatchStats } from "./playerStats";
 import { calculateRating } from "./playerStats";
+import { isMatchDecided } from "./matchStatus";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -105,7 +106,7 @@ export const buildSingleElim = (teams: string[], bo: 1 | 3 | 5 = 3): MatchResult
   // Propagate BYE winners forward into round 2 (so seeds with BYE auto-advance)
   matches.forEach(m => {
     if (!m.winnerTo) return;
-    if (m.score1 + m.score2 === 0) return;
+    if (!isMatchDecided(m)) return;
     const winner = m.score1 > m.score2 ? m.team1 : m.team2;
     if (!winner || winner === "BYE") return;
     const tgt = matches.find(x => x.id === m.winnerTo);
@@ -504,16 +505,14 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
     const m = by(slot); if (!m) return "";
     if (!m.team1 || !m.team2) return "";
     if (m.team1 === "TBD" || m.team2 === "TBD") return "";
-    if (m.score1 + m.score2 === 0) return "";
-    if (m.score1 === m.score2) return "";
+    if (!isMatchDecided(m)) return "";
     return m.score1 > m.score2 ? m.team1 : m.team2;
   };
   const loserOf = (slot: string): string => {
     const m = by(slot); if (!m) return "";
     if (!m.team1 || !m.team2) return "";
     if (m.team1 === "TBD" || m.team2 === "TBD") return "";
-    if (m.score1 + m.score2 === 0) return "";
-    if (m.score1 === m.score2) return "";
+    if (!isMatchDecided(m)) return "";
     return m.score1 > m.score2 ? m.team2 : m.team1;
   };
   const setSlot = (slot: string, t1: string, t2: string) => {
@@ -555,17 +554,16 @@ export const propagateGSL4Group = (matches: MatchResult[]): MatchResult[] => {
     const m = by(slot); if (!m) return false;
     if (!m.team1 || !m.team2) return false;
     if (m.team1 === "TBD" || m.team2 === "TBD") return false;
-    if (m.score1 + m.score2 === 0) return false;
-    return m.score1 !== m.score2;
+    return isMatchDecided(m);
   };
   const winnerOf = (slot: string): string => {
     if (!decided(slot)) return "";
-    const m = by(slot)!;
+    const m = by(slot); if (!m) return "";
     return m.score1 > m.score2 ? m.team1 : m.team2;
   };
   const loserOf = (slot: string): string => {
     if (!decided(slot)) return "";
-    const m = by(slot)!;
+    const m = by(slot); if (!m) return "";
     return m.score1 > m.score2 ? m.team2 : m.team1;
   };
   const setSlot = (slot: string, t1: string, t2: string) => {
@@ -610,8 +608,7 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
     if (!m.team1 || !m.team2) return;
     if (m.team1 === "BYE" || m.team2 === "BYE") return;
     if (m.team1 === "TBD" || m.team2 === "TBD") return;
-    if (m.score1 === 0 && m.score2 === 0) return;
-    if (m.score1 === m.score2) return; // brak rozstrzygnięcia (nie powinno wystąpić w CS)
+    if (!isMatchDecided(m)) return;
     const s1 = standings.get(m.team1);
     const s2 = standings.get(m.team2);
     if (!s1 || !s2) return;

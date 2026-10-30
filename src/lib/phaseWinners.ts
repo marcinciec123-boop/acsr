@@ -8,6 +8,7 @@
 import type { TournamentPhase, MatchResult } from "./types";
 import { computeSwissStage } from "./swissEngine";
 import { computeGroupStandings } from "./tournamentBuilder";
+import { isMatchDecided } from "./matchStatus";
 
 const isReal = (s: string | undefined): s is string =>
   !!s && s !== "BYE" && s !== "TBD" && !s.startsWith("TBD");
@@ -18,15 +19,13 @@ const winnerOf = (m: MatchResult): string | null => {
     if (isReal(m.team2) && m.team1 === "BYE") return m.team2;
     return null;
   }
-  if ((m.score1 || 0) + (m.score2 || 0) === 0) return null;
-  if (m.score1 === m.score2) return null;
+  if (!isMatchDecided(m)) return null;
   return m.score1 > m.score2 ? m.team1 : m.team2;
 };
 
 const loserOf = (m: MatchResult): string | null => {
   if (!isReal(m.team1) || !isReal(m.team2)) return null;
-  if ((m.score1 || 0) + (m.score2 || 0) === 0) return null;
-  if (m.score1 === m.score2) return null;
+  if (!isMatchDecided(m)) return null;
   return m.score1 > m.score2 ? m.team2 : m.team1;
 };
 
@@ -48,12 +47,12 @@ export function getPhaseFinishStatus(phase: TournamentPhase): PhaseFinishStatus 
   let done = 0, total = 0;
   if (phase.bracket) {
     total += phase.bracket.length;
-    done += phase.bracket.filter(m => m.score1 + m.score2 > 0 || m.team1 === "BYE" || m.team2 === "BYE").length;
+    done += phase.bracket.filter(m => isMatchDecided(m, phase.bo)).length;
   }
   if (phase.groups) {
     phase.groups.forEach(g => {
       total += g.matches.length;
-      done += g.matches.filter(m => m.score1 + m.score2 > 0).length;
+      done += g.matches.filter(m => isMatchDecided(m, phase.bo)).length;
     });
   }
   return { finished: total > 0 && done === total, done, total };

@@ -287,6 +287,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   };
 
   const handleConfirm = () => {
+    if (!matchDecided) { setConfirmOpen(false); return; }
     onUpdate({
       pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true,
       confirmedAt: Date.now(),
@@ -407,6 +408,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             </div>
           </div>
 
+          {!matchDecided && (computedScore.s1 + computedScore.s2 > 0 || maps.some(m => m.score1 + m.score2 > 0)) && (
+            <div className="mt-3 text-center text-xs font-mono text-primary">● W TRAKCIE</div>
+          )}
           {/* Termin meczu (fikcyjny kalendarz) */}
           {(() => {
             const schedDate = match.scheduledAt?.slice(0, 10) || "";

@@ -13,6 +13,7 @@
 import type { MatchResult } from "./types";
 import { getDisplayScore } from "./matchDisplay";
 import { isPlaceholder } from "./teamHelpers";
+import { isMatchDecided } from "./matchStatus";
 
 export interface SwissTeamStanding {
   team: string;
@@ -137,7 +138,7 @@ export function computeSwissStage(
       const t2 = m.team2;
       const a = t1 ? map.get(t1) : null;
       const b = t2 ? map.get(t2) : null;
-      const played = (m.score1 + m.score2) > 0;
+      const played = isMatchDecided(m);
       const winner = played ? (m.score1 > m.score2 ? t1 : t2) : "";
 
       const [ds1, ds2] = getDisplayScore(m);
@@ -276,7 +277,7 @@ export function planNextSwissRound(
   // Block if previous round has unfinished matches
   const prevRound = stage.rounds[stage.rounds.length - 1];
   if (prevRound) {
-    const unfinished = prevRound.matches.some(m => !m.team1 || !m.team2 || (m.score1 + m.score2) === 0);
+    const unfinished = prevRound.matches.some(m => !isMatchDecided(m));
     if (unfinished) {
       return { round, pairings: [], byes: [], error: "Poprzednia runda nie jest zakończona" };
     }
@@ -414,7 +415,7 @@ export function projectFutureRounds(stage: SwissStageData): ProjectedRound[] {
   if (last) {
     last.matches.forEach(m => {
       if (!m.team1 || !m.team2) return;
-      if ((m.score1 + m.score2) > 0) return;
+      if (isMatchDecided(m)) return;
       pending.add(m.team1);
       pending.add(m.team2);
       const a = stage.standings.find(s => s.team === m.team1);

@@ -1,3 +1,4 @@
+import { isMatchDecided } from "@/lib/matchStatus";
 import { motion } from "framer-motion";
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
@@ -358,9 +359,9 @@ export const TournamentDetailPage = ({
 
   // Phase progress helper for tab badges
   const phaseProgress = (phase: typeof t.phases[number]) => {
-    const bracketDone = phase.bracket?.filter(m => m.score1 + m.score2 > 0).length || 0;
+    const bracketDone = phase.bracket?.filter(m => isMatchDecided(m, phase.bo)).length || 0;
     const bracketTotal = phase.bracket?.length || 0;
-    const groupDone = phase.groups?.reduce((s, g) => s + g.matches.filter(m => m.score1 + m.score2 > 0).length, 0) || 0;
+    const groupDone = phase.groups?.reduce((s, g) => s + g.matches.filter(m => isMatchDecided(m, phase.bo)).length, 0) || 0;
     const groupTotal = phase.groups?.reduce((s, g) => s + g.matches.length, 0) || 0;
     const done = bracketDone + groupDone;
     const total = bracketTotal + groupTotal;
