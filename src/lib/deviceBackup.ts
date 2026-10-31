@@ -79,6 +79,31 @@ const collectDeviceState = async (): Promise<Record<string, string>> => {
 const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_", "csgo_hub_tournamentlogo_"];
 const isMediaKey = (key: string) => MEDIA_PREFIXES.some(p => key.startsWith(p));
 
+/** File compression is independent of on-device snapshots; exports never mutate them. */
+export const encodeDeviceBackup = async (
+  snapshot: DeviceBackupSnapshot,
+  includeMedia = true,
+): Promise<{ blob: Blob; extension: "csgobackup" | "json" }> => {
+  const keys = includeMedia ? snapshot.keys : Object.fromEntries(
+    Object.entries(snapshot.keys).filter(([key]) => !isMediaKey(key)),
+  );
+  const payload = { ...snapshot, keys, size: new Blob(Object.values(keys)).size };
+  const json = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  if (typeof CompressionStream === "undefined") return { blob: json, extension: "json" };
+  const compressed = await new Response(json.stream().pipeThrough(new CompressionStream("gzip"))).blob();
+  return { blob: new Blob([compressed], { type: "application/gzip" }), extension: "csgobackup" };
+};
+
+/** Detect actual bytes, not the filename: legacy JSON works with either extension. */
+export const decodeDeviceBackupFile = async (file: Blob): Promise<string> => {
+  const header = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+  if (header[0] !== 0x1f || header[1] !== 0x8b) return file.text();
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("Ta wersja przeglądarki nie obsługuje skompresowanych zapisów. Zaktualizuj ją i spróbuj ponownie.");
+  }
+  return new Response(file.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+};
+
 /** Full save: real image data instead of reference markers, legacy images, and the fictional date. */
 const collectFullState = async (): Promise<Record<string, string>> => {
   const keys: Record<string, string> = { ...collectLocalState(), ...(await collectDeviceState()) };

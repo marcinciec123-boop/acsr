@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, HardDrive, RotateCcw, Save, Trash2, Upload, Power, PowerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -8,6 +9,8 @@ import {
   deleteAllDeviceBackups,
   deleteDeviceBackup,
   deleteDeviceBackupsByReason,
+  decodeDeviceBackupFile,
+  encodeDeviceBackup,
   importDeviceBackup,
   isAutoBackupEnabled,
   listDeviceBackups,
@@ -29,6 +32,7 @@ const DeviceBackupPanel = () => {
   const [backups, setBackups] = useState<DeviceBackupSnapshot[]>([]);
   const [busy, setBusy] = useState(false);
   const [autoOn, setAutoOn] = useState(true);
+  const [includeMedia, setIncludeMedia] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => setBackups(await listDeviceBackups());
@@ -63,22 +67,38 @@ const DeviceBackupPanel = () => {
     window.location.reload();
   };
 
-  const handleExport = (backup: DeviceBackupSnapshot) => {
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `csgo-hub-zapis-${new Date(backup.createdAt).toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = async (backup: DeviceBackupSnapshot) => {
+    setBusy(true);
+    try {
+      const { blob, extension } = await encodeDeviceBackup(backup, includeMedia);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `csgo-hub-zapis-${new Date(backup.createdAt).toISOString().slice(0, 10)}.${extension}`;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast({ title: "Pobrano zapis", description: `Rozmiar pliku: ${formatBytes(blob.size)}` });
+    } catch (error) {
+      toast({ title: "Nie udało się pobrać zapisu", description: error instanceof Error ? error.message : "Spróbuj ponownie.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleImport = async (file?: File) => {
     if (!file) return;
-    const raw = await file.text();
-    const imported = await importDeviceBackup(raw);
-    await refresh();
-    toast({ title: "Zaimportowano zapis", description: imported.label });
+    setBusy(true);
+    try {
+      const raw = await decodeDeviceBackupFile(file);
+      const imported = await importDeviceBackup(raw);
+      await refresh();
+      toast({ title: "Zaimportowano zapis", description: imported.label });
+    } catch (error) {
+      toast({ title: "Nie udało się wczytać zapisu", description: error instanceof Error ? error.message : "Nieprawidłowy plik zapisu.", variant: "destructive" });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setBusy(false);
+    }
   };
 
   const handleDelete = async (backup: DeviceBackupSnapshot) => {
@@ -169,18 +189,19 @@ const DeviceBackupPanel = () => {
         </div>
 
         <div className="border border-border bg-card rounded-lg p-4 mb-5">
-          <p className="text-sm text-muted-foreground">
-            Zapisy trzymane są w pamięci tego urządzenia. Wybrany snapshot możesz pobrać jako plik JSON i zaimportować na innym urządzeniu.
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="backup-include-media" className="text-sm text-foreground">Uwzględnij wgrane loga i zdjęcia w pliku</label>
+            <Switch id="backup-include-media" checked={includeMedia} onCheckedChange={setIncludeMedia} disabled={busy} />
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/json,.json"
+              accept="application/json,application/gzip,.json,.gz,.csgobackup"
               className="hidden"
               onChange={e => void handleImport(e.target.files?.[0])}
             />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={busy} className="gap-2">
               <Upload className="w-4 h-4" /> Importuj plik zapisu
             </Button>
             <Button
@@ -214,7 +235,7 @@ const DeviceBackupPanel = () => {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleExport(backup)} className="gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => void handleExport(backup)} disabled={busy} className="gap-1.5">
                   <Download className="w-3.5 h-3.5" /> Pobierz
                 </Button>
                 <Button size="sm" onClick={() => void handleRestore(backup)} className="gap-1.5">
