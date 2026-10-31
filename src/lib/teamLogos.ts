@@ -79,7 +79,7 @@ export async function deleteTeamLogo(teamName: string): Promise<void> {
   window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: { teamName } }));
 }
 
-/** Reads a File from an input and returns a resized data-URL. PNG by default; JPEG fallback if too large. */
+/** Resizes uploads without upscaling; WebP preserves transparency, PNG is the codec fallback. */
 export function fileToLogoDataUrl(file: File, max = 256): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -96,11 +96,17 @@ export function fileToLogoDataUrl(file: File, max = 256): Promise<string> {
         canvas.height = h;
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Canvas unavailable"));
-        ctx.drawImage(img, 0, 0, w, h);
-        let out = canvas.toDataURL("image/png");
-        // Keep entries safely under typical localStorage per-key budgets.
-        if (out.length > 180_000) out = canvas.toDataURL("image/jpeg", 0.85);
-        resolve(out);
+        try {
+          ctx.drawImage(img, 0, 0, w, h);
+          const out = canvas.toDataURL("image/webp", 0.82);
+          // Already-small raster files can be more compact than re-encoding.
+          const original = String(reader.result);
+          const keepOriginal = scale === 1 && /^image\/(png|jpeg|webp)$/.test(file.type)
+            && original.length < out.length;
+          resolve(keepOriginal ? original : out);
+        } catch (error) {
+          reject(error);
+        }
       };
       img.src = String(reader.result);
     };
