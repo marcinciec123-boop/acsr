@@ -23,6 +23,7 @@ import { WEEKLY_REPORT_EVENT } from "@/lib/weeklyRankingReport";
 import { getWorldDate, getWorldNowIso } from "@/lib/worldClock";
 import { getRankingAt, getTeamRankingSeries } from "@/lib/rankingHistory";
 import { canonicalTeamName } from "@/lib/teamRenames";
+import { getRankingTier } from "@/lib/rankingTier";
 import { CalendarClock } from "lucide-react";
 
 // Mini wykres punktów (sparkline) — broadcast style
@@ -66,11 +67,11 @@ interface RankingPanelProps {
 }
 
 const tierFor = (rank: number) => {
-  if (rank <= 10) return { label: "S", color: "text-accent", bg: "bg-accent/15 border-accent/40" };
-  if (rank <= 25) return { label: "A", color: "text-primary", bg: "bg-primary/15 border-primary/40" };
-  if (rank <= 50) return { label: "B", color: "text-[hsl(var(--silver))]", bg: "bg-[hsl(var(--silver)/0.15)] border-[hsl(var(--silver)/0.4)]" };
-  if (rank <= 100) return { label: "C", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
-  return { label: "—", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
+  const tier = getRankingTier(rank);
+  if (tier === "S") return { label: tier, color: "text-accent", bg: "bg-accent/15 border-accent/40" };
+  if (tier === "A") return { label: tier, color: "text-primary", bg: "bg-primary/15 border-primary/40" };
+  if (tier === "B") return { label: tier, color: "text-[hsl(var(--silver))]", bg: "bg-[hsl(var(--silver)/0.15)] border-[hsl(var(--silver)/0.4)]" };
+  return { label: tier ?? "—", color: "text-muted-foreground", bg: "bg-muted/40 border-border" };
 };
 
 const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
@@ -139,6 +140,8 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
   }, [teams]);
 
   // Poprzednie pozycje (z migawki)
+  const ranksByTeam = useMemo(() => new Map(sorted.map((team, index) => [team.name, index + 1])), [sorted]);
+
   const prevRanks = useMemo(() => {
     const arr = Object.entries(prevSnapshot).sort((a, b) => b[1] - a[1]);
     const map: Record<string, number> = {};
@@ -460,7 +463,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
           )}
 
           {filtered.map((team, i) => {
-            const globalRank = sorted.findIndex(t => t.name === team.name) + 1;
+            const globalRank = ranksByTeam.get(team.name) ?? 0;
             const isEditing = editingTeam === team.name;
             const tier = tierFor(globalRank);
             const trend = trendFor(team.name, globalRank);
@@ -468,7 +471,7 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
             const RankBadge = (
               <span className={cn(
                 "inline-flex items-center justify-center rounded-md font-black text-xs border",
-                globalRank <= 3 ? "w-7 h-7" : "w-6 h-6",
+                globalRank <= 3 ? "min-w-7 h-7 px-1" : "min-w-6 h-6 px-1",
                 globalRank === 1 && "text-[hsl(var(--gold))] border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.1)]",
                 globalRank === 2 && "text-[hsl(var(--silver))] border-[hsl(var(--silver)/0.4)] bg-[hsl(var(--silver)/0.1)]",
                 globalRank === 3 && "text-[hsl(var(--bronze))] border-[hsl(var(--bronze)/0.4)] bg-[hsl(var(--bronze)/0.1)]",
