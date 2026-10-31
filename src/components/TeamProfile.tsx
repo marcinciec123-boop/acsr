@@ -46,6 +46,7 @@ import { getTeamEarnings } from "@/lib/statsPortal";
 import { formatMoney } from "@/lib/prizeDistribution";
 import { compareMatchesNewestFirst } from "@/lib/matchTime";
 import { canonicalTeamName } from "@/lib/teamRenames";
+import { getRankingTier } from "@/lib/rankingTier";
 
 
 interface TeamProfileProps {
@@ -107,7 +108,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
   } as TeamData : undefined);
   const isDisbanded = !activeTeam && !!disbandInfo;
   const globalRank = activeTeam ? sorted.indexOf(activeTeam) + 1 : 0;
-  const tier = isDisbanded ? `Rozwiązana · ${disbandInfo!.date.slice(0, 10)}` : globalRank <= 10 ? "Tier S" : globalRank <= 25 ? "Tier A" : globalRank <= 50 ? "Tier B" : globalRank <= 100 ? "Tier C" : "Poza rankingiem";
+  const rankingTier = getRankingTier(globalRank);
+  const tier = isDisbanded && disbandInfo ? `Rozwiązana · ${disbandInfo.date.slice(0, 10)}` : rankingTier ? `Tier ${rankingTier}` : "Poza rankingiem";
   const tierColor = isDisbanded ? "text-destructive" : globalRank <= 10 ? "text-accent" : globalRank <= 25 ? "text-primary" : globalRank <= 50 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
 
   // Refresh logo presence flag
