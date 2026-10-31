@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [ ] Rozszerzyć ranking ponad 100 drużyn, zachować pełną listę i Tier C dla miejsc 51+.
 - [x] Kompresować eksporty Gzip, zachować import JSON i dodać eksport bez grafik.
 - [x] Zmniejszać nowe wgrywane grafiki przez WebP z zachowaniem przezroczystości.
 - [ ] Bo3/Bo5: zachować mecz w trakcie do wymaganych dwóch/trzech wygranych map; wdrożyć bez dodawania testów.
