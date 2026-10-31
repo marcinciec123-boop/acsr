@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Bieżące poprawki
-- [ ] Kompresować eksporty Gzip, zachować import JSON i dodać eksport bez grafik.
-- [ ] Zmniejszać nowe wgrywane grafiki przez WebP z zachowaniem przezroczystości.
+- [x] Kompresować eksporty Gzip, zachować import JSON i dodać eksport bez grafik.
+- [x] Zmniejszać nowe wgrywane grafiki przez WebP z zachowaniem przezroczystości.
 - [ ] Bo3/Bo5: zachować mecz w trakcie do wymaganych dwóch/trzech wygranych map; wdrożyć bez dodawania testów.
 - [x] Audyt — punkt 2: zachować wyróżnienia po zmianach nazw klubów i wielkości liter nicków.
 - [x] Audyt — punkt 3: połączyć zarobki i trofea jednej organizacji pod jej obecną nazwą.
