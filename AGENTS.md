@@ -16,3 +16,4 @@
 - Automatic lineups exclude bench members even when every player is benched; explicit tournament lineups may still select a substitute intentionally.
 - Series outcomes, progress, advancement and completed-match history use the shared matchStatus helpers; partial map results are saved atomically with map-win totals so leaving a match cannot finalize a series early.
 - Ranking tier labels use the shared rankingTier helper and the table renders the complete eligible club list; this keeps profiles and ranking consistent without a fixed club-count cap.
+- Ranking position charts derive their axis from displayed history via rankingScale; this keeps low-ranked clubs visible as the database grows.

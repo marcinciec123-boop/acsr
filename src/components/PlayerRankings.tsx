@@ -5,6 +5,7 @@ import { teamDatabase, type TeamData } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag } from "@/lib/flags";
 import { cn } from "@/lib/utils";
+import { getRankingTier } from "@/lib/rankingTier";
 
 const getRankBadge = (rank: number) => {
   if (rank === 1) return "bg-accent/20 text-accent border-accent/40";
@@ -14,11 +15,11 @@ const getRankBadge = (rank: number) => {
 };
 
 const tierLabel = (rank: number) => {
-  if (rank <= 10) return { label: "Tier S", color: "text-accent" };
-  if (rank <= 25) return { label: "Tier A", color: "text-primary" };
-  if (rank <= 50) return { label: "Tier B", color: "text-silver" };
-  if (rank <= 100) return { label: "Tier C", color: "text-muted-foreground" };
-  return { label: "—", color: "text-muted-foreground" };
+  const tier = getRankingTier(rank);
+  if (tier === "S") return { label: "Tier S", color: "text-accent" };
+  if (tier === "A") return { label: "Tier A", color: "text-primary" };
+  if (tier === "B") return { label: "Tier B", color: "text-silver" };
+  return { label: tier ? `Tier ${tier}` : "—", color: "text-muted-foreground" };
 };
 
 type RegionFilter = "all" | "EU" | "US" | "LATAM" | "ASIA" | "OCE" | "AFR";

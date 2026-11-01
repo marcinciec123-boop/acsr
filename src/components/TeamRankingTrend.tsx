@@ -5,6 +5,7 @@ import { buildTrendSeries, getTeamRankingSeries, getTeamRosterAt } from "@/lib/r
 import { getWorldDate, WORLD_CLOCK_EVENT } from "@/lib/worldClock";
 import { playerRoles, roleColors, roleIcons } from "@/data/playerRoles";
 import { cn } from "@/lib/utils";
+import { getRankingAxis } from "@/lib/rankingScale";
 
 type Range = "1M" | "3M" | "6M" | "1Y" | "5Y" | "ALL";
 
@@ -90,6 +91,8 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
       : [...current, metric]);
   };
 
+  const rankAxis = useMemo(() => getRankingAxis(data.map(point => point.rank)), [data]);
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
@@ -163,8 +166,8 @@ const TeamRankingTrend = ({ teamName }: { teamName: string }) => {
               yAxisId="rank"
               orientation="right"
               reversed
-              domain={[1, 100]}
-              ticks={[1, 10, 25, 50, 75, 100]}
+              domain={[1, rankAxis.upper]}
+              ticks={rankAxis.ticks}
               allowDecimals={false}
               hide={!metrics.includes("rank")}
               tick={{ fontSize: 11, fill: "hsl(var(--accent))" }}
