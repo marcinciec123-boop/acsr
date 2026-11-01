@@ -689,11 +689,11 @@ export const teamDatabase: TeamData[] = [
 ];
 
 // Tier helpers
-// Tier distribution: S = top 10, A = 11-25, B = 26-50, C = 51-100
+// Tier distribution: S = top 10, A = 11-25, B = 26-50, C = 51+
 export const tier1Teams = teamDatabase.slice(0, 10).map(t => t.name);
 export const tier2Teams = teamDatabase.slice(10, 25).map(t => t.name);
 export const tier3Teams = teamDatabase.slice(25, 50).map(t => t.name);
-export const tier4Teams = teamDatabase.slice(50, 100).map(t => t.name);
+export const tier4Teams = teamDatabase.slice(50).map(t => t.name);
 
 export function teamsByRegion(region: string): string[] {
   return teamDatabase.filter(t => t.region === region).map(t => t.name);
@@ -839,9 +839,8 @@ export function getDynamicRanking(
       const winnerRank = match.winner === match.team1 ? rank1 : rank2;
       const loserRank = match.winner === match.team1 ? rank2 : rank1;
       
-      const s1 = 100 - Math.min(winnerRank, 100);
-      const s2 = 100 - Math.min(loserRank, 100);
-      const expected = 1 / (1 + Math.pow(10, -(s1 - s2) / 40));
+      const diff = loserRank - winnerRank;
+      const expected = 1 / (1 + Math.pow(10, -diff / 40));
       const winPts = Math.round(kFactor * (1 - expected));
       const losePts = Math.round(kFactor * (0 - (1 - expected)));
       

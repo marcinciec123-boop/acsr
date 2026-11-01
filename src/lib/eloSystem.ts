@@ -22,11 +22,9 @@ function getKFactor(tier: string): number {
 }
 
 // Calculate expected win probability based on rank difference
-function expectedScore(teamRank: number, opponentRank: number): number {
-  // Lower rank number = better team. Convert to "strength" (inverse of rank)
-  const strength1 = 100 - Math.min(teamRank, 100);
-  const strength2 = 100 - Math.min(opponentRank, 100);
-  const diff = strength1 - strength2;
+export function expectedScore(teamRank: number, opponentRank: number): number {
+  // Lower rank number = better team; keep the same scale at every position.
+  const diff = opponentRank - teamRank;
   return 1 / (1 + Math.pow(10, -diff / 40));
 }
 
