@@ -392,7 +392,7 @@ export const SwissView = ({
               <th className="px-2 py-2 text-left">Drużyna</th>
               <th className="px-2 py-2 text-center w-14">W-L</th>
               <th className="px-2 py-2 text-center w-14" title="Round difference (mapy)">RD</th>
-              <th className="px-2 py-2 text-center w-12" title="Buchholz (suma zwycięstw przeciwników)">BU</th>
+              <th className="px-2 py-2 text-center w-12" title="Buchholz (suma bilansu wygrane–przegrane przeciwników)">BU</th>
               <th className="px-2 py-2 text-center w-16">Status</th>
               {Array.from({ length: maxRound }, (_, i) => (
                 <th key={i} className="px-1 py-2 text-center w-[88px] border-l border-border/50">
@@ -428,7 +428,7 @@ export const SwissView = ({
                   <td className="px-2 py-1.5 text-center font-mono tabular-nums text-muted-foreground">
                     {s.roundDiff > 0 ? `+${s.roundDiff}` : s.roundDiff}
                   </td>
-                  <td className="px-2 py-1.5 text-center font-mono tabular-nums text-muted-foreground">{s.buchholz}</td>
+                  <td className="px-2 py-1.5 text-center font-mono tabular-nums text-muted-foreground">{s.buchholz > 0 ? `+${s.buchholz}` : s.buchholz}</td>
                   <td className="px-2 py-1.5 text-center">
                     <span className={cn("text-xs font-mono font-bold px-1.5 py-0.5 rounded border", style.pill)}>
                       {style.label}
