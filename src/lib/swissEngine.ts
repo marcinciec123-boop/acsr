@@ -22,7 +22,7 @@ export interface SwissTeamStanding {
   losses: number;
   /** Round difference across played maps (sumScore - sumOpp) */
   roundDiff: number;
-  /** Sum of opponents' wins (Buchholz) */
+  /** Sum of opponents' win-loss difference (esport Buchholz; can be negative) */
   buchholz: number;
   /** Initial seed (1-based). Used as final tie-breaker. */
   seed: number;
@@ -207,15 +207,16 @@ export function computeSwissStage(
     });
   });
 
-  // Buchholz: sum of opponents' wins — only opponents actually played in THIS
-  // stage (pastOpponents also holds prior-phase meetings for rematch avoidance).
+  // Buchholz (esport variant): sum of opponents' win-loss difference, so it can
+  // go negative. Only opponents actually played in THIS stage count
+  // (pastOpponents also holds prior-phase meetings for rematch avoidance).
   map.forEach(s => {
     let bu = 0;
     const played = new Set<string>();
     s.history.forEach(h => { if (h.opponent && h.result) played.add(h.opponent); });
     played.forEach(opp => {
       const o = map.get(opp);
-      if (o) bu += o.wins;
+      if (o) bu += o.wins - o.losses;
     });
     s.buchholz = bu;
   });
