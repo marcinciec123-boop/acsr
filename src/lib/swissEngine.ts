@@ -149,6 +149,13 @@ export function computeSwissStage(
       const winner = played ? (m.score1 > m.score2 ? t1 : t2) : "";
 
       const [ds1, ds2] = getDisplayScore(m);
+      // Round totals: Bo1 display score IS the round score; for Bo3/Bo5 the
+      // display score is map wins, so sum per-map round scores instead.
+      let rw1 = ds1, rw2 = ds2;
+      if ((m.bo ?? 1) > 1 && m.maps?.length) {
+        rw1 = m.maps.reduce((sum, mp) => sum + (mp.score1 ?? 0), 0);
+        rw2 = m.maps.reduce((sum, mp) => sum + (mp.score2 ?? 0), 0);
+      }
       if (a) {
         if (b) a.pastOpponents.add(b.team);
         a.history.push({
@@ -160,8 +167,8 @@ export function computeSwissStage(
         });
         if (played) {
           if (winner === t1) a.wins += 1; else a.losses += 1;
-          a.roundsWon += ds1;
-          a.roundsLost += ds2;
+          a.roundsWon += rw1;
+          a.roundsLost += rw2;
           a.roundDiff += (ds1 - ds2);
         }
       }
@@ -176,8 +183,8 @@ export function computeSwissStage(
         });
         if (played) {
           if (winner === t2) b.wins += 1; else b.losses += 1;
-          b.roundsWon += ds2;
-          b.roundsLost += ds1;
+          b.roundsWon += rw2;
+          b.roundsLost += rw1;
           b.roundDiff += (ds2 - ds1);
         }
       }
