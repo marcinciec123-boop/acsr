@@ -20,6 +20,9 @@ export interface SwissTeamStanding {
   /** Map (game) wins across all played matches in this Swiss stage. */
   wins: number;
   losses: number;
+  /** Total rounds won / lost across played maps in this Swiss stage. */
+  roundsWon: number;
+  roundsLost: number;
   /** Round difference across played maps (sumScore - sumOpp) */
   roundDiff: number;
   /** Sum of opponents' win-loss difference (esport Buchholz; can be negative) */
@@ -153,6 +156,8 @@ export function computeSwissStage(
         });
         if (played) {
           if (winner === t1) a.wins += 1; else a.losses += 1;
+          a.roundsWon += ds1;
+          a.roundsLost += ds2;
           a.roundDiff += (ds1 - ds2);
         }
       }
@@ -167,6 +172,8 @@ export function computeSwissStage(
         });
         if (played) {
           if (winner === t2) b.wins += 1; else b.losses += 1;
+          b.roundsWon += ds2;
+          b.roundsLost += ds1;
           b.roundDiff += (ds2 - ds1);
         }
       }
