@@ -169,7 +169,7 @@ export function computeSwissStage(
           if (winner === t1) a.wins += 1; else a.losses += 1;
           a.roundsWon += rw1;
           a.roundsLost += rw2;
-          a.roundDiff += (ds1 - ds2);
+          a.roundDiff += (rw1 - rw2);
         }
       }
       if (b) {
@@ -185,7 +185,7 @@ export function computeSwissStage(
           if (winner === t2) b.wins += 1; else b.losses += 1;
           b.roundsWon += rw2;
           b.roundsLost += rw1;
-          b.roundDiff += (ds2 - ds1);
+          b.roundDiff += (rw2 - rw1);
         }
       }
     });
