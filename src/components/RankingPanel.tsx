@@ -502,7 +502,9 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: Math.min(i * 0.008, 0.4) }}
+                transition={{ delay: i < 50 ? i * 0.008 : 0 }}
+                // Duże bazy: przeglądarka pomija rysowanie wierszy poza ekranem.
+                style={{ contentVisibility: "auto", containIntrinsicSize: "auto 56px" }}
                 onClick={() => setExpandedTeam(isOpen ? null : team.name)}
                 className={cn(
                   "items-center hover:bg-secondary/30 transition-colors group cursor-pointer border-l-2",
