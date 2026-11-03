@@ -6,7 +6,7 @@
 import type { TournamentData } from "./types";
 import { ESEA_MASTERS_2026_SEED } from "./eseaMasters2026Seed";
 
-const SEED_VERSION_KEY = "csgo_hub_seed_esea_masters_2026_v1";
+const SEED_VERSION_KEY = "csgo_hub_seed_esea_masters_2026_v2_restore_groups";
 const ESEA_MASTERS_2026_ID = "esea-masters-2026";
 
 export function seedEseaMasters2026(current: TournamentData[]): TournamentData[] {

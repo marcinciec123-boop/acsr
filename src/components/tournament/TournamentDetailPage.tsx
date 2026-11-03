@@ -1020,7 +1020,7 @@ export const TournamentDetailPage = ({
                         onShuffle={() => onShuffleGroups(phase.id)}
                       />
                     )}
-                    {phase.groups && phase.groups.length > 0 && phase.format === "double-elim" && (
+                    {phase.groups && phase.groups.length > 0 && phase.mergedGroups && (
                       <div className="space-y-6">
                         {phase.groups.map(g => (
                           <div key={g.id} className="space-y-2">
@@ -1045,7 +1045,7 @@ export const TournamentDetailPage = ({
                         ))}
                       </div>
                     )}
-                    {phase.groups && phase.groups.length > 0 && phase.format !== "double-elim" && (() => {
+                    {phase.groups && phase.groups.length > 0 && !phase.mergedGroups && (() => {
                       const perGroup = phase.advanceCount && phase.groups.length > 0
                         ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
                         : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);

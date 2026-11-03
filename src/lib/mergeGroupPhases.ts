@@ -56,6 +56,7 @@ export const mergeGroupPhases = (t: TournamentData): TournamentData => {
       teams: Array.from(new Set(run.flatMap(p => p.teams || []))),
       groups: run.flatMap(toGroups),
       groupCount: run.length,
+      mergedGroups: true,
       ...(advance ? { advanceCount: advance } : {}),
       ...(first.region ? { region: first.region } : {}),
     });
