@@ -134,15 +134,18 @@ export const moveRound = (bracket: MatchResult[], round: string, dir: -1 | 1): M
   const ib = keys.indexOf(target);
   [keys[ia], keys[ib]] = [keys[ib], keys[ia]];
 
-  // Renumber UB/LB round indexes so slot geometry follows the new order.
+  // Exchange UB/LB round numbers so slot geometry follows the new order.
   const prefix = side === "lower" ? "LB" : side === "upper" ? "UB" : null;
-  const newOrder = keys.filter(k => roundSide(byKey[k]) === side && !isThirdPlaceRound(k));
-  const renum = (m: MatchResult): MatchResult => {
-    if (!prefix) return m;
-    const mm = new RegExp(`^${prefix}-R\\d+-(M\\d+)$`, "i").exec(m.bracketSlot || "");
-    if (!mm) return m;
-    const idx = newOrder.indexOf(roundKey(m.round));
-    return { ...m, bracketSlot: `${prefix}-R${idx + 1}-${mm[1]}` };
+  const re = prefix ? new RegExp(`^${prefix}-R(\\d+)-(M\\d+)$`, "i") : null;
+  const rOf = (k: string) => {
+    for (const m of byKey[k]) { const mm = re?.exec(m.bracketSlot || ""); if (mm) return mm[1]; }
+    return null;
   };
-  return keys.flatMap(k => byKey[k].map(m => (roundKey(m.round) === key || roundKey(m.round) === target) ? renum(m) : m));
+  const rA = rOf(key), rB = rOf(target);
+  const renum = (m: MatchResult, r: string | null): MatchResult => {
+    const mm = re?.exec(m.bracketSlot || "");
+    if (!mm || !r) return m;
+    return { ...m, bracketSlot: `${prefix}-R${r}-${mm[2]}` };
+  };
+  return keys.flatMap(k => byKey[k].map(m => k === key ? renum(m, rB) : k === target ? renum(m, rA) : m));
 };
