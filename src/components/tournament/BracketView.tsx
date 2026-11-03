@@ -14,6 +14,7 @@ import { getDisplayScore } from "@/lib/matchDisplay";
 import { computeBracketLayout } from "@/lib/bracketLayout";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
+import MatchHoverPreview from "./MatchHoverPreview";
 
 interface Props {
   matches: MatchResult[];
@@ -201,8 +202,11 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
                 `BO${m.bo || 3}`
               )}
             </span>
-            {isMatchInProgress(m) && <span className="text-primary">W TRAKCIE</span>}
-            {decided && <span className="text-[hsl(var(--win))]">✓</span>}
+            <span className="flex items-center gap-1 shrink-0">
+              {isMatchInProgress(m) && <span className="text-primary">W TRAKCIE</span>}
+              {decided && <span className="text-[hsl(var(--win))]">✓</span>}
+              <MatchHoverPreview match={m} />
+            </span>
           </div>
         {isEditing ? (
           <div className="p-2 space-y-1.5 bg-card min-h-[128px]">
