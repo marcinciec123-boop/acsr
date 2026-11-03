@@ -11,7 +11,7 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
-import type { TeamData, TournamentData, Transfer } from "./types";
+import type { MatchResult, TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAgents, setFreeAgentRole } from "./freeAgents";
 import { playerNationalities } from "@/data/playerNationalities";
 import { loadPlayerNatOverrides } from "./playerMetadata";
@@ -455,7 +455,7 @@ export function withdrawTeamFromTournament(t: TournamentData, teamName: string):
     };
   }
 
-  const walkover = <M extends TournamentData["phases"][number]["bracket"] extends (infer X)[] | undefined ? X : never>(m: M, bo: number): M => {
+  const walkover = (m: MatchResult, bo: number): MatchResult => {
     if (m.team1 !== teamName && m.team2 !== teamName) return m;
     if (isMatchDecided(m, m.bo ?? bo)) return m;
     const need = winsNeededFor(m.bo ?? bo);

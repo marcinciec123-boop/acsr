@@ -41,6 +41,8 @@ export interface MatchMap {
 
 export interface MatchResult {
   id: string;
+  /** Won without playing because the opponent was disbanded mid-event. */
+  walkover?: boolean;
   team1: string;
   team2: string;
   score1: number;
