@@ -11,6 +11,7 @@ import { TeamLink } from "@/lib/profileNav";
 
 import { DoubleElimGroupBracket } from "./DoubleElimGroupBracket";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
+import MatchHoverPreview from "./MatchHoverPreview";
 
 interface Props {
   group: PhaseGroup;
@@ -82,6 +83,7 @@ const renderMatchRow = (
       <span className={cn("flex-1 truncate min-w-0", w2 ? "text-foreground font-bold" : "text-muted-foreground")}>
         {teamLabel(m.team2)}
       </span>
+      <MatchHoverPreview match={m} />
       {onOpenMatch && (
         <Button
           size="icon"

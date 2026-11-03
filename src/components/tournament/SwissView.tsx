@@ -18,6 +18,7 @@ import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
+import MatchHoverPreview from "./MatchHoverPreview";
 
 interface Props {
   phaseTeams: string[];
@@ -143,6 +144,7 @@ const RoundMatchCard = ({
           {inProgress && <span className="ml-1.5 text-primary">● W TRAKCIE</span>}
         </span>
         <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+          <MatchHoverPreview match={match} />
           {onOpenMatch && (
             <button onClick={handleOpen} className="p-0.5 hover:bg-secondary rounded" title="Otwórz panel meczu">
               <Maximize2 className="w-2.5 h-2.5" />

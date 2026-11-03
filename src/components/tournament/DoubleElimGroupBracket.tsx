@@ -9,6 +9,7 @@ import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
 import { computeBracketLayout } from "@/lib/bracketLayout";
+import MatchHoverPreview from "./MatchHoverPreview";
 
 interface Props {
   matches: MatchResult[];
@@ -153,6 +154,7 @@ const MatchCard = ({
           )}
         </span>
         <span className="flex items-center gap-1 shrink-0">
+          <MatchHoverPreview match={m} />
           {isMatchInProgress(m) && <span className="text-primary" title="W trakcie">●</span>}
           {decided && <span className="text-[hsl(var(--win))]">✓</span>}
           {canEdit && (
