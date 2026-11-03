@@ -882,7 +882,7 @@ const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: Tournam
         <span>Turniej</span><span>Zwycięzca</span><span>2. miejsce</span><span className="text-right">Pula</span><span className="text-right">Drużyny</span>
       </div>
       <div className="divide-y divide-border/40">
-        {sorted.slice(0, limit).map(t => {
+        {filtered.slice(0, limit).map(t => {
           const w = placeOf(t, 1), r = placeOf(t, 2);
           const count = t.participants?.length || t.teams || 0;
           return (
@@ -912,10 +912,10 @@ const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: Tournam
           );
         })}
       </div>
-      {sorted.length > limit && (
+      {filtered.length > limit && (
         <button type="button" onClick={() => setLimit(l => l + RESULTS_PAGE)}
           className="w-full py-2.5 text-xs font-mono font-bold text-primary hover:bg-secondary/30 border-t border-border">
-          Pokaż więcej ({sorted.length - limit})
+          Pokaż więcej ({filtered.length - limit})
         </button>
       )}
     </div>
@@ -1138,7 +1138,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
         {filtered.length > 0 && viewMode === "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
         {filtered.length > 0 && viewMode === "year" && <TournamentYearTimeline tournaments={filtered} onSelect={onSelect} />}
         {filtered.length > 0 && viewMode !== "year" && viewMode !== "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
-        {filtered.length > 0 && <TournamentResultsList tournaments={filtered} onSelect={onSelect} />}
+        <TournamentResultsList tournaments={tournaments} onSelect={onSelect} />
       </div>
     </section>
   );
