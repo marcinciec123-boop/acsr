@@ -17,7 +17,8 @@ describe("historical group merge keeps results", () => {
       expect(merged.phases.length).toBe(t.phases.length - 1);
       expect(merged.phases[0].groups?.length).toBe(2);
       expect(merged.phases[0].mergedGroups).toBe(true);
-      expect(merged.phases[0].advanceCount).toBe(t.phases.slice(0, 2).reduce((s, p) => s + (p.advanceCount || 0), 0));
+      const next = new Set(t.phases[2].teams);
+      expect(merged.phases[0].advanceCount).toBe(merged.phases[0].teams.filter(x => next.has(x)).length);
       merged.phases[0].groups!.forEach((g, i) => expect(g.matches).toEqual(t.phases[i].bracket));
       expect(allMatches(merged).map(m => m.id).sort()).toEqual(allMatches(t).map(m => m.id).sort());
       expect(JSON.stringify(allMatches(merged).map(m => [m.id, m.score1, m.score2]).sort()))
@@ -26,4 +27,10 @@ describe("historical group merge keeps results", () => {
       expect(merged.placements).toEqual(t.placements);
     });
   }
+});
+
+describe("ESL Pro League I group stage", () => {
+  it("sends 8 teams from groups to Swiss", () => {
+    expect(mergeGroupPhases(ESL_PRO_LEAGUE_I_SEED[0]).phases[0].advanceCount).toBe(8);
+  });
 });
