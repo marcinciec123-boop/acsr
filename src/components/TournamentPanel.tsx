@@ -1,3 +1,4 @@
+import { clubOnly, isInternationalTournament, isNationalTeam } from "@/lib/nationalIdentity";
 import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
 import { isMatchDecided } from "@/lib/matchStatus";
 import { useState, useEffect, useMemo } from "react";
@@ -227,7 +228,7 @@ const TournamentPanel = () => {
   }, []);
 
   const rankMap = useMemo(() => {
-    const sorted = [...liveRanking].sort((a, b) => (b.points || 0) - (a.points || 0));
+    const sorted = clubOnly([...liveRanking]).sort((a, b) => (b.points || 0) - (a.points || 0));
     return new Map(sorted.map((t, i) => [t.name, i + 1]));
   }, [liveRanking]);
 

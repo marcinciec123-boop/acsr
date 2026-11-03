@@ -4,6 +4,7 @@
 // Min always > 0 so even huge favorites gain something for a win.
 // Loser losing as huge underdog = tiny penalty (min 1).
 
+import { clubOnly } from "./nationalIdentity";
 import type { TeamData } from "./types";
 import { loadFromStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
@@ -46,7 +47,7 @@ const isTeam = (rankName: string, teamName: string): boolean => {
 
 export const getTeamRank = (teamName: string, ranking: TeamData[]): number => {
   if (!teamName || teamName === "BYE" || teamName === "TBD") return ranking.length + 1;
-  const sorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const sorted = clubOnly([...ranking]).sort((a, b) => (b.points || 0) - (a.points || 0));
   const idx = sorted.findIndex(t => isTeam(t.name, teamName));
   return idx === -1 ? sorted.length + 1 : idx + 1;
 };
@@ -101,10 +102,10 @@ export const predictRankDelta = (
   pointsDelta: number,
   ranking: TeamData[] = getRankingSnapshot(),
 ): { from: number; to: number; delta: number } => {
-  const currentSorted = [...ranking].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const currentSorted = clubOnly([...ranking]).sort((a, b) => (b.points || 0) - (a.points || 0));
   const from = currentSorted.findIndex(t => isTeam(t.name, teamName)) + 1;
   if (from === 0) return { from: ranking.length + 1, to: ranking.length + 1, delta: 0 };
-  const projected = ranking.map(t =>
+  const projected = clubOnly(ranking).map(t =>
     isTeam(t.name, teamName) ? { ...t, points: Math.max(0, (t.points || 0) + pointsDelta) } : t,
   );
   const projectedSorted = [...projected].sort((a, b) => (b.points || 0) - (a.points || 0));
@@ -124,10 +125,10 @@ export const predictRankDeltaPair = (
   deltaB: number,
   ranking: TeamData[] = getRankingSnapshot(),
 ): { a: { from: number; to: number; delta: number }; b: { from: number; to: number; delta: number } } => {
-  const currentSorted = [...ranking].sort((x, y) => (y.points || 0) - (x.points || 0));
+  const currentSorted = clubOnly([...ranking]).sort((x, y) => (y.points || 0) - (x.points || 0));
   const fromA = currentSorted.findIndex(t => isTeam(t.name, teamA)) + 1;
   const fromB = currentSorted.findIndex(t => isTeam(t.name, teamB)) + 1;
-  const projected = ranking.map(t => {
+  const projected = clubOnly(ranking).map(t => {
     if (isTeam(t.name, teamA)) return { ...t, points: Math.max(0, (t.points || 0) + deltaA) };
     if (isTeam(t.name, teamB)) return { ...t, points: Math.max(0, (t.points || 0) + deltaB) };
     return t;
