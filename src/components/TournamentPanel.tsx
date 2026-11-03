@@ -1,3 +1,4 @@
+import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
 import { isMatchDecided } from "@/lib/matchStatus";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -513,79 +514,6 @@ const TournamentPanel = () => {
     setShowCreate(false);
   };
 
-  /**
-   * Resync downstream bracket matches based on every source's current winner/loser.
-   * Each downstream slot is "owned" by the upstream that feeds it (winnerTo / loserTo).
-   * If upstream is decided → write its winner/loser into the slot it owns.
-   * If upstream is undecided (no score / draw) → clear the owned slot + reset its scores.
-   * This prevents the "stale team in semifinal after fixing the quarterfinal" bug.
-   */
-  const propagateBracket = (bracket: MatchResult[]): MatchResult[] => {
-    // Build map: targetMatchId → array of { ownerSlot: "team1"|"team2", source }
-    // We don't know which slot in the target each source feeds, so we assign them
-    // deterministically: among all sources targeting one match, the first goes to
-    // team1, the second to team2 (insertion-order stable).
-    const winnerInputs: Record<string, MatchResult[]> = {};
-    const loserInputs: Record<string, MatchResult[]> = {};
-    bracket.forEach(src => {
-      if (src.winnerTo) {
-        if (!winnerInputs[src.winnerTo]) winnerInputs[src.winnerTo] = [];
-        winnerInputs[src.winnerTo].push(src);
-      }
-      if (src.loserTo) {
-        if (!loserInputs[src.loserTo]) loserInputs[src.loserTo] = [];
-        loserInputs[src.loserTo].push(src);
-      }
-    });
-
-    const decidedWinner = (m: MatchResult): string | null => {
-      if (!m.team1 || !m.team2) return null;
-      if (m.team1 === "BYE") return m.team2 && m.team2 !== "BYE" ? m.team2 : null;
-      if (m.team2 === "BYE") return m.team1 !== "BYE" ? m.team1 : null;
-      if (!isMatchDecided(m)) return null;
-      return m.score1 > m.score2 ? m.team1 : m.team2;
-    };
-    const decidedLoser = (m: MatchResult): string | null => {
-      if (!m.team1 || !m.team2) return null;
-      if (m.team1 === "BYE" || m.team2 === "BYE") return null;
-      if (!isMatchDecided(m)) return null;
-      return m.score1 > m.score2 ? m.team2 : m.team1;
-    };
-
-    return bracket.map(target => {
-      const wIn = winnerInputs[target.id] || [];
-      const lIn = loserInputs[target.id] || [];
-      // No upstream feed → leave as-is (manual seeding / first round)
-      if (wIn.length === 0 && lIn.length === 0) return target;
-
-      const slots: (string | "")[] = [];
-      wIn.forEach(s => slots.push(decidedWinner(s) || ""));
-      lIn.forEach(s => slots.push(decidedLoser(s) || ""));
-
-      // Pad to 2 slots
-      while (slots.length < 2) slots.push("");
-
-      const next = { ...target };
-      const newT1 = slots[0];
-      const newT2 = slots[1];
-      // Only mutate if changed; if changed, reset scores
-      if (next.team1 !== newT1 || next.team2 !== newT2) {
-        next.team1 = newT1;
-        next.team2 = newT2;
-        next.score1 = 0;
-        next.score2 = 0;
-        next.maps = undefined;
-        next.veto = undefined;
-        next.playedAt = undefined;
-        next.resultConfirmed = false;
-        next.confirmedAt = undefined;
-        next.pointsWinner = undefined;
-        next.pointsLoser = undefined;
-      }
-      return next;
-    });
-  };
-
   const updatePhaseMatch = (
     tournamentId: string,
     phaseId: string,
@@ -626,19 +554,15 @@ const TournamentPanel = () => {
               return stampPlayedAt(m, { ...m, bo: m.bo ?? p.bo, ...patch });
             });
             // Run propagation to convergence (a fix in R1 may cascade through R2, R3...)
-            let curr = updated;
-            for (let i = 0; i < 10; i++) {
-              const nextProp = propagateBracket(curr);
-              if (JSON.stringify(nextProp) === JSON.stringify(curr)) break;
-              curr = nextProp;
-            }
-            return { ...p, bracket: curr };
+            return { ...p, bracket: propagateBracketFully(updated) };
           }
           return p;
         }),
       };
-      // Auto-resolve any BYE matches that may have appeared after the update.
-      return normalizeTournamentByes(next);
+      // Auto-resolve any BYE matches that may have appeared after the update,
+      // then hand walkovers against disbanded clubs that just got an opponent.
+      const resolved = normalizeTournamentByes(next);
+      return resolved.status === "live" ? applyWalkovers(resolved, loadArchivedTeams()) : resolved;
     }));
   };
 

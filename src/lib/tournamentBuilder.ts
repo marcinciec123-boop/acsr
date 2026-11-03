@@ -700,6 +700,7 @@ const aggregatePlayer = (perMap: PlayerMatchStats[]): PlayerMatchStats => {
 };
 
 const matchToStats = (m: MatchResult): MatchStats | null => {
+  if (m.walkover) return null; // walkover: no game was played
   if (!m.maps || m.maps.length === 0) return null;
   const mapsWithStats = playedMaps(m.maps, m.bo).filter(mp => mp.team1Players?.length || mp.team2Players?.length);
   if (mapsWithStats.length === 0) return null;

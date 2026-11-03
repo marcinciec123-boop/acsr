@@ -11,7 +11,7 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
-import type { MatchResult, TeamData, TournamentData, Transfer } from "./types";
+import type { TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAgents, setFreeAgentRole } from "./freeAgents";
 import { playerNationalities } from "@/data/playerNationalities";
 import { loadPlayerNatOverrides } from "./playerMetadata";
@@ -21,7 +21,7 @@ import { getTeamContracts, loadContracts, saveContracts } from "./contracts";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
 import { recordRename, sameName, teamNameChain } from "./teamRenames";
-import { isMatchDecided, winsNeededFor } from "./matchStatus";
+import { applyWalkovers } from "./bracketPropagation";
 import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
 import { loadTeamLogo, saveTeamLogo } from "./teamLogos";
 
@@ -455,20 +455,5 @@ export function withdrawTeamFromTournament(t: TournamentData, teamName: string):
     };
   }
 
-  const walkover = (m: MatchResult, bo: number): MatchResult => {
-    if (m.team1 !== teamName && m.team2 !== teamName) return m;
-    if (isMatchDecided(m, m.bo ?? bo)) return m;
-    const need = winsNeededFor(m.bo ?? bo);
-    return m.team1 === teamName
-      ? { ...m, score1: 0, score2: need, maps: undefined, walkover: true }
-      : { ...m, score1: need, score2: 0, maps: undefined, walkover: true };
-  };
-  return {
-    ...t,
-    phases: t.phases.map(p => ({
-      ...p,
-      ...(p.groups && { groups: p.groups.map(g => ({ ...g, matches: g.matches.map(m => walkover(m, p.bo)) })) }),
-      ...(p.bracket && { bracket: p.bracket.map(m => walkover(m, p.bo)) }),
-    })),
-  };
+  return applyWalkovers(t, [teamName]);
 }

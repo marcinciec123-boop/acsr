@@ -45,7 +45,7 @@ export default function MatchHoverPreview({ match }: { match: MatchResult }) {
         >
           <div className="border-b border-border bg-secondary/40 px-3 py-2">
             <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-mono text-muted-foreground">BO{match.bo || 1}</span>
+              <span className="font-mono text-muted-foreground">BO{match.bo || 1}{match.walkover && <span className="ml-1 rounded-sm border border-[hsl(var(--gold))]/60 px-1 text-[10px] font-bold text-[hsl(var(--gold))]" title="Walkower — mecz nie liczy się do statystyk">WO</span>}</span>
               <span className={cn("font-medium", decided ? "text-foreground" : "text-primary")}>{status}</span>
             </div>
             {match.round && <div className="mt-1 break-words text-sm font-semibold">{match.round}</div>}

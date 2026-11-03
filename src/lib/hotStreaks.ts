@@ -63,7 +63,7 @@ function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] 
       if (!m.team1 || !m.team2 || m.team2 === "BYE" || m.team1 === "BYE") continue;
       // Reprezentacje narodowe nie wchodzą do serii.
       if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
-      if (!isMatchDecided(m)) continue;
+      if (!isMatchDecided(m) || m.walkover) continue;
       out.push({ ...m, ts: timestamp(m) });
     }
   }

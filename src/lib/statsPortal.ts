@@ -122,7 +122,7 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
       ...((p.groups || []).flatMap(g => g.matches || [])),
     ]).concat(t.matches || []);
     for (const m of collect) {
-      if (isMatchDecided(m)) {
+      if (isMatchDecided(m) && !m.walkover) {
         matchCount++;
         mapCount += (m.maps || []).filter(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0).length || 1;
       }
