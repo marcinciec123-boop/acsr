@@ -750,26 +750,25 @@ const TournamentPanel = () => {
     }));
   };
 
-  const addBracketMatch = (tournamentId: string, phaseId: string, round: string) => {
-    const newMatch: MatchResult = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-      team1: "",
-      team2: "",
-      score1: 0,
-      score2: 0,
-      round,
-      bo: 3,
-    };
+  const addBracketMatch = (tournamentId: string, phaseId: string, round: string, side?: BracketSide) => {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     setTournaments(prev => prev.map(t => {
       if (t.id !== tournamentId) return t;
       return {
         ...t,
         phases: t.phases.map(p => {
           if (p.id !== phaseId) return p;
-          newMatch.bo = p.bo;
-          return { ...p, bracket: [...(p.bracket || []), newMatch] };
+          const base = { id, team1: "", team2: "", score1: 0, score2: 0, bo: p.bo } as Omit<MatchResult, "round" | "bracketSlot">;
+          return { ...p, bracket: addMatchToRound(p.bracket || [], round, base, side) };
         }),
       };
+    }));
+  };
+
+  const moveBracketRound = (tournamentId: string, phaseId: string, round: string, dir: -1 | 1) => {
+    setTournaments(prev => prev.map(t => t.id !== tournamentId ? t : {
+      ...t,
+      phases: t.phases.map(p => p.id !== phaseId || !p.bracket ? p : { ...p, bracket: moveRound(p.bracket, round, dir) }),
     }));
   };
 
@@ -1119,8 +1118,11 @@ const TournamentPanel = () => {
         onDeleteBracketMatch={(phaseId, matchId) =>
           deleteBracketMatch(selectedTournament.id, phaseId, matchId)
         }
-        onAddBracketMatch={(phaseId, round) =>
-          addBracketMatch(selectedTournament.id, phaseId, round)
+        onAddBracketMatch={(phaseId, round, side) =>
+          addBracketMatch(selectedTournament.id, phaseId, round, side)
+        }
+        onMoveBracketRound={(phaseId, round, dir) =>
+          moveBracketRound(selectedTournament.id, phaseId, round, dir)
         }
         onAddBracketMatches={(phaseId, matches) =>
           addBracketMatches(selectedTournament.id, phaseId, matches)
