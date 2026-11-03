@@ -1,5 +1,7 @@
 import { scheduleDeviceBackup } from "./deviceBackup";
 import { DEVICE_STORE_REF, getCachedDeviceValue, getDeviceValue, removeDeviceValue, setDeviceValue } from "./deviceStore";
+import { mergeGroupPhases } from "./mergeGroupPhases";
+import type { TournamentData } from "./types";
 
 // ===== Persistence Layer =====
 // localStorage for text data, IndexedDB for images
