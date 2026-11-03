@@ -829,17 +829,18 @@ const TournamentPanel = () => {
     if (!source || source.resultsConfirmed) return;
     const placements = source.placements?.length ? source.placements : deriveFinalPlacements(source);
     const finalized: TournamentData = { ...source, status: "completed", placements, resultsConfirmed: true, finalizedAt: getWorldNowIso() };
-    // Advance the fictional world clock past the tournament's end.
-    advanceWorldTo(source.endDate);
+    const international = isInternationalTournament(source);
+    // Advance the fictional world clock past the tournament's end (not for national-team events).
+    if (!international) advanceWorldTo(source.endDate);
     const next = tournaments.map(t => t.id === id ? finalized : t);
     const saved = await saveToStorageAsync(STORAGE_KEY, next);
     if (saved) {
       setTournaments(next);
       setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
       // Mistrzostwa świata (reprezentacje narodowe) NIE wpływają na klubowy ranking.
-      if (finalized.kind !== "worlds") {
+      if (!international) {
         const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(t => ({ ...t }));
-        const placementsArr = finalized.placements || [];
+        const placementsArr = (finalized.placements || []).filter(p => !isNationalTeam(p.team));
         await saveToStorageAsync("ranking_data", ranking.map(team => {
           const earned = placementsArr.find(p => p.team === team.name)?.points || 0;
           return earned ? { ...team, points: Math.max(0, team.points + earned) } : team;
@@ -848,7 +849,7 @@ const TournamentPanel = () => {
       // Record a ranking snapshot for the trend chart on the CURRENT world date.
       // Never backdate: writing today's ranking under an older end date would
       // overwrite the real ranking of that past day.
-      try {
+      if (!international) try {
         const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
         const historySaved = await recordRankingSnapshot(`tournament:${finalized.id}`);
         if (!historySaved) throw new Error("Ranking history save failed");
@@ -1027,7 +1028,8 @@ const TournamentPanel = () => {
         )}
         onConfirm={async (winner, loser, pw, pl) => {
           // Mistrzostwa świata nie wpływają na klubowy ranking.
-          if (selectedTournament?.kind === "worlds") return;
+          if (!selectedTournament || isInternationalTournament(selectedTournament)) return;
+          if (isNationalTeam(winner) || isNationalTeam(loser)) return;
           const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(x => ({ ...x }));
           const updated = ranking.map(team => {
             if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
