@@ -1,3 +1,4 @@
+import { isTransferAllowed } from "@/lib/nationalIdentity";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { TrophyCabinet, type CabinetEntry } from "@/components/TrophyCabinet";
 import { useEffect, useMemo, useState } from "react";
@@ -93,7 +94,7 @@ const PlayerProfile = ({
     : null;
 
   const playerTransfers = useMemo(
-    () => getAllTransfers().filter(t => t.player === playerName),
+    () => getAllTransfers().filter(t => t.player === playerName && isTransferAllowed(t.oldTeam, t.newTeam)),
     [playerName],
   );
 

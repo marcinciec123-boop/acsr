@@ -1,3 +1,4 @@
+import { clubOnly, isTransferAllowed } from "@/lib/nationalIdentity";
 import LeagueFinancesTable from "@/components/finances/LeagueFinancesTable";
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -288,7 +289,8 @@ const TransferPanel = () => {
   const pickerCatalog = useMemo<PickerEntry[]>(() => {
     const out: PickerEntry[] = [];
     const seen = new Set<string>();
-    for (const t of liveTeams) {
+    // Reprezentacja nigdy nie jest źródłem transferu — tylko kluby.
+    for (const t of clubOnly(liveTeams)) {
       if (t.coach && !seen.has(t.coach)) {
         seen.add(t.coach);
         out.push({
@@ -374,6 +376,10 @@ const TransferPanel = () => {
 
   const handleAddTransfer = () => {
     if (!transferPlayer.trim()) return;
+    if (!isTransferAllowed(transferFrom, transferTo)) {
+      toast({ title: "Transfer zablokowany", description: "Reprezentacje narodowe nie biorą udziału w transferach.", variant: "destructive" });
+      return;
+    }
     const t: Transfer = {
       id: Date.now().toString(36),
       player: transferPlayer.trim(),

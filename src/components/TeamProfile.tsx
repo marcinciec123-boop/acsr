@@ -1,3 +1,4 @@
+import { clubOnly, isNationalTeam } from "@/lib/nationalIdentity";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useWorldDate } from "@/lib/worldClock";
 import { usePersistedState } from "@/lib/uiPrefs";
@@ -107,9 +108,12 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     points: 0, roster: [...disbandInfo.finalRoster],
   } as TeamData : undefined);
   const isDisbanded = !activeTeam && !!disbandInfo;
-  const globalRank = activeTeam ? sorted.indexOf(activeTeam) + 1 : 0;
+  // Reprezentacja: tylko skład i wyniki — bez rankingu, kontraktów, finansów i ławki.
+  const isNationalProfile = !!activeTeam && (!!activeTeam.isNational || isNationalTeam(activeTeam.name));
+  const clubSorted = useMemo(() => clubOnly(sorted), [sorted]);
+  const globalRank = activeTeam && !isNationalProfile ? clubSorted.indexOf(activeTeam) + 1 : 0;
   const rankingTier = getRankingTier(globalRank);
-  const tier = isDisbanded && disbandInfo ? `Rozwiązana · ${disbandInfo.date.slice(0, 10)}` : rankingTier ? `Tier ${rankingTier}` : "Poza rankingiem";
+  const tier = isNationalProfile ? "Reprezentacja narodowa" : isDisbanded && disbandInfo ? `Rozwiązana · ${disbandInfo.date.slice(0, 10)}` : rankingTier ? `Tier ${rankingTier}` : "Poza rankingiem";
   const tierColor = isDisbanded ? "text-destructive" : globalRank <= 10 ? "text-accent" : globalRank <= 25 ? "text-primary" : globalRank <= 50 ? "text-[hsl(var(--silver))]" : "text-muted-foreground";
 
   // Refresh logo presence flag
@@ -367,9 +371,11 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     { id: "roster", label: "Skład", icon: Users, count: team.roster.length },
     { id: "matches", label: "Mecze", icon: Swords, count: recentMatches.length },
     { id: "trophies", label: "Trofea", icon: Trophy, count: totals.events },
-    { id: "transfers", label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
-    { id: "contracts", label: "Kontrakty", icon: FileSignature, count: summarizeTeamContracts(teamName).total },
-    ...(isDisbanded ? [] : [{ id: "finances" as TabId, label: "Finanse", icon: TrendingUp }]),
+    ...(isNationalProfile ? [] : [
+      { id: "transfers" as TabId, label: "Transfery", icon: ArrowRightLeft, count: teamTransfers.length },
+      { id: "contracts" as TabId, label: "Kontrakty", icon: FileSignature, count: summarizeTeamContracts(teamName).total },
+    ]),
+    ...(isDisbanded || isNationalProfile ? [] : [{ id: "finances" as TabId, label: "Finanse", icon: TrendingUp }]),
   ];
 
   return (
@@ -458,30 +464,30 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <StatCell label="Mecze" value={`${totals.wins}-${totals.losses}`} accent={totals.winRate >= 50 ? "win" : "loss"} sub={`${totals.winRate}% WR`} />
                 <StatCell label="Mapy" value={`${totals.mapsW}-${totals.mapsL}`} sub="W-L" />
                 <StatCell label="Trofea" value={`${totals.firsts}🥇 ${totals.podiums}🏅`} sub={`${totals.events} eventów`} />
-                <StatCell label="Punkty" value={team.points.toLocaleString()} sub="ranking ACS" accent="primary" />
-                <StatCell
+                {!isNationalProfile && <StatCell label="Punkty" value={team.points.toLocaleString()} sub="ranking ACS" accent="primary" />}
+                {!isNationalProfile && <StatCell
                   label="Zarobki"
                   value={earnings.earnings > 0 ? formatMoney(earnings.earnings) : "—"}
                   sub={earnings.rank ? `#${earnings.rank} w zarobkach` : "brak nagród"}
                   accent="primary"
-                />
+                />}
               </div>
-              {!isDisbanded && <FinanceQuickTile team={teamName} onOpen={(t) => setActiveTab(t)} />}
+              {!isDisbanded && !isNationalProfile && <FinanceQuickTile team={teamName} onOpen={(t) => setActiveTab(t)} />}
 
 
             </div>
 
             {/* Rank badge */}
-            <div className="text-right shrink-0 w-full md:w-auto">
+            {!isNationalProfile && <div className="text-right shrink-0 w-full md:w-auto">
               <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">World Rank</p>
               <p className={cn("text-5xl font-heading font-black", globalRank <= 3 ? "text-accent" : globalRank <= 10 ? "text-primary" : "text-foreground")}>
                 #{globalRank}
               </p>
-            </div>
+            </div>}
           </div>
         </motion.div>
 
-        {!isDisbanded && <FinanceWarningRibbon team={teamName} onOpen={() => setActiveTab("finances")} />}
+        {!isDisbanded && !isNationalProfile && <FinanceWarningRibbon team={teamName} onOpen={() => setActiveTab("finances")} />}
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-4 border-b border-border overflow-x-auto">
           {tabs.map(t => {
@@ -607,8 +613,8 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
                 <Card title="Aktualny skład" icon={<Users className="w-4 h-4 text-primary" />}>
                   <RosterGrid players={splitRoster(team).active} team={team} compact onSelectPlayer={onSelectPlayer} />
                 </Card>
-                <ContractsWidget team={teamName} onOpen={() => setActiveTab("contracts")} />
-                <TeamRankingTrend teamName={teamName} />
+                {!isNationalProfile && <ContractsWidget team={teamName} onOpen={() => setActiveTab("contracts")} />}
+                {!isNationalProfile && <TeamRankingTrend teamName={teamName} />}
                 <Card title="Ostatnie mecze" icon={<Swords className="w-4 h-4 text-primary" />}>
                   {recentMatches.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-2">Brak rozegranych meczów.</p>
@@ -726,11 +732,11 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
             </div>
           )}
 
-          {activeTab === "contracts" && (
+          {activeTab === "contracts" && !isNationalProfile && (
             <TeamContractsPanel team={teamName} onSelectPlayer={onSelectPlayer} />
           )}
 
-          {activeTab === "finances" && (
+          {activeTab === "finances" && !isNationalProfile && (
             <TeamFinancePanel team={teamName} onDisbanded={onBack} />
           )}
 
@@ -966,6 +972,10 @@ const RosterTabContent = ({
   const { toast } = useToast();
 
   const handleBench = (p: string) => {
+    if (team.isNational || isNationalTeam(team.name)) {
+      toast({ title: "Reprezentacja nie ma ławki", description: "Skład reprezentacji ustalasz przy turnieju." });
+      return;
+    }
     if (active.length <= 1) {
       toast({ title: "Nie można wysłać na ławkę", description: "Drużyna musi mieć min. 1 aktywnego gracza." });
       return;

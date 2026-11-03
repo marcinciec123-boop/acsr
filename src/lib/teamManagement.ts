@@ -9,6 +9,7 @@
 // Historia (transfery, zakończone turnieje, disbands z hardkodu) pozostaje pod starą nazwą,
 // dzięki czemu archiwum sezonu jest spójne z tym, co realnie się wydarzyło.
 
+import { isNationalTeam } from "./nationalIdentity";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import type { TeamData, TournamentData, Transfer } from "./types";
@@ -340,6 +341,7 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
   const teams = loadTeamsRaw();
   const team = teams.find(t => sameName(t.name, name));
   if (!team) return { ok: false, error: "Nie znaleziono drużyny" };
+  if (team.isNational || isNationalTeam(team.name)) return { ok: false, error: "Reprezentacji nie można rozwiązać" };
 
   const teamName = team.name;
   const date = getWorldDate();

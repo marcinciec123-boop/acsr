@@ -191,7 +191,12 @@ export const WorldsBuilder = ({ open, onOpenChange, onCreated }: Props) => {
       roster: n.roster.filter(p => p.trim().length > 0),
       isNational: true,
     }));
-    upsertNationalTeams(teamRecords);
+    try {
+      upsertNationalTeams(teamRecords);
+    } catch (e) {
+      toast({ title: "Kolizja nazwy", description: (e as Error).message, variant: "destructive" });
+      return;
+    }
 
     const teamNames = teamRecords.map(t => t.name);
 

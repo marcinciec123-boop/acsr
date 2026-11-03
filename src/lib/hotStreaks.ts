@@ -1,3 +1,4 @@
+import { isInternationalTournament, isNationalTeam } from "./nationalIdentity";
 import { isMatchDecided } from "./matchStatus";
 // ===== Hot / Losing streaks =====
 // Serie zwycięstw i porażek drużyn, serie map na konkretnej mapie oraz
@@ -62,7 +63,7 @@ function collectMatches(list: TournamentData[], skip: Set<string>): FlatMatch[] 
     for (const m of ms) {
       if (!m.team1 || !m.team2 || m.team2 === "BYE" || m.team1 === "BYE") continue;
       // Reprezentacje narodowe nie wchodzą do serii.
-      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
+      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim()) || isNationalTeam(m.team1) || isNationalTeam(m.team2)) continue;
       if (!isMatchDecided(m) || m.walkover) continue;
       out.push({ ...m, ts: timestamp(m) });
     }

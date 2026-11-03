@@ -3,6 +3,8 @@
 // ale oznaczone flagą `isNational: true`. Dzięki temu wszystkie widoki (logo, profil,
 // statystyki gracza) działają out-of-the-box, a klubowy ranking je odfiltrowuje.
 
+import { registerNationalTeamNames } from "./nationalIdentity";
+import { sameName } from "./teamRenames";
 import { teamDatabase } from "@/data/tournaments";
 import { playerNationalities } from "@/data/playerNationalities";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
@@ -81,6 +83,10 @@ export const availableCountries = (): { code: string; flag: string; playerCount:
 export const upsertNationalTeams = (teams: TeamData[]): void => {
   const current = loadFromStorage<TeamData[] | null>(RANKING_KEY, null)
     ?? teamDatabase.map(t => ({ ...t }));
+  // Reprezentacja nie może nadpisać klubu o tej samej nazwie.
+  const clash = teams.find(nt => current.some(c => !c.isNational && sameName(c.name, nt.name)));
+  if (clash) throw new Error(`Nazwa „${clash.name}” należy już do klubu — wybierz inną nazwę reprezentacji`);
+  registerNationalTeamNames(teams.map(t => t.name));
   const byName = new Map(current.map(t => [t.name, t]));
   teams.forEach(nt => {
     byName.set(nt.name, { ...byName.get(nt.name), ...nt });

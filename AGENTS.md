@@ -26,3 +26,4 @@
 - Loading tournaments_data merges neighbouring "Group X"/"Grupa X" phases (same group format and BO) into one group-stage phase via mergeGroupPhases, so imported historical events show groups inside one phase.
 - Historical seeders only add a tournament when its id is missing and never replace an existing copy, so player edits survive seed version bumps.
 - Disk write queue keeps failed writes for retry and serializes flushes; restore/reset await diskFlush before reload so the .exe never restarts on half-written files.
+- National-team identity goes through src/lib/nationalIdentity.ts (persisted name registry + isNational flag + Worlds kind); club systems (transfers, VRS, finances, bench, disband, invites, awards, records) filter with it, so renamed or removed national teams never leak into club data.
