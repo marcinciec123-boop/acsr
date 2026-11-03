@@ -1012,7 +1012,7 @@ export const TournamentDetailPage = ({
                         )}
                       />
                     )}
-                    {phase.groups && phase.groups.length > 0 && onAssignGroups && onShuffleGroups && (
+                    {phase.groups && phase.groups.length > 0 && !phase.mergedGroups && onAssignGroups && onShuffleGroups && (
                       <GroupAssignmentPanel
                         phase={phase}
                         availableTeams={Array.from(new Set(t.participants)).sort()}

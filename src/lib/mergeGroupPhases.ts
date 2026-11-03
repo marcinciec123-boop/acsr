@@ -38,8 +38,8 @@ const toGroups = (p: TournamentPhase): PhaseGroup[] =>
  */
 export const mergeGroupPhases = (t: TournamentData): TournamentData => {
   if (!Array.isArray(t?.phases) || t.phases.length < 2) return t;
-  const out: TournamentPhase[] = [];
   let changed = false;
+  const out: TournamentPhase[] = [];
   for (let i = 0; i < t.phases.length; i++) {
     const first = t.phases[i];
     const fmt = groupFormatOf(first);
@@ -62,6 +62,14 @@ export const mergeGroupPhases = (t: TournamentData): TournamentData => {
     });
     changed = true;
     i = j - 1;
+  }
+  // Advancing count comes from who actually played the next phase; imported per-group values can be wrong.
+  for (let k = 0; k < out.length; k++) {
+    const ph = out[k];
+    if (!ph.mergedGroups || !out[k + 1]) continue;
+    const next = new Set(out[k + 1].teams || []);
+    const real = (ph.teams || []).filter(team => next.has(team)).length;
+    if (real > 0 && real !== ph.advanceCount) { out[k] = { ...ph, advanceCount: real }; changed = true; }
   }
   return changed ? { ...t, phases: out } : t;
 };
