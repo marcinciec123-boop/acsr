@@ -18,3 +18,5 @@
 - Ranking tier labels use the shared rankingTier helper and the table renders the complete eligible club list; this keeps profiles and ranking consistent without a fixed club-count cap.
 - Ranking position charts derive their axis from displayed history via rankingScale; this keeps low-ranked clubs visible as the database grows.
 - In the Tauri build, deviceStore persists every key as its own atomically-written file in AppData via Rust commands (store_load_all/store_write/store_remove) with debounced writes; browser IndexedDB stays as a mirror and the web preview fallback, so saves are no longer bound by webview storage quotas.
+- On disk, tournaments_data is sharded into per-year files plus an id-order file (diskStore shardList/joinShards), rewriting only changed years; lists with duplicate ids fall back to one file so no tournament is collapsed.
+- Team ranking series come from a per-history-identity index in rankingHistory, and trend charts drop unchanged middle points via compactSteps, keeping long histories cheap without altering data.

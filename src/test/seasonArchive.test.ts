@@ -22,3 +22,9 @@ describe("season archive shards", () => {
     expect(after["2027"]).not.toBe(before["2027"]);
   });
 });
+
+describe("season archive safety", () => {
+  it("keeps a list with duplicate ids as one file instead of splitting", () => {
+    expect(shardList(JSON.stringify([{ id: "x" }, { id: "x" }]))).toBeNull();
+  });
+});

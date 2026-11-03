@@ -75,6 +75,8 @@ export function shardList(json: string): Record<string, string> | null {
   let list: unknown;
   try { list = JSON.parse(json); } catch { return null; }
   if (!Array.isArray(list) || list.some(t => !t || typeof t !== "object" || typeof (t as Row).id !== "string")) return null;
+  // Zduplikowane id: zapis w jednym pliku, żeby żaden turniej nie zginął.
+  if (new Set((list as Row[]).map(t => t.id)).size !== list.length) return null;
   const groups: Record<string, unknown[]> = {};
   for (const t of list as Row[]) (groups[yearOf(t)] ||= []).push(t);
   const out: Record<string, string> = { [ORDER]: JSON.stringify((list as Row[]).map(t => t.id)) };
