@@ -133,8 +133,12 @@ fn media_write(app: tauri::AppHandle, key: String, value: String) -> Result<(), 
         f.write_all(&bytes).map_err(|e| e.to_string())?;
         f.sync_all().map_err(|e| e.to_string())?;
     }
-    media_remove_all(&dir, &name);
-    fs::rename(&tmp, dir.join(format!("{}.{}", name, ext))).map_err(|e| e.to_string())
+    // Replace atomically first; old files with another extension go only after success.
+    fs::rename(&tmp, dir.join(format!("{}.{}", name, ext))).map_err(|e| e.to_string())?;
+    for (other, _) in MEDIA_EXT.iter() {
+        if *other != ext { let _ = fs::remove_file(dir.join(format!("{}.{}", name, other))); }
+    }
+    Ok(())
 }
 
 #[tauri::command]
