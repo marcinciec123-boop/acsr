@@ -5,6 +5,7 @@ vi.mock("@/lib/deviceStore", () => ({
   DEVICE_STORE_REF: "__CSGO_HUB_DEVICE_STORE__",
   getAllCachedDeviceValues: () => Object.fromEntries(values),
   getAllDeviceValues: async () => Object.fromEntries(values),
+  getAllDeviceValuesWithMedia: async () => Object.fromEntries(values),
   getCachedDeviceValue: (key: string) => values.get(key) ?? null,
   getDeviceValue: async (key: string) => values.get(key) ?? null,
   setDeviceValue: async (key: string, value: string) => { values.set(key, value); },

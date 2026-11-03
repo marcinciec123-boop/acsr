@@ -1,4 +1,4 @@
-import { getAllDeviceValues, removeDeviceValue } from "./deviceStore";
+import { getAllDeviceValuesWithMedia as getAllDeviceValues, removeDeviceValue } from "./deviceStore";
 
 /**
  * Pełny reset świata gry do stanu z 1 stycznia.

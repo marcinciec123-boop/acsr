@@ -140,3 +140,33 @@ export const diskDelete = (key: string) => {
   q.delete(key);
 };
 export const diskFlush = () => (queue ? queue.flush() : Promise.resolve());
+
+// ===== Grafiki jako pliki w AppData/media =====
+export const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_", "csgo_hub_tournamentlogo_"];
+export const isMediaKey = (key: string) => MEDIA_PREFIXES.some(p => key.startsWith(p));
+
+export const mediaWrite = (key: string, value: string) => getInvoke()!<void>("media_write", { key, value });
+export const mediaRead = (key: string) => getInvoke()!<string | null>("media_read", { key });
+export const mediaRemove = (key: string) => getInvoke()!<void>("media_remove", { key });
+export const mediaLoadAll = () => getInvoke()!<Record<string, string>>("media_load_all");
+
+/** Mała pamięć ostatnio wyświetlanych grafik (LRU) zamiast trzymania wszystkich w RAM. */
+export function createLru<V>(limit: number) {
+  const map = new Map<string, V>();
+  return {
+    get(key: string): V | undefined {
+      if (!map.has(key)) return undefined;
+      const v = map.get(key) as V;
+      map.delete(key); map.set(key, v);
+      return v;
+    },
+    has: (key: string) => map.has(key),
+    set(key: string, v: V) {
+      map.delete(key); map.set(key, v);
+      while (map.size > limit) map.delete(map.keys().next().value as string);
+    },
+    delete: (key: string) => { map.delete(key); },
+    clear: () => map.clear(),
+    size: () => map.size,
+  };
+}

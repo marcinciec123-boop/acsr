@@ -1,6 +1,6 @@
 import { WORLD_CLOCK_EVENT, getWorldDate } from "./worldClock";
 import { getAllImages } from "./storage";
-import { DEVICE_STORE_REF, getAllCachedDeviceValues, getAllDeviceValues, removeDeviceValue, setDeviceValue } from "./deviceStore";
+import { DEVICE_STORE_REF, getAllDeviceValuesWithMedia, removeDeviceValue, setDeviceValue } from "./deviceStore";
 
 const BACKUP_DB_NAME = "csgo_hub_device_backups";
 const BACKUP_DB_VERSION = 1;
@@ -68,7 +68,7 @@ const collectLocalState = (): Record<string, string> => {
 };
 
 const collectDeviceState = async (): Promise<Record<string, string>> => {
-  const values = getAllCachedDeviceValues() ?? await getAllDeviceValues();
+  const values = await getAllDeviceValuesWithMedia();
   return Object.fromEntries(
     Object.entries(values)
       .filter(([key]) => isManagedKey(key))
