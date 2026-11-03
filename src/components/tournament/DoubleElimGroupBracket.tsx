@@ -8,6 +8,7 @@ import type { MatchResult, PhaseFormat } from "@/lib/types";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { getDisplayScore, buildBo1RoundScorePatch } from "@/lib/matchDisplay";
+import { matchSide, isDeciderRound } from "@/lib/bracketRounds";
 import { computeBracketLayout } from "@/lib/bracketLayout";
 import MatchHoverPreview from "./MatchHoverPreview";
 
@@ -289,17 +290,40 @@ export const DoubleElimGroupBracket = ({
       })
       .filter((c) => c.slots.some(Boolean));
 
-  const ub = resolve(ubSpec);
-  const lb = resolve(lbSpec);
+  const ubBase = resolve(ubSpec);
+  const lbBase = resolve(lbSpec);
 
-  // Manually added matches / custom phases (no known bracket slot)
+  // Manually added matches (no known slot): join a column with the same title,
+  // otherwise land on the Upper/Lower side named in the round, with deciders last.
   const extras = matches.filter((m) => !m.bracketSlot || !knownSlots.has(m.bracketSlot));
-  const extraColumns: { title: string; slots: (MatchResult | null)[] }[] = [];
+  type Col = { title: string; slots: (MatchResult | null)[]; isFinal?: boolean };
+  const ub: Col[] = ubBase.map(c => ({ ...c }));
+  const lb: Col[] = lbBase.map(c => ({ ...c }));
+  const extraColumns: Col[] = [];
+  const allSpecTitles = new Map<string, "ub" | "lb">([
+    ...ubSpec.map(c => [c.title, "ub"] as const),
+    ...lbSpec.map(c => [c.title, "lb"] as const),
+  ]);
   extras.forEach((m) => {
     const title = m.round || "Dodatkowe";
-    const col = extraColumns.find((c) => c.title === title);
+    const specSide = allSpecTitles.get(title);
+    const side = specSide ?? (matchSide(m) === "upper" ? "ub" : matchSide(m) === "lower" ? "lb" : null);
+    const target = side === "ub" ? ub : side === "lb" ? lb : extraColumns;
+    let col = target.find((c) => c.title === title);
+    if (!col && specSide) {
+      const spec = (specSide === "ub" ? ubSpec : lbSpec).find(c => c.title === title)!;
+      col = { title, slots: [], isFinal: spec.isFinal };
+      const order = (specSide === "ub" ? ubSpec : lbSpec).map(c => c.title);
+      const at = target.findIndex(c => order.indexOf(c.title) > order.indexOf(title));
+      target.splice(at === -1 ? target.length : at, 0, col);
+    }
     if (col) col.slots.push(m);
-    else extraColumns.push({ title, slots: [m] });
+    else {
+      const fresh: Col = { title, slots: [m], isFinal: isDeciderRound(title) };
+      // Regular extra rounds go before the side's decider; deciders go last.
+      const deciderAt = isDeciderRound(title) ? -1 : target.findIndex(c => c.isFinal);
+      target.splice(deciderAt === -1 ? target.length : deciderAt, 0, fresh);
+    }
   });
 
   const renderSection = (
