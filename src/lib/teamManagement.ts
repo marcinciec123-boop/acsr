@@ -11,7 +11,7 @@
 
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
-import type { TeamData, TournamentData, Transfer } from "./types";
+import type { MatchResult, TeamData, TournamentData, Transfer } from "./types";
 import { addManualFreeAgent, loadFreeAgentNationalityOverrides, loadManualFreeAgents, setFreeAgentRole } from "./freeAgents";
 import { playerNationalities } from "@/data/playerNationalities";
 import { loadPlayerNatOverrides } from "./playerMetadata";
@@ -20,7 +20,8 @@ import { clearBenchFor, consolidateBenchFor, getBenchedFor } from "./benchedPlay
 import { getTeamContracts, loadContracts, saveContracts } from "./contracts";
 import { customTransfersGlobal } from "@/data/history";
 import { nameChanges } from "@/data/history";
-import { recordRename, sameName } from "./teamRenames";
+import { recordRename, sameName, teamNameChain } from "./teamRenames";
+import { isMatchDecided, winsNeededFor } from "./matchStatus";
 import { recordOrgCreate, recordOrgDisband, recordOrgRename } from "./orgEvents";
 import { loadTeamLogo, saveTeamLogo } from "./teamLogos";
 
@@ -161,6 +162,10 @@ export function updateTeam(oldName: string, patch: UpdateTeamPatch): { ok: boole
     if (teams.some(t => sameName(t.name, newName))) {
       return { ok: false, error: "Drużyna o takiej nazwie już istnieje" };
     }
+    // A → B → A would make the club history ambiguous.
+    if (teamNameChain(oldName).some(n => sameName(n, newName))) {
+      return { ok: false, error: "Ta drużyna nosiła już tę nazwę — powrót do starej nazwy jest zablokowany" };
+    }
   }
 
   const next = [...teams];
@@ -253,10 +258,13 @@ export function propagateRename(oldName: string, newName: string): void {
     saveToStorage(ARCHIVED_TEAMS_KEY, archived.map(n => n === oldName ? newName : n));
   }
 
-  // 2) Tournaments — WSZYSTKIE (także zakończone), żeby historia była spójna
+  // 2) Tournaments — tylko niezakończone; zakończone zostają pod starą nazwą.
   const tournaments = loadFromStorage<TournamentData[]>(TOURNAMENTS_KEY, []);
   let touched = false;
+  const activeIds = new Set<string>();
   const updated = tournaments.map(t => {
+    if (isFinishedTournament(t)) return t;
+    activeIds.add(t.id);
     let changed = false;
 
     const renameInArr = (arr: string[] | undefined) => {
@@ -286,9 +294,27 @@ export function propagateRename(oldName: string, newName: string): void {
 
     if (!changed) return t;
     touched = true;
-    return { ...t, participants: newParticipants, phases: newPhases };
+    return {
+      ...t,
+      participants: newParticipants,
+      phases: newPhases,
+      ...(t.placements && { placements: t.placements.map(pl => (pl.team === oldName ? { ...pl, team: newName } : pl)) }),
+    };
   });
   if (touched) saveToStorage(TOURNAMENTS_KEY, updated);
+
+  // 2b) Wybrane składy na turnieje w toku idą za nową nazwą.
+  const lineups = loadFromStorage<Record<string, Record<string, unknown>>>("tournament_lineups", {});
+  let lChanged = false;
+  for (const id of activeIds) {
+    const forT = lineups[id];
+    if (forT && forT[oldName] !== undefined && forT[newName] === undefined) {
+      forT[newName] = forT[oldName];
+      delete forT[oldName];
+      lChanged = true;
+    }
+  }
+  if (lChanged) saveToStorage("tournament_lineups", lineups);
   window.dispatchEvent(new CustomEvent("tournaments:update"));
   window.dispatchEvent(new CustomEvent("transfers:update"));
 }
@@ -382,26 +408,67 @@ export function disbandTeam(name: string, input: DisbandInput = {}): { ok: boole
 
   recordOrgDisband(teamName, date, input.reason?.trim() || "Rozwiązanie drużyny");
 
-  // 5) usuń z bieżących, niezakończonych turniejów (uczestnicy + faza 1)
+  // 5) Turnieje niezakończone: w trakcie → walkower, przed startem → wolne miejsce na zastępstwo.
   const tournaments = loadFromStorage<TournamentData[]>(TOURNAMENTS_KEY, []);
   let touched = false;
   const updated = tournaments.map(t => {
-    if (t.resultsConfirmed || t.status === "completed") return t;
-    if (!t.participants.includes(teamName)) return t;
-    touched = true;
-    return {
-      ...t,
-      participants: t.participants.filter(p => p !== teamName),
-      teams: t.participants.filter(p => p !== teamName).length,
-      phases: t.phases.map(p => ({
-        ...p,
-        teams: p.teams.map(x => (x === teamName ? `TBD-disband` : x)),
-      })),
-    };
+    const next = withdrawTeamFromTournament(t, teamName);
+    if (next !== t) touched = true;
+    return next;
   });
   if (touched) saveToStorage(TOURNAMENTS_KEY, updated);
   window.dispatchEvent(new CustomEvent("teams:update"));
   window.dispatchEvent(new CustomEvent("players:update"));
 
   return { ok: true };
+}
+
+
+const isFinishedTournament = (t: TournamentData) => !!t.resultsConfirmed || t.status === "completed";
+
+export const DISBAND_PLACEHOLDER = "TBD-disband";
+
+/**
+ * Disbanded club leaves an unfinished tournament.
+ * Before the start its slot becomes a placeholder for a replacement team.
+ * During the event every unplayed match is a walkover for the opponent; played matches stay.
+ */
+export function withdrawTeamFromTournament(t: TournamentData, teamName: string): TournamentData {
+  if (isFinishedTournament(t)) return t;
+  const inMatches = t.phases.some(p =>
+    [...(p.bracket || []), ...(p.groups || []).flatMap(g => g.matches)].some(m => m.team1 === teamName || m.team2 === teamName));
+  if (!t.participants.includes(teamName) && !inMatches) return t;
+
+  if (t.status === "upcoming") {
+    const swap = (x: string) => (x === teamName ? DISBAND_PLACEHOLDER : x);
+    const swapMatch = <M extends { team1: string; team2: string }>(m: M): M =>
+      (m.team1 === teamName || m.team2 === teamName ? { ...m, team1: swap(m.team1), team2: swap(m.team2) } : m);
+    return {
+      ...t,
+      participants: t.participants.map(swap),
+      phases: t.phases.map(p => ({
+        ...p,
+        teams: (p.teams || []).map(swap),
+        ...(p.groups && { groups: p.groups.map(g => ({ ...g, teams: g.teams.map(swap), matches: g.matches.map(swapMatch) })) }),
+        ...(p.bracket && { bracket: p.bracket.map(swapMatch) }),
+      })),
+    };
+  }
+
+  const walkover = (m: MatchResult, bo: number): MatchResult => {
+    if (m.team1 !== teamName && m.team2 !== teamName) return m;
+    if (isMatchDecided(m, m.bo ?? bo)) return m;
+    const need = winsNeededFor(m.bo ?? bo);
+    return m.team1 === teamName
+      ? { ...m, score1: 0, score2: need, maps: undefined, walkover: true }
+      : { ...m, score1: need, score2: 0, maps: undefined, walkover: true };
+  };
+  return {
+    ...t,
+    phases: t.phases.map(p => ({
+      ...p,
+      ...(p.groups && { groups: p.groups.map(g => ({ ...g, matches: g.matches.map(m => walkover(m, p.bo)) })) }),
+      ...(p.bracket && { bracket: p.bracket.map(m => walkover(m, p.bo)) }),
+    })),
+  };
 }
