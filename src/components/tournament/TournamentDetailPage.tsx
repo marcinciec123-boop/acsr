@@ -266,7 +266,7 @@ const PhaseSeedingPanel = ({
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onAddGroupMatch, onDeleteGroupMatch,
+  onAddBracketMatch, onMoveBracketRound, onAddBracketMatches, onMoveBracketMatch, onAddGroupMatch, onDeleteGroupMatch,
   onReseedPhase, onAssignGroups, onShuffleGroups,
   onSetStatus, onConfirmResults, onUpdateTournament, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,

@@ -1,5 +1,5 @@
 import { isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
-import { Trash2, Maximize2, ArrowUp, ArrowDown, Plus, Pencil, Crown, Camera } from "lucide-react";
+import { Trash2, Maximize2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, Pencil, Crown, Camera } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { TeamLink } from "@/lib/profileNav";
 import { getDisplayScore } from "@/lib/matchDisplay";
 import { computeBracketLayout } from "@/lib/bracketLayout";
+import { roundKey, roundSide, orderRounds, isThirdPlaceRound, type BracketSide } from "@/lib/bracketRounds";
 
 import MatchPredictionBadge from "./MatchPredictionBadge";
 import MatchHoverPreview from "./MatchHoverPreview";
@@ -23,7 +24,8 @@ interface Props {
   onUpdate: (id: string, score1: number, score2: number, team1?: string, team2?: string, round?: string) => void;
   onDelete?: (id: string) => void;
   onMove?: (id: string, dir: -1 | 1) => void;
-  onAdd?: (round: string) => void;
+  onAdd?: (round: string, side?: BracketSide) => void;
+  onMoveRound?: (round: string, dir: -1 | 1) => void;
   onOpenMatch?: (id: string) => void;
   allTeams?: string[];
   /** Stable key used to remember the horizontal pan position of the bracket. */
@@ -81,7 +83,7 @@ const TeamRow = ({
 };
 
 /** Liquipedia-style bracket with SVG connectors between rounds */
-export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onOpenMatch, allTeams = [], scrollKey }: Props) => {
+export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, onMoveRound, onOpenMatch, allTeams = [], scrollKey }: Props) => {
   const panRef = useScrollRestore<HTMLDivElement>(`bracket_${scrollKey || matches[0]?.id || "default"}`);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRoundFor, setEditingRoundFor] = useState<string | null>(null);
@@ -104,18 +106,10 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     return () => ro.disconnect();
   }, [panRef, updateScrollEdges, matches.length]);
 
-  const displayRoundName = (round?: string) => {
-    const clean = (round || "Match").trim();
-    return clean
-      .replace(/\s+[—-]?\s*M(?:atch)?\s*\d+$/i, "")
-      .replace(/\s+#\d+$/i, "")
-      .trim() || "Match";
-  };
-
   // Group by display round name preserving insertion order. Seeded imports may store
   // every match as "1ST ROUND M1", "1ST ROUND M2" etc.; visually that is one round.
   const groupedAll = matches.reduce<Record<string, MatchResult[]>>((acc, m) => {
-    const key = displayRoundName(m.round);
+    const key = roundKey(m.round);
     if (!acc[key]) acc[key] = [];
     acc[key].push(m);
     return acc;
@@ -123,25 +117,18 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
   const allRoundNames = Object.keys(groupedAll);
 
   // Separate "3rd place" / "third place" rounds — they don't belong in the main bracket flow
-  const isThirdPlace = (round: string) => /3rd\s*place|third\s*place|bronze/i.test(round);
-  const thirdPlaceRounds = allRoundNames.filter(isThirdPlace);
-  const nonThirdRounds = allRoundNames.filter(r => !isThirdPlace(r));
+  const thirdPlaceRounds = allRoundNames.filter(isThirdPlaceRound);
+  const nonThirdRounds = allRoundNames.filter(r => !isThirdPlaceRound(r));
   const grouped = groupedAll;
 
-  // === Detect double-elim structure by bracket slots ===
-  // Upper row: UB-* rounds + GF (Grand Final). Lower row: LB-* rounds.
-  const roundKind = (r: string): "upper" | "lower" | "other" => {
-    const ms = grouped[r] || [];
-    if (ms.length === 0) return "other";
-    if (ms.every(m => /^LB-/i.test(m.bracketSlot || ""))) return "lower";
-    if (ms.every(m => /^UB-/i.test(m.bracketSlot || "") || (m.bracketSlot || "") === "GF")) return "upper";
-    return "other";
-  };
-  const upperRounds = nonThirdRounds.filter(r => roundKind(r) === "upper");
-  const lowerRounds = nonThirdRounds.filter(r => roundKind(r) === "lower");
-  const otherRounds = nonThirdRounds.filter(r => roundKind(r) === "other");
+  // Upper row: UB rounds, upper deciders, Grand Final. Lower row: LB rounds + lower deciders.
+  // Side comes from bracket slots, falling back to the round name ("Upper Bracket Decider").
+  const roundKind = (r: string) => roundSide(grouped[r] || []);
+  const upperRounds = orderRounds(nonThirdRounds.filter(r => roundKind(r) === "upper"), grouped);
+  const lowerRounds = orderRounds(nonThirdRounds.filter(r => roundKind(r) === "lower"), grouped);
+  const otherRounds = orderRounds(nonThirdRounds.filter(r => roundKind(r) === "other"), grouped);
   const isDoubleElim = upperRounds.length > 0 && lowerRounds.length > 0;
-  const rounds = isDoubleElim ? upperRounds : nonThirdRounds;
+  const rounds = isDoubleElim ? upperRounds : orderRounds(nonThirdRounds, grouped);
 
   if (matches.length === 0) {
     return (
@@ -314,7 +301,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
     );
   };
 
-  const renderRoundHeader = (round: string, isLast: boolean, lower: boolean) => (
+  const renderRoundHeader = (round: string, isLast: boolean, lower: boolean, canLeft = false, canRight = false) => (
     <div className="flex items-center justify-center px-1 h-7 mb-2">
       <div className={cn(
         "flex items-center gap-1.5 max-w-full rounded-md border px-3 py-1 backdrop-blur-sm",
@@ -325,7 +312,21 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             ? "bg-destructive/10 border-destructive/30 text-destructive/90"
             : "bg-primary/10 border-primary/30 text-primary"
       )}>
+        {onMoveRound && canLeft && (
+          <button onClick={() => onMoveRound(round, -1)} data-export-hide="true"
+            className="shrink-0 opacity-60 hover:opacity-100 p-0.5 rounded hover:bg-foreground/10"
+            title="Przesuń rundę w lewo" aria-label={`Przesuń rundę ${round} w lewo`}>
+            <ArrowLeft className="w-3 h-3" />
+          </button>
+        )}
         <span className="truncate">{isLast && "★ "}{round}</span>
+        {onMoveRound && canRight && (
+          <button onClick={() => onMoveRound(round, 1)} data-export-hide="true"
+            className="shrink-0 opacity-60 hover:opacity-100 p-0.5 rounded hover:bg-foreground/10"
+            title="Przesuń rundę w prawo" aria-label={`Przesuń rundę ${round} w prawo`}>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        )}
         {onAdd && (
           <button onClick={() => onAdd(round)}
             className="shrink-0 opacity-60 hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-foreground/10"
@@ -372,7 +373,7 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
             const left = ri * (COLUMN_W + CONNECTOR_W);
             return (
               <div key={`header-${round}`} className="absolute top-0" style={{ left, width: COLUMN_W }}>
-                {renderRoundHeader(round, isLast, lower)}
+                {renderRoundHeader(round, isLast, lower, ri > 0, ri < list.length - 1)}
               </div>
             );
           })}
@@ -512,19 +513,24 @@ export const BracketView = ({ matches, tier, onUpdate, onDelete, onMove, onAdd, 
 
       {onAdd && (
         <div className="flex gap-2 pt-2 border-t border-border/40">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs"
-            onClick={() => {
-              const name = prompt("Nazwa nowej rundy:", `Round ${rounds.length + 1}`);
-              if (name) onAdd(name);
-            }}
-          >
-            <Plus className="w-3 h-3 mr-1" /> Nowa runda
-          </Button>
+          {(isDoubleElim ? (["upper", "lower"] as const) : ([undefined] as const)).map(side => (
+            <Button
+              key={side ?? "single"}
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={() => {
+                const count = side === "lower" ? lowerRounds.length : rounds.length;
+                const label = side === "lower" ? "Lower Bracket" : side === "upper" ? "Upper Bracket" : "Round";
+                const name = prompt("Nazwa nowej rundy:", `${label} R${count + 1}`);
+                if (name) onAdd(name, side);
+              }}
+            >
+              <Plus className="w-3 h-3 mr-1" /> Nowa runda{side === "upper" ? " (Upper)" : side === "lower" ? " (Lower)" : ""}
+            </Button>
+          ))}
           <p className="text-xs font-mono text-muted-foreground self-center">
-            💡 PPM na meczu = szybka edycja • Klik na rundzie + = dodaj mecz
+            💡 PPM na meczu = szybka edycja • + na rundzie = dodaj mecz • ← → = przesuń rundę
           </p>
         </div>
       )}

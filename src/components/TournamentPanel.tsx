@@ -32,6 +32,7 @@ import { suggestInvites } from "@/lib/inviteSuggestion";
 import { countryFlag } from "@/lib/flags";
 import { WorldsBuilder } from "@/components/WorldsBuilder";
 import { fillOpenSlot, openSlotName } from "@/lib/openSlots";
+import { addMatchToRound, moveRound, type BracketSide } from "@/lib/bracketRounds";
 
 interface SelectedMatchRef {
   phaseId: string;
