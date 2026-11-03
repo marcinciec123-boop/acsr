@@ -1,3 +1,4 @@
+import { isInternationalTournament, isNationalTeam } from "./nationalIdentity";
 import { isMatchDecided } from "./matchStatus";
 import { memoOnSave } from "./dataMemo";
 // ===== Statistics Portal =====
@@ -69,7 +70,7 @@ const isOnline = (t: TournamentData): boolean =>
 export function nationalTeamNames(): Set<string> {
   try {
     const teams = loadFromStorage<{ name: string; isNational?: boolean }[]>("ranking_data", []) || [];
-    return new Set(teams.filter(t => t.isNational).map(t => t.name));
+    return new Set(teams.filter(t => t.isNational || isNationalTeam(t.name)).map(t => t.name));
   } catch {
     return new Set<string>();
   }
@@ -83,7 +84,8 @@ export function loadStatsTournaments(): TournamentData[] {
 export const computePortalStats = memoOnSave<string, PortalStats>(computePortalStatsRaw, ["team_rename_log"]);
 
 function computePortalStatsRaw(year: string | "total"): PortalStats {
-  const all = loadStatsTournaments().filter(t => t.kind !== "qualifier");
+  // Turnieje reprezentacji nie wchodzą do podsumowań klubowych.
+  const all = loadStatsTournaments().filter(t => t.kind !== "qualifier" && !isInternationalTournament(t));
   const years = Array.from(new Set(all.map(yearOf).filter(Boolean))).sort().reverse();
   const list = year === "total" ? all : all.filter(t => yearOf(t) === year);
 
@@ -142,7 +144,7 @@ function computePortalStatsRaw(year: string | "total"): PortalStats {
       const canonical = canonicalTeamName(pl.team);
       const key = nameKey(canonical);
       const team = currentNames.get(key) || canonical;
-      if (national.has(key)) continue;
+      if (national.has(key) || isNationalTeam(pl.team)) continue;
       const prize = distributed[pl.placement] || 0;
 
       const org = orgMap.get(key) || {

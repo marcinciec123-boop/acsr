@@ -1,3 +1,4 @@
+import { isInternationalTournament, isNationalTeam } from "./nationalIdentity";
 import { isMatchDecided } from "./matchStatus";
 import { memoOnSave } from "./dataMemo";
 // ===== Księga Rekordów ACSR =====
@@ -69,7 +70,7 @@ function collect(list: TournamentData[], skip: Set<string>): FlatMatch[] {
     ];
     for (const m of ms) {
       if (!m.team1 || !m.team2 || m.team1 === "BYE" || m.team2 === "BYE") continue;
-      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim())) continue;
+      if (skip.has(m.team1.trim()) || skip.has(m.team2.trim()) || isNationalTeam(m.team1) || isNationalTeam(m.team2)) continue;
       if (!isMatchDecided(m) || m.walkover) continue;
       let ts = 0;
       try { ts = getMatchTimestamp(m) || 0; } catch { ts = 0; }
@@ -374,7 +375,7 @@ function computeRecordBookRaw(): RecordDef[] {
   add("m-avg", "map", "Najwyższa średnia rund na mapie", top(mc.filter(([, v]) => v.played >= 5).map(([map, v]) => ({ value: v.rounds / v.played, display: f1(v.rounds / v.played), context: map }))), "min. 5 rozegrań");
 
   // ---------- turnieje ----------
-  const real = tournaments.filter(t => t.kind !== "qualifier");
+  const real = tournaments.filter(t => t.kind !== "qualifier" && !isInternationalTournament(t));
   const tCount = (t: TournamentData) => collect([t], national).length;
   const winner = (t: TournamentData) => (t.placements || []).find(p => p.placement === 1)?.team;
   add("tr-pool", "tournament", "Największa pula nagród", top(real.filter(t => parsePrizePool(t.prizePool) > 0).map(t => ({ value: parsePrizePool(t.prizePool), display: `$${parsePrizePool(t.prizePool).toLocaleString("pl-PL")}`, context: t.name, team: winner(t), tournamentId: t.id, date: t.startDate }))));

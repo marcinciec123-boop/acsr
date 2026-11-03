@@ -4,6 +4,7 @@
 // snapshots for a given fictional-calendar year. Triggered when the world
 // clock reaches Dec 31 of that year.
 
+import { isInternationalTournament } from "./nationalIdentity";
 import type { TournamentData, Transfer, TeamData, MatchResult, MapPlayerStats } from "./types";
 import { loadFromStorage, saveToStorage } from "./storage";
 import { calculateRating } from "./playerStats";
@@ -106,7 +107,7 @@ export function computeYearAwards(year: number): YearAwards {
   const teams = loadFromStorage<TeamData[]>("ranking_data", []);
 
   const yearTournaments = tournaments.filter(
-    t => t.status === "completed" && inYear(t.endDate, year) && !t.name?.toLowerCase().includes("kwalifikacj"),
+    t => t.status === "completed" && inYear(t.endDate, year) && !t.name?.toLowerCase().includes("kwalifikacj") && !isInternationalTournament(t),
   );
 
   // ===== Team of the Year =====
