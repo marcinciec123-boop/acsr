@@ -12,7 +12,7 @@ export const roundKey = (round?: string) =>
 export const isDeciderRound = (name: string) => /decider|decyder|rozstrzyg/i.test(name);
 export const isGrandFinalRound = (name: string, slot = "") =>
   slot === "GF" || /grand\s*final|wielki\s*fina/i.test(name);
-export const isThirdPlaceRound = (name: string) => /3rd\s*place|third\s*place|bronze/i.test(name);
+export const isThirdPlaceRound = (name: string) => /3rd\s*place|third\s*place|bronze|(o|za)\s*3\.?\s*miejsc|trzecie\s*miejsc/i.test(name);
 
 const LOWER_NAME = /\blower\b|\blb\b|losers|dolna/i;
 const UPPER_NAME = /\bupper\b|\bub\b|winners|górna|gorna/i;
