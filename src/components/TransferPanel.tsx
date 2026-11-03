@@ -924,6 +924,7 @@ const TransferPanel = () => {
               {filtered.map((t, i) => (
                 <motion.div
                   key={t.id}
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "auto 64px" }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="grid grid-cols-12 gap-1 px-4 py-2.5 border-t border-border/50 items-center text-sm hover:bg-secondary/30 transition-colors"
@@ -970,7 +971,7 @@ const TransferPanel = () => {
               <div className="px-4 py-8 text-center text-muted-foreground text-sm font-mono">Brak wolnych agentów</div>
             )}
             {freeAgents.map((fa, i) => (
-              <div key={fa.player} className="grid grid-cols-12 gap-1 px-4 py-2.5 border-t border-border/50 items-center text-sm">
+              <div key={fa.player} className="cv-row grid grid-cols-12 gap-1 px-4 py-2.5 border-t border-border/50 items-center text-sm">
                 <div className="col-span-1 font-mono text-muted-foreground text-xs">{i + 1}</div>
                 <div className="col-span-5 font-medium text-foreground flex items-center gap-1.5">
                   {fa.nationality && <span className="text-xs">{countryFlag(fa.nationality)}</span>}
@@ -1010,6 +1011,7 @@ const TransferPanel = () => {
                 {[...changeLog].reverse().map(entry => (
                   <motion.div
                     key={entry.id}
+                    style={{ contentVisibility: "auto", containIntrinsicSize: "auto 64px" }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="grid grid-cols-12 gap-2 px-4 py-2.5 border-t border-border/50 items-center text-sm hover:bg-secondary/30"

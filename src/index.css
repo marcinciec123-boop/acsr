@@ -572,3 +572,8 @@
     background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--gold)));
   }
 }
+
+@layer utilities {
+  /* Długie listy: przeglądarka pomija rysowanie wierszy poza ekranem. */
+  .cv-row { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+}
