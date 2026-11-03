@@ -1,5 +1,4 @@
 import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
-import { loadArchivedTeams } from "@/lib/teamManagement";
 import { isMatchDecided } from "@/lib/matchStatus";
 import { useState, useEffect, useMemo } from "react";
 import {
