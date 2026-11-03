@@ -1,4 +1,5 @@
-import { isMatchDecided } from "./matchStatus";
+import { isMatchDecided, playedMaps } from "./matchStatus";
+import { clubOnly } from "./nationalIdentity";
 import { calculateRating } from "./playerStats";
 // ===== Dodatki do aktualności: tożsamość komentujących, sondy, nastroje, załączniki, szablony =====
 
@@ -55,8 +56,8 @@ export function activeClubTeams() {
     ...loadArchivedTeams(),
     ...loadExtraDisbands().map(d => d.team),
   ]);
-  return loadAllTeams()
-    .filter(t => !t.isNational && !dead.has(t.name))
+  return clubOnly(loadAllTeams())
+    .filter(t => !dead.has(t.name))
     .sort((a, b) => (b.points || 0) - (a.points || 0));
 }
 
@@ -284,8 +285,9 @@ export function findMatch(tournamentId: string, matchId: string): MatchRef | nul
 // ---------- MVP meczu ----------
 
 export function matchMvp(m: MatchResult): { name: string; team: string; rating: number; kills: number; deaths: number; adr: number } | null {
+  if (m.walkover) return null;
   const acc = new Map<string, { team: string; r: number; n: number; k: number; d: number; adr: number }>();
-  (m.maps || []).forEach(mp => {
+  playedMaps(m.maps || [], m.bo || 3).forEach(mp => {
     [...(mp.team1Players || []).map(p => [p, m.team1] as const), ...(mp.team2Players || []).map(p => [p, m.team2] as const)]
       .forEach(([p, team]) => {
         if (!p?.playerName) return;

@@ -5,6 +5,7 @@
 import type { MatchResult } from "./types";
 import { loadAllTeams } from "./teamManagement";
 import { playerRoles } from "@/data/playerRoles";
+import { playedMaps } from "./matchStatus";
 
 export const rnd = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const chance = (p: number) => Math.random() < p;
@@ -37,7 +38,7 @@ export function analyzeMatch(m: MatchResult, mvp: Mvp | null): MatchFacts {
   const l = w === m.team1 ? m.team2 : m.team1;
   const ws = Math.max(m.score1, m.score2), ls = Math.min(m.score1, m.score2);
   const wRank = rankOf(w), lRank = rankOf(l);
-  const maps = (m.maps || []).filter(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0);
+  const maps = playedMaps(m.maps || [], m.bo || 3).filter(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0);
   const overtime = maps.some(mp => Math.max(mp.score1, mp.score2) > 13);
   const diffs = maps.map(mp => Math.abs(mp.score1 - mp.score2));
   const stomp = maps.length > 0 && diffs.every(d => d >= 7);
