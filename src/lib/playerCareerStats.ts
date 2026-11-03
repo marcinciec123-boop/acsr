@@ -9,7 +9,7 @@ import { calculateRating, type PlayerMatchStats } from "./playerStats";
 import { loadFromStorage } from "./storage";
 import { worldNowMs } from "./worldClock";
 import { compareMatchesNewestFirst } from "./matchTime";
-import { isMatchDecided } from "./matchStatus";
+import { isMatchDecided, playedMaps } from "./matchStatus";
 
 export interface CareerMatchEntry {
   tournamentId: string;
@@ -122,7 +122,7 @@ const findInMap = (
 ): { map: NonNullable<MatchResult["maps"]>[number]; player: MapPlayerStats; isTeam1: boolean }[] => {
   const out: { map: NonNullable<MatchResult["maps"]>[number]; player: MapPlayerStats; isTeam1: boolean }[] = [];
   if (!match.maps) return out;
-  for (const m of match.maps) {
+  for (const m of playedMaps(match.maps, match.bo)) {
     const t1 = m.team1Players?.find(p => p.playerName === playerName);
     if (t1) { out.push({ map: m, player: t1, isTeam1: true }); continue; }
     const t2 = m.team2Players?.find(p => p.playerName === playerName);
@@ -602,7 +602,7 @@ export function computeAllPlayersBasicStats(
           a.adrW += p.adr * rounds; a.kastW += p.kast * rounds; a.rounds += rounds;
         }
       };
-      for (const map of match.maps) {
+      for (const map of playedMaps(match.maps, match.bo)) {
         const rounds = (map.score1 || 0) + (map.score2 || 0);
         if (rounds <= 0) continue;
         pushSide(map.team1Players, true, rounds);

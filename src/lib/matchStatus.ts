@@ -34,3 +34,21 @@ export function mapWins(maps: MatchMap[]): { score1: number; score2: number } {
   }
   return { score1, score2 };
 }
+/** Number of maps actually needed: once a side reaches the required wins, later maps are not played. */
+export function playedMapCount(maps: MatchMap[], bo?: number): number {
+  const need = winsNeededFor(bo);
+  let s1 = 0, s2 = 0;
+  for (let i = 0; i < maps.length; i++) {
+    if (s1 >= need || s2 >= need) return i;
+    const m = maps[i];
+    if (isMapDecided(m)) { if (m.score1 > m.score2) s1++; else s2++; }
+  }
+  return maps.length;
+}
+
+export const isMapUnplayed = (maps: MatchMap[], index: number, bo?: number): boolean =>
+  index >= playedMapCount(maps, bo);
+
+/** Maps that count toward results and statistics. */
+export const playedMaps = (maps: MatchMap[] | undefined, bo?: number): MatchMap[] =>
+  maps ? maps.slice(0, playedMapCount(maps, bo)) : [];

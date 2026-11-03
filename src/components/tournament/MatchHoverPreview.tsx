@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import TeamLogo from "@/components/TeamLogo";
 import { getDisplayScore } from "@/lib/matchDisplay";
-import { isMapDecided, isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
+import { isMapDecided, isMapUnplayed, isMatchDecided, isMatchInProgress } from "@/lib/matchStatus";
 import { getMatchTimestamp } from "@/lib/matchTime";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,16 @@ export default function MatchHoverPreview({ match }: { match: MatchResult }) {
           </div>
           {Boolean(match.maps?.length) && (
             <div className="border-t border-border">
-              {match.maps?.map((map, index) => (
+              {match.maps?.map((map, index) => isMapUnplayed(match.maps || [], index, match.bo) ? (
+                <div key={`${map.map}-${index}`} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border/50 px-3 py-2 text-muted-foreground last:border-0">
+                  <span className="text-right font-mono text-sm">–</span>
+                  <div className="text-center">
+                    <div className="text-xs font-semibold line-through">{map.map || `Mapa ${index + 1}`}</div>
+                    <div className="mt-0.5 text-xs">nie grano</div>
+                  </div>
+                  <span className="font-mono text-sm">–</span>
+                </div>
+              ) : (
                 <div key={`${map.map}-${index}`} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border/50 px-3 py-2 last:border-0">
                   <span className={cn("text-right font-mono text-sm font-bold", isMapDecided(map) && map.score1 > map.score2 && "text-primary")}>{map.score1}</span>
                   <div className="text-center">
