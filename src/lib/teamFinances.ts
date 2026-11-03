@@ -133,6 +133,14 @@ export function defaultMonthlyStaff(rank: number, team = ""): number {
   return round(base * jitter(team, "staff", 0.65, 1.45), 500);
 }
 
+/** Stopniowa adaptacja kosztów: wzrost max 15% luki/mies., cięcia 25% luki/mies. */
+export function adaptCost(prev: number | null, target: number): number {
+  if (prev === null) return target;
+  const gap = target - prev;
+  const step = gap > 0 ? gap * 0.15 : gap * 0.25;
+  return Math.abs(gap) < 500 ? target : Math.round(prev + step);
+}
+
 // Obciążenia: KAŻDEGO 1. dnia miesiąca schodzi pełna miesięczna kwota
 // (pensje aktywnych kontraktów + koszty bieżące + personel). Bez ułamków
 // i bez obciążeń w środku miesiąca — kwota = „Wydatki / mies.”.
@@ -393,7 +401,9 @@ function computeAll(): Map<string, TeamFinance> {
     const s = settings[team] || {};
     const startingBalance = s.startingBalance ?? defaultStartingBalance(rank, team);
     const monthlyRunning = s.monthlyRunning ?? defaultMonthlyRunning(rank, team);
-    const monthlyStaff = s.monthlyStaff ?? defaultMonthlyStaff(rank, team);
+    const fixedStaff = s.monthlyStaff;
+    const fixedRunning = s.monthlyRunning;
+    let monthlyStaff = fixedStaff ?? defaultMonthlyStaff(rank, team);
     const ledger = ledgers.get(team) || [];
     const fc = firstContract.get(team);
     // Aktywne drużyny płacą koszty stałe od startu sezonu niezależnie od dat
@@ -402,12 +412,29 @@ function computeAll(): Map<string, TeamFinance> {
     const epoch = rankOf.has(team) ? seasonStart : (fc !== undefined ? Math.max(fc, seasonStart) : undefined);
     const epochDay = epoch ? new Date(epoch).toISOString().slice(0, 10) : nowDay;
     ledger.push({ id: `start_${team}`, date: epochDay, amount: startingBalance, category: "start", label: "Budżet startowy" });
+    let runLevel = monthlyRunning;
     if (epoch && rankOf.has(team)) {
+      const series = getTeamRankingSeries(team);
+      const rankAt = (at: number) => {
+        const d = new Date(at).toISOString().slice(0, 10);
+        let r: number | undefined;
+        for (const p of series) { if (p.date <= d) r = p.rank ?? r; else break; }
+        return r ?? series.find(p => p.rank)?.rank ?? rank;
+      };
+      let staffLevel: number | null = null;
+      let runL: number | null = null;
       for (const at of firstsOfMonth(epoch + 1, nowMs)) {
         const date = day(new Date(at).toISOString());
         const mk = monthKey(at);
-        if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
-        if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff), category: "staff", label: `Personel ${mk}` });
+        const rk = rankAt(at);
+        const tStaff = defaultMonthlyStaff(rk, team), tRun = defaultMonthlyRunning(rk, team);
+        staffLevel = adaptCost(staffLevel, tStaff);
+        runL = adaptCost(runL, tRun);
+        const st = fixedStaff ?? staffLevel;
+        const rn = fixedRunning ?? runL;
+        monthlyStaff = st; runLevel = rn;
+        if (rn > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(rn), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
+        if (st > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(st), category: "staff", label: `Personel ${mk}` });
         const spon = sponsorFor(team, rank, at);
         const mer = merchFor(team, rank, at);
         if (mer > 0) ledger.push({ id: `merch_${team}_${mk}`, date, amount: mer, category: "merch", label: `Fan store ${mk}` });
