@@ -17,3 +17,4 @@
 - Series outcomes, progress, advancement and completed-match history use the shared matchStatus helpers; partial map results are saved atomically with map-win totals so leaving a match cannot finalize a series early.
 - Ranking tier labels use the shared rankingTier helper and the table renders the complete eligible club list; this keeps profiles and ranking consistent without a fixed club-count cap.
 - Ranking position charts derive their axis from displayed history via rankingScale; this keeps low-ranked clubs visible as the database grows.
+- In the Tauri build, deviceStore persists every key as its own atomically-written file in AppData via Rust commands (store_load_all/store_write/store_remove) with debounced writes; browser IndexedDB stays as a mirror and the web preview fallback, so saves are no longer bound by webview storage quotas.

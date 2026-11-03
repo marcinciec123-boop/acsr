@@ -1,29 +1,10 @@
-# Roadmap
+# Roadmap — duże ilości danych (5+ lat)
 
-## Bieżące poprawki
-- [x] Zaktualizować zaakceptowane stawki personelu i operacji z czołówką Top 20, zachowując stopniową adaptację i ręczne kwoty; usprawnienia dużych baz odłożyć na kolejny krok.
-- [x] Rozszerzyć ranking ponad 100 drużyn, zachować pełną listę i Tier C dla miejsc 51+; rozszerzyć ELO i skalę historii pozycji.
-- [x] Kompresować eksporty Gzip, zachować import JSON i dodać eksport bez grafik.
-- [x] Zmniejszać nowe wgrywane grafiki przez WebP z zachowaniem przezroczystości.
-- [ ] Bo3/Bo5: zachować mecz w trakcie do wymaganych dwóch/trzech wygranych map; wdrożyć bez dodawania testów.
-- [x] Audyt — punkt 2: zachować wyróżnienia po zmianach nazw klubów i wielkości liter nicków.
-- [x] Audyt — punkt 3: połączyć zarobki i trofea jednej organizacji pod jej obecną nazwą.
-- [x] Audyt — punkt 4: rozpoznawać i obsługiwać ławkę pod dawnymi i obecnymi nazwami klubu.
-- [x] Punkt 4: zachować loga turniejów w pamięci urządzenia podczas przywracania kopii i odświeżyć ich grafikę.
-- [x] Punkt 3: nie naliczać odstępnego między dawną i obecną nazwą tej samej organizacji.
-- [x] Punkt 2: „Cofnij” przywraca kontrakty, ławkę i jej historię oraz dane finansowe; stare migawki nie usuwają brakujących danych.
-- [x] Punkt 1: przy rozwiązaniu drużyny uwolnić skład, rezerwowych i trenera, zamknąć kontrakty i zachować narodowości (także przy ręcznym bankructwie).
-
-- [x] Przebudować układ głównego lower bracketu według rzeczywistych połączeń meczów.
-- [x] Ujednolicić mniejsze drabinki grupowe i dodać czytelne łączniki.
-- [x] Sprawdzić kompilację i testy turniejowe.
-
-- [x] Naprawić build Tauri na GitHub Actions (yankowane `zip` → patch na 2.2.2 z gita + zatwierdzony Cargo.lock).
-- [x] Zablokować wersje wtyczek npm (`@tauri-apps/plugin-updater` ~2.7.0, `plugin-process` ~2.4.0) tak, by odpowiadały Cargo.lock.
-
-## Przed finalnym buildem
-- [x] Kafelek „Najbliższy koniec kontraktu” w profilu drużyny pomijał zakończone i przeterminowane umowy — naprawione (helper `getNextContractExpiry` + testy).
-- [ ] „Sloty zapisu” w Ustawieniach zapisują tylko turnieje — podpiąć pod pełny backup 1:1 (deviceBackup).
-
-## Pomysły na później (od Marcina)
-- [ ] Intel Grand Slam / żetony Majora, relacja z rund meczu, plotki transferowe (finanse zrobione), grafiki meczu/MVP do udostępniania
+- [x] 1. Zapis na dysku w .exe (pliki w AppData, zapis atomowy, debounce, jednorazowa migracja)
+- [x] 5a. Ranking: pomijanie rysowania wierszy poza ekranem
+- [ ] 2. Archiwum zakończonych sezonów (leniwe ładowanie)
+- [ ] 3. Indeksy statystyk kariery/trofeów
+- [ ] 4. Ciężkie obliczenia w osobnym wątku
+- [ ] 5b. Pozostałe długie listy (gracze, wolni agenci, transfery, turnieje, change log)
+- [ ] 6. Selektor sezonu
+- [ ] 7. Zagęszczanie dalekiej historii na wykresach rankingu

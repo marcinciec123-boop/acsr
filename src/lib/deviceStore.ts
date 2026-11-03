@@ -1,3 +1,5 @@
+import { diskDelete, diskLoadAll, diskSet, isDiskStoreAvailable } from "./diskStore";
+
 const DEVICE_STORE_DB = "csgo_hub_device_store";
 const DEVICE_STORE_VERSION = 1;
 const DEVICE_STORE_NAME = "kv";
@@ -29,6 +31,7 @@ const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject
 
 export const setDeviceValue = async (key: string, value: string): Promise<void> => {
   deviceStoreCache = { ...(deviceStoreCache || {}), [key]: value };
+  if (isDiskStoreAvailable()) diskSet(key, value);
   const db = await openDeviceStore();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(DEVICE_STORE_NAME, "readwrite");
@@ -55,6 +58,7 @@ export const removeDeviceValue = async (key: string): Promise<void> => {
     delete next[key];
     deviceStoreCache = next;
   }
+  if (isDiskStoreAvailable()) diskDelete(key);
   const db = await openDeviceStore();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(DEVICE_STORE_NAME, "readwrite");
@@ -78,10 +82,27 @@ export const getAllDeviceValues = async (): Promise<Record<string, string>> => {
 };
 
 export const initializeDeviceStoreCache = async (): Promise<void> => {
+  let browserValues: Record<string, string> = {};
   try {
-    deviceStoreCache = await getAllDeviceValues();
+    browserValues = await getAllDeviceValues();
   } catch {
-    deviceStoreCache = {};
+    browserValues = {};
+  }
+  if (!isDiskStoreAvailable()) { deviceStoreCache = browserValues; return; }
+  // Wersja .exe: pliki na dysku są źródłem prawdy. Przy pierwszym starcie
+  // (pusty folder) dane z pamięci przeglądarki są jednorazowo kopiowane na
+  // dysk; kopia w przeglądarce zostaje nienaruszona jako zabezpieczenie.
+  try {
+    const disk = await diskLoadAll();
+    if (Object.keys(disk).length === 0) {
+      for (const [key, value] of Object.entries(browserValues)) diskSet(key, value);
+      deviceStoreCache = browserValues;
+    } else {
+      deviceStoreCache = { ...browserValues, ...disk };
+    }
+  } catch (error) {
+    console.error("Disk store load failed, using browser storage:", error);
+    deviceStoreCache = browserValues;
   }
 };
 
