@@ -1,6 +1,6 @@
 # Roadmap — duże ilości danych (5+ lat)
 
-- [ ] Powrót po łączach do poprzedniego panelu/profilu z zachowaniem jego stanu.
+- [x] Powrót po łączach do poprzedniego panelu/profilu z zachowaniem jego stanu.
 
 - [x] 1. Zapis na dysku w .exe (pliki w AppData, zapis atomowy, debounce, jednorazowa migracja)
 - [x] 5a. Ranking: pomijanie rysowania wierszy poza ekranem

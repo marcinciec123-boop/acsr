@@ -7,6 +7,9 @@ import { loadFromStorage } from "@/lib/storage";
 import { teamDatabase } from "@/data/tournaments";
 import { ProfileNavProvider } from "@/lib/profileNav";
 import { readUiPref, writeUiPref } from "@/lib/uiPrefs";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { initialNavigation, pushNavigation, backNavigation, type NavigationView, type TournamentVisit } from "@/lib/sessionNavigation";
 
 const imports = {
   news: () => import("@/components/NewsFeed"),
@@ -39,13 +42,13 @@ const YearAwardsCeremony = lazy(imports.ceremony);
 const AwardsHistoryPanel = lazy(imports.awards);
 const StatisticsPanel = lazy(imports.stats);
 
-type NavHandlers = { onSelectTeam: (n: string) => void; onSelectPlayer: (n: string) => void };
+type NavHandlers = { onSelectTeam: (n: string) => void; onSelectPlayer: (n: string) => void; tournamentSelection: TournamentVisit | null; onOpenTournament: (id: string, matchId?: string) => void; onBack: () => void };
 const PANELS: Partial<Record<Tab, (h: NavHandlers) => JSX.Element>> = {
   news: () => <NewsFeed />,
   rankings: h => <RankingPanel onSelectTeam={h.onSelectTeam} onSelectPlayer={h.onSelectPlayer} />,
   players: h => <PlayersPanel onSelectPlayer={h.onSelectPlayer} onSelectTeam={h.onSelectTeam} />,
   matches: () => <MatchesPanel />,
-  tournaments: () => <TournamentPanel />,
+  tournaments: h => <TournamentPanel selection={h.tournamentSelection} onNavigate={h.onOpenTournament} onBack={h.onBack} />,
   transfers: () => <TransferPanel />,
   awards: () => <AwardsHistoryPanel />,
   stats: () => <StatisticsPanel />,
@@ -63,66 +66,54 @@ const loadRankingTeams = () =>
   loadFromStorage<TeamData[] | null>("ranking_data", null) || teamDatabase.map(t => ({ ...t }));
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("news");
-  // Stack lets us open Team → Player → Team… and step back through history.
-  const [profileStack, setProfileStack] = useState<Array<{ kind: "team" | "player"; name: string }>>([]);
-  const top = profileStack[profileStack.length - 1] || null;
-  // Remember where the user was in the underlying list (ranking, players…)
-  // so closing a profile returns to the exact same scroll position.
-  const listScrollRef = useRef<number>(0);
+  const [navigation, setNavigation] = useState(initialNavigation);
+  const navigationRef = useRef(navigation);
+  const profileKey = useRef(0);
+  const { tab: activeTab, profiles: profileStack, tournament } = navigation.current.view;
+  const top = profileStack.at(-1) || null;
+  const retainedProfiles = Array.from(new Map(
+    [...navigation.past, navigation.current].flatMap(entry => entry.view.profiles)
+      .map(profile => [profile.key, profile] as const)
+  ).values());
 
-  const rememberScroll = () => {
-    if (profileStack.length === 0) {
-      listScrollRef.current = window.scrollY;
-      writeUiPref(`scroll_tab_${activeTab}`, { x: 0, y: window.scrollY });
+  const go = (view: NavigationView, nextScrollY = 0) => {
+    const current = navigationRef.current;
+    if (!current.current.view.profiles.length && !current.current.view.tournament) {
+      writeUiPref(`scroll_tab_${current.current.view.tab}`, { x: 0, y: window.scrollY });
     }
+    const next = pushNavigation(current, view, window.scrollY, nextScrollY);
+    navigationRef.current = next;
+    setNavigation(next);
   };
 
   const handleSelectTeam = (name: string) => {
-    rememberScroll();
-    setProfileStack(s => [...s, { kind: "team", name }]);
+    const view = navigationRef.current.current.view;
+    go({ ...view, profiles: [...view.profiles, { kind: "team", name, key: ++profileKey.current }] });
   };
-
   const handleSelectPlayer = (name: string) => {
-    rememberScroll();
-    setProfileStack(s => [...s, { kind: "player", name }]);
+    const view = navigationRef.current.current.view;
+    go({ ...view, profiles: [...view.profiles, { kind: "player", name, key: ++profileKey.current }] });
   };
-
   const handleOpenTournament = (tournamentId: string, matchId?: string) => {
-    rememberScroll();
-    setProfileStack([]);
-    // Zapamiętaj cel na wypadek, gdyby panel turniejów nie zdążył się
-    // zamontować przed wysłaniem zdarzenia (pierwsza wizyta w zakładce).
-    try {
-      sessionStorage.setItem("pending-tournament-open", JSON.stringify({ tournamentId, matchId }));
-    } catch { /* session storage unavailable */ }
-    setActiveTab("tournaments");
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("tournament:open", { detail: { tournamentId, matchId } }));
-      window.scrollTo({ top: 0 });
-    }, 30);
+    go({ tab: "tournaments", profiles: [], tournament: { tournamentId, matchId } });
   };
-
   const handleBack = () => {
-    setProfileStack(s => {
-      const next = s.slice(0, -1);
-      if (next.length === 0) {
-        const y = listScrollRef.current;
-        requestAnimationFrame(() => window.scrollTo({ top: y }));
-        setTimeout(() => window.scrollTo({ top: y }), 80);
-      }
-      return next;
-    });
+    const next = backNavigation(navigationRef.current);
+    navigationRef.current = next;
+    setNavigation(next);
+  };
+  const handleTabChange = (tab: Tab) => {
+    const saved = readUiPref<{ x: number; y: number } | null>(`scroll_tab_${tab}`, null);
+    go({ tab, profiles: [], tournament: null }, saved?.y || 0);
   };
 
-  const handleTabChange = (tab: Tab) => {
-    rememberScroll();
-    setProfileStack([]);
-    setActiveTab(tab);
-    const saved = readUiPref<{ x: number; y: number } | null>(`scroll_tab_${tab}`, null);
-    requestAnimationFrame(() => window.scrollTo({ top: saved?.y || 0 }));
-    setTimeout(() => window.scrollTo({ top: saved?.y || 0 }), 120);
-  };
+  // Each entry owns its scroll, independent of the underlying panel's offset.
+  useEffect(() => {
+    const y = navigation.current.scrollY;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: y }));
+    const retry = window.setTimeout(() => window.scrollTo({ top: y }), 280);
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(retry); };
+  }, [navigation]);
 
   const [teams, setTeams] = useState<TeamData[]>(loadRankingTeams);
   const [visited, setVisited] = useState<Set<Tab>>(() => new Set<Tab>(["news"]));
@@ -163,13 +154,12 @@ const Index = () => {
 
   // Keep the per-tab scroll offset in the save so reloading lands in place.
   useEffect(() => {
-    if (profileOpen) return;
+    if (profileOpen || tournament) return;
     let raf = 0;
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        listScrollRef.current = window.scrollY;
         writeUiPref(`scroll_tab_${activeTab}`, { x: 0, y: window.scrollY });
       });
     };
@@ -178,7 +168,7 @@ const Index = () => {
       window.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [activeTab, profileOpen]);
+  }, [activeTab, profileOpen, tournament]);
 
   return (
     <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer, openTournament: handleOpenTournament }}>
@@ -190,6 +180,13 @@ const Index = () => {
           onSelectPlayer={handleSelectPlayer}
         />
 
+        <div className="container mx-auto px-4 pt-2">
+          <Button variant="ghost" size="icon" onClick={handleBack} disabled={!navigation.past.length}
+            aria-label="Wstecz" title="Wstecz" className="h-8 w-8 text-muted-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
+
         {/* Keep-alive: every visited panel stays mounted (hidden) so switching
             tabs is instant — no remount, no recomputation. */}
         <Suspense fallback={<PanelFallback />}>
@@ -198,32 +195,24 @@ const Index = () => {
             if (!visited.has(tab) || !PANELS[tab]) return null;
             return (
               <div key={tab} style={tab === activeTab ? undefined : { display: "none" }}>
-                {PANELS[tab]!({ onSelectTeam: handleSelectTeam, onSelectPlayer: handleSelectPlayer })}
+                {PANELS[tab]?.({ onSelectTeam: handleSelectTeam, onSelectPlayer: handleSelectPlayer, tournamentSelection: tournament, onOpenTournament: handleOpenTournament, onBack: handleBack })}
               </div>
             );
           })}
         </div>
 
-        {top?.kind === "player" && (
-          <PlayerProfile
-            key={`p-${profileStack.length}-${top.name}`}
-            playerName={top.name}
-            onBack={handleBack}
-            onSelectTeam={handleSelectTeam}
-            onSelectPlayer={handleSelectPlayer}
-            seasonStandings={[]}
-            dynamicRanking={teams}
-          />
-        )}
-        {top?.kind === "team" && (
-          <TeamProfile
-            key={`t-${profileStack.length}-${top.name}`}
-            teamName={top.name}
-            onBack={handleBack}
-            teams={teams}
-            onSelectPlayer={handleSelectPlayer}
-          />
-        )}
+        {retainedProfiles.map(profile => (
+          <div key={profile.key} style={profile.key === top?.key ? undefined : { display: "none" }}>
+            {profile.kind === "player" ? (
+              <PlayerProfile playerName={profile.name} onBack={handleBack}
+                onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer}
+                seasonStandings={[]} dynamicRanking={teams} />
+            ) : (
+              <TeamProfile teamName={profile.name} onBack={handleBack} teams={teams}
+                onSelectPlayer={handleSelectPlayer} />
+            )}
+          </div>
+        ))}
         </Suspense>
 
         <footer className="border-t border-border py-6 mt-12">
