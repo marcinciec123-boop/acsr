@@ -19,7 +19,7 @@ import { predictBothOutcomes, predictMatch, predictRankDelta, predictRankDeltaPa
 import { MatchComparePanel } from "./MatchComparePanel";
 import { PreMatchReport } from "./PreMatchReport";
 import { getDisplayScore } from "@/lib/matchDisplay";
-import { isMapDecided, isMatchDecided, mapWins, winsNeededFor } from "@/lib/matchStatus";
+import { isMapDecided, isMatchDecided, isMapUnplayed, mapWins, playedMaps, winsNeededFor } from "@/lib/matchStatus";
 import { TeamLink, PlayerLink } from "@/lib/profileNav";
 import { resolvePlayerCountry } from "@/lib/playerCountry";
 import { countryFlag, normalizeCountry } from "@/lib/flags";
@@ -105,9 +105,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
   const computedScore = useMemo(() => {
     if (maps.length === 0) return { s1: match.score1, s2: match.score2 };
-    const { score1: s1, score2: s2 } = mapWins(maps);
+    const { score1: s1, score2: s2 } = mapWins(playedMaps(maps, bo));
     return { s1, s2 };
-  }, [maps, match.score1, match.score2]);
+  }, [maps, bo, match.score1, match.score2]);
 
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       const merged = { ...m, ...patch };
       return scoreChanged ? withRatings(merged) : merged;
     });
-    onUpdate({ bo, maps: next, ...mapWins(next) });
+    onUpdate({ bo, maps: next, ...mapWins(playedMaps(next, bo)) });
   };
 
   // For BO3 we play to 2 wins (max 3 maps); BO5 to 3 wins (max 5).
@@ -169,7 +169,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
   const removeMap = (idx: number) => {
     const next = maps.filter((_, i) => i !== idx);
-    onUpdate({ bo, maps: next, ...mapWins(next) });
+    onUpdate({ bo, maps: next, ...mapWins(playedMaps(next, bo)) });
     if (activeMapIdx >= maps.length - 1) setActiveMapIdx(Math.max(0, maps.length - 2));
   };
 
@@ -786,7 +786,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                         : "border-border text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    Mapa {i + 1} • {m.map} ({m.score1}:{m.score2})
+                    {isMapUnplayed(maps, i, bo)
+                      ? <>Mapa {i + 1} • <span className="line-through">{m.map}</span> (nie grano)</>
+                      : <>Mapa {i + 1} • {m.map} ({m.score1}:{m.score2})</>}
                   </button>
                 ))}
               </div>
@@ -818,7 +820,16 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               </div>
             )}
 
-            {maps[activeMapIdx] && (
+            {maps[activeMapIdx] && isMapUnplayed(maps, activeMapIdx, bo) && (
+              <div className="bg-card border border-dashed border-border rounded-lg p-6 text-center">
+                <p className="text-sm font-heading font-bold text-muted-foreground line-through">{maps[activeMapIdx].map}</p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  Mapa nierozgrywana — BO{bo} rozstrzygnięte ({computedScore.s1}:{computedScore.s2}). Wynik i statystyki są zablokowane.
+                </p>
+              </div>
+            )}
+
+            {maps[activeMapIdx] && !isMapUnplayed(maps, activeMapIdx, bo) && (
               <div className="bg-card border border-border rounded-lg p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-heading font-bold text-foreground">Mapa {activeMapIdx + 1}</h4>
