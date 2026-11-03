@@ -23,3 +23,4 @@
 - Team ranking series come from a per-history-identity index in rankingHistory, and trend charts drop unchanged middle points via compactSteps, keeping long histories cheap without altering data.
 - In the Tauri build, team/tournament logos and player photos are stored as binary image files in AppData/media (Rust media_* commands), loaded on demand through a small in-memory LRU and excluded from the startup cache; backups and resets read them via getAllDeviceValuesWithMedia, so image count does not grow RAM use.
 - Bracket round grouping, side detection (slot first, round name fallback), decider/Grand Final ordering, adding and moving rounds go through src/lib/bracketRounds.ts, so new rounds insert next to their side instead of at the end of the list.
+- Loading tournaments_data merges neighbouring "Group X"/"Grupa X" phases (same group format and BO) into one group-stage phase via mergeGroupPhases, so imported historical events show groups inside one phase.
