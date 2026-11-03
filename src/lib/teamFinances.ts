@@ -1,3 +1,4 @@
+import { clubOnly, isInternationalTournament, isNationalTeam } from "./nationalIdentity";
 import { getTeamRankingSeries } from "@/lib/rankingHistory";
 import { isMatchDecided } from "./matchStatus";
 // ===== Finanse organizacji =====
@@ -207,12 +208,13 @@ function computeAll(): Map<string, TeamFinance> {
   // Finanse liczone od startu świata gry (fikcyjny kalendarz) — kontrakty
   // podpisane „przed sezonem” nie generują kosztów z lat poprzednich.
   const seasonStart = ms(WORLD_CLOCK_DEFAULT);
-  const teams = [...loadAllTeams()].sort((a, b) => b.points - a.points);
+  // Reprezentacje nie mają finansów klubowych.
+  const teams = clubOnly([...loadAllTeams()]).sort((a, b) => b.points - a.points);
   const rankOf = new Map(teams.map((t, i) => [canonicalTeamName(t.name), i + 1]));
   const settings = loadFinanceSettings();
   const ledgers = new Map<string, LedgerEntry[]>();
   const push = (team: string, e: LedgerEntry) => {
-    if (!team || team === "-") return;
+    if (!team || team === "-" || isNationalTeam(team)) return;
     const key = canonicalTeamName(team);
     let l = ledgers.get(key);
     if (!l) { l = []; ledgers.set(key, l); }
@@ -221,7 +223,7 @@ function computeAll(): Map<string, TeamFinance> {
   };
 
   // 1) Nagrody — 25% dla organizacji
-  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []);
+  const tournaments = loadFromStorage<TournamentData[]>("tournaments_data", []).filter(t => !isInternationalTournament(t));
   for (const t of tournaments) {
     if (!t.placements?.length) continue;
     const prizes = resolveTournamentPrizes(t);
@@ -260,7 +262,7 @@ function computeAll(): Map<string, TeamFinance> {
   const TIER_W: Record<string, number> = { S: 1, A: 0.6, B: 0.35, C: 0.2 };
   const perf = new Map<string, { at: number; win?: boolean; w: number; place?: number }[]>();
   const addPerf = (team: string, ev: { at: number; win?: boolean; w: number; place?: number }) => {
-    if (!team || team === "-") return;
+    if (!team || team === "-" || isNationalTeam(team)) return;
     const k = canonicalTeamName(team);
     let l = perf.get(k);
     if (!l) { l = []; perf.set(k, l); }
