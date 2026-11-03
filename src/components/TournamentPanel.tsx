@@ -1000,6 +1000,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
     <>
     {selectedTournament && selectedMatchInfo ? (
       <MatchDetailPage
+        key={selectedMatchInfo.match.id}
         match={selectedMatchInfo.match}
         phaseName={selectedMatchInfo.phaseName}
         bo={selectedMatchInfo.bo}
@@ -1028,6 +1029,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
       />
     ) : selectedTournament ? (
       <TournamentDetailPage
+        key={selectedTournament.id}
         tournament={selectedTournament}
         allTeams={allTeams}
         onBack={onBack}

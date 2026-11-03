@@ -71,6 +71,10 @@ const Index = () => {
   const profileKey = useRef(0);
   const { tab: activeTab, profiles: profileStack, tournament } = navigation.current.view;
   const top = profileStack.at(-1) || null;
+  const retainedProfiles = Array.from(new Map(
+    [...navigation.past, navigation.current].flatMap(entry => entry.view.profiles)
+      .map(profile => [profile.key, profile] as const)
+  ).values());
 
   const go = (view: NavigationView, nextScrollY = 0) => {
     const current = navigationRef.current;
@@ -197,7 +201,7 @@ const Index = () => {
           })}
         </div>
 
-        {profileStack.map(profile => (
+        {retainedProfiles.map(profile => (
           <div key={profile.key} style={profile.key === top?.key ? undefined : { display: "none" }}>
             {profile.kind === "player" ? (
               <PlayerProfile playerName={profile.name} onBack={handleBack}
