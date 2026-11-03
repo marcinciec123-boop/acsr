@@ -4,10 +4,7 @@
 
 import { checkAiRateLimit } from "../_shared/rateLimit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 interface Payload {
   title?: string;
@@ -29,6 +26,7 @@ interface Payload {
   /** Dla mode="reply": autor komentarza, na który odpowiedziała redakcja */
   originalAuthor?: string;
   originalContent?: string;
+  personas?: { nick: string; voice: string }[];
 }
 
 const FACTS_RULES = `ZASADY FAKTOGRAFICZNE (NAJWAŻNIEJSZE):
@@ -116,7 +114,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = (await req.json()) as Payload;
+    const raw = await req.json();
+    if (!raw || (raw.content !== undefined && typeof raw.content !== "string") || (raw.title !== undefined && typeof raw.title !== "string")
+      || (raw.personas !== undefined && (!Array.isArray(raw.personas) || raw.personas.some((p: { nick?: unknown; voice?: unknown }) => typeof p?.nick !== "string" || typeof p?.voice !== "string")))) {
+      return new Response(JSON.stringify({ error: "Nieprawidłowe dane komentarzy." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const body = raw as Payload;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), {
@@ -134,9 +137,12 @@ Deno.serve(async (req) => {
       ? `BAZA DANYCH (jedyne prawdziwe składy, trenerzy, punkty i miejsca w rankingu — nie zmyślaj nic poza tym):\n${body.facts.slice(0, 40000)}`
       : "";
 
+    const personaBlock = body.personas?.length ? `PULA KOMENTUJĄCYCH DLA TEGO ARTYKUŁU: wybierz różne osoby z tej listy i zachowaj przypisany im głos; nie korzystaj z przykładowych nicków z instrukcji. Wyjątek: pierwsza odpowiedź oryginalnego autora w trybie reply.
+${body.personas.slice(0, 40).map(p => `${p.nick}: ${p.voice}`).join("\n")}` : "";
     const userPrompt = isReply
       ? [
           factsBlock,
+          personaBlock,
           body.title ? `TYTUŁ ARTYKUŁU: ${body.title}` : "",
           `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 2500)}`,
           body.thread?.length
@@ -154,6 +160,7 @@ Deno.serve(async (req) => {
         ].filter(Boolean).join("\n\n")
       : [
           factsBlock,
+          personaBlock,
           body.title ? `TYTUŁ: ${body.title}` : "",
           `TREŚĆ ARTYKUŁU:\n${(body.content || "").slice(0, 4000)}`,
           body.category ? `KATEGORIA: ${body.category}` : "",
@@ -217,21 +224,10 @@ Deno.serve(async (req) => {
     });
 
     if (!aiResp.ok) {
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit przekroczony, spróbuj później." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Brak kredytów AI. Doładuj w ustawieniach workspace." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const txt = await aiResp.text();
-      console.error("AI error:", aiResp.status, txt);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const text = await aiResp.text();
+      let message = "Usługa AI jest niedostępna.";
+      try { const parsed = JSON.parse(text); message = parsed.message || parsed.error?.message || (typeof parsed.error === "string" ? parsed.error : message); } catch { /* non-JSON failure */ }
+      return new Response(JSON.stringify({ error: message }), { status: aiResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await aiResp.json();

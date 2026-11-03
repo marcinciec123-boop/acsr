@@ -4,10 +4,7 @@
 
 import { checkAiRateLimit } from "../_shared/rateLimit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 interface SnapshotPayload {
   topTeams: { name: string; points: number; country: string }[];
@@ -20,6 +17,9 @@ interface SnapshotPayload {
   mode?: "mixed" | "memes" | "mvp" | "power-ranking" | "beef" | "hot-take" | "fun-fact" | "recap" | "preview";
   /** Optional: concrete event context (e.g. tournament summary) used as the spine of the posts */
   context?: string;
+  writingInstructions?: string;
+  recentPosts?: { title?: string; content: string }[];
+  templateDraft?: { title: string; content: string; category: string };
 }
 
 const POST_CATEGORIES = [
@@ -80,6 +80,12 @@ ZASADY JAKOŚCI DZIENNIKARSKIEJ:
 
 function buildUserPrompt(body: SnapshotPayload, count: number): string {
   const parts: string[] = [];
+  if (body.writingInstructions) parts.push(body.writingInstructions);
+  if (body.templateDraft) parts.push(`SZKIC JEST ŹRÓDŁEM FAKTÓW, niezależnie od pustych list poniżej. Nie wymyślaj innych danych. Kategoria: ${body.templateDraft.category}. Napisz osobny nagłówek (bez przepisywania pierwszego zdania) i pełny artykuł.
+${body.templateDraft.title}
+${body.templateDraft.content}`);
+  if (body.recentPosts?.length) parts.push(`NIEDAWNE ARTYKUŁY — nie powtarzaj nagłówków, fraz, leadów, perspektyw ani wniosków:
+${body.recentPosts.slice(0, 40).map(p => `${p.title || ""}: ${p.content.slice(0, 1200)}`).join("\n")}`);
   parts.push(`Wygeneruj ${count} ${count === 1 ? "post" : "różnorodnych postów"}.`);
 
   if (body.context) {
@@ -110,7 +116,7 @@ function buildUserPrompt(body: SnapshotPayload, count: number): string {
     parts.push(`\nŻELAZNA REGUŁA: każdy post MUSI mieć jako "hak" konkretne wydarzenie z listy powyżej (podaj numer #N w myślach — nie w treści). \
 Nie wolno pisać postów o wydarzeniach spoza listy. Nie wymyślaj transferów, wyników, finałów, meczów, ceremonii ani "ostatnich występów", których nie ma w wydarzeniach ani w danych o turniejach. \
 Możesz łączyć wydarzenie z kontekstem rankingu/topPlayers (np. "transfer trafia do drużyny #3 rankingu"), ale sam news musi mieć źródło w liście wydarzeń.`);
-  } else {
+  } else if (!body.templateDraft) {
     parts.push(`\nUWAGA: brak konkretnych wydarzeń w bazie. Pisz TYLKO ogólne analizy formy top drużyn / graczy z powyższych danych. NIE wymyślaj transferów, wyników ani meczów.`);
   }
 
@@ -134,7 +140,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = (await req.json()) as SnapshotPayload;
+    const raw = await req.json();
+    if (!raw || !Array.isArray(raw.topTeams) || !Array.isArray(raw.recentTransfers) || !Array.isArray(raw.tournaments)
+      || (raw.count !== undefined && (typeof raw.count !== "number" || !Number.isFinite(raw.count)))
+      || (raw.context !== undefined && typeof raw.context !== "string")
+      || (raw.writingInstructions !== undefined && typeof raw.writingInstructions !== "string")
+      || (raw.recentPosts !== undefined && (!Array.isArray(raw.recentPosts) || raw.recentPosts.some((p: { content?: unknown }) => typeof p?.content !== "string")))) {
+      return new Response(JSON.stringify({ error: "Nieprawidłowe dane generatora." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const body = raw as SnapshotPayload;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), {
@@ -172,10 +186,11 @@ Deno.serve(async (req) => {
                     items: {
                       type: "object",
                       properties: {
+                        title: { type: "string", description: "Unikatowy nagłówek artykułu po polsku" },
                         category: { type: "string", enum: POST_CATEGORIES },
                         content: { type: "string", description: "Treść posta po polsku, 2-5 zdań" },
                       },
-                      required: ["category", "content"],
+                      required: ["title", "category", "content"],
                       additionalProperties: false,
                     },
                   },
@@ -191,24 +206,10 @@ Deno.serve(async (req) => {
     });
 
     if (!aiResp.ok) {
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit przekroczony, spróbuj później." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Brak kredytów AI. Doładuj w Settings → Workspace → Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const txt = await aiResp.text();
-      console.error("AI error:", aiResp.status, txt);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const text = await aiResp.text();
+      let message = "Usługa AI jest niedostępna.";
+      try { const parsed = JSON.parse(text); message = parsed.message || parsed.error?.message || (typeof parsed.error === "string" ? parsed.error : message); } catch { /* non-JSON failure */ }
+      return new Response(JSON.stringify({ error: message }), { status: aiResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await aiResp.json();
