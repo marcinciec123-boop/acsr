@@ -1,4 +1,7 @@
-import { diskDelete, diskLoadAll, diskSet, isDiskStoreAvailable } from "./diskStore";
+import {
+  createLru, diskDelete, diskLoadAll, diskSet, isDiskStoreAvailable, isMediaKey,
+  mediaLoadAll, mediaRead, mediaRemove, mediaWrite,
+} from "./diskStore";
 
 const DEVICE_STORE_DB = "csgo_hub_device_store";
 const DEVICE_STORE_VERSION = 1;
@@ -13,6 +16,10 @@ interface DeviceStoreRecord {
 }
 
 let deviceStoreCache: Record<string, string> | null = null;
+// Wersja .exe: grafiki leżą jako pliki w AppData/media i w RAM trzymamy tylko
+// ostatnio wyświetlane (null = brak pliku).
+const mediaCache = createLru<string | null>(150);
+const onDiskMedia = (key: string) => isDiskStoreAvailable() && isMediaKey(key);
 
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
@@ -30,6 +37,11 @@ const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject
 });
 
 export const setDeviceValue = async (key: string, value: string): Promise<void> => {
+  if (onDiskMedia(key)) {
+    mediaCache.set(key, value);
+    await mediaWrite(key, value);
+    return;
+  }
   deviceStoreCache = { ...(deviceStoreCache || {}), [key]: value };
   if (isDiskStoreAvailable()) diskSet(key, value);
   const db = await openDeviceStore();
@@ -42,6 +54,13 @@ export const setDeviceValue = async (key: string, value: string): Promise<void> 
 };
 
 export const getDeviceValue = async (key: string): Promise<string | null> => {
+  if (onDiskMedia(key)) {
+    const hit = mediaCache.get(key);
+    if (hit !== undefined) return hit;
+    const value = await mediaRead(key);
+    mediaCache.set(key, value);
+    return value;
+  }
   if (deviceStoreCache && key in deviceStoreCache) return deviceStoreCache[key];
   const db = await openDeviceStore();
   return new Promise((resolve, reject) => {
@@ -53,6 +72,12 @@ export const getDeviceValue = async (key: string): Promise<string | null> => {
 };
 
 export const removeDeviceValue = async (key: string): Promise<void> => {
+  if (onDiskMedia(key)) {
+    mediaCache.set(key, null);
+    await mediaRemove(key);
+    try { await removeBrowserValue(key); } catch { /* ignore */ }
+    return;
+  }
   if (deviceStoreCache) {
     const next = { ...deviceStoreCache };
     delete next[key];
@@ -66,6 +91,23 @@ export const removeDeviceValue = async (key: string): Promise<void> => {
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
+};
+
+const removeBrowserValue = async (key: string): Promise<void> => {
+  const db = await openDeviceStore();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(DEVICE_STORE_NAME, "readwrite");
+    const req = tx.objectStore(DEVICE_STORE_NAME).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+};
+
+/** Wszystkie wartości łącznie z grafikami z dysku — dla kopii zapasowych i resetu. */
+export const getAllDeviceValuesWithMedia = async (): Promise<Record<string, string>> => {
+  const base = deviceStoreCache ?? await getAllDeviceValues();
+  if (!isDiskStoreAvailable()) return base;
+  return { ...base, ...(await mediaLoadAll()) };
 };
 
 export const getAllDeviceValues = async (): Promise<Record<string, string>> => {
@@ -94,12 +136,23 @@ export const initializeDeviceStoreCache = async (): Promise<void> => {
   // dysk; kopia w przeglądarce zostaje nienaruszona jako zabezpieczenie.
   try {
     const disk = await diskLoadAll();
-    if (Object.keys(disk).length === 0) {
-      for (const [key, value] of Object.entries(browserValues)) diskSet(key, value);
-      deviceStoreCache = browserValues;
-    } else {
-      deviceStoreCache = { ...browserValues, ...disk };
+    const firstRun = Object.keys(disk).length === 0;
+    if (firstRun) {
+      for (const [key, value] of Object.entries(browserValues)) if (!isMediaKey(key)) diskSet(key, value);
     }
+    // Grafiki: jednorazowe przeniesienie do plików w AppData/media (z pamięci
+    // przeglądarki lub ze starszego zapisu w folderze save). Po udanym zapisie
+    // pliku kopia w przeglądarce jest usuwana, żeby nie trzymać zdjęć podwójnie.
+    const media = Object.entries({ ...browserValues, ...disk }).filter(([key]) => isMediaKey(key));
+    for (const [key, value] of media) {
+      try {
+        if (value && value !== DEVICE_STORE_REF) await mediaWrite(key, value);
+        if (key in disk) diskDelete(key);
+        if (key in browserValues) await removeBrowserValue(key);
+      } catch (error) { console.error("Media migration failed:", key, error); }
+    }
+    const merged = firstRun ? browserValues : { ...browserValues, ...disk };
+    deviceStoreCache = Object.fromEntries(Object.entries(merged).filter(([key]) => !isMediaKey(key)));
   } catch (error) {
     console.error("Disk store load failed, using browser storage:", error);
     deviceStoreCache = browserValues;
@@ -107,6 +160,7 @@ export const initializeDeviceStoreCache = async (): Promise<void> => {
 };
 
 export const getCachedDeviceValue = (key: string): string | null => (
+  onDiskMedia(key) ? (mediaCache.get(key) ?? null) :
   deviceStoreCache && key in deviceStoreCache ? deviceStoreCache[key] : null
 );
 
