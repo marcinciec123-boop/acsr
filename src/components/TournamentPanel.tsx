@@ -107,7 +107,7 @@ const TournamentPanel = () => {
     return seeded.map(t => t.resultsConfirmed ? t : {
       ...t,
       phases: t.phases.map(phase => {
-        if (phase.format !== "gsl-de-groups" || !phase.groups?.length) return phase;
+        if (phase.format !== "gsl-de-groups" || !phase.groups?.length || phase.mergedGroups) return phase;
         const perGroup = phase.advanceCount
           ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
           : 2;
@@ -609,7 +609,9 @@ const TournamentPanel = () => {
                   return stampPlayedAt(m, { ...m, bo: m.bo ?? p.bo, ...patch });
                 });
                 // Auto-propagate winners/losers within DE groups
-                if (p.format === "gsl-de-groups") {
+                if (p.mergedGroups) {
+                  // imported history: keep the bracket exactly as entered
+                } else if (p.format === "gsl-de-groups") {
                   nextMatches = propagateGSLDEGroup([...nextMatches]);
                 } else if (p.format === "gsl-groups") {
                   nextMatches = propagateGSL4Group([...nextMatches]);

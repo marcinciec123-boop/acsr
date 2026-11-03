@@ -98,6 +98,8 @@ export interface PhaseGroup {
 }
 
 export interface TournamentPhase {
+  /** Set when separate imported "Group X" phases were joined; each group keeps its own bracket untouched. */
+  mergedGroups?: boolean;
   id: string;
   name: string; // e.g. "Group Stage", "Playoffs"
   format: PhaseFormat;
