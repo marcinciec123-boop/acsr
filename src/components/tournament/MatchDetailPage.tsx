@@ -743,30 +743,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               </>
             )}
 
-            {maps.length > 0 && (
-              <div className="bg-card border border-border rounded-lg p-5">
-                <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-3">
-                  Mapy
-                </h3>
-                <div className="space-y-2">
-                  {maps.map((m, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm font-mono p-2 rounded bg-secondary/30">
-                      <span className="text-xs text-muted-foreground w-6">M{i + 1}</span>
-                      <span className="text-primary w-24 truncate">{m.map}</span>
-                      <div className={cn("flex-1 flex items-center justify-end gap-2 min-w-0", m.score1 > m.score2 && "text-foreground font-bold")}>
-                        <span className="truncate">{match.team1}</span>
-                        <TeamLogo teamName={match.team1} size={18} rounded="md" />
-                      </div>
-                      <span className="font-bold tabular-nums">{m.score1} : {m.score2}</span>
-                      <div className={cn("flex-1 flex items-center gap-2 min-w-0", m.score2 > m.score1 && "text-foreground font-bold")}>
-                        <TeamLogo teamName={match.team2} size={18} rounded="md" />
-                        <span className="truncate">{match.team2}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </TabsContent>
 
           <TabsContent value="maps" className="space-y-4">
