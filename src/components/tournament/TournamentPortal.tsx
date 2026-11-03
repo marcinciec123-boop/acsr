@@ -761,22 +761,123 @@ const TournamentChronologicalList = ({ tournaments, onSelect }: { tournaments: T
 };
 
 const RESULTS_PAGE = 30;
+type ListSort = "newest" | "oldest" | "name";
+
 const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: TournamentData[]; onSelect: (id: string) => void }) => {
   const [limit, setLimit] = useState(RESULTS_PAGE);
-  const sorted = useMemo(
-    () => [...tournaments].sort((a, b) =>
-      (b.endDate || b.startDate || "").localeCompare(a.endDate || a.startDate || "")
-      || (b.startDate || "").localeCompare(a.startDate || "")),
-    [tournaments],
-  );
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = usePersistedState<StatusFilter>("plist_status", "ALL");
+  const [tier, setTier] = usePersistedState<TierFilter>("plist_tier", "ALL");
+  const [sort, setSort] = usePersistedState<ListSort>("plist_sort", "newest");
+
+  const filtered = useMemo(() => {
+    let list = [...tournaments];
+    if (status !== "ALL") list = list.filter(t => t.status === status);
+    if (tier !== "ALL") list = list.filter(t => t.tier === tier);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(t =>
+        t.name.toLowerCase().includes(q)
+        || (t.organizer || "").toLowerCase().includes(q)
+        || (t.location || "").toLowerCase().includes(q),
+      );
+    }
+    return list.sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      const cmp = (b.endDate || b.startDate || "").localeCompare(a.endDate || a.startDate || "")
+        || (b.startDate || "").localeCompare(a.startDate || "");
+      return sort === "oldest" ? -cmp : cmp;
+    });
+  }, [tournaments, search, status, tier, sort]);
+
+  const hasFilters = status !== "ALL" || tier !== "ALL" || search.trim() !== "";
+  const resetFilters = () => { setSearch(""); setStatus("ALL"); setTier("ALL"); };
+
   const placeOf = (t: TournamentData, n: number) => t.placements?.find(p => p.placement === n)?.team;
   return (
     <div className="mt-6 bg-card border border-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/40">
         <List className="w-4 h-4 text-primary" />
         <h3 className="font-heading font-bold text-foreground">Lista turniejów</h3>
-        <span className="text-xs font-mono text-muted-foreground">({sorted.length}) • najnowsze na górze</span>
+        <span className="text-xs font-mono text-muted-foreground">({filtered.length})</span>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="ml-auto text-xs font-mono font-bold text-primary hover:text-foreground transition-colors"
+          >
+            Wyczyść filtry
+          </button>
+        )}
       </div>
+
+      <div className="px-4 py-3 border-b border-border/60 bg-secondary/20 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Szukaj w liście..."
+              className="w-full h-8 pl-8 pr-3 rounded-md bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60"
+            />
+          </label>
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value as ListSort)}
+            className="h-8 px-2 rounded-md bg-background border border-border text-xs font-mono text-foreground"
+            title="Sortowanie"
+          >
+            <option value="newest">Najnowsze</option>
+            <option value="oldest">Najstarsze</option>
+            <option value="name">Nazwa A–Z</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {([
+            { key: "ALL", label: "Wszystkie" },
+            { key: "live", label: "Na żywo" },
+            { key: "upcoming", label: "Nadchodzące" },
+            { key: "completed", label: "Zakończone" },
+          ] as { key: StatusFilter; label: string }[]).map(s => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setStatus(s.key)}
+              className={cn(
+                "shrink-0 text-xs font-mono font-bold px-2 py-1 rounded-md border transition-colors whitespace-nowrap",
+                status === s.key
+                  ? "text-primary bg-primary/10 border-primary/40"
+                  : "text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/40",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {(["ALL", "S", "A", "B", "C"] as TierFilter[]).map(tr => (
+            <button
+              key={tr}
+              type="button"
+              onClick={() => setTier(tr)}
+              className={cn(
+                "shrink-0 text-xs font-mono font-bold px-2 py-1 rounded border transition-colors",
+                tier === tr
+                  ? tr === "ALL"
+                    ? "bg-foreground/10 text-foreground border-foreground/30"
+                    : tierColor(tr)
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tr === "ALL" ? "Tier" : `${tr}-Tier`}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="hidden md:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_110px_70px] gap-3 px-4 py-2 text-xs font-mono uppercase text-muted-foreground border-b border-border/60">
         <span>Turniej</span><span>Zwycięzca</span><span>2. miejsce</span><span className="text-right">Pula</span><span className="text-right">Drużyny</span>
       </div>
