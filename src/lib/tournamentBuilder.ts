@@ -8,7 +8,7 @@ import type {
 } from "./types";
 import type { MatchStats, MapStats, PlayerMatchStats } from "./playerStats";
 import { calculateRating } from "./playerStats";
-import { isMatchDecided } from "./matchStatus";
+import { isMatchDecided, playedMaps } from "./matchStatus";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -617,7 +617,7 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
     s1.mapDiff += m.score1 - m.score2;
     s2.mapDiff += m.score2 - m.score1;
     // Round (in-game CS rounds) totals across played maps
-    for (const map of m.maps || []) {
+    for (const map of playedMaps(m.maps, m.bo)) {
       const r1 = map.score1 || 0;
       const r2 = map.score2 || 0;
       if (r1 + r2 <= 0) continue;
@@ -692,7 +692,7 @@ const aggregatePlayer = (perMap: PlayerMatchStats[]): PlayerMatchStats => {
 
 const matchToStats = (m: MatchResult): MatchStats | null => {
   if (!m.maps || m.maps.length === 0) return null;
-  const mapsWithStats = m.maps.filter(mp => mp.team1Players?.length || mp.team2Players?.length);
+  const mapsWithStats = playedMaps(m.maps, m.bo).filter(mp => mp.team1Players?.length || mp.team2Players?.length);
   if (mapsWithStats.length === 0) return null;
 
   const mapStatsList: MapStats[] = mapsWithStats.map((mp, idx) => {
