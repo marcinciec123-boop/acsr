@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Bieżące poprawki
+- [x] Zaktualizować zaakceptowane stawki personelu i operacji z czołówką Top 20, zachowując stopniową adaptację i ręczne kwoty; usprawnienia dużych baz odłożyć na kolejny krok.
 - [x] Rozszerzyć ranking ponad 100 drużyn, zachować pełną listę i Tier C dla miejsc 51+; rozszerzyć ELO i skalę historii pozycji.
 - [x] Kompresować eksporty Gzip, zachować import JSON i dodać eksport bez grafik.
 - [x] Zmniejszać nowe wgrywane grafiki przez WebP z zachowaniem przezroczystości.

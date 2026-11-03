@@ -126,11 +126,11 @@ export function defaultStartingBalance(rank: number, team = ""): number {
   return round(base * mult, 10_000);
 }
 export function defaultMonthlyRunning(rank: number, team = ""): number {
-  const base = rank <= 10 ? 38_000 : rank <= 30 ? 20_000 : rank <= 60 ? 10_000 : 5_000;
+  const base = rank <= 5 ? 55_000 : rank <= 10 ? 42_000 : rank <= 20 ? 26_000 : rank <= 30 ? 16_000 : rank <= 60 ? 10_000 : 5_000;
   return round(base * jitter(team, "run", 0.6, 1.5), 500);
 }
 export function defaultMonthlyStaff(rank: number, team = ""): number {
-  const base = rank <= 10 ? 28_000 : rank <= 30 ? 16_000 : rank <= 60 ? 8_000 : 3_500;
+  const base = rank <= 5 ? 65_000 : rank <= 10 ? 48_000 : rank <= 20 ? 30_000 : rank <= 30 ? 18_000 : rank <= 60 ? 9_000 : 4_000;
   return round(base * jitter(team, "staff", 0.65, 1.45), 500);
 }
 
