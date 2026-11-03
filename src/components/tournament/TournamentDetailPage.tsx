@@ -649,7 +649,9 @@ export const TournamentDetailPage = ({
 
         {view === "play" && (<>
         {/* Lineup picker — substitutions per tournament */}
-        <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
+        {t.status === "upcoming" && !t.resultsConfirmed && (
+          <TournamentLineupPanel tournamentId={t.id} participants={t.participants} />
+        )}
 
         {/* Pick'em — predictions panel (shown once at least one group has been drawn) */}
         <PickemPanel tournament={t} />

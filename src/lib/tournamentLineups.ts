@@ -74,6 +74,25 @@ export function resolveLineup(tournamentId: string | undefined, team: string): s
   return [];
 }
 
+/**
+ * Freeze the starting five of every participant for a tournament that has
+ * started. Existing explicit lineups are kept; later bench moves or transfers
+ * no longer change who represented a team in this event.
+ */
+export function lockTournamentLineups(tournamentId: string, participants: string[]): void {
+  const map = loadLineups();
+  const current = { ...(map[tournamentId] || {}) };
+  let changed = false;
+  for (const team of participants) {
+    if (!team || current[team]?.length) continue;
+    const lineup = resolveLineup(tournamentId, team);
+    if (lineup.length) { current[team] = lineup.slice(0, 5); changed = true; }
+  }
+  if (!changed) return;
+  map[tournamentId] = current;
+  saveLineups(map);
+}
+
 /** All teams that have a customised lineup for this tournament. */
 export function getCustomisedTeams(tournamentId: string): string[] {
   const map = loadLineups();
