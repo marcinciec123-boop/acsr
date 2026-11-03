@@ -4,6 +4,7 @@
  * Note: placements have points=0 — does NOT affect the dynamic ranking.
  */
 import type { TournamentData } from "./types";
+import { mergeGroupPhases } from "./mergeGroupPhases";
 import { ESL_PRO_LEAGUE_I_SEED } from "./eslProLeagueISeed";
 
 const SEED_VERSION_KEY = "csgo_hub_seed_esl_pro_league_i_v4_restore_groups";
@@ -16,5 +17,5 @@ export function seedEslProLeagueI(current: TournamentData[]): TournamentData[] {
   const withoutStaleEsl = current.filter((t) => t.id !== ESL_PRO_LEAGUE_I_ID);
 
   localStorage.setItem(SEED_VERSION_KEY, "1");
-  return [...withoutStaleEsl, ...ESL_PRO_LEAGUE_I_SEED];
+  return [...withoutStaleEsl, ...ESL_PRO_LEAGUE_I_SEED.map(mergeGroupPhases)];
 }

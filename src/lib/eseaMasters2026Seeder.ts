@@ -4,6 +4,7 @@
  * Placements carry points = 0 — ranking points are NOT adjusted.
  */
 import type { TournamentData } from "./types";
+import { mergeGroupPhases } from "./mergeGroupPhases";
 import { ESEA_MASTERS_2026_SEED } from "./eseaMasters2026Seed";
 
 const SEED_VERSION_KEY = "csgo_hub_seed_esea_masters_2026_v2_restore_groups";
@@ -14,5 +15,5 @@ export function seedEseaMasters2026(current: TournamentData[]): TournamentData[]
 
   const without = current.filter((t) => t.id !== ESEA_MASTERS_2026_ID);
   localStorage.setItem(SEED_VERSION_KEY, "1");
-  return [...without, ...ESEA_MASTERS_2026_SEED];
+  return [...without, ...ESEA_MASTERS_2026_SEED.map(mergeGroupPhases)];
 }

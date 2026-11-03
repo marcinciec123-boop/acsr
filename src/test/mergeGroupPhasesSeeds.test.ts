@@ -16,6 +16,9 @@ describe("historical group merge keeps results", () => {
       const merged = mergeGroupPhases(t);
       expect(merged.phases.length).toBe(t.phases.length - 1);
       expect(merged.phases[0].groups?.length).toBe(2);
+      expect(merged.phases[0].mergedGroups).toBe(true);
+      expect(merged.phases[0].advanceCount).toBe(t.phases.slice(0, 2).reduce((s, p) => s + (p.advanceCount || 0), 0));
+      merged.phases[0].groups!.forEach((g, i) => expect(g.matches).toEqual(t.phases[i].bracket));
       expect(allMatches(merged).map(m => m.id).sort()).toEqual(allMatches(t).map(m => m.id).sort());
       expect(JSON.stringify(allMatches(merged).map(m => [m.id, m.score1, m.score2]).sort()))
         .toBe(JSON.stringify(allMatches(t).map(m => [m.id, m.score1, m.score2]).sort()));
