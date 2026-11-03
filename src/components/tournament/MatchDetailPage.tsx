@@ -408,6 +408,48 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             </div>
           </div>
 
+          {/* Podsumowanie map pod wynikiem serii — tylko rozegrane mapy, bez notek z veto */}
+          {(() => {
+            const played = playedMaps(maps, bo).filter(m => (m.score1 || 0) + (m.score2 || 0) > 0);
+            if (bo === 1) {
+              const m = played[0];
+              if (!m) return null;
+              const halves = m.half1Score1 !== undefined && m.half1Score2 !== undefined;
+              return (
+                <div className="mt-2 text-center text-xs font-mono text-muted-foreground">
+                  Mapa: <span className="font-medium text-foreground">{m.map}</span>
+                  {" • "}
+                  <span className="font-bold text-foreground">{m.score1} : {m.score2}</span>
+                  {halves && (
+                    <span> (połówki: {m.half1Score1}:{m.half1Score2}{m.half2Score1 !== undefined && m.half2Score2 !== undefined ? ` · ${m.half2Score1}:${m.half2Score2}` : ""})</span>
+                  )}
+                </div>
+              );
+            }
+            if (played.length === 0) return null;
+            return (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                {played.map((m, i) => {
+                  const decided = isMapDecided(m);
+                  const w1 = decided && m.score1 > m.score2;
+                  const w2 = decided && m.score2 > m.score1;
+                  return (
+                    <div
+                      key={`${m.map}-${i}`}
+                      className={cn("flex items-center gap-1.5 rounded-md border border-border bg-secondary/30 px-2 py-1 text-xs font-mono", !decided && "text-muted-foreground")}
+                      title={decided ? undefined : "Mapa w trakcie"}
+                    >
+                      <span className="font-medium">{m.map}</span>
+                      <span className={cn("font-bold", w1 ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>{m.score1}</span>
+                      <span className="text-muted-foreground">:</span>
+                      <span className={cn("font-bold", w2 ? "text-[hsl(var(--win))]" : "text-muted-foreground")}>{m.score2}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           {!matchDecided && (computedScore.s1 + computedScore.s2 > 0 || maps.some(m => m.score1 + m.score2 > 0)) && (
             <div className="mt-3 text-center text-xs font-mono text-primary">● W TRAKCIE</div>
           )}
