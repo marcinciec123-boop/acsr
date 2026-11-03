@@ -866,7 +866,7 @@ const TournamentPanel = () => {
   const handleSetStatus = (id: string, status: "upcoming" | "live" | "completed") => {
     // Fikcyjny kalendarz podąża za turniejem: start → data rozpoczęcia, koniec → data zakończenia.
     const src = tournaments.find(t => t.id === id);
-    if (src && src.status !== status) {
+    if (src && src.status !== status && !isInternationalTournament(src)) {
       if (status === "live") advanceWorldTo(src.startDate);
       if (status === "completed") advanceWorldTo(src.endDate || src.startDate);
     }
@@ -880,7 +880,7 @@ const TournamentPanel = () => {
         import("@/lib/autoNews").then(async (m) => {
           if (status === "live") m.announceTournamentStarted(t.name, t.tier, t.teams);
           if (status === "completed") {
-            try {
+            if (!isInternationalTournament(t)) try {
               const { recordRankingSnapshot } = await import("@/lib/rankingHistory");
               const historySaved = await recordRankingSnapshot(`status-completed:${t.id}`);
               if (!historySaved) throw new Error("Ranking history save failed");

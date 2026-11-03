@@ -1,3 +1,4 @@
+import { isNationalTeam } from "@/lib/nationalIdentity";
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Plus, Trash2, Sword, Wand2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Sparkles, CalendarClock, Shuffle } from "lucide-react";
@@ -236,7 +237,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   const isNationalMatch = useMemo(() => {
     const t1 = ranking.find(t => t.name === match.team1);
     const t2 = ranking.find(t => t.name === match.team2);
-    return !!(t1?.isNational || t2?.isNational);
+    return !!(t1?.isNational || t2?.isNational || isNationalTeam(match.team1) || isNationalTeam(match.team2));
   }, [ranking, match.team1, match.team2]);
   const previews = useMemo(() => {
     if (!match.team1 || !match.team2 || match.team1 === "TBD" || match.team2 === "TBD" || match.team2 === "BYE") {
@@ -289,12 +290,14 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
   const handleConfirm = () => {
     if (!matchDecided) { setConfirmOpen(false); return; }
     onUpdate({
-      pointsWinner: pointsWin, pointsLoser: pointsLose, resultConfirmed: true,
+      // Mecz reprezentacji nie zapisuje punktów VRS.
+      ...(isNationalMatch ? {} : { pointsWinner: pointsWin, pointsLoser: pointsLose }),
+      resultConfirmed: true,
       confirmedAt: Date.now(),
       maps: maps.map(withRatings),
     });
-    // Fikcyjny kalendarz idzie do przodu do terminu meczu (finanse, kontrakty).
-    if (match.scheduledAt) advanceWorldTo(match.scheduledAt);
+    // Fikcyjny kalendarz idzie do przodu do terminu meczu (finanse, kontrakty) — nie dla reprezentacji.
+    if (match.scheduledAt && !isNationalMatch) advanceWorldTo(match.scheduledAt);
     // Sprawdzenie pobitych rekordów dopiero po fizycznym zatwierdzeniu wyniku.
     setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
     onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
