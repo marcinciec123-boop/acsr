@@ -912,6 +912,11 @@ const TournamentResultsList = ({ tournaments, onSelect }: { tournaments: Tournam
           );
         })}
       </div>
+      {filtered.length === 0 && (
+        <div className="px-4 py-8 text-center text-xs font-mono text-muted-foreground">
+          Brak turniejów dla wybranych filtrów.
+        </div>
+      )}
       {filtered.length > limit && (
         <button type="button" onClick={() => setLimit(l => l + RESULTS_PAGE)}
           className="w-full py-2.5 text-xs font-mono font-bold text-primary hover:bg-secondary/30 border-t border-border">
@@ -1138,7 +1143,7 @@ export const TournamentPortal = ({ tournaments, onSelect, onCreate, onCreateWorl
         {filtered.length > 0 && viewMode === "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
         {filtered.length > 0 && viewMode === "year" && <TournamentYearTimeline tournaments={filtered} onSelect={onSelect} />}
         {filtered.length > 0 && viewMode !== "year" && viewMode !== "month" && <TournamentMonthCalendar tournaments={filtered} onSelect={onSelect} />}
-        <TournamentResultsList tournaments={tournaments} onSelect={onSelect} />
+        {tournaments.length > 0 && <TournamentResultsList tournaments={tournaments} onSelect={onSelect} />}
       </div>
     </section>
   );
