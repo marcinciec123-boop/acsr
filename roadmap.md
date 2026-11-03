@@ -1,5 +1,9 @@
 # Roadmap — duże ilości danych (5+ lat)
 
+- [ ] Rozbudowane szablony i różnorodność generowanych postów.
+- [ ] Więcej komentujących oraz zwijane posty z tekstem i komentarzami po rozwinięciu.
+- [ ] Dodawanie redakcji i wybór redakcji podczas tworzenia posta.
+
 - [x] Powrót po łączach do poprzedniego panelu/profilu z zachowaniem jego stanu.
 
 - [x] 1. Zapis na dysku w .exe (pliki w AppData, zapis atomowy, debounce, jednorazowa migracja)
