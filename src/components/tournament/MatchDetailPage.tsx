@@ -421,7 +421,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                   {" • "}
                   <span className="font-bold text-foreground">{m.score1} : {m.score2}</span>
                   {halves && (
-                    <span> (połówki: {m.half1Score1}:{m.half1Score2}{m.half2Score1 !== undefined && m.half2Score2 !== undefined ? ` · ${m.half2Score1}:${m.half2Score2}` : ""})</span>
+                    <span> (1. połowa: {m.half1Score1}:{m.half1Score2})</span>
                   )}
                 </div>
               );
