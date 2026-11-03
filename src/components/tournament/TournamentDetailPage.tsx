@@ -1020,7 +1020,32 @@ export const TournamentDetailPage = ({
                         onShuffle={() => onShuffleGroups(phase.id)}
                       />
                     )}
-                    {phase.groups && phase.groups.length > 0 && (() => {
+                    {phase.groups && phase.groups.length > 0 && phase.format === "double-elim" && (
+                      <div className="space-y-6">
+                        {phase.groups.map(g => (
+                          <div key={g.id} className="space-y-2">
+                            <h4 className="font-display text-sm uppercase tracking-wider text-muted-foreground">{g.name}</h4>
+                            <BracketView
+                              matches={g.matches}
+                              tier={t.tier}
+                              scrollKey={`${t.id}_${phase.id}_${g.id}`}
+                              allTeams={Array.from(new Set([...t.participants, ...g.teams])).filter(Boolean).sort()}
+                              onUpdate={(mid, s1, s2, t1, t2, round) =>
+                                onUpdateMatch(phase.id, mid, {
+                                  score1: s1, score2: s2,
+                                  ...(t1 !== undefined && { team1: t1 }),
+                                  ...(t2 !== undefined && { team2: t2 }),
+                                  ...(round !== undefined && { round }),
+                                }, g.id)
+                              }
+                              onDelete={onDeleteGroupMatch ? (mid) => onDeleteGroupMatch(phase.id, g.id, mid) : undefined}
+                              onOpenMatch={(mid) => onOpenMatch(phase.id, mid, g.id)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {phase.groups && phase.groups.length > 0 && phase.format !== "double-elim" && (() => {
                       const perGroup = phase.advanceCount && phase.groups.length > 0
                         ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
                         : (phase.format === "gsl-de-groups" || phase.format === "gsl-groups" ? 2 : 2);
