@@ -705,6 +705,8 @@ const TournamentPanel = () => {
             ...p,
             groups: p.groups.map(g => {
               const newTeams = assignment[g.id] ?? g.teams;
+              // Unchanged group keeps its matches and results.
+              if (newTeams.length === g.teams.length && newTeams.every((x, i) => x === g.teams[i])) return g;
               return {
                 ...g,
                 teams: [...newTeams],

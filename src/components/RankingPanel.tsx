@@ -28,7 +28,14 @@ import { CalendarClock } from "lucide-react";
 
 // Mini wykres punktów (sparkline) — broadcast style
 const Sparkline = ({ team, width = 46, height = 14 }: { team: string; width?: number; height?: number }) => {
-  const pts = useMemo(() => getTeamRankingSeries(team).slice(-14).map(p => p.points), [team]);
+  const [rev, setRev] = useState(0);
+  useEffect(() => {
+    const bump = () => setRev(r => r + 1);
+    window.addEventListener("ranking-history:update", bump);
+    return () => window.removeEventListener("ranking-history:update", bump);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pts = useMemo(() => getTeamRankingSeries(team).slice(-14).map(p => p.points), [team, rev]);
   if (pts.length < 2) return <span className="inline-block" style={{ width, height }} />;
   const min = Math.min(...pts), max = Math.max(...pts);
   const span = max - min || 1;

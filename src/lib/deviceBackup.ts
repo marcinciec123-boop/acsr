@@ -1,3 +1,4 @@
+import { diskFlush } from "./diskStore";
 import { WORLD_CLOCK_EVENT, getWorldDate } from "./worldClock";
 import { getAllImages } from "./storage";
 import { DEVICE_STORE_REF, getAllDeviceValuesWithMedia, removeDeviceValue, setDeviceValue } from "./deviceStore";
@@ -307,9 +308,10 @@ export const restoreDeviceBackup = async (id: string): Promise<DeviceBackupSnaps
       try { localStorage.setItem(key, DEVICE_STORE_REF); } catch { /* device-only */ }
     } else {
       localStorage.setItem(key, value);
-      await removeDeviceValue(key).catch(() => undefined);
+      await setDeviceValue(key, value).catch(() => undefined);
     }
   }));
+  await diskFlush();
   window.dispatchEvent(new CustomEvent("teamlogo:update", { detail: {} }));
   window.dispatchEvent(new CustomEvent("playerphoto:update", { detail: {} }));
   window.dispatchEvent(new CustomEvent("tournamentlogo:update", { detail: {} }));
