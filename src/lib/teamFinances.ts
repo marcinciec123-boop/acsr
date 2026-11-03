@@ -1,3 +1,4 @@
+import { getTeamRankingSeries } from "@/lib/rankingHistory";
 import { isMatchDecided } from "./matchStatus";
 // ===== Finanse organizacji =====
 // Bilans jest WYLICZANY z istniejących danych (turnieje, kontrakty) + ręcznych
@@ -457,8 +458,8 @@ function computeAll(): Map<string, TeamFinance> {
       .reduce((a, c) => a + (c.salary || 0), 0);
     const balance = startingBalance + income - expenses;
     out.set(team, {
-      team, balance, income, expenses, monthIncome, monthExpenses, month: curMonth, byCategory, ledger, startingBalance, monthlyRunning, monthlyStaff,
-      monthlyBurn: salaries + (rankOf.has(team) ? monthlyRunning + monthlyStaff : 0),
+      team, balance, income, expenses, monthIncome, monthExpenses, month: curMonth, byCategory, ledger, startingBalance, monthlyRunning: runLevel, monthlyStaff,
+      monthlyBurn: salaries + (rankOf.has(team) ? runLevel + monthlyStaff : 0),
       health: healthOf(balance),
     });
   }
