@@ -26,6 +26,9 @@ function notifyStorageUpdate(key: string): void {
 }
 
 function normalizeStoredData<T>(key: string, data: T): T {
+  if (key === "tournaments_data" && Array.isArray(data)) {
+    return data.map(t => mergeGroupPhases(t as TournamentData)) as T;
+  }
   if (key !== "ranking_data" || !Array.isArray(data)) return data;
 
   return data.map(item => {
