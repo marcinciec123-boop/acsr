@@ -940,6 +940,9 @@ const TournamentPanel = () => {
       if (status === "live") advanceWorldTo(src.startDate);
       if (status === "completed") advanceWorldTo(src.endDate || src.startDate);
     }
+    if (src && status !== "upcoming") {
+      import("@/lib/tournamentLineups").then(m => m.lockTournamentLineups(src.id, src.participants));
+    }
     setTournaments(prev => prev.map(t => {
       if (t.id !== id) return t;
       // Auto-news on status transition

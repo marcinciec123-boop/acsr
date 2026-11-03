@@ -11,7 +11,8 @@
 import { loadFromStorage, saveToStorage } from "./storage";
 import { teamDatabase } from "@/data/tournaments";
 import { getActiveRoster } from "./benchedPlayers";
-import type { TeamData } from "./types";
+import type { TeamData, TournamentData } from "./types";
+import { getTeamRosterAt } from "./rankingHistory";
 import { canonicalTeamName, sameName } from "./teamRenames";
 
 const KEY = "tournament_lineups";
@@ -66,12 +67,39 @@ export function resolveLineup(tournamentId: string | undefined, team: string): s
   if (tournamentId) {
     const explicit = getTournamentLineup(tournamentId, team);
     if (explicit.length > 0) return explicit;
+    // Started/finished events without a frozen lineup: use the roster from
+    // the event start, never the current (possibly benched) one.
+    const tournaments = loadFromStorage<TournamentData[] | null>("tournaments_data", null) || [];
+    const t = tournaments.find(x => x.id === tournamentId);
+    if (t && t.status !== "upcoming" && t.startDate) {
+      const historical = getTeamRosterAt(team, t.startDate);
+      if (historical.length > 0) return historical.slice(0, 5);
+    }
   }
   if (teamData) {
     const active = getActiveRoster(teamData);
     return active.slice(0, 5);
   }
   return [];
+}
+
+/**
+ * Freeze the starting five of every participant for a tournament that has
+ * started. Existing explicit lineups are kept; later bench moves or transfers
+ * no longer change who represented a team in this event.
+ */
+export function lockTournamentLineups(tournamentId: string, participants: string[]): void {
+  const map = loadLineups();
+  const current = { ...(map[tournamentId] || {}) };
+  let changed = false;
+  for (const team of participants) {
+    if (!team || current[team]?.length) continue;
+    const lineup = resolveLineup(tournamentId, team);
+    if (lineup.length) { current[team] = lineup.slice(0, 5); changed = true; }
+  }
+  if (!changed) return;
+  map[tournamentId] = current;
+  saveLineups(map);
 }
 
 /** All teams that have a customised lineup for this tournament. */
