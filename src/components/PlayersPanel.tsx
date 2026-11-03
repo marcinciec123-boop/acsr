@@ -615,7 +615,7 @@ const PlayersPanel = ({ onSelectPlayer, onSelectTeam }: PlayersPanelProps) => {
                   key={`${p.team?.name || "FA"}-${p.name}`}
                   onClick={() => { if (!isEditingThis) onSelectPlayer(p.name); }}
                   className={cn(
-                    "group relative bg-card border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 hover:-translate-y-0.5 transition-all cursor-pointer",
+                    "group relative bg-card border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-secondary/40 hover:-translate-y-0.5 transition-all cursor-pointer [content-visibility:auto] [contain-intrinsic-size:auto_140px]",
                     p.isFA ? "border-amber-500/30" : "border-border",
                     p.role === "Coach" && "border-sky-500/40 bg-sky-500/[0.03]",
                   )}

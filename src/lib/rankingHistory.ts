@@ -303,11 +303,36 @@ export function getRankingAt(dateIso: string): { team: string; currentTeam: stri
 
 
 /** Series of {date, points, rank} for one team, sorted ascending. */
+// Indeks: jedno przejście po całej historii buduje serie wszystkich drużyn,
+// zamiast skanować tysiące migawek osobno dla każdego wiersza rankingu.
+let seriesIndex: { source: RankingSnapshot[]; value: Map<string, TeamRankingPoint[]> } | null = null;
+function getTeamSeriesIndex(): Map<string, TeamRankingPoint[]> {
+  const history = getMergedRankingHistory();
+  if (seriesIndex?.source === history) return seriesIndex.value;
+  const value = new Map<string, TeamRankingPoint[]>();
+  for (const snap of history) {
+    for (const [team, points] of Object.entries(snap.points)) {
+      let list = value.get(team);
+      if (!list) { list = []; value.set(team, list); }
+      list.push({ date: snap.date, points, rank: snap.ranks?.[team] });
+    }
+  }
+  seriesIndex = { source: history, value };
+  return value;
+}
+
+/** Usuwa punkty środkowe bez zmiany wartości — wykres schodkowy wygląda identycznie. */
+export function compactSteps<T extends { points: number; rank?: number }>(points: T[]): T[] {
+  return points.filter((p, i) => {
+    if (i === 0 || i === points.length - 1) return true;
+    const a = points[i - 1], b = points[i + 1];
+    return !(a.points === p.points && a.rank === p.rank && b.points === p.points && b.rank === p.rank);
+  });
+}
+
 export function getTeamRankingSeries(rawTeamName: string): TeamRankingPoint[] {
   const teamName = resolveTeamIdentity(rawTeamName);
-  const series: TeamRankingPoint[] = getMergedRankingHistory()
-    .filter(s => s.points[teamName] !== undefined)
-    .map(s => ({ date: s.date, points: s.points[teamName], rank: s.ranks?.[teamName] }));
+  const series: TeamRankingPoint[] = (getTeamSeriesIndex().get(teamName) || []).map(p => ({ ...p }));
 
   if (series.length === 0) {
     const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]);
@@ -340,7 +365,7 @@ export interface TrendPoint extends TeamRankingPoint { t: number }
 export function buildTrendSeries(series: TeamRankingPoint[], fromDate = "0000-01-01"): TrendPoint[] {
   const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
   const before = sorted.filter(p => p.date < fromDate).at(-1);
-  const inRange = sorted.filter(p => p.date >= fromDate);
+  const inRange = compactSteps(sorted.filter(p => p.date >= fromDate));
   if (before && (!inRange.length || inRange[0].date > fromDate)) inRange.unshift({ ...before, date: fromDate });
 
   const out: TeamRankingPoint[] = [];
