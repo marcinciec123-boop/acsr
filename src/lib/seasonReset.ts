@@ -1,3 +1,4 @@
+import { diskFlush } from "./diskStore";
 import { getAllDeviceValuesWithMedia as getAllDeviceValues, removeDeviceValue } from "./deviceStore";
 
 /**
@@ -33,6 +34,7 @@ export async function resetSeason(): Promise<void> {
     await Promise.all(Object.keys(all).filter(k => !keep(k)).map(k => removeDeviceValue(k).catch(() => undefined)));
   } catch { /* ignore */ }
 
+  await diskFlush().catch(() => undefined);
   try { localStorage.setItem("csgo_hub_season_reset_pending", "1"); } catch { /* ignore */ }
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("season:reset"));
 }

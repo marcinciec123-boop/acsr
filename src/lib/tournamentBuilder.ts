@@ -322,14 +322,26 @@ export const buildGSLDoubleElimGroup = (teams: string[], bo: 1 | 3 | 5 = 3, adva
 };
 
 /** Upgrade an editable legacy IEM group to the shorter current structure. */
+/** New pairing → old result, maps and stats no longer belong to it. */
+export const clearMatchResult = (m: MatchResult) => {
+  m.score1 = 0; m.score2 = 0;
+  m.maps = undefined; m.veto = undefined; m.playedAt = undefined;
+  m.resultConfirmed = false; m.confirmedAt = undefined;
+  m.pointsWinner = undefined; m.pointsLoser = undefined;
+};
+
+const hasPlayedData = (m: MatchResult) =>
+  (m.score1 || 0) + (m.score2 || 0) > 0 || (m.maps || []).some(mp => (mp.score1 || 0) + (mp.score2 || 0) > 0);
+
 export const normalizeGSLDoubleElimGroup = (
   matches: MatchResult[],
   advancePerGroup: number = 2,
 ): MatchResult[] => {
   const obsolete = new Set(["IEM-UB-FINAL", "IEM-LB-R3"]);
-  let next = matches.filter(match => !obsolete.has(match.bracketSlot || ""));
+  // Never drop a match that already has a result or player stats.
+  let next = matches.filter(match => !obsolete.has(match.bracketSlot || "") || hasPlayedData(match));
   const finalIndex = next.findIndex(match => match.bracketSlot === "IEM-LB-FINAL");
-  if (advancePerGroup !== 3 && finalIndex >= 0) {
+  if (advancePerGroup !== 3 && finalIndex >= 0 && !hasPlayedData(next[finalIndex])) {
     next = next.filter((_, index) => index !== finalIndex);
   } else if (advancePerGroup === 3 && finalIndex < 0) {
     const bo = (matches[0]?.bo || 3) as 1 | 3 | 5;
@@ -523,10 +535,7 @@ export const propagateGSLDEGroup = (matches: MatchResult[]): MatchResult[] => {
     if (t1 && m.team1 !== t1) { m.team1 = t1; changed = true; }
     if (t2 && m.team2 !== t2) { m.team2 = t2; changed = true; }
     // Reset scores if downstream pairings changed (stale results no longer apply)
-    if (changed) {
-      m.score1 = 0;
-      m.score2 = 0;
-    }
+    if (changed) clearMatchResult(m);
   };
 
   // LB R1: losers of OM1 vs OM2, OM3 vs OM4
@@ -571,7 +580,7 @@ export const propagateGSL4Group = (matches: MatchResult[]): MatchResult[] => {
     let changed = false;
     if (t1 && m.team1 !== t1) { m.team1 = t1; changed = true; }
     if (t2 && m.team2 !== t2) { m.team2 = t2; changed = true; }
-    if (changed) { m.score1 = 0; m.score2 = 0; }
+    if (changed) clearMatchResult(m);
   };
 
   setSlot("GSL-WM", winnerOf("GSL-OM1"), winnerOf("GSL-OM2"));

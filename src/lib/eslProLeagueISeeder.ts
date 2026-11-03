@@ -14,8 +14,8 @@ export function seedEslProLeagueI(current: TournamentData[]): TournamentData[] {
   const applied = localStorage.getItem(SEED_VERSION_KEY);
   if (applied === "1") return current;
 
-  const withoutStaleEsl = current.filter((t) => t.id !== ESL_PRO_LEAGUE_I_ID);
-
   localStorage.setItem(SEED_VERSION_KEY, "1");
-  return [...withoutStaleEsl, ...ESL_PRO_LEAGUE_I_SEED.map(mergeGroupPhases)];
+  // Never replace an existing copy: it may hold the player's own edits.
+  if (current.some((t) => t.id === ESL_PRO_LEAGUE_I_ID)) return current;
+  return [...current, ...ESL_PRO_LEAGUE_I_SEED.map(mergeGroupPhases)];
 }

@@ -23,18 +23,31 @@ export function createWriteQueue(
   const pending = new Map<string, string | null>();
   let timer: ReturnType<typeof setTimeout> | null = null;
 
-  const flush = async () => {
-    if (timer) { clearTimeout(timer); timer = null; }
+  let inFlight: Promise<void> = Promise.resolve();
+  let failed = false;
+  const run = async () => {
     const batch = [...pending.entries()];
     pending.clear();
     await Promise.all(batch.map(([key, value]) => (value === null ? remove(key) : write(key, value))
-      .catch(error => console.error("Disk save failed:", key, error))));
+      .catch(error => {
+        console.error("Disk save failed:", key, error);
+        // Keep it for the next attempt unless a newer value already replaced it.
+        if (!pending.has(key)) pending.set(key, value);
+        failed = true;
+      })));
+  };
+  const flush = async () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    failed = false;
+    inFlight = inFlight.then(run);
+    await inFlight;
+    if (failed && pending.size) schedule(5000);
   };
 
-  const schedule = () => {
+  function schedule(ms = delay) {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { void flush(); }, delay);
-  };
+    timer = setTimeout(() => { void flush(); }, ms);
+  }
 
   return {
     set(key: string, value: string) { pending.set(key, value); schedule(); },
@@ -124,7 +137,13 @@ export const diskLoadAll = async (): Promise<Record<string, string>> => {
 export const diskSet = (key: string, value: string) => {
   const q = diskQueue();
   const shards = SHARDED_KEYS.has(key) ? shardList(value) : null;
-  if (!shards) { q.set(key, value); return; }
+  if (!shards) {
+    // Single-file fallback: retire old shards, otherwise they would win on the next start.
+    for (const suffix of Object.keys(lastShards.get(key) || {})) q.delete(`${key}${SHARD_SEP}${suffix}`);
+    lastShards.delete(key);
+    q.set(key, value);
+    return;
+  }
   const prev = lastShards.get(key) || {};
   for (const [suffix, part] of Object.entries(shards)) {
     if (prev[suffix] !== part) q.set(`${key}${SHARD_SEP}${suffix}`, part);

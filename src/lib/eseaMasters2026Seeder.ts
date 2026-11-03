@@ -13,7 +13,8 @@ const ESEA_MASTERS_2026_ID = "esea-masters-2026";
 export function seedEseaMasters2026(current: TournamentData[]): TournamentData[] {
   if (localStorage.getItem(SEED_VERSION_KEY) === "1") return current;
 
-  const without = current.filter((t) => t.id !== ESEA_MASTERS_2026_ID);
   localStorage.setItem(SEED_VERSION_KEY, "1");
-  return [...without, ...ESEA_MASTERS_2026_SEED.map(mergeGroupPhases)];
+  // Never replace an existing copy: it may hold the player's own edits.
+  if (current.some((t) => t.id === ESEA_MASTERS_2026_ID)) return current;
+  return [...current, ...ESEA_MASTERS_2026_SEED.map(mergeGroupPhases)];
 }
