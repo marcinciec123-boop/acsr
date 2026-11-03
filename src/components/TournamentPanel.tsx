@@ -1,3 +1,4 @@
+import type { TournamentVisit } from "@/lib/sessionNavigation";
 import { clubOnly, isInternationalTournament, isNationalTeam } from "@/lib/nationalIdentity";
 import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
 import { isMatchDecided } from "@/lib/matchStatus";
@@ -99,7 +100,13 @@ interface PhaseDraft {
   relegateCount?: number;
 }
 
-const TournamentPanel = () => {
+interface TournamentPanelProps {
+  selection: TournamentVisit | null;
+  onNavigate: (tournamentId: string, matchId?: string) => void;
+  onBack: () => void;
+}
+
+const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps) => {
   const [tournaments, setTournaments] = useState<TournamentData[]>(() => {
     const stored = loadFromStorage<TournamentData[]>(STORAGE_KEY, []);
     // Seed StarLadder Berlin Major 2025 + ESL Pro League I (idempotent), then
@@ -122,8 +129,19 @@ const TournamentPanel = () => {
   });
   const [showCreate, setShowCreate] = useState(false);
   const [showWorlds, setShowWorlds] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedMatchRef, setSelectedMatchRef] = useState<SelectedMatchRef | null>(null);
+  const selectedId = selection?.tournamentId ?? null;
+  const selectedMatchRef = useMemo<SelectedMatchRef | null>(() => {
+    if (!selection?.matchId) return null;
+    const tournament = tournaments.find(t => t.id === selection.tournamentId);
+    for (const phase of tournament?.phases ?? []) {
+      if (phase.bracket?.some(m => m.id === selection.matchId)) {
+        return { phaseId: phase.id, matchId: selection.matchId };
+      }
+      const group = phase.groups?.find(g => g.matches.some(m => m.id === selection.matchId));
+      if (group) return { phaseId: phase.id, matchId: selection.matchId, groupId: group.id };
+    }
+    return null;
+  }, [selection, tournaments]);
   const [activePhaseByTournament, setActivePhaseByTournament] = useState<Record<string, string>>({});
 
   // Tournament meta
@@ -167,42 +185,11 @@ const TournamentPanel = () => {
 
   useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
 
-  // Deep-link from profiles: open a tournament (and optionally jump into a match).
   useEffect(() => {
-    const openDetail = (detail: { tournamentId?: string; matchId?: string } | undefined) => {
-      if (!detail?.tournamentId) return;
-      const t = tournaments.find(x => x.id === detail.tournamentId);
-      if (!t) return;
-      setSelectedId(t.id);
-      if (!detail.matchId) { setSelectedMatchRef(null); return; }
-      let ref: SelectedMatchRef | null = null;
-      for (const phase of t.phases || []) {
-        if (phase.bracket?.some(m => m.id === detail.matchId)) {
-          ref = { phaseId: phase.id, matchId: detail.matchId };
-          break;
-        }
-        const g = phase.groups?.find(g => g.matches.some(m => m.id === detail.matchId));
-        if (g) { ref = { phaseId: phase.id, matchId: detail.matchId, groupId: g.id }; break; }
-      }
-      setSelectedMatchRef(ref);
-      if (ref) setActivePhaseByTournament(prev => ({ ...prev, [t.id]: ref!.phaseId }));
-    };
-    const onOpen = (e: Event) => {
-      try { sessionStorage.removeItem("pending-tournament-open"); } catch { /* ignore */ }
-      openDetail((e as CustomEvent).detail);
-    };
-    window.addEventListener("tournament:open", onOpen);
-    // Odbierz cel zapisany przed zamontowaniem panelu (pierwsza wizyta
-    // w zakładce Turnieje — zdarzenie mogło zostać wysłane za wcześnie).
-    try {
-      const raw = sessionStorage.getItem("pending-tournament-open");
-      if (raw) {
-        sessionStorage.removeItem("pending-tournament-open");
-        openDetail(JSON.parse(raw));
-      }
-    } catch { /* ignore */ }
-    return () => window.removeEventListener("tournament:open", onOpen);
-  }, [tournaments]);
+    if (selectedId && selectedMatchRef) {
+      setActivePhaseByTournament(prev => ({ ...prev, [selectedId]: selectedMatchRef.phaseId }));
+    }
+  }, [selectedId, selectedMatchRef]);
 
   useEffect(() => {
     void import("@/lib/rankingHistory").then(({ synchronizeRankingHistory }) => synchronizeRankingHistory());
@@ -1018,13 +1005,13 @@ const TournamentPanel = () => {
         bo={selectedMatchInfo.bo}
         tier={selectedTournament.tier}
         tournamentId={selectedTournament.id}
-        onBack={() => setSelectedMatchRef(null)}
+        onBack={onBack}
         onUpdate={(patch) => updatePhaseMatch(
           selectedTournament.id,
-          selectedMatchRef!.phaseId,
-          selectedMatchRef!.matchId,
+          selectedMatchRef?.phaseId ?? "",
+          selectedMatchRef?.matchId ?? "",
           patch,
-          selectedMatchRef!.groupId,
+          selectedMatchRef?.groupId,
         )}
         onConfirm={async (winner, loser, pw, pl) => {
           // Mistrzostwa świata nie wpływają na klubowy ranking.
@@ -1043,7 +1030,7 @@ const TournamentPanel = () => {
       <TournamentDetailPage
         tournament={selectedTournament}
         allTeams={allTeams}
-        onBack={() => { setSelectedId(null); setSelectedMatchRef(null); }}
+        onBack={onBack}
         onUpdateMatch={(phaseId, matchId, patch, groupId) =>
           updatePhaseMatch(selectedTournament.id, phaseId, matchId, patch, groupId)
         }
@@ -1084,19 +1071,19 @@ const TournamentPanel = () => {
         onOpenMatch={(phaseId, matchId, groupId) => {
           saveTournamentScroll(selectedTournament.id);
           setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }));
-          setSelectedMatchRef({ phaseId, matchId, groupId });
+          onNavigate(selectedTournament.id, matchId);
         }}
         activePhaseId={activePhaseByTournament[selectedTournament.id]}
         onActivePhaseChange={(phaseId) => setActivePhaseByTournament(prev => ({ ...prev, [selectedTournament.id]: phaseId }))}
         mainTournaments={promotableTournaments.filter(x => x.id !== selectedTournament.id)}
         onPromoteWinners={(winners, targetId) => handlePromoteWinners(selectedTournament.id, winners, targetId)}
       />
-    ) : (
-    <section>
+    ) : null}
+    <section style={selectedTournament ? { display: "none" } : undefined}>
       <div className="container mx-auto">
         <TournamentPortal
           tournaments={tournaments}
-          onSelect={(id) => setSelectedId(id)}
+          onSelect={(id) => onNavigate(id)}
           onCreate={() => setShowCreate(true)}
           onCreateWorlds={() => setShowWorlds(true)}
         />
@@ -1758,7 +1745,6 @@ const TournamentPanel = () => {
         </Dialog>
       </div>
     </section>
-    )}
     </>
   );
 };

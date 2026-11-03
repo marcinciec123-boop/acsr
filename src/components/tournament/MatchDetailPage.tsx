@@ -306,7 +306,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
       description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
     });
     setConfirmOpen(false);
-    // Zostajemy na stronie meczu — użytkownik cofa się sam przyciskiem „Powrót do turnieju”.
+    // Zostajemy na stronie meczu — użytkownik cofa się sam przyciskiem „Powrót”.
   };
 
   const resetToVrs = () => {
@@ -323,7 +323,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           onClick={onBack}
           className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do turnieju
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót
         </Button>
 
         <motion.div

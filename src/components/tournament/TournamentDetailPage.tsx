@@ -378,7 +378,7 @@ export const TournamentDetailPage = ({
           onClick={onBack}
           className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do kalendarza
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót
         </Button>
 
         {/* Hero header — Liquipedia-style banner */}
