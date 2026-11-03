@@ -11,6 +11,8 @@ import type { NewsPost } from "./types";
 import { saveToStorage, loadFromStorage } from "./storage";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorldNowIso, getWorldDate } from "./worldClock";
+import { isRepeatedNews, type NewsText } from "./newsUniqueness";
+import type { TemplateResult } from "./newsExtras";
 
 const NEWS_KEY = "news_posts";
 
@@ -160,22 +162,47 @@ export async function generateAIRumors(
         count,
         mode: options?.mode || "mixed",
         context: options?.context,
+        recentPosts: loadPosts().slice(0, 40).map(p => ({ title: p.title || "", content: p.content.slice(0, 1200) })),
       },
     });
     if (error) return { ok: false, error: error.message };
     if (data?.error) return { ok: false, error: data.error };
-    const posts: { category: string; content: string }[] = data?.posts || [];
+    const posts: { title?: string; category: string; content: string }[] = data?.posts || [];
     const prefix = options?.eventKeyPrefix || "ai";
     const stamp = Date.now();
     let n = 0;
+    const known: NewsText[] = loadPosts();
+    const accepted: AutoNewsPost[] = [];
     posts.forEach((p, i) => {
+      if (!p.content?.trim() || isRepeatedNews(p, [...known, ...accepted])) return;
       const key = `${prefix}:${stamp}:${i}`;
-      if (appendPost(key, p.content, p.category, true)) n++;
+      accepted.push({ id: uid() + i, title: p.title?.trim(), content: p.content.trim(), category: p.category, date: getWorldNowIso(), eventKey: key, auto: true });
+      n++;
     });
+    if (accepted.length) savePosts([...accepted, ...loadPosts()]);
+    if (!n) return { ok: false, error: "AI zwróciło powtarzające się teksty — nie dodano duplikatów." };
     return { ok: true, posted: n };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown" };
   }
+}
+
+/** Template generation returns a draft, never publishes before the user's confirmation. */
+export async function generateNewsDraft(template: TemplateResult, instructions: string): Promise<{ ok: boolean; post?: { title: string; content: string; category: string }; error?: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("generate-news", { body: {
+      topTeams: [], recentTransfers: [], tournaments: [], count: 1, mode: "mixed",
+      context: `Opracuj szkic na podstawie tych faktów, nie zmieniaj ani nie dopisuj wyników, transferów, nazw i dat.\n${template.title}\n${template.content}`,
+      templateDraft: { title: template.title, content: template.content, category: template.category },
+      writingInstructions: instructions,
+      recentPosts: loadPosts().slice(0, 40).map(p => ({ title: p.title || "", content: p.content.slice(0, 1200) })),
+    } });
+    if (error || data?.error) return { ok: false, error: data?.error || error?.message };
+    const post = data?.posts?.[0];
+    if (!post?.content || !post?.title) return { ok: false, error: "Brak tekstu w odpowiedzi AI." };
+    if (isRepeatedNews(post, loadPosts())) return { ok: false, error: "Tekst jest zbyt podobny do opublikowanego wpisu — nie dodano duplikatu." };
+    return { ok: true, post };
+  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Błąd generowania." }; }
 }
 
 // ----------------- post-tournament AI recap -----------------

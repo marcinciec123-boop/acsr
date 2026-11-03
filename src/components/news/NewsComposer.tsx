@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef, useState } from "react";
-import { Image as ImageIcon, X, Wand2, BarChart3, Paperclip, Flag } from "lucide-react";
+import { Image as ImageIcon, X, Wand2, BarChart3, Paperclip, Flag, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { NewsCover, NewsEmbed, TemplateResult } from "@/lib/newsExtras";
@@ -13,6 +13,11 @@ import {
   roundReportTemplate,
   transferTemplate,
 } from "@/lib/newsExtras";
+import { addEditorial, loadEditorials } from "@/lib/newsEditorials";
+import { formatTemplate, tournamentTemplate, playerTemplate, teamTemplate, writingInstructions, type WritingStyle, type WritingLength } from "@/lib/newsTemplateOptions";
+import { generateNewsDraft } from "@/lib/autoNews";
+import { loadTournaments } from "@/lib/newsExtras";
+import { toast } from "sonner";
 import { CoverBanner } from "@/components/news/NewsExtras";
 
 export interface ComposerDraft {
@@ -40,7 +45,7 @@ interface Props {
   onCancel: () => void;
 }
 
-type TplKind = "" | "match" | "round" | "transfer" | "bench" | "ranking";
+type TplKind = "" | "match" | "round" | "transfer" | "bench" | "ranking" | "preview" | "recap" | "player" | "compare" | "roster";
 
 const fieldCls = "h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground";
 
@@ -63,9 +68,18 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
   const [embedPlayer, setEmbedPlayer] = useState("");
   const [embedMatch, setEmbedMatch] = useState("");
 
+  const [days, setDays] = useState(3);
+  const [style, setStyle] = useState<WritingStyle>("news");
+  const [length, setLength] = useState<WritingLength>("medium");
+  const [busy, setBusy] = useState(false);
+  const [editorials, setEditorials] = useState(loadEditorials);
+  const [addingEditorial, setAddingEditorial] = useState(false);
+  const [editorialName, setEditorialName] = useState("");
+  const [tTournament, setTTournament] = useState("");
+  const tournaments = useMemo(loadTournaments, []);
   const teams = useMemo(() => activeClubTeams(), []);
-  const matches = useMemo(() => listPlayedMatches(3), [])
-  const rounds = useMemo(() => listRecentRounds(3), []);
+  const matches = useMemo(() => listPlayedMatches(days), [days]);
+  const rounds = useMemo(() => listRecentRounds(days), [days]);
   const [tRound, setTRound] = useState("");
   const players = useMemo(
     () => [...new Set(teams.flatMap(t => t.roster.filter(Boolean)))].sort((a, b) => a.localeCompare(b)),
@@ -78,7 +92,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
       ...prev,
       title: r.title,
       content: r.content,
-      category: categories.includes(r.category) ? r.category : prev.category,
+      category: r.category,
       tags: r.tags.join(", "),
       embeds: r.embeds || [],
       cover: r.cover || null,
@@ -87,21 +101,31 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
     setTpl("");
   };
 
+  const getTemplate = (): TemplateResult | null => {
+    if (tpl === "round") { const g = rounds.find(r => r.key === tRound); return g ? roundReportTemplate(g) : null; }
+    if (tpl === "match") { const ref = matches.find(m => `${m.tournamentId}|${m.match.id}` === tMatch); return ref ? matchReportTemplate(ref) : null; }
+    if (tpl === "transfer" && tPlayer && tTo) return transferTemplate(tPlayer, tFrom || teamOfPlayer(tPlayer) || "-", tTo);
+    if (tpl === "bench" && tPlayer) return benchTemplate(tPlayer, tTeam || teamOfPlayer(tPlayer) || "drużyna");
+    if (tpl === "ranking" && tTeam) { const idx = teams.findIndex(t => t.name === tTeam); return idx >= 0 ? rankingTemplate(tTeam, idx + 1, teams[idx].points || 0) : null; }
+    if (tpl === "preview" || tpl === "recap") { const t = tournaments.find(t => t.id === tTournament); return t ? tournamentTemplate(t, tpl === "recap") : null; }
+    if (tpl === "player" && tPlayer) { const team = teams.find(t => t.roster.includes(tPlayer)); return team ? playerTemplate(tPlayer, team) : null; }
+    if (tpl === "compare" || tpl === "roster") { const team = teams.find(t => t.name === tTeam); const rival = teams.find(t => t.name === tTo); return team && (tpl === "roster" || (rival && rival.name !== team.name)) ? teamTemplate(team, tpl === "compare" ? rival : undefined) : null; }
+    return null;
+  };
   const runTemplate = () => {
-    if (tpl === "round") {
-      const g = rounds.find(r => r.key === tRound);
-      if (g) applyTemplate(roundReportTemplate(g));
-    } else if (tpl === "match") {
-      const ref = matches.find(m => `${m.tournamentId}|${m.match.id}` === tMatch);
-      if (ref) applyTemplate(matchReportTemplate(ref));
-    } else if (tpl === "transfer" && tPlayer && tTo) {
-      applyTemplate(transferTemplate(tPlayer, tFrom || teamOfPlayer(tPlayer) || "-", tTo));
-    } else if (tpl === "bench" && tPlayer) {
-      applyTemplate(benchTemplate(tPlayer, tTeam || teamOfPlayer(tPlayer) || "drużyna"));
-    } else if (tpl === "ranking" && tTeam) {
-      const idx = teams.findIndex(t => t.name === tTeam);
-      if (idx >= 0) applyTemplate(rankingTemplate(tTeam, idx + 1, teams[idx].points || 0));
-    }
+    const result = getTemplate();
+    if (result) applyTemplate(formatTemplate(result, style, length));
+    else toast.error("Uzupełnij wybór dla szablonu.");
+  };
+  const runAI = async () => {
+    const result = getTemplate();
+    if (!result) { toast.error("Uzupełnij wybór dla szablonu."); return; }
+    setBusy(true);
+    try {
+      const response = await generateNewsDraft(result, writingInstructions(style, length));
+      if (response.ok && response.post) applyTemplate({ ...result, ...response.post });
+      else toast.error(response.error || "Nie udało się wygenerować tekstu.");
+    } finally { setBusy(false); }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,36 +161,50 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
             ["transfer", "Transfer"],
             ["bench", "Ławka"],
             ["ranking", "Ranking"],
+            ["preview", "Zapowiedź turnieju"], ["recap", "Podsumowanie turnieju"],
+            ["player", "Sylwetka gracza"], ["compare", "Porównanie drużyn"], ["roster", "Analiza składu"],
           ] as [TplKind, string][]).map(([k, l]) => (
-            <button
+            <Button
+              variant="outline" size="sm"
               key={k}
               type="button"
               onClick={() => setTpl(tpl === k ? "" : k)}
               className={`px-2 py-0.5 rounded text-xs font-mono border transition-colors ${tpl === k ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:text-primary"}`}
             >
               {l}
-            </button>
+            </Button>
           ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <select aria-label="Styl tekstu" value={style} onChange={e => setStyle(e.target.value as WritingStyle)} className={fieldCls}>
+            <option value="news">News</option><option value="analysis">Analiza</option><option value="column">Felieton</option><option value="light">Lekki</option>
+          </select>
+          <select aria-label="Długość tekstu" value={length} onChange={e => setLength(e.target.value as WritingLength)} className={fieldCls}>
+            <option value="short">Krótki</option><option value="medium">Średni</option><option value="long">Długi</option>
+          </select>
+          <select aria-label="Zakres meczów" value={days} onChange={e => setDays(Number(e.target.value))} className={fieldCls}>
+            <option value={3}>Ostatnie 3 dni</option><option value={7}>Ostatnie 7 dni</option><option value={30}>Ostatnie 30 dni</option><option value={36500}>Cała historia</option>
+          </select>
         </div>
         {tpl && (
           <div className="flex flex-wrap gap-2 items-center">
             {tpl === "match" && (
-              <select value={tMatch} onChange={e => setTMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-[240px]`}>
-                <option value="">{matches.length ? "Wybierz mecz (ostatnie 3 dni)…" : "Brak meczów w ostatnich 3 dniach"}</option>
+              <select value={tMatch} onChange={e => setTMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-0 w-full`}>
+                <option value="">{matches.length ? "Wybierz mecz (wybrany zakres)…" : "Brak meczów w wybranym zakresie"}</option>
                 {matches.map(m => (
                   <option key={`${m.tournamentId}|${m.match.id}`} value={`${m.tournamentId}|${m.match.id}`}>{matchLabel(m)}</option>
                 ))}
               </select>
             )}
             {tpl === "round" && (
-              <select value={tRound} onChange={e => setTRound(e.target.value)} className={`${fieldCls} flex-1 min-w-[240px]`}>
-                <option value="">{rounds.length ? "Wybierz kolejkę / fazę (ostatnie 3 dni)…" : "Brak rozegranych etapów w ostatnich 3 dniach"}</option>
+              <select value={tRound} onChange={e => setTRound(e.target.value)} className={`${fieldCls} flex-1 min-w-0 w-full`}>
+                <option value="">{rounds.length ? "Wybierz kolejkę / fazę (wybrany zakres)…" : "Brak etapów w wybranym zakresie"}</option>
                 {rounds.map(r => (
                   <option key={r.key} value={r.key}>{r.tournamentName} — {r.phaseName && r.phaseName !== r.label ? `${r.phaseName} · ` : ""}{r.label} ({r.matches.length})</option>
                 ))}
               </select>
             )}
-            {(tpl === "transfer" || tpl === "bench") && (
+            {(tpl === "transfer" || tpl === "bench" || tpl === "player") && (
               <>
                 <input list="composer-players" value={tPlayer} onChange={e => setTPlayer(e.target.value)} placeholder="Gracz" className={fieldCls} />
               </>
@@ -184,13 +222,21 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
                 </select>
               </>
             )}
-            {(tpl === "bench" || tpl === "ranking") && (
+            {(tpl === "bench" || tpl === "ranking" || tpl === "compare" || tpl === "roster") && (
               <select value={tTeam} onChange={e => setTTeam(e.target.value)} className={fieldCls}>
                 <option value="">{tpl === "bench" ? "Drużyna (auto)" : "Wybierz drużynę…"}</option>
                 {teams.map((t, i) => <option key={t.name} value={t.name}>{tpl === "ranking" ? `#${i + 1} ` : ""}{t.name}</option>)}
               </select>
             )}
-            <Button size="sm" className="h-8 text-xs" onClick={runTemplate}>Wypełnij</Button>
+            {(tpl === "preview" || tpl === "recap") && <select aria-label="Turniej szablonu" value={tTournament} onChange={e => setTTournament(e.target.value)} className={`${fieldCls} w-full`}>
+              <option value="">Wybierz turniej…</option>
+              {tournaments.filter(t => tpl === "recap" ? t.status === "completed" || t.resultsConfirmed : t.status === "upcoming").map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>}
+            {tpl === "compare" && <select aria-label="Druga drużyna" value={tTo} onChange={e => setTTo(e.target.value)} className={fieldCls}>
+              <option value="">Druga drużyna…</option>{teams.filter(t => t.name !== tTeam).map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+            </select>}
+            <Button size="sm" className="h-8 text-xs" disabled={busy} onClick={runTemplate}>Wypełnij</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={busy} onClick={runAI}><Wand2 className="w-3 h-3" />{busy ? "Generowanie…" : "Generuj AI"}</Button>
           </div>
         )}
       </div>
@@ -216,7 +262,17 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
         </select>
         <input type="date" value={d.date} onChange={e => set("date", e.target.value)} className={fieldCls} />
         <input type="time" value={d.time} onChange={e => set("time", e.target.value)} className={fieldCls} />
-        <input value={d.author} onChange={e => set("author", e.target.value)} placeholder="Autor / redakcja" className={fieldCls} />
+        <div className="flex gap-1 min-w-0">
+          <select aria-label="Redakcja" value={d.author} onChange={e => set("author", e.target.value)} className={`${fieldCls} flex-1 min-w-0`}>
+            <option value="">Bez redakcji</option>
+            {[...new Set([...editorials, ...(d.author ? [d.author] : [])])].map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+          <Button variant="outline" size="icon" title="Dodaj redakcję" aria-label="Dodaj redakcję" onClick={() => setAddingEditorial(v => !v)}><Plus className="w-4 h-4" /></Button>
+        </div>
+        {addingEditorial && <div className="flex gap-2 sm:col-span-2">
+          <input aria-label="Nazwa redakcji" value={editorialName} onChange={e => setEditorialName(e.target.value)} placeholder="Nazwa redakcji" className={`${fieldCls} flex-1 min-w-0`} />
+          <Button size="sm" disabled={!editorialName.trim()} onClick={() => { const name = addEditorial(editorialName); setEditorials(loadEditorials()); set("author", name); setAddingEditorial(false); setEditorialName(""); }}>Dodaj</Button>
+        </div>}
         <input value={d.source} onChange={e => set("source", e.target.value)} placeholder="Źródło (opcjonalnie)" className={fieldCls} />
         <input
           value={d.tags}
@@ -261,8 +317,8 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           <Paperclip className="w-3.5 h-3.5" /> Karty w poście (mecz / gracz)
         </div>
         <div className="flex flex-wrap gap-2">
-          <select value={embedMatch} onChange={e => setEmbedMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-[200px]`}>
-            <option value="">Mecz (ostatnie 3 dni)…</option>
+          <select value={embedMatch} onChange={e => setEmbedMatch(e.target.value)} className={`${fieldCls} flex-1 min-w-0 w-full`}>
+            <option value="">Mecz (wybrany zakres)…</option>
             {matches.map(m => (
               <option key={`${m.tournamentId}|${m.match.id}`} value={`${m.tournamentId}|${m.match.id}`}>{matchLabel(m)}</option>
             ))}

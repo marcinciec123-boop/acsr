@@ -8,6 +8,7 @@ import { loadFromStorage, saveToStorage } from "./storage";
 import { getWorldNowIso } from "./worldClock";
 import { nameChanges } from "@/data/history";
 import { setPostHype } from "./newsExtras";
+import { selectCommenters } from "./newsPersonas";
 
 const KEY = "news_comments";
 const LIKES_KEY = "news_post_likes";
@@ -170,6 +171,7 @@ export async function generateComments(
         category: post.category || "",
         tags: post.tags || [],
         facts: buildFacts(post),
+        personas: selectCommenters(Object.values(loadAllComments()).slice(-20).flatMap(comments => comments.map(c => c.author))),
       },
     });
 
@@ -279,6 +281,7 @@ export async function generateReplies(
         targetAuthor: target.author,
         targetContent: target.content,
         usedNicks: [...new Set(all.map(c => c.author))],
+        personas: selectCommenters(all.map(c => c.author)),
       },
     });
     if (error) return { ok: false, error: error.message };

@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import PostComments from "@/components/PostComments";
 import { deleteComments, generateComments } from "@/lib/newsComments";
 import { CoverBanner, EmbedCards, PollBox, SentimentBar } from "@/components/news/NewsExtras";
+import { newsHeadline } from "@/lib/newsUniqueness";
 import { seedPollVotes } from "@/lib/newsExtras";
 
 const STORAGE_KEY = "news_posts";
@@ -178,6 +179,7 @@ const emptyDraft = (): ComposerDraft => {
 
 const NewsFeed = () => {
   const [posts, setPosts] = useState<NewsPost[]>(() => loadFromStorage<NewsPost[]>(STORAGE_KEY, []));
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(() => new Set());
   const [showNew, setShowNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ComposerDraft>(() => emptyDraft());
@@ -745,6 +747,7 @@ const NewsFeed = () => {
           )}
           {pageItems.map((post, i) => {
             const catMeta = post.category ? CATEGORY_BADGES[post.category] : null;
+            const expanded = expandedPosts.has(post.id);
             return (
               <motion.div
                 key={post.id}
@@ -781,9 +784,13 @@ const NewsFeed = () => {
                     </Badge>
                   )}
                 </div>
-                {post.title && (
-                  <h3 className="font-heading font-bold text-foreground text-lg mb-1.5 leading-snug">{post.title}</h3>
-                )}
+                <Button variant="ghost" aria-expanded={expanded} aria-controls={`post-body-${post.id}`}
+                  onClick={() => setExpandedPosts(previous => { const next = new Set(previous); if (next.has(post.id)) next.delete(post.id); else next.add(post.id); return next; })}
+                  className="w-full h-auto min-h-10 px-0 justify-between gap-3 whitespace-normal text-left hover:bg-transparent mb-1.5">
+                  <h3 className="font-heading font-bold text-foreground text-lg leading-snug min-w-0 break-words">{newsHeadline(post)}</h3>
+                  <ChevronDown className={cn("w-4 h-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+                </Button>
+                {expanded && <div id={`post-body-${post.id}`}>
                 {post.cover && !(post.imageId && imageCache[post.imageId]) && <CoverBanner cover={post.cover} />}
                 {post.content && (
                   <p className="text-foreground text-sm whitespace-pre-wrap mb-3 leading-relaxed">{post.content}</p>
@@ -813,6 +820,8 @@ const NewsFeed = () => {
                   />
                 )}
 
+                <PostComments post={post} pending={commentPending === post.id} />
+                </div>}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono flex-wrap">
                     <Clock className="w-3 h-3" />
@@ -850,7 +859,6 @@ const NewsFeed = () => {
                     </Button>
                   </div>
                 </div>
-                <PostComments post={post} pending={commentPending === post.id} />
               </motion.div>
             );
           })}
