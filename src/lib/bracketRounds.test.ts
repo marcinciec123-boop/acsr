@@ -50,3 +50,12 @@ describe("bracketRounds", () => {
     expect(moveRound(de, "LB R1", -1)).toBe(de);
   });
 });
+
+import { isThirdPlaceRound as isThird } from "./bracketRounds";
+describe("third place names", () => {
+  it("recognizes Polish and English names", () => {
+    expect(isThird("Mecz o 3. miejsce")).toBe(true);
+    expect(isThird("Bronze Match")).toBe(true);
+    expect(isThird("Semifinal")).toBe(false);
+  });
+});
