@@ -3,6 +3,7 @@
 // transfers, and splits each stint into active / inactive (bench) segments
 // using the bench log.
 
+import { isTransferAllowed } from "./nationalIdentity";
 import { loadFromStorage } from "./storage";
 import { getAllTransfers } from "@/data/history";
 import { teamDatabase } from "@/data/tournaments";
@@ -34,7 +35,7 @@ function datedTransfers(player: string): Transfer[] {
     ? stored
     : getAllTransfers().map((t, i) => ({ id: String(i), date: "", ...t } as Transfer));
   return list
-    .filter(t => sameName(t.player, player))
+    .filter(t => sameName(t.player, player) && isTransferAllowed(t.oldTeam, t.newTeam))
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 }
 
