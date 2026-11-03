@@ -17,12 +17,16 @@ export const FINANCES_EVENT = "finances:update";
 const ENTRIES_KEY = "team_finance_entries";
 const SETTINGS_KEY = "team_finance_settings";
 
-export type LedgerCategory = "prize" | "sponsor" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "staff" | "manual_in" | "manual_out" | "start";
+export type LedgerCategory = "prize" | "sponsor" | "merch" | "media" | "stickers" | "sponsor_bonus" | "transfer_in" | "transfer_out" | "salary" | "bonus" | "running" | "staff" | "manual_in" | "manual_out" | "start";
 
 export const CATEGORY_LABEL: Record<LedgerCategory, string> = {
   start: "Budżet startowy",
   prize: "Nagrody turniejowe (25%)",
   sponsor: "Sponsorzy (miesięcznie)",
+  sponsor_bonus: "Premie sponsorskie za wyniki",
+  merch: "Fan store i koszulki",
+  media: "Prawa transmisyjne (turnieje TV)",
+  stickers: "Naklejki z Majorów",
   transfer_in: "Sprzedaż zawodników",
   manual_in: "Dofinansowania / wpływy",
   salary: "Pensje",
@@ -121,11 +125,11 @@ export function defaultStartingBalance(rank: number, team = ""): number {
   return round(base * mult, 10_000);
 }
 export function defaultMonthlyRunning(rank: number, team = ""): number {
-  const base = rank <= 10 ? 60_000 : rank <= 30 ? 30_000 : rank <= 60 ? 15_000 : 8_000;
+  const base = rank <= 10 ? 38_000 : rank <= 30 ? 20_000 : rank <= 60 ? 10_000 : 5_000;
   return round(base * jitter(team, "run", 0.6, 1.5), 500);
 }
 export function defaultMonthlyStaff(rank: number, team = ""): number {
-  const base = rank <= 10 ? 45_000 : rank <= 30 ? 25_000 : rank <= 60 ? 12_000 : 5_000;
+  const base = rank <= 10 ? 28_000 : rank <= 30 ? 16_000 : rank <= 60 ? 8_000 : 3_500;
   return round(base * jitter(team, "staff", 0.65, 1.45), 500);
 }
 
@@ -149,6 +153,24 @@ const monthKey = (t: number) => new Date(t).toISOString().slice(0, 7);
 const contractEnd = (c: PlayerContract) => Math.min(ms(c.endDate), c.terminatedAt ? ms(c.terminatedAt) : Infinity);
 /** Kontrakt aktywny w chwili `t` (start <= t < koniec/zerwanie). */
 const activeAt = (c: PlayerContract, t: number) => ms(c.startDate) <= t && t < contractEnd(c);
+
+// ---------- przychody eventowe ----------
+
+/** Prawa transmisyjne za udział w turnieju TV (Tier S/A) — każdy uczestnik. */
+export function mediaRightsFor(tier: string, placement: number): number {
+  const base = tier === "S" ? 60_000 : tier === "A" ? 30_000 : 0;
+  const mult = placement === 1 ? 2 : placement === 2 ? 1.6 : placement <= 4 ? 1.3 : placement <= 8 ? 1.1 : 1;
+  return Math.round(base * mult);
+}
+/** Premia sponsorów za podium w turnieju TV. */
+export function sponsorBonusFor(tier: string, placement: number): number {
+  const t = tier === "S" ? [50_000, 25_000, 15_000] : tier === "A" ? [25_000, 12_000, 6_000] : [0, 0, 0];
+  return placement === 1 ? t[0] : placement === 2 ? t[1] : placement <= 4 ? t[2] : 0;
+}
+/** Udział w sprzedaży naklejek z Majora. */
+export function stickerMoneyFor(placement: number): number {
+  return placement === 1 ? 400_000 : placement === 2 ? 320_000 : placement <= 4 ? 260_000 : placement <= 8 ? 200_000 : 150_000;
+}
 
 // ---------- compute ----------
 
@@ -205,6 +227,26 @@ function computeAll(): Map<string, TeamFinance> {
     }
   }
 
+  // 1a) Turnieje telewizyjne (Tier S/A): prawa transmisyjne dla KAŻDEGO
+  // uczestnika (niezależnie od rankingu), premie sponsorskie za podium oraz
+  // naklejki dla uczestników Majorów.
+  for (const t of tournaments) {
+    if (t.status !== "completed" || !t.placements?.length) continue;
+    const date = day(t.endDate || t.startDate) || nowDay;
+    const tv = t.tier === "S" || t.tier === "A";
+    const major = /major/i.test(t.name);
+    for (const pl of t.placements) {
+      if (!pl.team || pl.team === "-") continue;
+      const p = pl.placement;
+      if (tv) {
+        push(pl.team, { id: `media_${t.id}`, date, amount: mediaRightsFor(t.tier, p), category: "media", label: `Prawa TV: ${t.name}` });
+        const sb = sponsorBonusFor(t.tier, p);
+        if (sb > 0) push(pl.team, { id: `sbon_${t.id}`, date, amount: sb, category: "sponsor_bonus", label: `Premia sponsorów: ${t.name} (miejsce ${p})` });
+      }
+      if (major) push(pl.team, { id: `stk_${t.id}`, date, amount: stickerMoneyFor(p), category: "stickers", label: `Naklejki: ${t.name}` });
+    }
+  }
+
   // 1b) Forma sportowa do wyceny sponsorów (mecze + miejsca, fikcyjne daty)
   const TIER_W: Record<string, number> = { S: 1, A: 0.6, B: 0.35, C: 0.2 };
   const perf = new Map<string, { at: number; win?: boolean; w: number; place?: number }[]>();
@@ -256,6 +298,16 @@ function computeAll(): Map<string, TeamFinance> {
     const b = Math.max(-0.15, Math.min(0.7, bonus));
     const mood = jitter(team, `spon_${monthKey(at)}`, 0.9, 1.1);
     return round(sponsorBase(rank, team) * form * (1 + b) * mood, 500);
+  };
+  /** Fan store: baza z rozpoznawalności × hype po wynikach (90 dni). */
+  const merchFor = (team: string, rank: number, at: number) => {
+    const base = rank <= 5 ? 45_000 : rank <= 10 ? 32_000 : rank <= 20 ? 22_000 : rank <= 30 ? 14_000 : rank <= 60 ? 7_000 : 3_000;
+    let hype = 0;
+    for (const e of perf.get(team) || []) {
+      if (e.place === undefined || e.at < at - 90 * 86_400_000 || e.at >= at) continue;
+      hype += e.w * (e.place === 1 ? 0.6 : e.place === 2 ? 0.3 : e.place <= 4 ? 0.12 : 0);
+    }
+    return round(base * jitter(team, "merch", 0.8, 1.2) * (1 + Math.min(1, hype)) * jitter(team, `merch_${monthKey(at)}`, 0.9, 1.1), 500);
   };
 
   // 2) Kontrakty — pensje, premie, odstępne
@@ -357,6 +409,8 @@ function computeAll(): Map<string, TeamFinance> {
         if (monthlyRunning > 0) ledger.push({ id: `run_${team}_${mk}`, date, amount: -Math.round(monthlyRunning), category: "running", label: `Marketing, eventy, bootcampy ${mk}` });
         if (monthlyStaff > 0) ledger.push({ id: `staff_${team}_${mk}`, date, amount: -Math.round(monthlyStaff), category: "staff", label: `Personel ${mk}` });
         const spon = sponsorFor(team, rank, at);
+        const mer = merchFor(team, rank, at);
+        if (mer > 0) ledger.push({ id: `merch_${team}_${mk}`, date, amount: mer, category: "merch", label: `Fan store ${mk}` });
         if (spon > 0) ledger.push({ id: `spon_${team}_${mk}`, date, amount: spon, category: "sponsor", label: `Sponsorzy ${mk}` });
       }
     }
