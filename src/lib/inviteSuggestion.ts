@@ -2,6 +2,7 @@
 // Sugeruje drużyny do zaproszenia na turniej w oparciu o aktualny ranking,
 // z podziałem na sloty per region lub global.
 
+import { clubOnly } from "./nationalIdentity";
 import { loadAllTeams } from "./teamManagement";
 import type { TeamData } from "./types";
 
@@ -27,7 +28,7 @@ export interface InviteSuggestion {
  * Pomija drużyny już znajdujące się w `exclude`.
  */
 export function suggestInvites(config: InviteSlotConfig): InviteSuggestion[] {
-  const all = loadAllTeams().sort((a, b) => b.points - a.points);
+  const all = clubOnly(loadAllTeams()).sort((a, b) => b.points - a.points);
   const exclude = new Set(config.exclude || []);
   const out: InviteSuggestion[] = [];
 
@@ -73,7 +74,7 @@ export function suggestInvites(config: InviteSlotConfig): InviteSuggestion[] {
 
 /** Pomocnik: zwraca top N drużyn z danego regionu (lub global) jako alternatywy do podmiany. */
 export function topTeamsForRegion(region: string, limit = 20, exclude: string[] = []): TeamData[] {
-  const all = loadAllTeams().sort((a, b) => b.points - a.points);
+  const all = clubOnly(loadAllTeams()).sort((a, b) => b.points - a.points);
   const ex = new Set(exclude);
   const filtered = region === "GLOBAL" ? all : all.filter(t => t.region === region);
   return filtered.filter(t => !ex.has(t.name)).slice(0, limit);

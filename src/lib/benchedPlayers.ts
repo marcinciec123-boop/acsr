@@ -8,6 +8,7 @@
 // Persisted via the standard storage helper, so device backups capture
 // it automatically.
 
+import { isNationalTeam } from "./nationalIdentity";
 import { loadFromStorage, saveToStorage } from "./storage";
 import type { TeamData } from "./types";
 import { getWorldNowIso } from "./worldClock";
@@ -58,6 +59,7 @@ export function isBenched(team: string, player: string): boolean {
 }
 
 export function benchPlayer(team: string, player: string, date?: string): void {
+  if (isNationalTeam(team)) return; // reprezentacja nie ma ławki
   const map = loadBenched();
   const cur = benchMembers(map, team);
   if (cur.some(p => sameName(p, player))) return;
@@ -106,6 +108,7 @@ export function removeFromAllBenches(player: string): void {
 
 /** Roster split: active (first 5 not on bench) + benched. */
 export function splitRoster(team: TeamData): { active: string[]; bench: string[] } {
+  if (team.isNational || isNationalTeam(team.name)) return { active: [...team.roster], bench: [] };
   const benched = new Set(getBenchedFor(team.name).map(nameKey));
   const active = team.roster.filter(p => !benched.has(nameKey(p)));
   const bench = team.roster.filter(p => benched.has(nameKey(p)));
@@ -119,6 +122,7 @@ export function getActiveRoster(team: TeamData): string[] {
 
 /** Incoming non-coach joins the bench when the active five is already full. */
 export function shouldAutoBenchIncoming(team: TeamData, player: string): boolean {
+  if (team.isNational || isNationalTeam(team.name)) return false;
   return !team.roster.includes(player) && getActiveRoster(team).length >= 5;
 }
 

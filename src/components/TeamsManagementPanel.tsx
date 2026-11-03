@@ -1,3 +1,4 @@
+import { clubOnly } from "@/lib/nationalIdentity";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, Edit3, Save, X, Trash2, AlertTriangle, Search, Globe } from "lucide-react";
@@ -17,7 +18,7 @@ import type { TeamData } from "@/lib/types";
 const REGIONS = ["EU", "US", "LATAM", "ASIA", "OCE", "AFR"];
 
 const TeamsManagementPanel = () => {
-  const [teams, setTeams] = useState<TeamData[]>(() => loadAllTeams());
+  const [teams, setTeams] = useState<TeamData[]>(() => clubOnly(loadAllTeams()));
   const [search, setSearch] = useState("");
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ name: string; country: string; region: string; points: string }>({
@@ -30,7 +31,7 @@ const TeamsManagementPanel = () => {
   const [rosterInput, setRosterInput] = useState("");
   const [confirmDisband, setConfirmDisband] = useState<{ name: string; reason: string } | null>(null);
 
-  const refresh = () => setTeams(loadAllTeams());
+  const refresh = () => setTeams(clubOnly(loadAllTeams()));
 
   useEffect(() => {
     const handler = () => refresh();
