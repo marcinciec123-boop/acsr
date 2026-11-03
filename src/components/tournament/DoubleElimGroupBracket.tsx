@@ -153,6 +153,7 @@ const MatchCard = ({
           ) : (
             `BO${m.bo || 3}`
           )}
+          {m.walkover && <span className="ml-1 rounded-sm border border-[hsl(var(--gold))]/60 px-1 text-[10px] font-bold text-[hsl(var(--gold))]" title="Walkower — mecz nie liczy się do statystyk">WO</span>}
         </span>
         <span className="flex items-center gap-1 shrink-0">
           <MatchHoverPreview match={m} />

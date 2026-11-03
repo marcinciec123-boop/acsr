@@ -408,6 +408,14 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             </div>
           </div>
 
+          {match.walkover && (
+            <div className="mt-3 flex justify-center">
+              <span className="rounded-md border border-[hsl(var(--gold))]/60 bg-[hsl(var(--gold))]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[hsl(var(--gold))]">
+                Walkower (WO) — rywal rozwiązany, mecz nie liczy się do statystyk
+              </span>
+            </div>
+          )}
+
           {/* Podsumowanie map pod wynikiem serii — tylko rozegrane mapy, bez notek z veto */}
           {(() => {
             const played = playedMaps(maps, bo).filter(m => (m.score1 || 0) + (m.score2 || 0) > 0);

@@ -23,3 +23,19 @@ describe("disband during a tournament", () => {
     expect(withdrawTeamFromTournament(done, "A")).toBe(done);
   });
 });
+
+import { applyWalkovers } from "@/lib/bracketPropagation";
+describe("walkover moves the winner on", () => {
+  it("opponent lands in the next round right away", () => {
+    const tour = {
+      id: "y", name: "Y", status: "live", participants: ["A", "B", "C", "D"], placements: [],
+      phases: [{ id: "p", name: "P", format: "single-elim", bo: 3, teams: ["A", "B", "C", "D"], bracket: [
+        { id: "sf1", team1: "A", team2: "B", score1: 0, score2: 0, bo: 3, winnerTo: "f" },
+        { id: "sf2", team1: "C", team2: "D", score1: 2, score2: 0, bo: 3, winnerTo: "f" },
+        { id: "f", team1: "", team2: "", score1: 0, score2: 0, bo: 3 },
+      ] }],
+    } as unknown as TournamentData;
+    const f = applyWalkovers(tour, ["A"]).phases[0].bracket!.find(m => m.id === "f")!;
+    expect([f.team1, f.team2]).toEqual(["B", "C"]);
+  });
+});
