@@ -52,7 +52,8 @@ interface Props {
     groupId?: string,
   ) => void;
   onDeleteBracketMatch: (phaseId: string, matchId: string) => void;
-  onAddBracketMatch: (phaseId: string, round: string) => void;
+  onAddBracketMatch: (phaseId: string, round: string, side?: "upper" | "lower" | "other") => void;
+  onMoveBracketRound?: (phaseId: string, round: string, dir: -1 | 1) => void;
   onAddBracketMatches?: (
     phaseId: string,
     matches: { team1: string; team2: string; bo: 1 | 3 | 5; round: string; bracketSlot?: string }[],
@@ -265,7 +266,7 @@ const PhaseSeedingPanel = ({
 
 export const TournamentDetailPage = ({
   tournament: t, allTeams, onBack, onUpdateMatch, onDeleteBracketMatch,
-  onAddBracketMatch, onAddBracketMatches, onMoveBracketMatch, onAddGroupMatch, onDeleteGroupMatch,
+  onAddBracketMatch, onMoveBracketRound, onAddBracketMatches, onMoveBracketMatch, onAddGroupMatch, onDeleteGroupMatch,
   onReseedPhase, onAssignGroups, onShuffleGroups,
   onSetStatus, onConfirmResults, onUpdateTournament, onDelete, onOpenMatch,
   mainTournaments = [], onPromoteWinners,
@@ -1090,7 +1091,8 @@ export const TournamentDetailPage = ({
                         }
                         onDelete={(mid) => onDeleteBracketMatch(phase.id, mid)}
                         onMove={(mid, dir) => onMoveBracketMatch(phase.id, mid, dir)}
-                        onAdd={(round) => onAddBracketMatch(phase.id, round)}
+                        onAdd={(round, side) => onAddBracketMatch(phase.id, round, side)}
+                        onMoveRound={onMoveBracketRound ? (round, dir) => onMoveBracketRound(phase.id, round, dir) : undefined}
                         onOpenMatch={(mid) => onOpenMatch(phase.id, mid)}
                       />
                     )}
