@@ -96,7 +96,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
       tags: r.tags.join(", "),
       embeds: r.embeds || [],
       cover: r.cover || null,
-      poll: r.poll ? { question: r.poll.question, options: r.poll.options.join("\n") } : prev.poll,
+      poll: r.poll ? { question: r.poll.question, options: r.poll.options.join("\n") } : null,
     }));
     setTpl("");
   };
@@ -223,7 +223,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
               </>
             )}
             {(tpl === "bench" || tpl === "ranking" || tpl === "compare" || tpl === "roster") && (
-              <select value={tTeam} onChange={e => setTTeam(e.target.value)} className={fieldCls}>
+              <select aria-label="Drużyna szablonu" value={tTeam} onChange={e => setTTeam(e.target.value)} className={fieldCls}>
                 <option value="">{tpl === "bench" ? "Drużyna (auto)" : "Wybierz drużynę…"}</option>
                 {teams.map((t, i) => <option key={t.name} value={t.name}>{tpl === "ranking" ? `#${i + 1} ` : ""}{t.name}</option>)}
               </select>
@@ -296,13 +296,13 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           <div className="space-y-2">
             <input
               value={d.poll.question}
-              onChange={e => set("poll", { ...d.poll!, question: e.target.value })}
+              onChange={e => setD(prev => prev.poll ? { ...prev, poll: { ...prev.poll, question: e.target.value } } : prev)}
               placeholder="Pytanie (np. Kto wygra finał?)"
               className={`${fieldCls} w-full`}
             />
             <Textarea
               value={d.poll.options}
-              onChange={e => set("poll", { ...d.poll!, options: e.target.value })}
+              onChange={e => setD(prev => prev.poll ? { ...prev, poll: { ...prev.poll, options: e.target.value } } : prev)}
               placeholder={"Opcje — każda w nowej linii (2–6)\nnazwy drużyn dostaną głosy wg siły w rankingu"}
               rows={3}
               className="text-xs bg-secondary/50"
@@ -358,11 +358,11 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           </select>
           {d.cover && (
             <>
-              <select value={d.cover.teamB || ""} onChange={e => set("cover", { ...d.cover!, teamB: e.target.value || undefined })} className={fieldCls}>
+              <select value={d.cover.teamB || ""} onChange={e => setD(prev => prev.cover ? { ...prev, cover: { ...prev.cover, teamB: e.target.value || undefined } } : prev)} className={fieldCls}>
                 <option value="">Bez rywala</option>
                 {teams.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
               </select>
-              <input value={d.cover.label || ""} onChange={e => set("cover", { ...d.cover!, label: e.target.value || undefined })} placeholder="Podpis (np. FINAŁ)" className={fieldCls} />
+              <input value={d.cover.label || ""} onChange={e => setD(prev => prev.cover ? { ...prev, cover: { ...prev.cover, label: e.target.value || undefined } } : prev)} placeholder="Podpis (np. FINAŁ)" className={fieldCls} />
             </>
           )}
         </div>
