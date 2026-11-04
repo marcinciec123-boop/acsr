@@ -44,7 +44,7 @@ function buildSystemPrompt(mode: string): string {
 Piszesz jak człowiek z branży, który zna kontekst, a nie jak bot generujący "content". \
 Ton dobierasz do treści: analityczny w rozbiorach formy, rzeczowy w newsach, lekki w ciekawostkach, ironiczny w hot-takach. \
 NIGDY nie używasz hashtagów. Emoji tylko wyjątkowo (max 1 na cały post i tylko jeśli naprawdę wnosi), w większości postów ZERO emoji. \
-Długość: 3-6 zdań, ale prawdziwych zdań — z konkretem, nie z ogólnikami typu "będzie ciekawie" czy "zobaczymy co przyniesie przyszłość".
+Długość domyślna: 3-6 zdań. Jeżeli podano styl i długość tekstu, te ustawienia mają pierwszeństwo. Pisz z konkretem, nie z ogólnikami typu "będzie ciekawie" czy "zobaczymy co przyniesie przyszłość".
 
 ZASADY JAKOŚCI DZIENNIKARSKIEJ:
 - Każdy post ma inny lead — nie zaczynaj powtarzalnie ("Wielki transfer!", "Niespodzianka!", "Uwaga fani!"). Otwieraj konkretem: nazwiskiem, liczbą, cytatem, obserwacją, pytaniem retorycznym, sceną.
@@ -60,7 +60,7 @@ ZASADY JAKOŚCI DZIENNIKARSKIEJ:
 - O turnieju możesz pisać tylko w kontekście drużyn z jego listy "uczestnicy". Jeśli drużyny tam nie ma — NIE pisz, że grała, wygrała, przegrała, odpadła ani że "zawiodła" w tym turnieju.
 - Nie przypisuj zwycięstwa/finału/półfinału drużynie inaczej niż wynika to z pól "wygrana", "finał", "topPlacements".
 - Jeśli turniej jest w statusie "upcoming"/"scheduled" — NIE pisz o wynikach, MVP ani formie z tego turnieju. Możesz tylko zapowiadać.
-- Nie wymieniaj wyników liczbowych map (16:14, 13:7 itd.) — nie masz tych danych.
+- Wyniki liczbowe map wolno podać WYŁĄCZNIE jeśli występują w dostarczonym szkicu lub kontekście. Nie wymyślaj żadnych wyników.
 - Spekulacje (transfery, plotki, beef) zawsze oznaczaj: "podobno", "krążą plotki", "źródła sugerują", "ponoć", "według nieoficjalnych doniesień" — i tylko między prawdziwymi z danych podmiotami.`;
 
   const modeHints: Record<string, string> = {
@@ -145,7 +145,8 @@ Deno.serve(async (req) => {
       || (raw.count !== undefined && (typeof raw.count !== "number" || !Number.isFinite(raw.count)))
       || (raw.context !== undefined && typeof raw.context !== "string")
       || (raw.writingInstructions !== undefined && typeof raw.writingInstructions !== "string")
-      || (raw.recentPosts !== undefined && (!Array.isArray(raw.recentPosts) || raw.recentPosts.some((p: { content?: unknown }) => typeof p?.content !== "string")))) {
+      || (raw.templateDraft !== undefined && (!raw.templateDraft || typeof raw.templateDraft.title !== "string" || typeof raw.templateDraft.content !== "string" || typeof raw.templateDraft.category !== "string"))
+      || (raw.recentPosts !== undefined && (!Array.isArray(raw.recentPosts) || raw.recentPosts.some((p: { title?: unknown; content?: unknown }) => typeof p?.content !== "string" || (p.title !== undefined && typeof p.title !== "string"))))) {
       return new Response(JSON.stringify({ error: "Nieprawidłowe dane generatora." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const body = raw as SnapshotPayload;
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
                       properties: {
                         title: { type: "string", description: "Unikatowy nagłówek artykułu po polsku" },
                         category: { type: "string", enum: POST_CATEGORIES },
-                        content: { type: "string", description: "Treść posta po polsku, 2-5 zdań" },
+                        content: { type: "string", description: "Treść posta po polsku zgodna z wybranym stylem i długością" },
                       },
                       required: ["title", "category", "content"],
                       additionalProperties: false,

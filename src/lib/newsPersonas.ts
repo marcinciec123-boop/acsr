@@ -6,6 +6,10 @@ export function selectCommenters(used: string[], size = 32) {
   const recent = new Set(used.map(nick => nick.toLowerCase()));
   const fresh = commenterPool.filter(persona => !recent.has(persona.nick.toLowerCase()));
   const pool = fresh.length >= size ? fresh : commenterPool;
-  const start = Math.floor(Math.random() * pool.length);
-  return Array.from({ length: Math.min(size, pool.length) }, (_, index) => pool[(start + index * 5) % pool.length]);
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, Math.max(0, Math.min(size, pool.length)));
 }

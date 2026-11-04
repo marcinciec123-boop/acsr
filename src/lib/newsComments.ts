@@ -9,6 +9,7 @@ import { getWorldNowIso } from "./worldClock";
 import { nameChanges } from "@/data/history";
 import { setPostHype } from "./newsExtras";
 import { selectCommenters } from "./newsPersonas";
+import { newsAiError } from "./newsAiError";
 
 const KEY = "news_comments";
 const LIKES_KEY = "news_post_likes";
@@ -175,7 +176,7 @@ export async function generateComments(
       },
     });
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: await newsAiError(error) };
     if (data?.error) return { ok: false, error: data.error };
 
     const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
@@ -284,7 +285,7 @@ export async function generateReplies(
         personas: selectCommenters(all.map(c => c.author)),
       },
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: await newsAiError(error) };
     if (data?.error) return { ok: false, error: data.error };
 
     const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =

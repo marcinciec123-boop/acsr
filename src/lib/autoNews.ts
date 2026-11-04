@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getWorldNowIso, getWorldDate } from "./worldClock";
 import { isRepeatedNews, type NewsText } from "./newsUniqueness";
 import type { TemplateResult } from "./newsExtras";
+import { newsAiError } from "./newsAiError";
 
 const NEWS_KEY = "news_posts";
 
@@ -165,7 +166,7 @@ export async function generateAIRumors(
         recentPosts: loadPosts().slice(0, 40).map(p => ({ title: p.title || "", content: p.content.slice(0, 1200) })),
       },
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: await newsAiError(error) };
     if (data?.error) return { ok: false, error: data.error };
     const posts: { title?: string; category: string; content: string }[] = data?.posts || [];
     const prefix = options?.eventKeyPrefix || "ai";
@@ -197,7 +198,8 @@ export async function generateNewsDraft(template: TemplateResult, instructions: 
       writingInstructions: instructions,
       recentPosts: loadPosts().slice(0, 40).map(p => ({ title: p.title || "", content: p.content.slice(0, 1200) })),
     } });
-    if (error || data?.error) return { ok: false, error: data?.error || error?.message };
+    if (error) return { ok: false, error: await newsAiError(error) };
+    if (data?.error) return { ok: false, error: data.error };
     const post = data?.posts?.[0];
     if (!post?.content || !post?.title) return { ok: false, error: "Brak tekstu w odpowiedzi AI." };
     if (isRepeatedNews(post, loadPosts())) return { ok: false, error: "Tekst jest zbyt podobny do opublikowanego wpisu — nie dodano duplikatu." };
