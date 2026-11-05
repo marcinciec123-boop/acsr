@@ -387,3 +387,46 @@ export function roundReportTemplate(g: RoundRef): TemplateResult {
     poll: { question: `Kto zrobił największe wrażenie — ${g.label}?`, options: winners.slice(0, 6).length >= 2 ? winners.slice(0, 6) : ["Faworyci", "Czarne konie"] },
   };
 }
+
+// ---------- Zapowiedź kolejki / fazy ----------
+
+const isRealTeam = (n?: string) => !!n && !/^(TBD|TBA)/i.test(n.trim());
+
+/** Nadchodzące kolejki / fazy: mecze ze znanymi drużynami, jeszcze nierozstrzygnięte. */
+export function listUpcomingRounds(): RoundRef[] {
+  const map = new Map<string, RoundRef>();
+  loadTournaments().forEach(t => {
+    if (t.status === "completed" || t.resultsConfirmed) return;
+    (t.phases || []).forEach(p => {
+      [...(p.groups || []).flatMap(g => g.matches || []), ...(p.bracket || [])].forEach(m => {
+        if (!m || isPlayed(m) || m.walkover || !isRealTeam(m.team1) || !isRealTeam(m.team2)) return;
+        const label = m.round || p.name || "Mecze";
+        const key = `up|${t.id}|${p.id}|${label}`;
+        if (!map.has(key)) map.set(key, { key, tournamentId: t.id, tournamentName: t.name, tier: t.tier, phaseName: p.name, label, matches: [] });
+        map.get(key)!.matches.push({ tournamentId: t.id, tournamentName: t.name, tier: t.tier, date: m.scheduledAt || t.startDate, match: m });
+      });
+    });
+  });
+  return Array.from(map.values());
+}
+
+export function roundPreviewTemplate(g: RoundRef): TemplateResult {
+  const phase = g.phaseName && g.phaseName !== g.label ? `${g.phaseName} — ${g.label}` : g.label;
+  const ranking = clubOnly(loadAllTeams());
+  const rankOf = (n: string) => { const i = ranking.findIndex(t => t.name === n); return i >= 0 ? i + 1 : null; };
+  const lines = g.matches.map(r => {
+    const a = rankOf(r.match.team1), b = rankOf(r.match.team2);
+    const fav = a && b ? (a < b ? r.match.team1 : r.match.team2) : null;
+    return `${r.match.team1}${a ? ` (#${a})` : ""} vs ${r.match.team2}${b ? ` (#${b})` : ""} — Bo${r.match.bo || 3}${fav ? `, faworyt wg rankingu: ${fav}` : ""}.`;
+  });
+  const teams = Array.from(new Set(g.matches.flatMap(r => [r.match.team1, r.match.team2])));
+  return {
+    title: `${g.tournamentName}: zapowiedź — ${g.label}`,
+    content: `${g.tournamentName} (Tier ${g.tier}) wchodzi w etap: ${phase}. W programie ${g.matches.length} ${g.matches.length === 1 ? "mecz" : "meczów"}.\n${lines.join("\n")}`,
+    category: "preview",
+    tags: [g.tournamentName, g.label, ...teams.slice(0, 6)],
+    embeds: g.matches.slice(0, 8).map(r => ({ kind: "match" as const, tournamentId: r.tournamentId, matchId: r.match.id })),
+    cover: { teamA: g.matches[0].match.team1, teamB: g.matches[0].match.team2, label: g.label },
+    poll: { question: `Kto wygra najwięcej meczów — ${g.label}?`, options: teams.slice(0, 6).length >= 2 ? teams.slice(0, 6) : ["Faworyci", "Czarne konie"] },
+  };
+}
