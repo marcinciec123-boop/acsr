@@ -199,7 +199,7 @@ const Index = () => {
             if (!visited.has(tab) || !PANELS[tab]) return null;
             return (
               <div key={tab} style={tab === activeTab ? undefined : { display: "none" }}>
-                {PANELS[tab]?.({ onSelectTeam: handleSelectTeam, onSelectPlayer: handleSelectPlayer, tournamentSelection: tournament, onOpenTournament: handleOpenTournament, onBack: handleBack })}
+                {PANELS[tab]?.({ onSelectTeam: handleSelectTeam, onSelectPlayer: handleSelectPlayer, tournamentSelection: tournament, onOpenTournament: handleOpenTournament, onBack: handleLocalBack })}
               </div>
             );
           })}
@@ -208,11 +208,11 @@ const Index = () => {
         {retainedProfiles.map(profile => (
           <div key={profile.key} style={profile.key === top?.key ? undefined : { display: "none" }}>
             {profile.kind === "player" ? (
-              <PlayerProfile playerName={profile.name} onBack={handleBack}
+              <PlayerProfile playerName={profile.name} onBack={handleLocalBack}
                 onSelectTeam={handleSelectTeam} onSelectPlayer={handleSelectPlayer}
                 seasonStandings={[]} dynamicRanking={teams} />
             ) : (
-              <TeamProfile teamName={profile.name} onBack={handleBack} teams={teams}
+              <TeamProfile teamName={profile.name} onBack={handleLocalBack} teams={teams}
                 onSelectPlayer={handleSelectPlayer} />
             )}
           </div>
