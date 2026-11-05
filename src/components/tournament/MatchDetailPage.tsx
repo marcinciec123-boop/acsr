@@ -323,7 +323,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           onClick={onBack}
           className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do turnieju
         </Button>
 
         <motion.div

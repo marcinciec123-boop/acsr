@@ -358,7 +358,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
       <section className="py-12">
         <div className="container mx-auto px-4">
           <button onClick={onBack} className="flex items-center gap-2 text-primary mb-6 hover:underline">
-            <ArrowLeft className="w-4 h-4" /> Powrót
+            <ArrowLeft className="w-4 h-4" /> Powrót do rankingu
           </button>
           <p className="text-muted-foreground">Drużyna nie znaleziona.</p>
         </div>
@@ -382,7 +382,7 @@ const TeamProfile = ({ teamName, onBack, teams, onSelectPlayer }: TeamProfilePro
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-[1200px]">
         <button onClick={onBack} className="flex items-center gap-2 text-primary mb-4 hover:underline font-mono text-sm">
-          <ArrowLeft className="w-4 h-4" /> Powrót
+          <ArrowLeft className="w-4 h-4" /> Powrót do rankingu
         </button>
 
         {/* Hero header */}

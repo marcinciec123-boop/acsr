@@ -102,6 +102,16 @@ const Index = () => {
     navigationRef.current = next;
     setNavigation(next);
   };
+  // Local "Powrót" buttons step up one level inside the current view (original behaviour).
+  const handleLocalBack = () => {
+    const view = navigationRef.current.current.view;
+    if (view.profiles.length) return go({ ...view, profiles: view.profiles.slice(0, -1) });
+    if (view.tournament?.matchId) return go({ ...view, tournament: { tournamentId: view.tournament.tournamentId } });
+    if (view.tournament) {
+      const saved = readUiPref<{ x: number; y: number } | null>(`scroll_tab_${view.tab}`, null);
+      return go({ ...view, tournament: null }, saved?.y || 0);
+    }
+  };
   const handleTabChange = (tab: Tab) => {
     const saved = readUiPref<{ x: number; y: number } | null>(`scroll_tab_${tab}`, null);
     go({ tab, profiles: [], tournament: null }, saved?.y || 0);
@@ -173,19 +183,13 @@ const Index = () => {
   return (
     <ProfileNavProvider value={{ openTeam: handleSelectTeam, openPlayer: handleSelectPlayer, openTournament: handleOpenTournament }}>
       <div className="min-h-screen bg-background">
-        <NavBar activeTab={activeTab} onTabChange={handleTabChange} />
+        <NavBar activeTab={activeTab} onTabChange={handleTabChange} onBack={handleBack} canGoBack={navigation.past.length > 0} />
         <CommandPalette
           onTabChange={handleTabChange}
           onSelectTeam={handleSelectTeam}
           onSelectPlayer={handleSelectPlayer}
         />
 
-        <div className="container mx-auto px-4 pt-2">
-          <Button variant="ghost" size="icon" onClick={handleBack} disabled={!navigation.past.length}
-            aria-label="Wstecz" title="Wstecz" className="h-8 w-8 text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </div>
 
         {/* Keep-alive: every visited panel stays mounted (hidden) so switching
             tabs is instant — no remount, no recomputation. */}
