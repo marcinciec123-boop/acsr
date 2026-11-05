@@ -3,10 +3,10 @@ import type { TemplateResult } from "./newsExtras";
 import { computeCareerStats } from "./playerCareerStats";
 import { playerRoles } from "@/data/playerRoles";
 
-export type WritingStyle = "news" | "analysis" | "column" | "light";
+export type WritingStyle = "news" | "analysis" | "column" | "light" | "fanpage";
 export type WritingLength = "short" | "medium" | "long";
 export const writingInstructions = (style: WritingStyle, length: WritingLength) =>
-  `Styl: ${({ news: "rzeczowa notka reporterska", analysis: "analiza oparta na faktach", column: "felieton z wyraźnie oddzieloną opinią", light: "lekki język i subtelny humor" })[style]}. Długość: ${({ short: "2–3 zdania", medium: "4–6 zdań", long: "8–10 zdań w 2–3 akapitach" })[length]}.`;
+  `Styl: ${({ news: "rzeczowa notka reporterska", analysis: "analiza oparta na faktach", column: "felieton z wyraźnie oddzieloną opinią", light: "lekki język i subtelny humor", fanpage: "FANPAGE — post właściciela fanpage'a: pierwsza osoba, emocje, slang, wulgaryzmy dozwolone" })[style]}. Długość: ${({ short: "2–3 zdania", medium: "4–6 zdań", long: "8–10 zdań w 2–3 akapitach" })[length]}.`;
 
 export function tournamentTemplate(t: TournamentData, recap: boolean): TemplateResult {
   const placements = [...(t.placements || [])].sort((a, b) => a.placement - b.placement);
@@ -36,5 +36,5 @@ export function formatTemplate(result: TemplateResult, style: WritingStyle, leng
   const content = length === "short" ? sentences.slice(0, 3).join(" ")
     : length === "long" ? sentences.join("\n\n") : result.content;
   const title = style === "analysis" ? `Analiza: ${result.title}` : style === "column" ? `Okiem redakcji: ${result.title}` : result.title;
-  return { ...result, title, content, category: style === "column" ? "opinion" : result.category };
+  return { ...result, title, content, category: style === "column" ? "opinion" : style === "fanpage" ? "fanpage" : result.category };
 }

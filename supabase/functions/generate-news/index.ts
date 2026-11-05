@@ -14,7 +14,7 @@ interface SnapshotPayload {
   events?: { kind: string; summary: string }[];
   count?: number;
   /** Optional: bias the generator toward a specific post type */
-  mode?: "mixed" | "memes" | "mvp" | "power-ranking" | "beef" | "hot-take" | "fun-fact" | "recap" | "preview";
+  mode?: "mixed" | "memes" | "mvp" | "power-ranking" | "beef" | "hot-take" | "fun-fact" | "recap" | "preview" | "fanpage";
   /** Optional: concrete event context (e.g. tournament summary) used as the spine of the posts */
   context?: string;
   writingInstructions?: string;
@@ -37,6 +37,7 @@ const POST_CATEGORIES = [
   "recap",        // podsumowanie turnieju
   "preview",      // zapowiedź meczu/turnieju
   "interview",    // wymyślony cytat z gracza/coacha
+  "fanpage",      // post właściciela fanpage
 ];
 
 function buildSystemPrompt(mode: string): string {
@@ -75,6 +76,7 @@ ZASADY JAKOŚCI DZIENNIKARSKIEJ:
     mixed: "OBOWIĄZKOWA różnorodność. W paczce postów pojawia się kilka RÓŻNYCH gatunków: newsowa notka, analiza formy, mini power-ranking, felieton opinion, plotka transferowa z zastrzeżeniem, statystyczna ciekawostka, cytat z rzekomego wywiadu, krótki hot-take, sylwetka gracza, zapowiedź. Żaden post nie może być kopią strukturalną drugiego (ani otwarciem, ani rytmem, ani zakończeniem).",
   };
 
+  if (mode === "fanpage") return `${base}\n\nTRYB FANPAGE (nadpisuje zasady tonu powyżej, zasady faktów obowiązują dalej): Piszesz jako właściciel popularnego fanpage'a o polskiej scenie CS-a, nie dziennikarz. Pierwsza osoba, emocje, kibicowski slang, zaczepki, ironia, wołanie do fanów ("co sądzicie?"). Wulgaryzmy dozwolone i mile widziane tam, gdzie pasują (kurwa, chuj, ja pierdolę itd.), ale bez obrażania grup ze względu na pochodzenie, płeć czy orientację i bez gróźb. Emoji dozwolone (do 3). Kategoria zawsze "fanpage".`;
   return `${base}\n\nTRYB: ${modeHints[mode] || modeHints.mixed}`;
 }
 

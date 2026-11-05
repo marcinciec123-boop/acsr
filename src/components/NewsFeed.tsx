@@ -41,6 +41,7 @@ const MODES: { value: AIPostMode; label: string; emoji: string; desc: string }[]
   { value: "hot-take", label: "Hot takes", emoji: "🌶️", desc: "Kontrowersyjne opinie" },
   { value: "fun-fact", label: "Ciekawostki", emoji: "🧠", desc: "Statystyczne smaczki" },
   { value: "preview", label: "Zapowiedzi", emoji: "🎯", desc: "Co przed nami" },
+  { value: "fanpage", label: "FanPage", emoji: "📣", desc: "Post właściciela fanpage'a, bez cenzury" },
 ];
 
 const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
@@ -59,6 +60,7 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
   preview: { label: "Zapowiedź", color: "bg-lime-500/15 text-lime-300 border-lime-500/30" },
   interview: { label: "Wywiad", color: "bg-violet-500/15 text-violet-300 border-violet-500/30" },
   signing: { label: "Signing", color: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+  fanpage: { label: "FanPage", color: "bg-rose-500/15 text-rose-300 border-rose-500/30" },
   release: { label: "Release", color: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
 };
 

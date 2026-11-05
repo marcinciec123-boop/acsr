@@ -11,6 +11,8 @@ import {
   rankingTemplate,
   listRecentRounds,
   roundReportTemplate,
+  roundPreviewTemplate,
+  listUpcomingRounds,
   transferTemplate,
 } from "@/lib/newsExtras";
 import { addEditorial, loadEditorials } from "@/lib/newsEditorials";
@@ -45,7 +47,7 @@ interface Props {
   onCancel: () => void;
 }
 
-type TplKind = "" | "match" | "round" | "transfer" | "bench" | "ranking" | "preview" | "recap" | "player" | "compare" | "roster";
+type TplKind = "" | "match" | "round" | "transfer" | "bench" | "ranking" | "preview" | "roundPreview" | "recap" | "player" | "compare" | "roster";
 
 const fieldCls = "h-9 px-2 rounded-md border border-border bg-secondary/50 text-xs font-mono text-foreground";
 
@@ -80,6 +82,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
   const teams = useMemo(() => activeClubTeams(), []);
   const matches = useMemo(() => listPlayedMatches(days), [days]);
   const rounds = useMemo(() => listRecentRounds(days), [days]);
+  const upcomingRounds = useMemo(() => listUpcomingRounds(), []);
   const [tRound, setTRound] = useState("");
   const players = useMemo(
     () => [...new Set(teams.flatMap(t => t.roster.filter(Boolean)))].sort((a, b) => a.localeCompare(b)),
@@ -103,6 +106,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
 
   const getTemplate = (): TemplateResult | null => {
     if (tpl === "round") { const g = rounds.find(r => r.key === tRound); return g ? roundReportTemplate(g) : null; }
+    if (tpl === "roundPreview") { const g = upcomingRounds.find(r => r.key === tRound); return g ? roundPreviewTemplate(g) : null; }
     if (tpl === "match") { const ref = matches.find(m => `${m.tournamentId}|${m.match.id}` === tMatch); return ref ? matchReportTemplate(ref) : null; }
     if (tpl === "transfer" && tPlayer && tTo) return transferTemplate(tPlayer, tFrom || teamOfPlayer(tPlayer) || "-", tTo);
     if (tpl === "bench" && tPlayer) return benchTemplate(tPlayer, tTeam || teamOfPlayer(tPlayer) || "drużyna");
@@ -158,6 +162,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
           {([
             ["match", "Raport z meczu"],
             ["round", "Raport z kolejki / fazy"],
+            ["roundPreview", "Zapowiedź kolejki / fazy"],
             ["transfer", "Transfer"],
             ["bench", "Ławka"],
             ["ranking", "Ranking"],
@@ -177,7 +182,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <select aria-label="Styl tekstu" value={style} onChange={e => setStyle(e.target.value as WritingStyle)} className={fieldCls}>
-            <option value="news">News</option><option value="analysis">Analiza</option><option value="column">Felieton</option><option value="light">Lekki</option>
+            <option value="news">News</option><option value="analysis">Analiza</option><option value="column">Felieton</option><option value="light">Lekki</option><option value="fanpage">FanPage</option>
           </select>
           <select aria-label="Długość tekstu" value={length} onChange={e => setLength(e.target.value as WritingLength)} className={fieldCls}>
             <option value="short">Krótki</option><option value="medium">Średni</option><option value="long">Długi</option>
@@ -200,6 +205,14 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
               <select value={tRound} onChange={e => setTRound(e.target.value)} className={`${fieldCls} flex-1 min-w-0 w-full`}>
                 <option value="">{rounds.length ? "Wybierz kolejkę / fazę (wybrany zakres)…" : "Brak etapów w wybranym zakresie"}</option>
                 {rounds.map(r => (
+                  <option key={r.key} value={r.key}>{r.tournamentName} — {r.phaseName && r.phaseName !== r.label ? `${r.phaseName} · ` : ""}{r.label} ({r.matches.length})</option>
+                ))}
+              </select>
+            )}
+            {tpl === "roundPreview" && (
+              <select aria-label="Nadchodząca kolejka / faza" value={tRound} onChange={e => setTRound(e.target.value)} className={`${fieldCls} flex-1 min-w-0 w-full`}>
+                <option value="">{upcomingRounds.length ? "Wybierz nadchodzącą kolejkę / fazę…" : "Brak zaplanowanych meczów"}</option>
+                {upcomingRounds.map(r => (
                   <option key={r.key} value={r.key}>{r.tournamentName} — {r.phaseName && r.phaseName !== r.label ? `${r.phaseName} · ` : ""}{r.label} ({r.matches.length})</option>
                 ))}
               </select>
