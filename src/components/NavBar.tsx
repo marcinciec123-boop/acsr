@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Newspaper, Trophy, Users, ArrowRightLeft, Zap, Menu, X, User, HardDrive, Settings, Award, Swords, BarChart3 } from "lucide-react";
+import { Newspaper, Trophy, Users, ArrowRightLeft, Zap, Menu, X, User, HardDrive, Settings, Award, Swords, BarChart3, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Tab = "news" | "rankings" | "tournaments" | "transfers" | "teams" | "players" | "matches" | "awards" | "stats" | "backup" | "settings";
@@ -8,6 +8,8 @@ export type Tab = "news" | "rankings" | "tournaments" | "transfers" | "teams" | 
 interface NavBarProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  onBack?: () => void;
+  canGoBack?: boolean;
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -23,7 +25,7 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "settings", label: "Ustawienia", icon: <Settings className="w-4 h-4" /> },
 ];
 
-const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
+const NavBar = ({ activeTab, onTabChange, onBack, canGoBack }: NavBarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -31,6 +33,13 @@ const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
       <div className="absolute bottom-0 inset-x-0 h-px hairline-primary opacity-70 pointer-events-none" />
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
+          <div className="flex items-center gap-2">
+          {onBack && (
+            <button onClick={onBack} disabled={!canGoBack} aria-label="Wróć do poprzedniego panelu" title="Wróć do poprzedniego panelu"
+              className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 text-muted-foreground hover:text-primary hover:border-primary/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={() => onTabChange("news")} className="flex items-center gap-2 group">
             <span className="relative flex items-center justify-center w-8 h-8 rounded-md bg-primary/15 border border-primary/40 group-hover:bg-primary/25 transition-colors">
               <Zap className="w-4 h-4 text-primary" />
@@ -40,6 +49,7 @@ const NavBar = ({ activeTab, onTabChange }: NavBarProps) => {
               ACSR <span className="text-primary neon-text">PORTAL</span>
             </span>
           </button>
+          </div>
 
           {/* Desktop tabs */}
           <div className="hidden sm:flex items-center gap-1">
