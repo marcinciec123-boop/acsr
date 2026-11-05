@@ -126,6 +126,7 @@ export function announceRankingChange(team: string, oldRank: number, newRank: nu
 
 export type AIPostMode =
   | "mixed"
+  | "fanpage"
   | "memes"
   | "mvp"
   | "power-ranking"
@@ -192,7 +193,7 @@ export async function generateAIRumors(
 export async function generateNewsDraft(template: TemplateResult, instructions: string): Promise<{ ok: boolean; post?: { title: string; content: string; category: string }; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("generate-news", { body: {
-      topTeams: [], recentTransfers: [], tournaments: [], count: 1, mode: "mixed",
+      topTeams: [], recentTransfers: [], tournaments: [], count: 1, mode: instructions.includes("FANPAGE") ? "fanpage" : "mixed",
       context: `Opracuj szkic na podstawie tych faktów, nie zmieniaj ani nie dopisuj wyników, transferów, nazw i dat.\n${template.title}\n${template.content}`,
       templateDraft: { title: template.title, content: template.content, category: template.category },
       writingInstructions: instructions,
