@@ -29,6 +29,7 @@ import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 import { getActiveMaps } from "@/lib/mapPool";
 import { matchStatsMaps, selectMatchStatsMaps } from "@/lib/matchStatsMaps";
+import { useMatchDraft } from "@/lib/matchDraft";
 const MAP_POOL_FALLBACK: string[] = [];
 const MAP_POOL = new Proxy(MAP_POOL_FALLBACK, {
   get(_t, prop, recv) { return Reflect.get(getActiveMaps(), prop, recv); },
@@ -44,8 +45,7 @@ interface Props {
   tier?: string;
   tournamentId?: string;
   onBack: () => void;
-  onUpdate: (patch: Partial<MatchResult>) => void;
-  onConfirm?: (winner: string, loser: string, pointsWin: number, pointsLose: number) => void;
+  onCommit: (match: MatchResult) => Promise<boolean>;
 }
 
 const blankPlayer = (name: string, team: string): MapPlayerStats => ({
@@ -78,7 +78,12 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId, onBack, onUpdate, onConfirm }: Props) => {
+export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultBo, tier = "B", tournamentId, onBack, onCommit }: Props) => {
+  const draft = useMatchDraft(committedMatch, tournamentId);
+  const match = draft.match;
+  const onUpdate = draft.update;
+  const bo = match.bo ?? defaultBo;
+  const [saving, setSaving] = useState(false);
   const [tab, setTab] = usePersistedState<string>(`match_tab_${match.id}`, "score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
   const [statsMap, setStatsMap] = useState<number | "all">("all");
@@ -117,13 +122,6 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     return { s1, s2 };
   }, [maps, bo, match.score1, match.score2]);
 
-
-  useEffect(() => {
-    if (maps.length === 0) return;
-    if (computedScore.s1 !== match.score1 || computedScore.s2 !== match.score2) {
-      onUpdate({ bo, score1: computedScore.s1, score2: computedScore.s2 });
-    }
-  }, [computedScore.s1, computedScore.s2]);
 
   // Przelicza rating wszystkich graczy mapy na podstawie aktualnego wyniku
   // (statystyki wpisane przed wynikiem miały 0 rund → rating 0.00).
@@ -294,25 +292,42 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
     setConfirmOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (saving) return;
     if (!matchDecided) { setConfirmOpen(false); return; }
-    onUpdate({
+    const confirmed: MatchResult = {
+      ...match,
+      bo,
+      score1: computedScore.s1,
+      score2: computedScore.s2,
       // Mecz reprezentacji nie zapisuje punktów VRS.
       ...(isNationalMatch ? {} : { pointsWinner: pointsWin, pointsLoser: pointsLose }),
       resultConfirmed: true,
       confirmedAt: Date.now(),
       maps: maps.map(withRatings),
-    });
+    };
+    setSaving(true);
+    try {
+      const saved = await onCommit(confirmed);
+      if (!saved) {
+        toast({ title: "Nie zapisano wyniku", description: "Wpisane dane pozostają w meczu. Spróbuj zatwierdzić ponownie.", variant: "destructive" });
+        return;
+      }
+      draft.clear(confirmed);
     // Fikcyjny kalendarz idzie do przodu do terminu meczu (finanse, kontrakty) — nie dla reprezentacji.
     if (match.scheduledAt && !isNationalMatch) advanceWorldTo(match.scheduledAt);
     // Sprawdzenie pobitych rekordów dopiero po fizycznym zatwierdzeniu wyniku.
     setTimeout(() => window.dispatchEvent(new CustomEvent("records:check")), 400);
-    onConfirm?.(winnerName, loserName, pointsWin, pointsLose);
     toast({
       title: "Wynik zatwierdzony",
       description: `${winnerName} +${pointsWin} pkt • ${loserName} −${pointsLose} pkt`,
     });
     setConfirmOpen(false);
+    } catch {
+      toast({ title: "Nie zapisano wyniku", description: "Wpisane dane pozostają w meczu. Spróbuj ponownie.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
     // Zostajemy na stronie meczu — użytkownik cofa się sam przyciskiem „Powrót”.
   };
 
@@ -572,7 +587,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
             <Button
               size="sm"
               onClick={openConfirm}
-              disabled={!matchDecided}
+              disabled={!matchDecided || saving}
               className="h-8 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
               title={!matchDecided ? `Wpisz/przesymuluj wynik (do ${mapsToWin} wygranych map)` : undefined}
             >
@@ -677,6 +692,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
               <Button
                 size="sm"
                 onClick={handleConfirm}
+                disabled={saving}
                 className="gap-1.5 bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
               >
                 <Trophy className="w-3.5 h-3.5" />
