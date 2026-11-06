@@ -730,7 +730,7 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
                 <div role="group" aria-label="Mapa statystyk" className="flex flex-wrap gap-1.5">
                   <Button size="sm" variant={selectedStatsMap === "all" ? "secondary" : "ghost"}
                     aria-pressed={selectedStatsMap === "all"} onClick={() => setStatsMap("all")}>
-                    Suma / średnia
+                    Wszystkie Mapy
                   </Button>
                   {statsMaps.map((m, i) => (
                     <Button key={`${m.map}-${i}`} size="sm" variant={selectedStatsMap === i ? "secondary" : "ghost"}
