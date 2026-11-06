@@ -29,3 +29,4 @@
 - Disk write queue keeps failed writes for retry and serializes flushes; restore/reset await diskFlush before reload so the .exe never restarts on half-written files.
 - National-team identity goes through src/lib/nationalIdentity.ts (persisted name registry + isNational flag + Worlds kind); club systems (transfers, VRS, finances, bench, disband, invites, awards, records) filter with it, so renamed or removed national teams never leak into club data.
 - News templates return unpublished drafts; shared news helpers handle editorial persistence, duplicate detection, commenter sampling and AI error messages so all entry points follow the same rules.
+- Match statistics map selectors use matchStatsMaps for read-only selection of played maps; the same totals tables render the aggregate or a single map without altering saved match data.

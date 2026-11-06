@@ -28,6 +28,7 @@ import { getWorldDate, advanceWorldTo } from "@/lib/worldClock";
 import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 import { getActiveMaps } from "@/lib/mapPool";
+import { matchStatsMaps, selectMatchStatsMaps } from "@/lib/matchStatsMaps";
 const MAP_POOL_FALLBACK: string[] = [];
 const MAP_POOL = new Proxy(MAP_POOL_FALLBACK, {
   get(_t, prop, recv) { return Reflect.get(getActiveMaps(), prop, recv); },
@@ -80,6 +81,9 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
 export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId, onBack, onUpdate, onConfirm }: Props) => {
   const [tab, setTab] = usePersistedState<string>(`match_tab_${match.id}`, "score");
   const [activeMapIdx, setActiveMapIdx] = useState(0);
+  const [statsMap, setStatsMap] = useState<number | "all">("all");
+
+  useEffect(() => { setStatsMap("all"); }, [match.id]);
 
   // Persist scroll position of this match page (restored when returning).
   const scrollKey = `match_scroll_${match.id}`;
@@ -103,6 +107,9 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
 
   const maps: MatchMap[] = useMemo(() => match.maps || [], [match.maps]);
+  const statsMaps = useMemo(() => matchStatsMaps(maps, bo, match.walkover), [maps, bo, match.walkover]);
+  const selectedStatsMap = statsMap === "all" || statsMaps[statsMap] ? statsMap : "all";
+  const displayedStatsMaps = useMemo(() => selectMatchStatsMaps(statsMaps, selectedStatsMap), [statsMaps, selectedStatsMap]);
 
   const computedScore = useMemo(() => {
     if (maps.length === 0) return { s1: match.score1, s2: match.score2 };
@@ -682,13 +689,15 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
 
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl mb-4">
-            <TabsTrigger value="score">Wynik</TabsTrigger>
-            <TabsTrigger value="maps">Mapy ({maps.length}/{bo})</TabsTrigger>
-            <TabsTrigger value="compare">Porównanie</TabsTrigger>
-            <TabsTrigger value="t1">Stats {match.team1 || "T1"}</TabsTrigger>
-            <TabsTrigger value="t2">Stats {match.team2 || "T2"}</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-4">
+            <TabsList className="inline-flex w-max min-w-full sm:min-w-0 h-auto">
+              <TabsTrigger value="score" className="shrink-0">Statystyki</TabsTrigger>
+              <TabsTrigger value="maps" className="shrink-0">Mapy ({maps.length}/{bo})</TabsTrigger>
+              <TabsTrigger value="compare" className="shrink-0">Porównanie</TabsTrigger>
+              <TabsTrigger value="t1" className="shrink-0">Stats {match.team1 || "T1"}</TabsTrigger>
+              <TabsTrigger value="t2" className="shrink-0">Stats {match.team2 || "T2"}</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="compare">
             {match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && match.team2 !== "BYE" ? (
@@ -716,42 +725,25 @@ export const MatchDetailPage = ({ match, phaseName, bo, tier = "B", tournamentId
           </TabsContent>
 
           <TabsContent value="score" className="space-y-4">
-            <div className="bg-card border border-border rounded-lg p-5">
-              <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider mb-4">
-                Wynik meczu (mapy wygrane)
-              </h3>
-              {maps.length > 0 ? (
-                <p className="text-sm text-muted-foreground font-mono">
-                  Wynik liczony automatycznie z zakładki <span className="text-foreground">Mapy</span>:
-                  <span className="text-foreground ml-2 text-base">{computedScore.s1} – {computedScore.s2}</span>
-                </p>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number" min="0"
-                    value={match.score1}
-                    onChange={e => onUpdate({ score1: parseInt(e.target.value) || 0 })}
-                    className="w-20 text-center font-mono text-lg"
-                  />
-                  <span className="text-muted-foreground">:</span>
-                  <Input
-                    type="number" min="0"
-                    value={match.score2}
-                    onChange={e => onUpdate({ score2: parseInt(e.target.value) || 0 })}
-                    className="w-20 text-center font-mono text-lg"
-                  />
-                  <span className="text-xs text-muted-foreground ml-3 font-mono">
-                    Dodaj mapy w zakładce „Mapy" aby uzyskać szczegółowy scoreboard
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {maps.length > 0 && (
+            {statsMaps.length > 0 ? (
               <>
-                <MatchPlayerTotals maps={maps} side="team1Players" teamName={match.team1} />
-                <MatchPlayerTotals maps={maps} side="team2Players" teamName={match.team2} />
+                <div role="group" aria-label="Mapa statystyk" className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant={selectedStatsMap === "all" ? "secondary" : "ghost"}
+                    aria-pressed={selectedStatsMap === "all"} onClick={() => setStatsMap("all")}>
+                    Suma / średnia
+                  </Button>
+                  {statsMaps.map((m, i) => (
+                    <Button key={`${m.map}-${i}`} size="sm" variant={selectedStatsMap === i ? "secondary" : "ghost"}
+                      aria-pressed={selectedStatsMap === i} onClick={() => setStatsMap(i)}>
+                      {i + 1}. {m.map}
+                    </Button>
+                  ))}
+                </div>
+                <MatchPlayerTotals maps={displayedStatsMaps} side="team1Players" teamName={match.team1} />
+                <MatchPlayerTotals maps={displayedStatsMaps} side="team2Players" teamName={match.team2} />
               </>
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">Brak statystyk z rozegranych map.</p>
             )}
 
 
