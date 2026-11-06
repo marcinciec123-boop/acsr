@@ -1,5 +1,7 @@
 # Roadmap — duże ilości danych (5+ lat)
 
+- [x] Statystyki meczu: usunięcie panelu wyniku i wybór pojedynczej mapy z domyślnym podsumowaniem.
+
 - [ ] Rozbudowane szablony i różnorodność generowanych postów.
 - [ ] Więcej komentujących oraz zwijane posty z tekstem i komentarzami po rozwinięciu.
 - [ ] Dodawanie redakcji i wybór redakcji podczas tworzenia posta.
