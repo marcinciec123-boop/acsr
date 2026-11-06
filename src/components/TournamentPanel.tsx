@@ -2,7 +2,8 @@ import type { TournamentVisit } from "@/lib/sessionNavigation";
 import { clubOnly, isInternationalTournament, isNationalTeam } from "@/lib/nationalIdentity";
 import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
 import { isMatchDecided } from "@/lib/matchStatus";
-import { useState, useEffect, useMemo } from "react";
+import { rankingAfterMatchConfirmation } from "@/lib/matchDraft";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Trophy, Plus, Trash2,
   Layers, GitBranch, Grid3x3, Shuffle, ArrowUp, ArrowDown
@@ -183,7 +184,12 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
   const [inviteScope, setInviteScope] = useState<"global" | "regional">("global");
   const [inviteSlots, setInviteSlots] = useState<Record<string, number>>({ GLOBAL: 8, EU: 4, US: 2, LATAM: 1, ASIA: 1 });
 
-  useEffect(() => { saveToStorage(STORAGE_KEY, tournaments); }, [tournaments]);
+  const persistedTournaments = useRef<TournamentData[] | null>(null);
+  useEffect(() => {
+    if (persistedTournaments.current === tournaments) return;
+    saveToStorage(STORAGE_KEY, tournaments);
+    persistedTournaments.current = tournaments;
+  }, [tournaments]);
 
   useEffect(() => {
     if (selectedId && selectedMatchRef) {
@@ -509,7 +515,14 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
     patch: Partial<MatchResult>,
     groupId?: string,
   ) => {
-    setTournaments(prev => prev.map(t => {
+    setTournaments(prev => updatedMatchTournaments(prev, tournamentId, phaseId, matchId, patch, groupId));
+  };
+
+  const updatedMatchTournaments = (
+    source: TournamentData[], tournamentId: string, phaseId: string,
+    matchId: string, patch: Partial<MatchResult>, groupId?: string,
+  ): TournamentData[] => {
+    return source.map(t => {
       if (t.id !== tournamentId) return t;
       const next: TournamentData = {
         ...t,
@@ -551,7 +564,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
       // then hand walkovers against disbanded clubs that just got an opponent.
       const resolved = normalizeTournamentByes(next);
       return resolved.status === "live" ? applyWalkovers(resolved, loadArchivedTeams()) : resolved;
-    }));
+    });
   };
 
   /** Manually assign a team to a TBD slot in any phase's first round (or any match) */
@@ -1007,24 +1020,21 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
         tier={selectedTournament.tier}
         tournamentId={selectedTournament.id}
         onBack={onBack}
-        onUpdate={(patch) => updatePhaseMatch(
-          selectedTournament.id,
-          selectedMatchRef?.phaseId ?? "",
-          selectedMatchRef?.matchId ?? "",
-          patch,
-          selectedMatchRef?.groupId,
-        )}
-        onConfirm={async (winner, loser, pw, pl) => {
-          // Mistrzostwa świata nie wpływają na klubowy ranking.
-          if (!selectedTournament || isInternationalTournament(selectedTournament)) return;
-          if (isNationalTeam(winner) || isNationalTeam(loser)) return;
-          const ranking = loadFromStorage<TeamData[] | null>("ranking_data", null) || (teamDatabase as TeamData[]).map(x => ({ ...x }));
-          const updated = ranking.map(team => {
-            if (team.name === winner) return { ...team, points: Math.max(0, (team.points || 0) + pw) };
-            if (team.name === loser) return { ...team, points: Math.max(0, (team.points || 0) - pl) };
-            return team;
-          });
-          await saveToStorageAsync("ranking_data", updated);
+        onCommit={async (confirmedMatch) => {
+          const next = updatedMatchTournaments(
+            tournaments, selectedTournament.id, selectedMatchRef?.phaseId ?? "",
+            confirmedMatch.id, confirmedMatch, selectedMatchRef?.groupId,
+          );
+          const saved = await saveToStorageAsync(STORAGE_KEY, next);
+          if (!saved) return false;
+          persistedTournaments.current = next;
+          setTournaments(next);
+          if (!isInternationalTournament(selectedTournament) &&
+              !isNationalTeam(confirmedMatch.team1) && !isNationalTeam(confirmedMatch.team2)) {
+            const ranking = loadLiveRanking();
+            await saveToStorageAsync("ranking_data", rankingAfterMatchConfirmation(ranking, selectedMatchInfo.match, confirmedMatch));
+          }
+          return true;
         }}
       />
     ) : selectedTournament ? (
