@@ -3,8 +3,9 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use tauri::Manager;
+mod save_codec;
 
-/// Każdy klucz zapisu to osobny plik w %APPDATA%/<app>/save/<hex(klucz)>.json.
+/// Każdy klucz to osobny plik (bezstratny Gzip lub starszy JSON).
 /// Zapis atomowy: plik tymczasowy -> fsync -> rename, więc przerwanie zapisu
 /// (crash, wyłączenie prądu) nigdy nie zostawia uszkodzonego pliku.
 fn save_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -34,7 +35,10 @@ fn store_load_all(app: tauri::AppHandle) -> Result<HashMap<String, String>, Stri
         if path.extension().and_then(|e| e.to_str()) != Some("json") { continue; }
         let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else { continue };
         let Some(key) = decode_key(stem) else { continue };
-        if let Ok(value) = fs::read_to_string(&path) { out.insert(key, value); }
+        // Never silently omit an unreadable key from a loaded world.
+        let bytes = fs::read(&path).map_err(|e| format!("Cannot read {}: {}", path.display(), e))?;
+        let value = save_codec::decode(&bytes).map_err(|e| format!("Cannot decode {}: {}", path.display(), e))?;
+        out.insert(key, value);
     }
     Ok(out)
 }
@@ -45,9 +49,11 @@ fn store_write(app: tauri::AppHandle, key: String, value: String) -> Result<(), 
     let name = encode_key(&key);
     let tmp = dir.join(format!("{}.tmp", name));
     let target = dir.join(format!("{}.json", name));
+    // Encode completely before touching either the temporary or current file.
+    let bytes = save_codec::encode(&value)?;
     {
         let mut f = fs::File::create(&tmp).map_err(|e| e.to_string())?;
-        f.write_all(value.as_bytes()).map_err(|e| e.to_string())?;
+        f.write_all(&bytes).map_err(|e| e.to_string())?;
         f.sync_all().map_err(|e| e.to_string())?;
     }
     fs::rename(&tmp, &target).map_err(|e| e.to_string())
@@ -164,7 +170,8 @@ fn media_load_all(app: tauri::AppHandle) -> Result<HashMap<String, String>, Stri
         let Some(ext) = path.extension().and_then(|e| e.to_str()) else { continue };
         let Some((_, mime)) = MEDIA_EXT.iter().find(|(e, _)| *e == ext) else { continue };
         let Some(key) = path.file_stem().and_then(|s| s.to_str()).and_then(decode_key) else { continue };
-        if let Some(url) = to_data_url(&path, mime) { out.insert(key, url); }
+        let bytes = fs::read(&path).map_err(|e| format!("Cannot export {}: {}", path.display(), e))?;
+        out.insert(key, format!("data:{};base64,{}", mime, b64_encode(&bytes)));
     }
     Ok(out)
 }
