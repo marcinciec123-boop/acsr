@@ -2,7 +2,7 @@ import type { TournamentVisit } from "@/lib/sessionNavigation";
 import { clubOnly, isInternationalTournament, isNationalTeam } from "@/lib/nationalIdentity";
 import { propagateBracketFully, applyWalkovers } from "@/lib/bracketPropagation";
 import { isMatchDecided } from "@/lib/matchStatus";
-import { rankingAfterMatchConfirmation } from "@/lib/matchDraft";
+import { rankingAfterMatchConfirmation, updateMatchMetadata } from "@/lib/matchDraft";
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Trophy, Plus, Trash2,
@@ -1020,6 +1020,13 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
         tier={selectedTournament.tier}
         tournamentId={selectedTournament.id}
         onBack={onBack}
+        onUpdateMetadata={patch => {
+          if (!selectedMatchRef) return;
+          setTournaments(prev => updateMatchMetadata(
+            prev, selectedTournament.id, selectedMatchRef.phaseId,
+            selectedMatchInfo.match.id, patch, selectedMatchRef.groupId,
+          ));
+        }}
         onCommit={async (confirmedMatch) => {
           const next = updatedMatchTournaments(
             tournaments, selectedTournament.id, selectedMatchRef?.phaseId ?? "",

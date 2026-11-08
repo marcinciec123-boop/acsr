@@ -29,7 +29,7 @@ import { readUiPref, usePersistedState, writeUiPref } from "@/lib/uiPrefs";
 
 import { getActiveMaps } from "@/lib/mapPool";
 import { matchStatsMaps, selectMatchStatsMaps } from "@/lib/matchStatsMaps";
-import { useMatchDraft } from "@/lib/matchDraft";
+import { useMatchDraft, type MatchMetadataPatch } from "@/lib/matchDraft";
 const MAP_POOL_FALLBACK: string[] = [];
 const MAP_POOL = new Proxy(MAP_POOL_FALLBACK, {
   get(_t, prop, recv) { return Reflect.get(getActiveMaps(), prop, recv); },
@@ -46,6 +46,7 @@ interface Props {
   tournamentId?: string;
   onBack: () => void;
   onCommit: (match: MatchResult) => Promise<boolean>;
+  onUpdateMetadata: (patch: MatchMetadataPatch) => void;
 }
 
 const blankPlayer = (name: string, team: string): MapPlayerStats => ({
@@ -78,7 +79,7 @@ const ensurePlayers = (existing: MapPlayerStats[] | undefined, teamName: string,
   return merged.slice(0, 5);
 };
 
-export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultBo, tier = "B", tournamentId, onBack, onCommit }: Props) => {
+export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultBo, tier = "B", tournamentId, onBack, onCommit, onUpdateMetadata }: Props) => {
   const draft = useMatchDraft(committedMatch, tournamentId);
   const match = draft.match;
   const onUpdate = draft.update;
@@ -370,23 +371,7 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
                       onChange={e => {
                         const newBo = parseInt(e.target.value) as 1 | 3 | 5;
                         const mapsToWinNew = newBo === 1 ? 1 : newBo === 3 ? 2 : 3;
-                        const trimmedMaps = (match.maps || []).slice(0, newBo);
-                        // Recompute series score from trimmed maps
-                        let s1 = 0, s2 = 0;
-                        trimmedMaps.forEach(m => {
-                          const max = Math.max(m.score1, m.score2);
-                          const diff = Math.abs(m.score1 - m.score2);
-                          if (max >= 13 && diff >= 2) {
-                            if (m.score1 > m.score2) s1++; else s2++;
-                          }
-                        });
-                        const patch: Partial<MatchResult> = { bo: newBo };
-                        if ((match.maps || []).length !== trimmedMaps.length) {
-                          patch.maps = trimmedMaps;
-                          patch.score1 = s1;
-                          patch.score2 = s2;
-                        }
-                        onUpdate(patch);
+                        onUpdateMetadata({ bo: newBo });
                         toast({ title: `Format meczu: BO${newBo}`, description: `Mecz rozgrywany do ${mapsToWinNew} wygranych map.` });
                       }}
                       className="h-6 px-1.5 rounded bg-secondary/40 border border-border text-xs font-mono text-foreground"
@@ -489,8 +474,8 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
             const schedDate = match.scheduledAt?.slice(0, 10) || "";
             const schedTime = match.scheduledAt?.slice(11, 16) || "";
             const setSchedule = (d: string, t: string) => {
-              if (!d) { onUpdate({ scheduledAt: undefined }); return; }
-              onUpdate({ scheduledAt: `${d}T${t || "18:00"}` });
+              if (!d) { onUpdateMetadata({ scheduledAt: undefined }); return; }
+              onUpdateMetadata({ scheduledAt: `${d}T${t || "18:00"}` });
             };
             return (
               <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap justify-center">
@@ -519,7 +504,7 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
                 {match.scheduledAt && (
                   <button
                     type="button"
-                    onClick={() => onUpdate({ scheduledAt: undefined })}
+                    onClick={() => onUpdateMetadata({ scheduledAt: undefined })}
                     className="h-7 px-2 rounded border border-border text-muted-foreground hover:text-foreground text-xs font-mono"
                   >
                     Wyczyść
