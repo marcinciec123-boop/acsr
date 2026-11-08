@@ -6,6 +6,7 @@ version = 4
 name = "acsr-portal"
 version = "1.0.0"
 dependencies = [
+ "flate2",
  "serde",
  "serde_json",
  "tauri",

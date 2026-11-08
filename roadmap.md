@@ -1,5 +1,7 @@
 # Roadmap — duże ilości danych (5+ lat)
 
+- [ ] Bezstratna kompresja plików w AppData, zgodność ze starymi zapisami i aktualny eksport z grafikami.
+
 - [ ] Edycja meczu bez odświeżania innych paneli; publikacja zmian dopiero po zatwierdzeniu wyniku / aktualizacji punktów.
 
 - [x] Statystyki meczu: usunięcie panelu wyniku i wybór pojedynczej mapy z domyślnym podsumowaniem.
