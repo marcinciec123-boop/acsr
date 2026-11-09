@@ -24,8 +24,8 @@ export function createWriteQueue(
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   let inFlight: Promise<void> = Promise.resolve();
-  let failed = false;
   const run = async () => {
+    let failed = false;
     const batch = [...pending.entries()];
     pending.clear();
     await Promise.all(batch.map(([key, value]) => (value === null ? remove(key) : write(key, value))
@@ -35,13 +35,20 @@ export function createWriteQueue(
         if (!pending.has(key)) pending.set(key, value);
         failed = true;
       })));
+    return failed;
   };
-  const flush = async () => {
+  const flush = async (strict = false) => {
     if (timer) { clearTimeout(timer); timer = null; }
-    failed = false;
-    inFlight = inFlight.then(run);
-    await inFlight;
-    if (failed && pending.size) schedule(5000);
+    let failed = false;
+    const operation = inFlight.then(async () => {
+      do { failed = await run(); } while (strict && !failed && pending.size > 0);
+    });
+    inFlight = operation;
+    await operation;
+    if (failed && pending.size) {
+      schedule(5000);
+      if (strict) throw new Error("Nie udało się zapisać wszystkich danych na dysku. Dane pozostają w kolejce; spróbuj ponownie.");
+    }
   };
 
   function schedule(ms = delay) {
@@ -105,7 +112,8 @@ export function joinShards(parts: Record<string, string>): string | null {
     if (suffix === ORDER) continue;
     for (const t of JSON.parse(raw) as Row[]) byId.set(t.id as string, t);
   }
-  return JSON.stringify(order.map(id => byId.get(id)).filter(Boolean));
+  if (order.some(id => !byId.has(id))) throw new Error("Niekompletne archiwum turniejów — brakuje pliku sezonu.");
+  return JSON.stringify(order.map(id => byId.get(id)));
 }
 
 const lastShards = new Map<string, Record<string, string>>();
@@ -129,7 +137,7 @@ export const diskLoadAll = async (): Promise<Record<string, string>> => {
     try {
       const joined = joinShards(parts);
       if (joined) { out[base] = joined; lastShards.set(base, parts); }
-    } catch (error) { console.error("Archive shard read failed:", base, error); }
+    } catch (error) { throw new Error(`Archive shard read failed: ${base}`, { cause: error }); }
   }
   return out;
 };
@@ -158,16 +166,21 @@ export const diskDelete = (key: string) => {
   lastShards.delete(key);
   q.delete(key);
 };
-export const diskFlush = () => (queue ? queue.flush() : Promise.resolve());
+export const diskFlush = () => (queue ? queue.flush(true) : Promise.resolve());
 
 // ===== Grafiki jako pliki w AppData/media =====
 export const MEDIA_PREFIXES = ["csgo_hub_teamlogo_", "csgo_hub_playerphoto_", "csgo_hub_tournamentlogo_"];
 export const isMediaKey = (key: string) => MEDIA_PREFIXES.some(p => key.startsWith(p));
 
-export const mediaWrite = (key: string, value: string) => getInvoke()!<void>("media_write", { key, value });
-export const mediaRead = (key: string) => getInvoke()!<string | null>("media_read", { key });
-export const mediaRemove = (key: string) => getInvoke()!<void>("media_remove", { key });
-export const mediaLoadAll = () => getInvoke()!<Record<string, string>>("media_load_all");
+const invokeMedia = <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  const invoke = getInvoke();
+  if (!invoke) return Promise.reject(new Error("Disk store unavailable"));
+  return invoke<T>(command, args);
+};
+export const mediaWrite = (key: string, value: string) => invokeMedia<void>("media_write", { key, value });
+export const mediaRead = (key: string) => invokeMedia<string | null>("media_read", { key });
+export const mediaRemove = (key: string) => invokeMedia<void>("media_remove", { key });
+export const mediaLoadAll = () => invokeMedia<Record<string, string>>("media_load_all");
 
 /** Mała pamięć ostatnio wyświetlanych grafik (LRU) zamiast trzymania wszystkich w RAM. */
 export function createLru<V>(limit: number) {

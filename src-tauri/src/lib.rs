@@ -19,7 +19,7 @@ fn encode_key(key: &str) -> String {
 }
 
 fn decode_key(name: &str) -> Option<String> {
-    if name.len() % 2 != 0 { return None; }
+    if name.len() % 2 != 0 || !name.bytes().all(|b| b.is_ascii_hexdigit()) { return None; }
     let bytes: Option<Vec<u8>> = (0..name.len()).step_by(2)
         .map(|i| u8::from_str_radix(&name[i..i + 2], 16).ok())
         .collect();

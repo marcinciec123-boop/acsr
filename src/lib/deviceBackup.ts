@@ -107,7 +107,8 @@ export const decodeDeviceBackupFile = async (file: Blob): Promise<string> => {
 
 /** Full save: real image data instead of reference markers, legacy images, and the fictional date. */
 const collectFullState = async (): Promise<Record<string, string>> => {
-  const keys: Record<string, string> = { ...collectLocalState(), ...(await collectDeviceState()) };
+  const deviceKeys = await collectDeviceState();
+  const keys: Record<string, string> = { ...collectLocalState(), ...deviceKeys };
   // Legacy image DB (teamlogo_/playerphoto_) — bring into the save.
   try {
     const images = await getAllImages();
@@ -120,6 +121,16 @@ const collectFullState = async (): Promise<Record<string, string>> => {
   for (const [k, v] of Object.entries(keys)) if (v === DEVICE_STORE_REF) delete keys[k];
   keys.world_clock_date = getWorldDate();
   return Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b)));
+};
+
+/** Fresh live export, distinct from downloading an immutable historical slot. */
+export const encodeCurrentDeviceBackup = async (includeMedia = true) => {
+  const keys = await collectFullState();
+  const snapshot: DeviceBackupSnapshot = {
+    id: `export-${Date.now()}`, createdAt: Date.now(), label: "Aktualny zapis świata",
+    reason: "manual", schemaVersion: 1, keys, size: new Blob(Object.values(keys)).size,
+  };
+  return { ...(await encodeDeviceBackup(snapshot, includeMedia)), createdAt: snapshot.createdAt };
 };
 
 // Cheap, allocation-free hash of the whole state (FNV-1a). Replaces a full

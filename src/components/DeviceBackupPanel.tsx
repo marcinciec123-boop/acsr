@@ -11,6 +11,7 @@ import {
   deleteDeviceBackupsByReason,
   decodeDeviceBackupFile,
   encodeDeviceBackup,
+  encodeCurrentDeviceBackup,
   importDeviceBackup,
   isAutoBackupEnabled,
   listDeviceBackups,
@@ -67,14 +68,16 @@ const DeviceBackupPanel = () => {
     window.location.reload();
   };
 
-  const handleExport = async (backup: DeviceBackupSnapshot) => {
+  const handleExport = async (backup?: DeviceBackupSnapshot) => {
     setBusy(true);
     try {
-      const { blob, extension } = await encodeDeviceBackup(backup, includeMedia);
+      const result = backup ? { ...(await encodeDeviceBackup(backup, includeMedia)), createdAt: backup.createdAt }
+        : await encodeCurrentDeviceBackup(includeMedia);
+      const { blob, extension, createdAt } = result;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `csgo-hub-zapis-${new Date(backup.createdAt).toISOString().slice(0, 10)}.${extension}`;
+      a.download = `csgo-hub-zapis-${new Date(createdAt).toISOString().slice(0, 10)}.${extension}`;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast({ title: "Pobrano zapis", description: `Rozmiar pliku: ${formatBytes(blob.size)}` });
@@ -194,6 +197,9 @@ const DeviceBackupPanel = () => {
             <Switch id="backup-include-media" checked={includeMedia} onCheckedChange={setIncludeMedia} disabled={busy} />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => void handleExport()} disabled={busy} className="gap-2">
+              <Download className="w-4 h-4" /> Pobierz aktualny zapis
+            </Button>
             <input
               ref={fileInputRef}
               type="file"

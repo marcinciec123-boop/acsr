@@ -1,5 +1,5 @@
 import {
-  createLru, diskDelete, diskLoadAll, diskSet, isDiskStoreAvailable, isMediaKey,
+  createLru, diskDelete, diskFlush, diskLoadAll, diskSet, isDiskStoreAvailable, isMediaKey,
   mediaLoadAll, mediaRead, mediaRemove, mediaWrite,
 } from "./diskStore";
 
@@ -21,6 +21,31 @@ let deviceStoreCache: Record<string, string> | null = null;
 const mediaCache = createLru<string | null>(150);
 const onDiskMedia = (key: string) => isDiskStoreAvailable() && isMediaKey(key);
 
+// Separate from the display LRU: pending/failed uploads must never be evicted.
+const dirtyMedia = new Map<string, { value: string | null; operation: Promise<void> }>();
+const persistMedia = (key: string, value: string | null): Promise<void> => {
+  const previous = dirtyMedia.get(key);
+  const operation = (previous?.operation ?? Promise.resolve()).catch(() => undefined).then(async () => {
+    if (value === null) await mediaRemove(key); else await mediaWrite(key, value);
+  });
+  const entry = { value, operation };
+  dirtyMedia.set(key, entry);
+  void operation.then(() => {
+    if (dirtyMedia.get(key) === entry) dirtyMedia.delete(key);
+  }, () => { /* Keep failed values available for retry. */ });
+  return operation;
+};
+
+export const flushDeviceWrites = async (): Promise<void> => {
+  // Retry retained failures as well as wait for uploads still in flight.
+  while (dirtyMedia.size) {
+    await Promise.all([...dirtyMedia].map(async ([key, entry]) => {
+      try { await entry.operation; } catch { await persistMedia(key, entry.value); }
+    }));
+  }
+  await diskFlush();
+};
+
 const isBrowser = () => typeof window !== "undefined" && typeof indexedDB !== "undefined";
 
 const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
@@ -39,7 +64,7 @@ const openDeviceStore = (): Promise<IDBDatabase> => new Promise((resolve, reject
 export const setDeviceValue = async (key: string, value: string): Promise<void> => {
   if (onDiskMedia(key)) {
     mediaCache.set(key, value);
-    await mediaWrite(key, value);
+    await persistMedia(key, value);
     return;
   }
   deviceStoreCache = { ...(deviceStoreCache || {}), [key]: value };
@@ -55,6 +80,8 @@ export const setDeviceValue = async (key: string, value: string): Promise<void> 
 
 export const getDeviceValue = async (key: string): Promise<string | null> => {
   if (onDiskMedia(key)) {
+    const dirty = dirtyMedia.get(key);
+    if (dirty) return dirty.value;
     const hit = mediaCache.get(key);
     if (hit !== undefined) return hit;
     const value = await mediaRead(key);
@@ -74,7 +101,7 @@ export const getDeviceValue = async (key: string): Promise<string | null> => {
 export const removeDeviceValue = async (key: string): Promise<void> => {
   if (onDiskMedia(key)) {
     mediaCache.set(key, null);
-    await mediaRemove(key);
+    await persistMedia(key, null);
     try { await removeBrowserValue(key); } catch { /* ignore */ }
     return;
   }
@@ -105,6 +132,7 @@ const removeBrowserValue = async (key: string): Promise<void> => {
 
 /** Wszystkie wartości łącznie z grafikami z dysku — dla kopii zapasowych i resetu. */
 export const getAllDeviceValuesWithMedia = async (): Promise<Record<string, string>> => {
+  await flushDeviceWrites();
   const base = deviceStoreCache ?? await getAllDeviceValues();
   if (!isDiskStoreAvailable()) return base;
   return { ...base, ...(await mediaLoadAll()) };
