@@ -20,4 +20,29 @@ describe("disk write queue", () => {
     expect(write).not.toHaveBeenCalled();
     expect(remove).toHaveBeenCalledWith("b");
   });
+  it("strict flush rejects failed persistence while retaining data for retry", async () => {
+    let fail = true;
+    const q = createWriteQueue(async () => { if (fail) throw new Error("full disk"); }, async () => {}, 10_000);
+    q.set("match", "latest results");
+    await expect(q.flush(true)).rejects.toThrow("Nie udało się zapisać");
+    expect(q.size()).toBe(1);
+    fail = false;
+    await q.flush(true);
+    expect(q.size()).toBe(0);
+  });
+  it("strict flush also writes updates arriving during a pending write", async () => {
+    let release: (() => void) | undefined;
+    const write = vi.fn(async (_key: string, value: string) => {
+      if (value === "old") await new Promise<void>(resolve => { release = resolve; });
+    });
+    const q = createWriteQueue(write, async () => {}, 10_000);
+    q.set("match", "old");
+    const flush = q.flush(true);
+    await vi.waitFor(() => expect(release).toBeDefined());
+    q.set("match", "new");
+    release?.();
+    await flush;
+    expect(write).toHaveBeenLastCalledWith("match", "new");
+    expect(q.size()).toBe(0);
+  });
 });

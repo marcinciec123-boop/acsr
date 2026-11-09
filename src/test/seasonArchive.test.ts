@@ -24,6 +24,12 @@ describe("season archive shards", () => {
 });
 
 describe("season archive safety", () => {
+  it("rejects missing seasons instead of silently losing tournaments", () => {
+    const shards = shardList(JSON.stringify(list));
+    if (!shards) throw new Error("Expected shards");
+    delete shards["2025"];
+    expect(() => joinShards(shards)).toThrow("Niekompletne archiwum");
+  });
   it("keeps a list with duplicate ids as one file instead of splitting", () => {
     expect(shardList(JSON.stringify([{ id: "x" }, { id: "x" }]))).toBeNull();
   });
