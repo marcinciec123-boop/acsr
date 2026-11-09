@@ -80,7 +80,8 @@ ${STYLE_RULES}
 DYSKUSJA:
 - Liczba, o którą prosi użytkownik, dotyczy WĄTKÓW, czyli komentarzy głównych (replyToIndex = -1). Odpowiedzi (replyToIndex >= 0) są DODATKOWE i nie wliczają się do tej liczby — dodaj ich sporo (mniej więcej połowa wątków ma mieć 1-3 odpowiedzi).
 - Odpowiedź musi realnie nawiązywać do komentarza, na który odpowiada: kontra, przytyk, sprostowanie danych, żart, zgoda z dopiskiem. Rób krótkie łańcuszki (odpowiedź na odpowiedź) i mini-kłótnie 2-3 wiadomości.
-- W odpowiedziach można cytować nick rozmówcy (np. "@marcin97").`;
+- W odpowiedziach można cytować nick rozmówcy (np. "@marcin97").
+- Każda odpowiedź MUSI podać replyToAuthor: dokładny nick autora wcześniejszego komentarza, do którego nawiązuje. To nick, a nie indeks, wyznacza adresata. Jeśli cytujesz @nick, musi być zgodny z replyToAuthor. Komentarze główne mają replyToAuthor = "". Przy wielu wpisach tego samego autora odpowiedź dotyczy jego ostatniego wcześniejszego wpisu.`;
 
 const SYSTEM_REPLY = `Jesteś generatorem odpowiedzi użytkowników polskiego portalu esportowego o CS:GO (klimat HLTV / forum / Wykop).
 Dostajesz wątek komentarzy i wpis REDAKCJI. Twoim zadaniem jest napisać reakcje zwykłych użytkowników na ten wpis redakcji.
@@ -97,7 +98,8 @@ ZASADY WĄTKU:
 - Każda odpowiedź odnosi się bezpośrednio do treści wpisu redakcji (a przez replyToIndex może też odpowiadać innej odpowiedzi w tej samej paczce).
 - Reakcje bywają różne: podziękowanie za wyjaśnienie, podważanie redakcji, "źródło?", czepianie się szczegółu, żart, ktoś kto broni redakcji przed hejterem.
 - Nie podszywaj się pod redakcję — piszesz wyłącznie jako zwykli użytkownicy.
-- replyToIndex = -1 oznacza odpowiedź bezpośrednio na wpis redakcji; wartość >= 0 to odpowiedź na wcześniejszą pozycję z tej paczki.`;
+- replyToIndex = -1 oznacza odpowiedź bezpośrednio na wpis redakcji; wartość >= 0 to odpowiedź na wcześniejszą pozycję z tej paczki.
+- Każda odpowiedź MUSI podać replyToAuthor: dokładny nick adresata. Przy odpowiedzi bezpośrednio do redakcji podaj jej nick z WPISU REDAKCJI; przy odpowiedzi na wcześniejszy komentarz z paczki podaj nick jego autora. Nick ma pierwszeństwo nad indeksem i musi zgadzać się z cytowanym @nick. Przy wielu wpisach tego autora wskazujesz ostatni wcześniejszy wpis.`;
 
 
 
@@ -200,12 +202,16 @@ ${body.personas.slice(0, 40).map(p => `${p.nick}: ${p.voice}`).join("\n")}` : ""
                         author: { type: "string", description: "Nick użytkownika" },
                         content: { type: "string", description: "Treść komentarza po polsku" },
                         likes: { type: "integer", description: "Liczba polubień" },
+                        replyToAuthor: {
+                          type: "string",
+                          description: "Dokładny nick adresata odpowiedzi, zgodny z treścią i ewentualnym @nick. Pusty tekst dla komentarza głównego pod artykułem; nick redakcji dla bezpośredniej odpowiedzi na jej wpis. Ma pierwszeństwo nad replyToIndex.",
+                        },
                         replyToIndex: {
                           type: "integer",
                           description: "Indeks (0-based) wcześniejszego komentarza w tej tablicy, na który to jest odpowiedź. -1 jeśli komentarz nie jest odpowiedzią. Musi być mniejszy niż indeks tego komentarza.",
                         },
                       },
-                      required: ["author", "content", "likes", "replyToIndex"],
+                      required: ["author", "content", "likes", "replyToAuthor", "replyToIndex"],
                       additionalProperties: false,
                     },
 

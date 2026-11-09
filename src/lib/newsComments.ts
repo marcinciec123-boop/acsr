@@ -10,6 +10,7 @@ import { nameChanges } from "@/data/history";
 import { setPostHype } from "./newsExtras";
 import { selectCommenters } from "./newsPersonas";
 import { newsAiError } from "./newsAiError";
+import { generatedReplyParents, type GeneratedComment } from "./newsReplyLinks";
 
 const KEY = "news_comments";
 const LIKES_KEY = "news_post_likes";
@@ -179,7 +180,7 @@ export async function generateComments(
     if (error) return { ok: false, error: await newsAiError(error) };
     if (data?.error) return { ok: false, error: data.error };
 
-    const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
+    const raw: GeneratedComment[] =
       data?.comments || [];
     if (typeof data?.postLikes === "number") {
       setPostLikes(post.id, Math.max(0, Math.min(9999, Math.round(data.postLikes))));
@@ -191,22 +192,23 @@ export async function generateComments(
     const base = Math.max(isNaN(postTs) ? 0 : postTs + 5 * 60 * 1000, nowTs);
 
     const forbiddenNames = getForbiddenTeamNames();
-    const kept = raw
-      .filter(c => c.content && c.content.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
+    const ids = raw.map((_, i) => uid() + i);
+    const parents = generatedReplyParents(raw, ids);
+    const kept = raw.map((c, index) => ({ c, index }))
+      .filter(({ c }) => c.content?.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
       .slice(0, 45);
-    const ids = kept.map((_, i) => uid() + i);
-    const comments: NewsComment[] = kept.map((c, i) => {
-      const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
-      const parent = idx >= 0 && idx < i ? ids[idx] : undefined;
+    const keptIds = new Set(kept.map(({ index }) => ids[index]));
+    const comments: NewsComment[] = kept.map(({ c, index }, i) => {
+      const parent = parents[index];
       return {
-        id: ids[i],
+        id: ids[index],
         author: (c.author || "anon").trim().slice(0, 24),
-        content: c.content!.trim(),
+        content: c.content?.trim() || "",
         likes: Math.max(-20, Math.min(999, Math.round(c.likes ?? 0))),
         date: new Date(base + i * 7 * 60 * 1000).toISOString(),
         ...(parent ? { replyTo: parent } : {}),
       };
-    });
+    }).filter(c => !c.replyTo || keptIds.has(c.replyTo));
 
     if (comments.length === 0) return { ok: false, error: "Brak komentarzy w odpowiedzi" };
     setComments(post.id, comments);
@@ -288,28 +290,30 @@ export async function generateReplies(
     if (error) return { ok: false, error: await newsAiError(error) };
     if (data?.error) return { ok: false, error: data.error };
 
-    const raw: { author?: string; content?: string; likes?: number; replyToIndex?: number }[] =
+    const raw: GeneratedComment[] =
       data?.comments || [];
+    if (raw[0] && originalAuthor) raw[0] = { ...raw[0], author: originalAuthor };
     const forbiddenNames = getForbiddenTeamNames();
-    const kept = raw
-      .filter(c => c.content && c.content.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
+    const ids = raw.map((_, i) => uid() + "r" + i);
+    const parents = generatedReplyParents(raw, ids, { author: target.author, id: editorCommentId });
+    const kept = raw.map((c, index) => ({ c, index }))
+      .filter(({ c }) => c.content?.trim() && !mentionsForbiddenTeam(c.content, forbiddenNames))
       .slice(0, 6);
     if (kept.length === 0) return { ok: false, error: "Brak odpowiedzi w wynikach" };
 
     const base = Date.parse(target.date) || Date.parse(getWorldNowIso());
-    const ids = kept.map((_, i) => uid() + "r" + i);
-    const replies: NewsComment[] = kept.map((c, i) => {
-      const idx = typeof c.replyToIndex === "number" ? c.replyToIndex : -1;
+    const keptIds = new Set(kept.map(({ index }) => ids[index]));
+    const replies: NewsComment[] = kept.map(({ c, index }, i) => {
       return {
-        id: ids[i],
+        id: ids[index],
         // pierwsza odpowiedź zawsze od oryginalnego autora, do którego odezwała się redakcja
-        author: (i === 0 && originalAuthor ? originalAuthor : c.author || "anon").trim().slice(0, 24),
-        content: c.content!.trim(),
+        author: (c.author || "anon").trim().slice(0, 24),
+        content: c.content?.trim() || "",
         likes: Math.max(-20, Math.min(999, Math.round(c.likes ?? 0))),
         date: new Date(base + (i + 1) * 4 * 60 * 1000).toISOString(),
-        replyTo: idx >= 0 && idx < i ? ids[idx] : editorCommentId,
+        replyTo: parents[index] || editorCommentId,
       };
-    });
+    }).filter(c => c.replyTo === editorCommentId || keptIds.has(c.replyTo || ""));
 
     const pos = all.findIndex(c => c.id === editorCommentId);
     const next = pos === -1
