@@ -137,7 +137,7 @@ export const diskLoadAll = async (): Promise<Record<string, string>> => {
     try {
       const joined = joinShards(parts);
       if (joined) { out[base] = joined; lastShards.set(base, parts); }
-    } catch (error) { throw new Error(`Archive shard read failed: ${base}`, { cause: error }); }
+    } catch (error) { throw new Error(`Archive shard read failed: ${base}: ${String(error)}`); }
   }
   return out;
 };
