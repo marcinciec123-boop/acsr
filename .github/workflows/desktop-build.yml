@@ -56,6 +56,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
+          # Retry transient GitHub download failures (e.g. NSIS HTTP 504).
+          retryAttempts: 3
           tagName: v1.0.${{ github.run_number }}
           releaseName: ACSR PORTAL v1.0.${{ github.run_number }}
           releaseDraft: false
