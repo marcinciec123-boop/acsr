@@ -5,6 +5,7 @@ import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PhaseGroup, MatchResult, PhaseFormat } from "@/lib/types";
 import { computeGroupStandings } from "@/lib/tournamentBuilder";
+import { doubleElimGroupOrder } from "@/lib/phaseWinners";
 import { isPlaceholder } from "@/lib/teamHelpers";
 import TeamLogo from "@/components/TeamLogo";
 import { TeamLink } from "@/lib/profileNav";
@@ -100,8 +101,11 @@ const renderMatchRow = (
 };
 
 export const GroupTable = ({ group, format, advancePerGroup, relegateCount = 0, onMatchUpdate, onOpenMatch, allTeams = [], onAddMatch, onDeleteMatch }: Props) => {
-  const standings = computeGroupStandings(group);
   const isGSLDE = format === "gsl-de-groups";
+  const rawStandings = computeGroupStandings(group);
+  const standings = isGSLDE
+    ? doubleElimGroupOrder(group.matches, rawStandings.map(s => s.team)).map(t => rawStandings.find(s => s.team === t)!).filter(Boolean)
+    : rawStandings;
   const isGSL4 = format === "gsl-groups";
   const isDoubleElim = isGSLDE || isGSL4;
   const advN = advancePerGroup ?? (isGSLDE ? 2 : isGSL4 ? 2 : 2);

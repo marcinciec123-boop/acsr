@@ -125,6 +125,11 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
     // Fallback: fill remaining slots with the most-recent-round losers
     const rounds = Array.from(new Set(phase.bracket.map(m => m.round || "Match")));
     const out = [...survivors];
+    // Grand Final champion first, runner-up second (both may have a loss in double elim).
+    const gf = rounds.find(r => /grand\s*final/i.test(r)) || rounds.find(r => /^final$/i.test(r));
+    if (gf) phase.bracket.filter(m => (m.round || "Match") === gf).forEach(m => {
+      [winnerOf(m), loserOf(m)].forEach(t => { if (t && !out.includes(t)) out.push(t); });
+    });
     for (let i = rounds.length - 1; i >= 0 && out.length < need; i--) {
       phase.bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => {
         const l = loserOf(m);
@@ -143,6 +148,16 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
  * 1-3 and 0-3, and 2nd in a group is above 3rd/4th.
  * Teams appearing multiple times (advanced further) are de-duplicated by first occurrence.
  */
+/** GSL/IEM double-elim group order: qualifiers by bracket slot, then the rest by standings. */
+export function doubleElimGroupOrder(matches: MatchResult[], fallback: string[]): string[] {
+  const by = (slot: string) => matches.find(m => m.bracketSlot === slot);
+  const slots = ["IEM-UB-SF-M1", "IEM-UB-SF-M2", "IEM-LB-FINAL", "IEM-LB-R2-M1", "IEM-LB-R2-M2"];
+  const out: string[] = [];
+  slots.forEach(s => { const m = by(s); const w = m && winnerOf(m); if (w && !out.includes(w)) out.push(w); });
+  fallback.forEach(t => { if (!out.includes(t)) out.push(t); });
+  return out;
+}
+
 export function getPreFinalEliminatedOrder(phases: TournamentPhase[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
