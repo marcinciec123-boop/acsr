@@ -340,14 +340,26 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 max-w-6xl">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do turnieju
-        </Button>
+        <Tabs value={tab} onValueChange={setTab}>
+        <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="-ml-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Powrót do turnieju
+          </Button>
+          <div className="overflow-x-auto max-w-full">
+            <TabsList className="inline-flex w-max h-auto">
+              <TabsTrigger value="score" className="shrink-0">Statystyki</TabsTrigger>
+              <TabsTrigger value="maps" className="shrink-0">Mapy ({maps.length}/{bo})</TabsTrigger>
+              <TabsTrigger value="compare" className="shrink-0">Porównanie</TabsTrigger>
+              <TabsTrigger value="t1" className="shrink-0">Stats {match.team1 || "T1"}</TabsTrigger>
+              <TabsTrigger value="t2" className="shrink-0">Stats {match.team2 || "T2"}</TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -517,7 +529,7 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
 
 
         {/* VRS prediction + confirm trigger */}
-        <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
+        <div className="bg-card border border-border rounded-xl p-3 mb-4 space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" /> {isNationalMatch ? "Mecz reprezentacji" : `Predykcja VRS • Tier ${tier}`}
@@ -534,7 +546,7 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
               Reprezentacje narodowe nie liczą się do rankingu VRS — predykcja niedostępna.
             </p>
           ) : previews ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <PredictionCard
                 team={match.team1}
                 currentPoints={ranking.find(t => t.name === match.team1)?.points ?? 0}
@@ -565,15 +577,15 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
             </p>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <Button variant="ghost" size="sm" onClick={onBack} className="h-8 text-xs">
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={onBack} className="h-7 text-xs">
               Powrót bez zatwierdzania
             </Button>
             <Button
               size="sm"
               onClick={openConfirm}
               disabled={!matchDecided || saving}
-              className="h-8 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
+              className="h-7 gap-1.5 text-xs bg-[hsl(var(--win))] hover:bg-[hsl(var(--win))]/90 text-background"
               title={!matchDecided ? `Wpisz/przesymuluj wynik (do ${mapsToWin} wygranych map)` : undefined}
             >
               <Trophy className="w-3.5 h-3.5" />
@@ -689,16 +701,6 @@ export const MatchDetailPage = ({ match: committedMatch, phaseName, bo: defaultB
 
 
 
-        <Tabs value={tab} onValueChange={setTab}>
-          <div className="overflow-x-auto mb-4">
-            <TabsList className="inline-flex w-max min-w-full sm:min-w-0 h-auto">
-              <TabsTrigger value="score" className="shrink-0">Statystyki</TabsTrigger>
-              <TabsTrigger value="maps" className="shrink-0">Mapy ({maps.length}/{bo})</TabsTrigger>
-              <TabsTrigger value="compare" className="shrink-0">Porównanie</TabsTrigger>
-              <TabsTrigger value="t1" className="shrink-0">Stats {match.team1 || "T1"}</TabsTrigger>
-              <TabsTrigger value="t2" className="shrink-0">Stats {match.team2 || "T2"}</TabsTrigger>
-            </TabsList>
-          </div>
 
           <TabsContent value="compare">
             {match.team1 && match.team2 && match.team1 !== "TBD" && match.team2 !== "TBD" && match.team2 !== "BYE" ? (
@@ -1019,7 +1021,7 @@ const PredictionCard = ({
   };
   return (
     <div className={cn(
-      "rounded-lg border p-3 space-y-2 bg-secondary/20",
+      "rounded-lg border px-2.5 py-2 space-y-1.5 bg-secondary/20",
       highlighted ? "border-[hsl(var(--win))]/60 bg-[hsl(var(--win))]/5" : "border-border",
     )}>
       <div className="flex items-center justify-between gap-2">
@@ -1036,13 +1038,13 @@ const PredictionCard = ({
           {upset ? "UPSET" : `${Math.round(expected * 100)}%`}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2 text-xs font-mono px-2 py-1 rounded bg-background/40 border border-border/60">
+      <div className="flex items-center justify-between gap-2 text-xs font-mono px-2 py-0.5 rounded bg-background/40 border border-border/60">
         <span className="text-muted-foreground uppercase tracking-wider">Aktualne punkty</span>
         <span className="font-bold text-foreground">{Math.round(currentPoints).toLocaleString()} pkt</span>
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-        <div className="space-y-0.5">
-          <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli wygra</div>
+        <div className="leading-tight">
+          <div className="text-muted-foreground uppercase tracking-wider text-[10px]">Jeśli wygra</div>
           <div className="text-[hsl(var(--win))] font-bold flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> +{winPoints} pkt
           </div>
@@ -1051,8 +1053,8 @@ const PredictionCard = ({
           </div>
           <RankDelta d={rankIfWin} />
         </div>
-        <div className="space-y-0.5">
-          <div className="text-muted-foreground uppercase tracking-wider text-xs">Jeśli przegra</div>
+        <div className="leading-tight">
+          <div className="text-muted-foreground uppercase tracking-wider text-[10px]">Jeśli przegra</div>
           <div className="text-destructive font-bold flex items-center gap-1">
             <TrendingDown className="w-3 h-3" /> −{lossPoints} pkt
           </div>
