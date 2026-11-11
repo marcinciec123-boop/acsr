@@ -23,15 +23,43 @@ describe("isolated match editing", () => {
     const cleared = updateMatchMetadata(scheduled, "t1", "p1", "m1", { scheduledAt: undefined }, "g1");
     expect(cleared[0].phases[0].groups?.[0].matches[0].scheduledAt).toBeUndefined();
   });
-  it("retains draft map statistics across live metadata changes and BO reductions", () => {
+  it("trims draft maps and recounts wins when BO3 is reduced to BO1", () => {
     vi.useFakeTimers();
     const maps = [ { map: "Mirage", score1: 13, score2: 4 }, { map: "Nuke", score1: 13, score2: 6 } ];
     const { result, rerender, unmount } = renderHook(({ committed }) => useMatchDraft(committed, "t1"), { initialProps: { committed: match } });
     act(() => result.current.update({ score1: 2, maps }));
     rerender({ committed: { ...match, bo: 1, scheduledAt: "2026-11-09T19:30" } });
-    expect(result.current.match).toEqual({ ...match, bo: 1, scheduledAt: "2026-11-09T19:30", score1: 2, maps });
+    expect(result.current.match).toEqual({ ...match, bo: 1, scheduledAt: "2026-11-09T19:30", score1: 1, maps: maps.slice(0, 1) });
     act(() => vi.advanceTimersByTime(400));
     expect(saveToStorage).toHaveBeenLastCalledWith(matchDraftKey("t1", "m1"), expect.objectContaining({ match: result.current.match }));
+    rerender({ committed: { ...match, bo: 3 } });
+    expect(result.current.match.maps).toEqual(maps.slice(0, 1));
+    expect(result.current.match.score1).toBe(1);
+    unmount();
+  });
+  it("trims a confirmed BO5 to BO3 without publishing draft stats or changing other matches", () => {
+    const maps = [
+      { map: "Mirage", score1: 13, score2: 4 },
+      { map: "Nuke", score1: 4, score2: 13 },
+      { map: "Inferno", score1: 13, score2: 6 },
+      { map: "Train", score1: 13, score2: 7 },
+      { map: "Dust2", score1: 0, score2: 0 },
+    ];
+    const confirmed = { ...match, bo: 5 as const, maps, score1: 3, score2: 1, resultConfirmed: true, pointsWinner: 20 };
+    const source = [{ id: "t1", phases: [{ id: "p1", bracket: [confirmed, { ...match, id: "next" }] }] }] as TournamentData[];
+    const next = updateMatchMetadata(source, "t1", "p1", "m1", { bo: 3 });
+    expect(next[0].phases[0].bracket?.[0]).toEqual({ ...confirmed, bo: 3, maps: maps.slice(0, 3), score1: 2, score2: 1 });
+    expect(next[0].phases[0].bracket?.[1]).toBe(source[0].phases[0].bracket?.[1]);
+    expect(confirmed.maps).toHaveLength(5);
+  });
+  it("restores retained draft map stats after committed maps were trimmed by a BO reduction", () => {
+    const maps = [{ map: "Mirage", score1: 13, score2: 4 }, { map: "Nuke", score1: 4, score2: 13 }, { map: "Inferno", score1: 13, score2: 6 }];
+    const old = { ...match, maps, score1: 2, score2: 1 };
+    const draftMaps = [{ ...maps[0], score2: 8 }, ...maps.slice(1)];
+    vi.mocked(loadFromStorage).mockReturnValueOnce({ base: JSON.stringify(old), match: { ...old, maps: draftMaps } });
+    const { result, unmount } = renderHook(() => useMatchDraft({ ...old, bo: 1, maps: maps.slice(0, 1), score1: 1, score2: 0 }, "t1"));
+    expect(result.current.match.maps).toEqual(draftMaps.slice(0, 1));
+    expect([result.current.match.score1, result.current.match.score2]).toEqual([1, 0]);
     unmount();
   });
   it("restores draft results using current metadata, including schedule removal", () => {

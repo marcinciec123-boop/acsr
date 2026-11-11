@@ -1,15 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { loadFromStorage, removeFromStorage, saveToStorage } from "./storage";
 import type { MatchResult, TeamData, TournamentData } from "./types";
+import { mapWins, playedMaps } from "./matchStatus";
 
 export type MatchMetadataPatch = Partial<Pick<MatchResult, "bo" | "scheduledAt">>;
+
+/** Shorter formats cannot retain maps or wins outside their map limit. */
+function fitMatchFormat(match: MatchResult): MatchResult {
+  if (!match.bo || !match.maps || match.maps.length <= match.bo) return match;
+  const maps = match.maps.slice(0, match.bo);
+  return { ...match, maps, ...mapWins(playedMaps(maps, match.bo)) };
+}
 
 /** Metadata edits do not publish draft results or propagate bracket winners. */
 export function updateMatchMetadata(source: TournamentData[], tournamentId: string, phaseId: string, matchId: string, patch: MatchMetadataPatch, groupId?: string): TournamentData[] {
   const metadata: MatchMetadataPatch = {};
   if ("bo" in patch) metadata.bo = patch.bo;
   if ("scheduledAt" in patch) metadata.scheduledAt = patch.scheduledAt;
-  const update = (m: MatchResult) => m.id === matchId ? { ...m, ...metadata } : m;
+  const update = (m: MatchResult) => m.id === matchId ? fitMatchFormat({ ...m, ...metadata }) : m;
   return source.map(t => t.id !== tournamentId ? t : {
     ...t,
     phases: t.phases.map(p => p.id !== phaseId ? p : groupId ? {
@@ -18,16 +26,16 @@ export function updateMatchMetadata(source: TournamentData[], tournamentId: stri
   });
 }
 
-const resultBase = (match: MatchResult) => {
-  const { bo, scheduledAt, ...result } = match;
+const resultBase = (match: MatchResult, currentBo = match.bo) => {
+  const { bo, scheduledAt, ...result } = fitMatchFormat({ ...match, bo: currentBo });
   return JSON.stringify(result);
 };
 const withMetadata = (match: MatchResult, committed: MatchResult): MatchResult =>
-  ({ ...match, bo: committed.bo, scheduledAt: committed.scheduledAt });
+  fitMatchFormat({ ...match, bo: committed.bo, scheduledAt: committed.scheduledAt });
 
 function restoreDraft(saved: SavedDraft | null, committed: MatchResult): MatchResult {
   if (saved) try {
-    if (resultBase(JSON.parse(saved.base)) === resultBase(committed)) return withMetadata(saved.match, committed);
+    if (resultBase(JSON.parse(saved.base), committed.bo) === resultBase(committed)) return withMetadata(saved.match, committed);
   } catch { /* Invalid or incompatible drafts cannot replace committed results. */ }
   return committed;
 }
@@ -51,6 +59,12 @@ export function useMatchDraft(committed: MatchResult, tournamentId?: string) {
   baseRef.current = base;
   const committedRef = useRef(committed);
   committedRef.current = committed;
+
+  useEffect(() => {
+    const next = withMetadata(latest.current, committedRef.current);
+    latest.current = next;
+    setMatch(next);
+  }, [committed.bo, committed.scheduledAt]);
 
   const flush = () => {
     if (dirty.current) saveToStorage(key, { base: baseRef.current, match: withMetadata(latest.current, committedRef.current) });
