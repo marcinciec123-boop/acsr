@@ -23,6 +23,7 @@ import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { buildPhase, buildSwissRound1, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup, LEAGUE_SIZES } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
+import { finalPhasePlacements } from "@/lib/tournamentPlacements";
 import { seedMajorBerlin2025 } from "@/lib/majorBerlin2025Seeder";
 import { normalizeAllTournamentByes, normalizeTournamentByes, stampPlayedAt } from "@/lib/normalizeMatches";
 import { seedEslProLeagueI } from "@/lib/eslProLeagueISeeder";
@@ -809,15 +810,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
       });
       placed.add(team);
     };
-    const bracket = [...(t.phases[t.phases.length - 1]?.bracket || [])];
-    const rounds = Array.from(new Set(bracket.map(m => m.round || "Match")));
-    const finalRound = rounds.find(r => /grand\s*final/i.test(r)) || rounds.find(r => /^final$/i.test(r)) || rounds.find(r => /final/i.test(r)) || rounds[rounds.length - 1];
-    bracket.filter(m => (m.round || "Match") === finalRound).forEach(m => { add(matchWinner(m), 1); add(matchLoser(m), 2); });
-    const semiRound = rounds.find(r => /semi/i.test(r));
-    if (semiRound) bracket.filter(m => m.round === semiRound).forEach(m => add(matchLoser(m), 3));
-    for (let i = rounds.length - 1; i >= 0; i--) {
-      bracket.filter(m => (m.round || "Match") === rounds[i]).forEach(m => add(matchLoser(m), placements.length + 1));
-    }
+    finalPhasePlacements(t.phases[t.phases.length - 1]).forEach(p => add(p.team, p.placement));
     // Teams eliminated in earlier phases — sorted by their Swiss/group standing so bilans matters.
     getPreFinalEliminatedOrder(t.phases).forEach(team => add(team, placements.length + 1));
     t.participants.forEach(team => add(team, placements.length + 1));

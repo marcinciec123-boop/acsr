@@ -6,6 +6,7 @@ import type { MapPlayerStats, MatchResult, TeamData, TournamentData } from "@/li
 import { teamDatabase } from "@/data/tournaments";
 import { resolvePoints } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
+import { finalPhasePlacements } from "@/lib/tournamentPlacements";
 import { TeamLink } from "@/lib/profileNav";
 import { formatMoney, parsePrizePool, resolveTournamentPrizes } from "@/lib/prizeDistribution";
 import { resolveLineup } from "@/lib/tournamentLineups";
@@ -43,33 +44,7 @@ const derivePlacements = (tournament: TournamentData): TournamentData["placement
     placed.add(team);
   };
 
-  const finalPhase = tournament.phases[tournament.phases.length - 1];
-  const bracket = finalPhase?.bracket || [];
-  const rounds = Array.from(new Set(bracket.map(m => m.round || "Match")));
-  const finalRound = rounds.find(r => /grand\s*final/i.test(r))
-    || rounds.find(r => /^final$/i.test(r))
-    || rounds.find(r => /final/i.test(r))
-    || rounds[rounds.length - 1];
-
-  bracket
-    .filter(m => (m.round || "Match") === finalRound)
-    .forEach(m => {
-      add(winnerOf(m), 1);
-      add(loserOf(m), 2);
-    });
-
-  const semiRound = rounds.find(r => /semi/i.test(r));
-  if (semiRound) {
-    bracket
-      .filter(m => (m.round || "Match") === semiRound)
-      .forEach(m => add(loserOf(m), 3));
-  }
-
-  for (let i = rounds.length - 1; i >= 0; i--) {
-    bracket
-      .filter(m => (m.round || "Match") === rounds[i])
-      .forEach(m => add(loserOf(m), out.length + 1));
-  }
+  finalPhasePlacements(tournament.phases[tournament.phases.length - 1]).forEach(p => add(p.team, p.placement));
 
   // Teams eliminated in earlier phases — order by Swiss/group standings (bilans matters).
   getPreFinalEliminatedOrder(tournament.phases).forEach(team => add(team, out.length + 1));

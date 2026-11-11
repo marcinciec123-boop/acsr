@@ -1,3 +1,4 @@
+import { playedMaps } from "@/lib/matchStatus";
 import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState } from "react";
 import { BarChart3, Trophy, Target, Skull, Zap, Filter, X, Map as MapIcon, Clock, Crosshair, Layers } from "lucide-react";
@@ -99,7 +100,7 @@ export const TournamentStatsPanel = ({ tournament }: Props) => {
       t1.mapsWon += m.score1; t1.mapsLost += m.score2;
       t2.mapsWon += m.score2; t2.mapsLost += m.score1;
 
-      for (const map of m.maps || []) {
+      for (const map of playedMaps(m.maps, m.bo)) {
         t1.roundsWon += map.score1; t1.roundsLost += map.score2;
         t2.roundsWon += map.score2; t2.roundsLost += map.score1;
         const totalRounds = (map.score1 || 0) + (map.score2 || 0);
