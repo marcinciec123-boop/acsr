@@ -32,6 +32,9 @@ describe("isolated match editing", () => {
     expect(result.current.match).toEqual({ ...match, bo: 1, scheduledAt: "2026-11-09T19:30", score1: 1, maps: maps.slice(0, 1) });
     act(() => vi.advanceTimersByTime(400));
     expect(saveToStorage).toHaveBeenLastCalledWith(matchDraftKey("t1", "m1"), expect.objectContaining({ match: result.current.match }));
+    rerender({ committed: { ...match, bo: 3 } });
+    expect(result.current.match.maps).toEqual(maps.slice(0, 1));
+    expect(result.current.match.score1).toBe(1);
     unmount();
   });
   it("trims a confirmed BO5 to BO3 without publishing draft stats or changing other matches", () => {

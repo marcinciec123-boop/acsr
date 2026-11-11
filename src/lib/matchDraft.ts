@@ -60,6 +60,12 @@ export function useMatchDraft(committed: MatchResult, tournamentId?: string) {
   const committedRef = useRef(committed);
   committedRef.current = committed;
 
+  useEffect(() => {
+    const next = withMetadata(latest.current, committedRef.current);
+    latest.current = next;
+    setMatch(next);
+  }, [committed.bo, committed.scheduledAt]);
+
   const flush = () => {
     if (dirty.current) saveToStorage(key, { base: baseRef.current, match: withMetadata(latest.current, committedRef.current) });
   };
