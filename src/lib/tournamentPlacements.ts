@@ -2,7 +2,7 @@ import type { MatchResult, TournamentPhase } from "./types";
 import { computeGroupStandings } from "./tournamentBuilder";
 import { computeSwissStage } from "./swissEngine";
 import { isMatchDecided } from "./matchStatus";
-import { isThirdPlaceRound } from "./bracketRounds";
+import { isThirdPlaceRound, matchSide } from "./bracketRounds";
 
 const isReal = (s?: string): s is string => !!s && s !== "BYE" && s !== "TBD" && !s.startsWith("TBD");
 const winnerOf = (m: MatchResult) => isReal(m.team1) && isReal(m.team2) && isMatchDecided(m) ? (m.score1 > m.score2 ? m.team1 : m.team2) : "";
@@ -44,6 +44,15 @@ export function finalPhasePlacements(phase: TournamentPhase | undefined): Placed
   const finalRound = main.find(r => /grand\s*final/i.test(r)) || main.find(r => /^final$/i.test(r)) || main.find(r => /final/i.test(r)) || main[main.length - 1];
   bracket.filter(m => (m.round || "Match") === finalRound).forEach(m => { add(winnerOf(m), 1); add(loserOf(m), 2); });
   if (third) bracket.filter(m => m.round === third).forEach(m => { add(winnerOf(m), 3); add(loserOf(m), 4); });
+  // Double elimination: only lower-bracket losses eliminate (Lower Final loser = sole 3rd place).
+  const lowerRounds = main.filter(r => r !== finalRound && bracket.some(m => (m.round || "Match") === r && matchSide(m) === "lower"));
+  if (lowerRounds.length) {
+    for (let i = lowerRounds.length - 1; i >= 0; i--) {
+      const p = out.length + 1;
+      bracket.filter(m => (m.round || "Match") === lowerRounds[i] && matchSide(m) === "lower").forEach(m => add(loserOf(m), p));
+    }
+    return out;
+  }
   const semi = main.find(r => /semi|półfina/i.test(r));
   if (semi) { const p = out.length + 1; bracket.filter(m => m.round === semi).forEach(m => add(loserOf(m), p)); }
   for (let i = main.length - 1; i >= 0; i--) {
