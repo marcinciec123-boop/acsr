@@ -61,6 +61,8 @@ const medalFor = (place: number) => {
 
 export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: Props) => {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [awardsDraft, setAwardsDraft] = useState(tournament.awards || {});
   const [editingAwards, setEditingAwards] = useState(false);
 
@@ -131,11 +133,43 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
     [placements.length, tournament],
   );
 
-  if (tournament.status !== "completed" || placements.length === 0) return null;
+  if (tournament.status !== "completed") {
+    const count = Math.max(tournament.teams || 0, tournament.participants?.length || 0);
+    if (count === 0) return null;
+    const rows = Array.from({ length: count }, (_, i) => i + 1)
+      .map(place => ({ place, prize: prizeMap[place] || 0, points: resolvePoints(tournament, place) }))
+      .filter(r => r.prize > 0 || r.points > 0);
+    if (rows.length === 0) return null;
+    return (
+      <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
+        <button type="button" onClick={() => setPreviewOpen(o => !o)} className="w-full px-4 py-2.5 bg-secondary/40 flex items-center gap-2 text-left">
+          <DollarSign className="w-4 h-4 text-primary" />
+          <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">Nagrody za miejsca</h3>
+          <span className="ml-auto text-xs font-mono text-muted-foreground">pula {tournament.prizePool || "$0"}</span>
+          {previewOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {previewOpen && (
+          <div className="grid grid-cols-[60px_1fr_1fr] gap-x-2 px-4 py-2 text-xs font-mono border-t border-border">
+            <div className="text-muted-foreground uppercase">Miejsce</div>
+            <div className="text-right text-muted-foreground uppercase">Pkt VRS</div>
+            <div className="text-right text-muted-foreground uppercase">Wygrana</div>
+            {rows.map(r => (
+              <div key={r.place} className="contents">
+                <div className="py-0.5 text-foreground">#{r.place}</div>
+                <div className="py-0.5 text-right text-primary">{r.points > 0 ? `+${r.points}` : "—"}</div>
+                <div className="py-0.5 text-right text-[hsl(var(--gold))]">{r.prize > 0 ? formatMoney(r.prize) : "—"}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (placements.length === 0) return null;
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
-      <div className="px-4 py-3 border-b border-border bg-secondary/40 flex items-center gap-2">
+      <button type="button" onClick={() => setPanelOpen(o => !o)} className="w-full text-left px-4 py-3 border-b border-border bg-secondary/40 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-primary" />
         <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">
           Pełne rezultaty końcowe
@@ -143,8 +177,10 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
         <span className="ml-auto text-xs font-mono text-muted-foreground">
           {placements.length} miejsc • pula {tournament.prizePool || "$0"}
         </span>
-      </div>
+        {panelOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      </button>
 
+      {panelOpen && (<>
       <div className="hidden md:grid grid-cols-[70px_1fr_90px_110px_120px_36px] gap-2 px-4 py-2 bg-background/40 border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground">
         <div className="text-center">Miejsce</div>
         <div>Drużyna i skład</div>
@@ -247,6 +283,7 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
           );
         })}
       </div>
+      </>)}
 
       {/* === Awards / Wyróżnienia === */}
       {tournament.resultsConfirmed && (
