@@ -1,10 +1,10 @@
 import { isMatchDecided } from "@/lib/matchStatus";
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Sparkles, Star, TrendingUp, Users } from "lucide-react";
+import { Award, ChevronDown, ChevronUp, Crown, DollarSign, Medal, Minus, Pencil, Sparkles, Star, TrendingUp, Users } from "lucide-react";
 import type { MapPlayerStats, MatchResult, TeamData, TournamentData } from "@/lib/types";
 import { teamDatabase } from "@/data/tournaments";
-import { resolvePoints } from "@/lib/customPoints";
+import { resolvePoints, canEditQualifierPoints, qualifierPointsPatch } from "@/lib/customPoints";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
 import { finalPhasePlacements } from "@/lib/tournamentPlacements";
 import { TeamLink } from "@/lib/profileNav";
@@ -65,6 +65,10 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [awardsDraft, setAwardsDraft] = useState(tournament.awards || {});
   const [editingAwards, setEditingAwards] = useState(false);
+  const [editingPoints, setEditingPoints] = useState(false);
+  const [pointsDraft, setPointsDraft] = useState<Record<string, number>>({});
+
+  useEffect(() => { setEditingPoints(false); }, [tournament.id, tournament.status]);
 
   useEffect(() => { setAwardsDraft(tournament.awards || {}); }, [tournament.awards, tournament.id]);
 
@@ -136,18 +140,32 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
   if (tournament.status !== "completed") {
     const count = Math.max(tournament.teams || 0, tournament.participants?.length || 0);
     if (count === 0) return null;
+    const canEditPoints = !!onUpdateTournament && canEditQualifierPoints(tournament);
     const rows = Array.from({ length: count }, (_, i) => i + 1)
       .map(place => ({ place, prize: prizeMap[place] || 0, points: resolvePoints(tournament, place) }))
-      .filter(r => r.prize > 0 || r.points > 0);
-    if (rows.length === 0) return null;
+      .filter(r => editingPoints || r.prize > 0 || r.points !== 0);
+    if (rows.length === 0 && !canEditPoints) return null;
     return (
       <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
-        <button type="button" onClick={() => setPreviewOpen(o => !o)} className="w-full px-4 py-2.5 bg-secondary/40 flex items-center gap-2 text-left">
+        <div className="flex flex-wrap items-center bg-secondary/40">
+        <Button variant="ghost" type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen(o => !o)} className="flex-1 min-w-0 h-auto rounded-none px-4 py-2.5 flex items-center gap-2 text-left justify-start">
           <DollarSign className="w-4 h-4 text-primary" />
           <h3 className="text-xs font-heading font-bold uppercase text-primary tracking-wider">Nagrody za miejsca</h3>
           <span className="ml-auto text-xs font-mono text-muted-foreground">pula {tournament.prizePool || "$0"}</span>
           {previewOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </button>
+        </Button>
+        {canEditPoints && !editingPoints && (
+          <Button variant="ghost" size="sm" className="mx-2 h-8 text-xs" onClick={() => {
+            const initial = { ...tournament.customPoints };
+            for (let place = 1; place <= count; place++) initial[String(place)] = resolvePoints(tournament, place);
+            setPointsDraft(initial);
+            setEditingPoints(true);
+            setPreviewOpen(true);
+          }}>
+            <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edytuj punkty VRS
+          </Button>
+        )}
+        </div>
         {previewOpen && (
           <div className="grid grid-cols-[60px_1fr_1fr] gap-x-2 px-4 py-2 text-xs font-mono border-t border-border">
             <div className="text-muted-foreground uppercase">Miejsce</div>
@@ -156,10 +174,34 @@ export const TournamentFinalResultsPanel = ({ tournament, onUpdateTournament }: 
             {rows.map(r => (
               <div key={r.place} className="contents">
                 <div className="py-0.5 text-foreground">#{r.place}</div>
-                <div className="py-0.5 text-right text-primary">{r.points > 0 ? `+${r.points}` : "—"}</div>
+                <div className="py-0.5 text-right text-primary">
+                  {editingPoints && canEditPoints ? (
+                    <Input type="number" step="1" aria-label={`Punkty VRS za ${r.place}. miejsce`} value={pointsDraft[String(r.place)] ?? ""}
+                      placeholder={String(r.points)} className="ml-auto h-7 max-w-28 text-right text-xs font-mono"
+                      onChange={e => {
+                        const value = e.target.value;
+                        setPointsDraft(previous => {
+                          const next = { ...previous };
+                          if (value === "") delete next[String(r.place)];
+                          else if (Number.isFinite(Number(value))) next[String(r.place)] = Math.trunc(Number(value));
+                          return next;
+                        });
+                      }} />
+                  ) : r.points > 0 ? `+${r.points}` : r.points < 0 ? r.points : "—"}
+                </div>
                 <div className="py-0.5 text-right text-[hsl(var(--gold))]">{r.prize > 0 ? formatMoney(r.prize) : "—"}</div>
               </div>
             ))}
+            {editingPoints && canEditPoints && (
+              <div className="col-span-3 flex justify-end gap-2 pt-3">
+                <Button size="sm" variant="ghost" onClick={() => setEditingPoints(false)}>Anuluj</Button>
+                <Button size="sm" onClick={() => {
+                  if (!onUpdateTournament || !canEditQualifierPoints(tournament)) return;
+                  onUpdateTournament(qualifierPointsPatch(tournament, pointsDraft));
+                  setEditingPoints(false);
+                }}>Zapisz punkty VRS</Button>
+              </div>
+            )}
           </div>
         )}
       </div>

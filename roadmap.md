@@ -1,5 +1,7 @@
 # Roadmap — duże ilości danych (5+ lat)
 
+- [ ] Kwalifikacje: zachowanie własnych punktów i nagród oraz edycja VRS w oczekujących/trwających turniejach dowolnego zapisu, bez zmian zakończonych.
+
 - [x] Dostrojenie postów AI: głosy autorów, różne formy, przykłady stylu i fakty meczowe; komentarze bez zmian.
 
 - [ ] Bezstratna kompresja plików w AppData, zgodność ze starymi zapisami i aktualny eksport z grafikami.

@@ -15,3 +15,22 @@ export const getDefaultPoints = (
   placement: number,
   format: "knockout" | "league" = "knockout",
 ): number => getPointsForPlacement(tier, placement, format);
+
+/** Copy configured rewards for both single and regional tournaments, including qualifiers. */
+export const configuredRewards = (
+  pointsEnabled: boolean,
+  points: Record<string, number>,
+  prizesEnabled: boolean,
+  prizes: Record<string, number>,
+): Pick<TournamentData, "customPoints" | "customPrizes"> => ({
+  customPoints: pointsEnabled ? { ...points } : undefined,
+  customPrizes: prizesEnabled ? { ...prizes } : undefined,
+});
+
+export const canEditQualifierPoints = (t: TournamentData): boolean =>
+  t.kind === "qualifier" && !t.resultsConfirmed && (t.status === "upcoming" || t.status === "live");
+
+export const qualifierPointsPatch = (
+  t: TournamentData,
+  points: Record<string, number>,
+): Partial<TournamentData> => canEditQualifierPoints(t) ? { customPoints: { ...points } } : {};

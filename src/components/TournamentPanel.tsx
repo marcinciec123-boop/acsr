@@ -19,7 +19,7 @@ import { saveToStorage, saveToStorageAsync, loadFromStorage } from "@/lib/storag
 import { getPointsForPlacement, teamDatabase, regionNames } from "@/data/tournaments";
 import { loadArchivedTeams } from "@/lib/teamManagement";
 import { nameChanges } from "@/data/history";
-import { resolvePoints, getDefaultPoints } from "@/lib/customPoints";
+import { resolvePoints, getDefaultPoints, configuredRewards, qualifierPointsPatch } from "@/lib/customPoints";
 import { distributePrizePool, formatMoney, parsePrizePool } from "@/lib/prizeDistribution";
 import { buildPhase, buildSwissRound1, formatLabel, shuffle, propagateGSLDEGroup, propagateGSL4Group, distributeIntoGroups, rebuildGroupMatches, normalizeGSLDoubleElimGroup, LEAGUE_SIZES } from "@/lib/tournamentBuilder";
 import { getPreFinalEliminatedOrder } from "@/lib/phaseWinners";
@@ -438,6 +438,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
           participants: regionTeams,
           phases,
           placements: [],
+          ...configuredRewards(customPointsEnabled, customPoints, customPrizesEnabled, customPrizes),
           kind: "qualifier",
           qualifierConfig: {
             scope: "regional",
@@ -501,8 +502,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
       placements: [],
       kind: isQualifier ? "qualifier" : "main",
       qualifierConfig,
-      customPoints: !isQualifier && customPointsEnabled ? customPoints : undefined,
-      customPrizes: !isQualifier && customPrizesEnabled ? customPrizes : undefined,
+      ...configuredRewards(customPointsEnabled, customPoints, customPrizesEnabled, customPrizes),
     };
     setTournaments(prev => [t, ...prev]);
     resetForm();
@@ -937,7 +937,12 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
   };
 
   const handleUpdateTournament = (id: string, patch: Partial<TournamentData>) => {
-    setTournaments(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    setTournaments(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      if (t.kind !== "qualifier" || !("customPoints" in patch)) return { ...t, ...patch };
+      const { customPoints: points, ...rest } = patch;
+      return { ...t, ...rest, ...qualifierPointsPatch(t, points ?? {}) };
+    }));
   };
 
   const handlePromoteWinners = (qualifierId: string, winners: string[], targetId: string) => {
