@@ -14,6 +14,8 @@ import { getWorldNowIso, getWorldDate } from "./worldClock";
 import { isRepeatedNews, type NewsText } from "./newsUniqueness";
 import type { TemplateResult } from "./newsExtras";
 import { newsAiError } from "./newsAiError";
+import { allMatchesOf, matchMvp, loadTournaments } from "./newsExtras";
+import { isMatchDecided, playedMaps } from "./matchStatus";
 
 const NEWS_KEY = "news_posts";
 
@@ -190,13 +192,29 @@ export async function generateAIRumors(
 }
 
 /** Template generation returns a draft, never publishes before the user's confirmation. */
-export async function generateNewsDraft(template: TemplateResult, instructions: string): Promise<{ ok: boolean; post?: { title: string; content: string; category: string }; error?: string }> {
+export async function generateNewsDraft(template: TemplateResult, instructions: string, editorial?: string): Promise<{ ok: boolean; post?: { title: string; content: string; category: string }; error?: string }> {
   try {
+    const matchEmbeds = template.embeds?.filter(e => e.kind === "match") || [];
+    const tournaments = matchEmbeds.length ? loadTournaments() : [];
+    const facts = matchEmbeds.flatMap(embed => {
+      if (embed.kind !== "match") return [];
+      const tournament = tournaments.find(t => t.id === embed.tournamentId);
+      const match = tournament && allMatchesOf(tournament).find(m => m.id === embed.matchId);
+      if (!match || !isMatchDecided(match)) return [];
+      const label = `${tournament?.name}: ${match.team1} ${match.score1}:${match.score2} ${match.team2}`;
+      if (match.walkover) return [`${label} — walkower, nie rozegrano map ani statystyk.`];
+      const maps = playedMaps(match.maps || [], match.bo || 3)
+        .filter(m => m.score1 !== m.score2)
+        .map(m => `${m.map} ${m.score1}:${m.score2}`).join(", ");
+      const star = matchMvp(match);
+      return [`${label}. Rozegrane mapy (wyniki w kolejności drużyn): ${maps || "brak danych"}.${star ? ` Najwyższy średni rating z map tego meczu: ${star.name} (${star.team}), ${star.rating.toFixed(2)}; K/D ${star.kills}/${star.deaths}, średnie ADR ${star.adr.toFixed(1)}. To wyróżnienie statystyczne, nie oficjalna nagroda MVP.` : ""}`];
+    });
     const { data, error } = await supabase.functions.invoke("generate-news", { body: {
       topTeams: [], recentTransfers: [], tournaments: [], count: 1, mode: instructions.includes("FANPAGE") ? "fanpage" : "mixed",
-      context: `Opracuj szkic na podstawie tych faktów, nie zmieniaj ani nie dopisuj wyników, transferów, nazw i dat.\n${template.title}\n${template.content}`,
+      context: `Opracuj szkic na podstawie tych faktów, nie zmieniaj ani nie dopisuj wyników, transferów, nazw i dat.\n${template.title}\n${template.content}${facts.length ? `\nDODATKOWE FAKTY Z ZAPISANYCH MECZÓW:\n${facts.join("\n")}` : ""}`,
       templateDraft: { title: template.title, content: template.content, category: template.category },
       writingInstructions: instructions,
+      editorial: editorial?.trim().slice(0, 200) || undefined,
       recentPosts: loadPosts().slice(0, 40).map(p => ({ title: p.title || "", content: p.content.slice(0, 1200) })),
     } });
     if (error) return { ok: false, error: await newsAiError(error) };

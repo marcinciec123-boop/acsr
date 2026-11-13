@@ -1,6 +1,6 @@
 # Roadmap — duże ilości danych (5+ lat)
 
-- [ ] Dostrojenie postów AI: głosy autorów, różne formy, przykłady stylu i fakty meczowe; komentarze bez zmian.
+- [x] Dostrojenie postów AI: głosy autorów, różne formy, przykłady stylu i fakty meczowe; komentarze bez zmian.
 
 - [ ] Bezstratna kompresja plików w AppData, zgodność ze starymi zapisami i aktualny eksport z grafikami.
 

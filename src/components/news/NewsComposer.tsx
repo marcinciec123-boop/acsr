@@ -126,7 +126,7 @@ const NewsComposer = memo(({ initial, editing, categories, categoryLabel, onSubm
     if (!result) { toast.error("Uzupełnij wybór dla szablonu."); return; }
     setBusy(true);
     try {
-      const response = await generateNewsDraft(result, writingInstructions(style, length));
+      const response = await generateNewsDraft(result, writingInstructions(style, length), d.author);
       if (response.ok && response.post) applyTemplate({ ...result, ...response.post });
       else toast.error(response.error || "Nie udało się wygenerować tekstu.");
     } finally { setBusy(false); }

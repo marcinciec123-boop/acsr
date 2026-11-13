@@ -6,7 +6,7 @@ import { playerRoles } from "@/data/playerRoles";
 export type WritingStyle = "news" | "analysis" | "column" | "light" | "fanpage";
 export type WritingLength = "short" | "medium" | "long";
 export const writingInstructions = (style: WritingStyle, length: WritingLength) =>
-  `Styl: ${({ news: "rzeczowa notka reporterska", analysis: "analiza oparta na faktach", column: "felieton z wyraźnie oddzieloną opinią", light: "lekki język i subtelny humor", fanpage: "FANPAGE — post właściciela fanpage'a: pierwsza osoba, emocje, slang, wulgaryzmy dozwolone" })[style]}. Długość: ${({ short: "2–3 zdania", medium: "4–6 zdań", long: "8–10 zdań w 2–3 akapitach" })[length]}.`;
+  `Styl: ${({ news: "rzeczowa depesza: najważniejszy fakt w pierwszym zdaniu, bez PR-owej puenty", analysis: "sceptyczna analiza: wybierz liczby, porównaj je i oddziel interpretację od faktów", column: "felieton: wyrazista teza, konkretny argument i sucha ironia; opinia oddzielona od faktów", light: "bezpośredni język sceny CS-a, celna obserwacja i subtelny humor zamiast sztucznego hype'u", fanpage: "FANPAGE — właściciel fanpage'a: osobisty głos kibica, emocje, slang, wulgaryzmy dozwolone; bez obowiązkowego przekleństwa i pytania w każdym poście" })[style]}. Długość: ${({ short: "2–3 zdania", medium: "4–6 zdań", long: "8–10 zdań w 2–3 akapitach" })[length]}. Dobierz własny rytm i zakończenie; nie rozwadniaj skąpych danych ogólnikami.`;
 
 export function tournamentTemplate(t: TournamentData, recap: boolean): TemplateResult {
   const placements = [...(t.placements || [])].sort((a, b) => a.placement - b.placement);
