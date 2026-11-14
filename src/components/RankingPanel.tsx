@@ -122,7 +122,13 @@ const RankingPanel = ({ onSelectTeam, onSelectPlayer }: RankingPanelProps) => {
     window.addEventListener("teams:update", refresh);
     window.addEventListener("players:update", refresh);
     window.addEventListener("freeagents:update", refresh);
-    return () => window.removeEventListener("teams:update", refresh); window.removeEventListener("players:update", refresh); window.removeEventListener("freeagents:update", refresh);
+    window.addEventListener("ranking:update", refresh);
+    return () => {
+      window.removeEventListener("teams:update", refresh);
+      window.removeEventListener("players:update", refresh);
+      window.removeEventListener("freeagents:update", refresh);
+      window.removeEventListener("ranking:update", refresh);
+    };
   }, []);
 
   // Migawka trendów zapisuje się automatycznie przy każdym raporcie tygodniowym.

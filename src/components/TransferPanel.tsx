@@ -476,7 +476,7 @@ const TransferPanel = () => {
           skipDuplicateCheck: true,
           // Odstępne ląduje na zamykanym kontrakcie — finanse księgują je
           // jako sprzedaż (drużyna sprzedająca) i zakup (kupująca).
-          transferFee: transferFrom !== "-" && existingContract ? feeNum : undefined,
+          transferFee: transferFrom !== "-" && transferTo !== "-" ? feeNum : undefined,
         },
       );
       if (!res.ok) {
@@ -484,7 +484,7 @@ const TransferPanel = () => {
       }
     }
 
-    const feeLabel = transferFrom !== "-" && transferTo !== "-" && existingContract && feeNum > 0
+    const feeLabel = transferFrom !== "-" && transferTo !== "-" && feeNum > 0
       ? ` (odstępne: ${formatSalary(feeNum)})`
       : "";
     recordChange(
@@ -720,7 +720,7 @@ const TransferPanel = () => {
                     </div>
                   )}
 
-                  {transferPlayer && transferFrom !== "-" && transferTo !== "-" && existingContract && (
+                  {transferPlayer && transferFrom !== "-" && transferTo !== "-" && (
                     <div className="rounded border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-2">
                       <p className="text-xs font-mono uppercase tracking-wider text-amber-400">Kwota transferu / odstępne</p>
                       <div className="flex items-center gap-2">

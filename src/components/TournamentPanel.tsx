@@ -203,6 +203,16 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
     void import("@/lib/rankingHistory").then(({ synchronizeRankingHistory }) => synchronizeRankingHistory());
   }, []);
 
+  // Zewnętrzne zmiany (np. walkowery po rozwiązaniu drużyny) — synchronizuj listę.
+  useEffect(() => {
+    const sync = () => {
+      const stored = loadFromStorage<TournamentData[] | null>(STORAGE_KEY, null);
+      if (stored) setTournaments(prev => (prev === stored ? prev : stored));
+    };
+    window.addEventListener("tournaments:update", sync);
+    return () => window.removeEventListener("tournaments:update", sync);
+  }, []);
+
   // Live ranking data (used for sorting & rank labels in team picker)
   const [liveRanking, setLiveRanking] = useState<TeamData[]>(loadLiveRanking);
 

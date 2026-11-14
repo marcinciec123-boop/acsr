@@ -75,8 +75,10 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
     const perGroup = phase.advanceCount && phase.groups.length > 0
       ? Math.max(1, Math.ceil(phase.advanceCount / phase.groups.length))
       : 2;
-    const winners: string[] = [];
+    const lists: string[][] = [];
     phase.groups.forEach(g => {
+      const winners: string[] = [];
+      lists.push(winners);
       if (phase.format === "gsl-de-groups") {
         const by = (slot: string) => g.matches.find(m => m.bracketSlot === slot);
         const winnerBySlot = (slot: string) => {
@@ -100,7 +102,20 @@ export function computePhaseWinners(phase: TournamentPhase): string[] {
         if (isReal(s.team) && !winners.includes(s.team)) winners.push(s.team);
       });
     });
-    return winners;
+    // Cross-seeding: A1 vs B2, B1 vs A2 — bez rewanżów z tej samej grupy.
+    const G = lists.length;
+    const out: string[] = [];
+    const push = (t?: string) => { if (t && !out.includes(t)) out.push(t); };
+    if (G >= 2 && perGroup % 2 === 0) {
+      for (let k = 0; k < perGroup / 2; k++) {
+        for (let g = 0; g < G; g++) {
+          push(lists[g][k]);
+          push(lists[(g + 1) % G][perGroup - 1 - k]);
+        }
+      }
+    }
+    lists.forEach(l => l.forEach(push));
+    return out;
   }
 
   // BRACKET (single / double elim / showmatch)

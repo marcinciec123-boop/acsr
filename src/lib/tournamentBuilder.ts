@@ -639,14 +639,14 @@ export const computeGroupStandings = (group: PhaseGroup): GroupStanding[] => {
   return Array.from(standings.values()).sort((a, b) => {
     // 1. Liczba zwycięstw (mecze wygrane)
     if (b.wins !== a.wins) return b.wins - a.wins;
-    // 2. Bilans rund (in-game CS rounds diff)
-    if (b.roundDiff !== a.roundDiff) return b.roundDiff - a.roundDiff;
-    // 3. Bezpośrednie starcie
+    // 2. Bezpośrednie starcie
     const aOverB = h2h[a.team]?.[b.team] || 0;
     const bOverA = h2h[b.team]?.[a.team] || 0;
     if (aOverB !== bOverA) return bOverA - aOverB;
-    // Fallback: różnica map, potem alfabet
+    // 3. Różnica map
     if (b.mapDiff !== a.mapDiff) return b.mapDiff - a.mapDiff;
+    // 4. Bilans rund (in-game CS rounds diff)
+    if (b.roundDiff !== a.roundDiff) return b.roundDiff - a.roundDiff;
     return a.team.localeCompare(b.team);
   });
 };

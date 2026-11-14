@@ -300,8 +300,8 @@ export const SwissView = ({
 
 
   const handleGenerate = () => {
-    const plan = planNextSwissRound(stage, { defaultBo: bo === 1 ? 1 : 1, decisiveBo: 3 });
-    if (plan.error || plan.pairings.length === 0) return;
+    const plan = planNextSwissRound(stage, { defaultBo: (bo ?? 1) as 1 | 3 | 5, decisiveBo: 3 });
+    if (plan.error || (plan.pairings.length === 0 && plan.byes.length === 0)) return;
     const label = swissRoundLabel(plan.round);
     // Wypełniamy istniejące sloty TBD, dopasowując je po BILANSIE (np. 2-0),
     // a nie po godzinie — dzięki temu terminy ustawione dla meczów 1-1 zostają
@@ -322,6 +322,8 @@ export const SwissView = ({
         leftovers.push({ team1: p.team1, team2: p.team2, bo: p.bo, round: label });
       }
     });
+    // Wolny los — mecz z BYE, rozstrzygany automatycznie na korzyść drużyny.
+    plan.byes.forEach(team => leftovers.push({ team1: team, team2: "BYE", bo: 1, round: label }));
     // Niewykorzystane sloty (np. mniej par niż projekcja) — usuń, żeby nie zostawały puste TBD.
     if (onDelete) pool.forEach(m => onDelete(m.id));
     if (leftovers.length) onGenerateNextRound(leftovers);
