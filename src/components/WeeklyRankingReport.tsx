@@ -144,8 +144,10 @@ const WeeklyRankingReport = () => {
           {report && (
             <details className="text-xs">
               <summary className="cursor-pointer font-mono text-muted-foreground hover:text-foreground">Pełne Top 30 tygodnia</summary>
-              <div className="mt-2 grid sm:grid-cols-2 gap-x-6">
-                {report.entries.slice(0, 30).map(e => {
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                {[report.entries.slice(0, 15), report.entries.slice(15, 30)].map((entries, column) => (
+                <div key={column} className="min-w-0">
+                {entries.map(e => {
                   const d = e.prevRank === null ? null : e.prevRank - e.rank;
                   return (
                     <div key={e.team} className="flex items-center gap-2 py-0.5">
@@ -159,6 +161,8 @@ const WeeklyRankingReport = () => {
                     </div>
                   );
                 })}
+                </div>
+                ))}
               </div>
             </details>
           )}

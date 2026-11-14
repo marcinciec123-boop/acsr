@@ -1,5 +1,7 @@
 # Roadmap — duże ilości danych (5+ lat)
 
+- [x] Top 30 w kolumnach 1–15 / 16–30; pionowa kolejność rozstawienia i wyboru drużyn; wieloregionowy filtr łączony z wyszukiwaniem i sortowaniem.
+
 - [ ] Kwalifikacje: zachowanie własnych punktów i nagród oraz edycja VRS w oczekujących/trwających turniejach dowolnego zapisu, bez zmian zakończonych.
 
 - [x] Dostrojenie postów AI: głosy autorów, różne formy, przykłady stylu i fakty meczowe; komentarze bez zmian.

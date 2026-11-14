@@ -166,6 +166,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
   /** Łączna liczba miejsc w turnieju (0 = tyle, ile wybranych drużyn). */
   const [totalSlots, setTotalSlots] = useState<number>(0);
   const [teamSearch, setTeamSearch] = useState("");
+  const [teamRegionFilter, setTeamRegionFilter] = useState<string[]>([]);
 
   const [teamSort, setTeamSort] = useState<"name" | "rank" | "points-desc" | "points-asc" | "region" | "country">("rank");
 
@@ -250,9 +251,14 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
     [liveRanking, archivedSet]
   );
 
+  const availableTeamRegions = useMemo(() =>
+    Array.from(new Set(allTeams.map(name => teamMeta.get(name)?.region).filter((region): region is string => !!region))).sort(),
+    [allTeams, teamMeta]);
+
   const filteredTeams = useMemo(() => {
     const q = teamSearch.toLowerCase();
-    const filtered = allTeams.filter(n => n.toLowerCase().includes(q));
+    const filtered = allTeams.filter(n => n.toLowerCase().includes(q) &&
+      (teamRegionFilter.length === 0 || teamRegionFilter.includes(teamMeta.get(n)?.region ?? "")));
     const sorted = [...filtered];
     sorted.sort((a, b) => {
       const ma = teamMeta.get(a); const mb = teamMeta.get(b);
@@ -267,7 +273,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
       }
     });
     return sorted;
-  }, [allTeams, teamSearch, teamSort, rankMap, teamMeta]);
+  }, [allTeams, teamSearch, teamSort, teamRegionFilter, rankMap, teamMeta]);
 
   const resetForm = () => {
     setNewName(""); setNewOrg(""); setNewPrize(""); setNewStart(getWorldDate()); setNewEnd(getWorldDate());
@@ -275,6 +281,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
     setCustomPointsEnabled(false); setCustomPoints({});
     setCustomPrizesEnabled(false); setCustomPrizes({});
     setSelectedTeams([]); setTotalSlots(0); setTeamSearch("");
+    setTeamRegionFilter([]);
     setPhaseDrafts([{ name: "Playoffs", format: "single-elim", bo: 3, groupCount: 1, advanceCount: 0, seededCount: 0, teamCount: 0 }]);
     setIsQualifier(false);
     setQualScope("regional");
@@ -1303,7 +1310,11 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                       Rozstawienie (kolejność = seed). Użyj ↑↓ aby przesunąć, ✕ aby usunąć:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                      {selectedTeams.map((t, i) => (
+                      {[selectedTeams.slice(0, Math.ceil(selectedTeams.length / 2)), selectedTeams.slice(Math.ceil(selectedTeams.length / 2))].map((teams, column) => (
+                      <div key={column} className="min-w-0 space-y-1">
+                      {teams.map((t, index) => {
+                        const i = index + column * Math.ceil(selectedTeams.length / 2);
+                        return (
                         <div
                           key={t}
                           className="flex items-center gap-1 bg-card border border-border rounded px-2 py-1"
@@ -1334,11 +1345,13 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                             <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
+                      ); })}
+                      </div>
                       ))}
                     </div>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Input
                     placeholder={`Szukaj drużyny... (${filteredTeams.length}/${allTeams.length})`}
                     value={teamSearch}
@@ -1359,6 +1372,18 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                     <option value="country">Sort: Kraj</option>
                   </select>
                 </div>
+                <div className="flex flex-wrap items-center gap-2" aria-label="Filtr regionów">
+                  <Button type="button" size="sm" variant={teamRegionFilter.length === 0 ? "default" : "outline"}
+                    onClick={() => setTeamRegionFilter([])}>Wszystkie regiony</Button>
+                  {availableTeamRegions.map(region => (
+                    <label key={region} className="flex items-center gap-1.5 text-xs font-mono text-foreground cursor-pointer">
+                      <input type="checkbox" checked={teamRegionFilter.includes(region)}
+                        onChange={() => setTeamRegionFilter(prev => prev.includes(region) ? prev.filter(r => r !== region) : [...prev, region])}
+                        className="accent-primary" />
+                      {regionNames[region] || region}
+                    </label>
+                  ))}
+                </div>
                 <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                   <span>Pokazano: {filteredTeams.length}</span>
                   <div className="flex gap-2">
@@ -1378,7 +1403,8 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                     </button>
                   </div>
                 </div>
-                <div className="max-h-[420px] overflow-y-auto border border-border rounded-md p-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 bg-card/50">
+                <div className="max-h-[420px] overflow-y-auto border border-border rounded-md p-2 bg-card/50">
+                <div className="columns-2 sm:columns-3 lg:columns-4 gap-1">
                   {filteredTeams.map(name => {
                     const checked = selectedTeams.includes(name);
                     const meta = teamMeta.get(name);
@@ -1389,7 +1415,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                         type="button"
                         onClick={() => toggleTeam(name)}
                         className={cn(
-                          "text-xs text-left px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1.5 min-w-0",
+                          "text-xs text-left px-2 py-1.5 rounded font-mono transition-colors flex items-center gap-1.5 min-w-0 w-full break-inside-avoid mb-1",
                           checked
                             ? "bg-primary/20 text-primary border border-primary/40"
                             : "bg-secondary/30 text-muted-foreground hover:bg-secondary/60 border border-transparent"
@@ -1408,6 +1434,7 @@ const TournamentPanel = ({ selection, onNavigate, onBack }: TournamentPanelProps
                       </button>
                     );
                   })}
+                </div>
                   {filteredTeams.length === 0 && (
                     <p className="col-span-full text-center text-xs font-mono text-muted-foreground py-6">
                       Brak drużyn pasujących do filtra.
