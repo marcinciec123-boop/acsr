@@ -1,3 +1,4 @@
+import { useVisibleDataTick } from "@/hooks/useVisibleDataTick";
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Crown, ChevronDown, Search } from "lucide-react";
 import TeamLogo from "@/components/TeamLogo";
@@ -92,15 +93,7 @@ const RecordCard = ({ r, isNew }: { r: RecordDef; isNew?: boolean }) => {
 
 const RecordBookPanel = () => {
   // Keep-alive: przelicz rekordy przy każdej zmianie danych i po sprawdzeniu rekordów.
-  const [dataTick, setDataTick] = useState(0);
-  useEffect(() => {
-    const bump = () => setDataTick(t => t + 1);
-    // Odświeżamy tylko po faktycznym sprawdzeniu rekordów (strażnik) —
-    // nie przy każdym zapisie danych, bo pełne przeliczenie jest ciężkie.
-    const events = ["records:update", "storage"];
-    events.forEach(e => window.addEventListener(e, bump));
-    return () => events.forEach(e => window.removeEventListener(e, bump));
-  }, []);
+  const [dataTick, rootRef] = useVisibleDataTick<HTMLElement>(["records:update", "storage"]);
 
   const records = useMemo(() => computeRecordBook(), [dataTick]);
   const recent = useMemo(() => getRecentlyBroken(), [dataTick]);
@@ -116,7 +109,7 @@ const RecordBookPanel = () => {
   });
 
   return (
-    <section className="mb-8">
+    <section ref={rootRef} className="mb-8">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h3 className="flex items-center gap-2 text-lg font-heading font-bold text-foreground">
           <BookOpen className="w-5 h-5 text-primary" /> Księga Rekordów ACSR

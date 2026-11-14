@@ -1,3 +1,4 @@
+import { useVisibleDataTick } from "@/hooks/useVisibleDataTick";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Trophy, Medal, DollarSign, Users, Gamepad2, Crown } from "lucide-react";
@@ -49,13 +50,7 @@ const StatisticsPanel = () => {
 
   // Panel jest keep-alive (montowany raz), więc odświeżamy dane przy
   // każdej zmianie turniejów / drużyn / rankingu / transferów.
-  const [dataTick, setDataTick] = useState(0);
-  useEffect(() => {
-    const bump = () => setDataTick(t => t + 1);
-    const events = ["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"];
-    events.forEach(e => window.addEventListener(e, bump));
-    return () => events.forEach(e => window.removeEventListener(e, bump));
-  }, []);
+  const [dataTick, rootRef] = useVisibleDataTick<HTMLDivElement>(["tournaments:update", "teams:update", "ranking:update", "transfers:update", "season:reset", "storage"]);
 
   const stats = useMemo(() => computePortalStats(year), [year, dataTick]);
   const tabs = useMemo(() => ["total", ...stats.years], [stats.years]);
@@ -66,7 +61,7 @@ const StatisticsPanel = () => {
   const maxOrg = stats.orgs[0]?.earnings || 1;
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div ref={rootRef} className="container mx-auto px-4 py-6">
       <PanelHeader
         icon={BarChart3}
         title="Statystyki"
