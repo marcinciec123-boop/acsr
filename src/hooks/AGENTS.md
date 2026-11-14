@@ -1,0 +1,1 @@
+- Keep-alive panels with heavy stats refresh via useVisibleDataTick, deferring recomputation while hidden.
